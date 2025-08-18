@@ -159,8 +159,7 @@
       resultText += `- 부동산 종류: ${propertyType}<br>`;
       resultText += `- 시세: ${marketValue.toLocaleString()} 원<br>`;
       resultText += `- 선순위 대출+보증금: ${seniorLoan.toLocaleString()} 원<br><br>`;
-      resultText += `👉 적용 최대 LTV: ${(maxLtvRatio * 100).toFixed(0)}%<br>`;
-      resultText += `👉 현재 LTV(선순위 기준): ${currentLtv.toFixed(1)}%<br>`;
+
       resultText += `👉 ${loanStatus}`;
 
       document.getElementById("resultBox").style.display = "block";
@@ -169,4 +168,5 @@
   </script>
 </body>
 </html>
+
 
