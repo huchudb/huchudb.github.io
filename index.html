@@ -81,6 +81,9 @@
     <label>Step 5. 필요한 대출 금액 (원)</label>
     <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
 
+    <!-- 계산하기 버튼 추가 -->
+    <button onclick="calculateLTV()">계산하기</button>
+    
     <div class="result" id="resultBox" style="display:none;"></div>
   </div>
 
@@ -180,6 +183,7 @@
         message: message
       })
       .then
+
 
 
 
