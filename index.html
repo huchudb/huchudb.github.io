@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>온투업(P2P) 담보대출 계산기</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- SDK 먼저, 둘 다 defer 로드(HTML 파싱 뒤 실행, 순서는 위→아래 보장) -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js" defer></script>
+  <script src="js/main.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <h1>나도 온투업(P2P) 담보대출이 가능할까?</h1>
+    <p class="subtitle">
+      1. 후추DB에 저장된 실제 대출 데이터 기반으로 계산됩니다.<br>
+      2. 본 계산기는 신용점수에 전혀 영향이 없습니다.
+    </p>
+
+    <div class="step">
+      <label>STEP1. 지역을 선택해주세요.</label>
+      <select id="region">
+        <option value="seoul">서울</option>
+        <option value="other">서울 외</option>
+      </select>
+    </div>
+
+    <div class="step">
+      <label>STEP2. 부동산 종류를 선택해주세요.</label>
+      <select id="propertyType">
+        <option value="apartment">아파트</option>
+        <option value="multi">다세대/연립</option>
+        <option value="house">단독/다가구</option>
+        <option value="other">기타</option>
+      </select>
+    </div>
+
+    <div class="step">
+      <label>STEP3. 내가 생각하는 시세는? (원)</label>
+      <input type="text" id="price" placeholder="금액 입력" />
+      <p class="info">
+        아파트는 KB시세(일반가)를 입력하세요 →
+        <a href="https://kbland.kr" target="_blank">[KB시세 바로가기]</a>
+      </p>
+    </div>
+
+    <div class="step">
+      <label>STEP4. 선순위 대출 원금 + 임대보증금 (원)</label>
+      <input type="text" id="seniorDebt" placeholder="금액 입력" />
+    </div>
+
+    <div class="step">
+      <label>(선택사항) STEP4 금액 중 차감할 금액(대환+보증금반환)</label>
+      <input type="text" id="deduction" placeholder="없으면 0 입력" value="0" />
+    </div>
+
+    <div class="step">
+      <label>STEP5. 필요한 대출 금액 (원)</label>
+      <input type="text" id="loanNeed" placeholder="금액 입력" />
+    </div>
+
+    <button id="calculateBtn">계산하기</button>
+    <div id="result"></div>
+
+    <div id="connectSection" style="display:none;">
+      <h2>대출 기관 연결 요청하기</h2>
+      <form id="requestForm">
+        <div class="step">
+          <label>요청 내용 (자동 기재)</label>
+          <textarea id="requestContent" readonly></textarea>
+        </div>
+        <div class="step">
+          <label>추가 내용</label>
+          <textarea id="extraContent" placeholder="대출 기관에서 참고할 만한 사항을 최대한 많이 기재해주세요."></textarea>
+        </div>
+        <button type="submit">입력 완료</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
+
+
+
+
