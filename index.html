@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 800px;
+      max-width: 900px;
       margin: 30px auto;
       padding: 20px;
       border: 1px solid #ddd;
@@ -17,7 +17,7 @@
     }
     h2 { text-align: center; }
     label { font-weight: bold; display: block; margin: 10px 0 5px; }
-    input, select {
+    input, select, textarea, button {
       width: 100%;
       padding: 8px;
       margin-bottom: 15px;
@@ -25,24 +25,9 @@
       border-radius: 8px;
       font-size: 15px;
     }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #2c7be5;
-      color: white;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+    button { background: #2c7be5; color: white; border: none; font-size: 16px; cursor: pointer; }
     button:hover { background: #1a5bb8; }
-    .result {
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      background: #f0f8ff;
-      border: 1px solid #d0e6ff;
-    }
+    .result { margin-top: 20px; padding: 15px; border-radius: 10px; background: #f0f8ff; border: 1px solid #d0e6ff; }
     small { display: block; margin-bottom: 15px; }
     .calculator { flex: 1; }
     .side-design {
@@ -58,7 +43,7 @@
 </head>
 <body>
   <div class="calculator">
-    <h2>🏦 후추 데이터 기반 담보대출 계산기</h2>
+    <h2>🏦 대출 LTV 계산기</h2>
 
     <!-- Step 1 -->
     <label>Step 1. 지역을 선택해주세요</label>
@@ -96,7 +81,6 @@
     <label>Step 5. 필요한 대출 금액 (원)</label>
     <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
 
-    <button onclick="calculateLTV()">계산하기</button>
     <div class="result" id="resultBox" style="display:none;"></div>
   </div>
 
@@ -104,14 +88,17 @@
     <img src="huchu.png" alt="후추 캐릭터">
   </div>
 
-  <script>
-    // 🔹 관리자 설정: 지역/부동산별 최대 LTV 값
+  <!-- EmailJS SDK -->
+  <script type="text/javascript" src="https://cdn.emailjs.com/sdk/3.2.0/email.min.js"></script>
+  <script type="text/javascript">
+    emailjs.init("22FTCISS9zfQspQtj"); // Public Key
+
     const LTV_LIMITS = {
       "서울": { "아파트": 0.73, "다세대/연립": 0.70, "단독/다가구": 0.70, "토지/임야": 0.70 },
       "서울 외": { "아파트": 0.6998, "다세대/연립": 0.6500, "단독/다가구": 0.6500, "토지/임야": 0.4999 }
     };
 
-    // 🔹 3자리 콤마 자동 표시
+    // 3자리 콤마 자동 표시
     function formatNumberInput(id) {
       const input = document.getElementById(id);
       input.addEventListener('input', () => {
@@ -127,7 +114,7 @@
     formatNumberInput('seniorLoan');
     formatNumberInput('requestedLoan');
 
-    // 🔹 계산 함수
+    // LTV 계산 및 결과 표시
     function calculateLTV() {
       const region = document.getElementById("region").value;
       const propertyType = document.getElementById("propertyType").value;
@@ -159,14 +146,42 @@
       resultText += `- 부동산 종류: ${propertyType}<br>`;
       resultText += `- 시세: ${marketValue.toLocaleString()} 원<br>`;
       resultText += `- 선순위 대출+보증금: ${seniorLoan.toLocaleString()} 원<br><br>`;
-
+      resultText += `👉 적용 최대 LTV: ${(maxLtvRatio * 100).toFixed(0)}%<br>`;
+      resultText += `👉 현재 LTV(선순위 기준): ${currentLtv.toFixed(1)}%<br>`;
       resultText += `👉 ${loanStatus}`;
+      resultText += `<br><br><button onclick="showRequestForm()">대출 기관 연결 요청하기</button>`;
 
       document.getElementById("resultBox").style.display = "block";
       document.getElementById("resultBox").innerHTML = resultText;
     }
-  </script>
-</body>
-</html>
 
+    // 이메일 요청 폼 표시
+    function showRequestForm() {
+      const resultBox = document.getElementById("resultBox");
+      resultBox.innerHTML = `
+        <h3>대출 연결 요청</h3>
+        <label>이름</label><input type="text" id="reqName" placeholder="홍길동">
+        <label>전화번호</label><input type="text" id="reqPhone" placeholder="010-1234-5678">
+        <label>기타 사항</label><textarea id="reqMessage" rows="5" placeholder="대출 연결 요청 관련 내용">${document.getElementById("requestedLoan").value ? "요청 대출 금액: " + document.getElementById("requestedLoan").value : ""}</textarea>
+        <button onclick="sendRequestEmail()">입력 완료</button>
+      `;
+    }
 
+    // EmailJS로 이메일 발송
+    function sendRequestEmail() {
+      const name = document.getElementById("reqName").value;
+      const phone = document.getElementById("reqPhone").value;
+      const message = document.getElementById("reqMessage").value;
+
+      if(!name || !email || !message){
+        alert("필수 항목을 모두 입력해주세요.");
+        return;
+      }
+
+      emailjs.send("huchudb@gmail.com", "template_v94yxrv", {
+        from_name: name,
+        from_email: email,
+        phone: phone,
+        message: message
+      })
+      .then
