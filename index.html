@@ -9,15 +9,13 @@
       max-width: 900px;
       margin: 30px auto;
       padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      background: #fafafa;
       display: flex;
       gap: 20px;
+      background: #fafafa;
     }
     h2 { text-align: center; }
     label { font-weight: bold; display: block; margin: 10px 0 5px; }
-    input, select, textarea, button {
+    select, input, textarea {
       width: 100%;
       padding: 8px;
       margin-bottom: 15px;
@@ -25,9 +23,24 @@
       border-radius: 8px;
       font-size: 15px;
     }
-    button { background: #2c7be5; color: white; border: none; font-size: 16px; cursor: pointer; }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2c7be5;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
     button:hover { background: #1a5bb8; }
-    .result { margin-top: 20px; padding: 15px; border-radius: 10px; background: #f0f8ff; border: 1px solid #d0e6ff; }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #f0f8ff;
+      border: 1px solid #d0e6ff;
+    }
     small { display: block; margin-bottom: 15px; }
     .calculator { flex: 1; }
     .side-design {
@@ -43,9 +56,8 @@
 </head>
 <body>
   <div class="calculator">
-    <h2>🏦 후추 데이터 기반 담보대출 계산기</h2>
+    <h2>🏦 대출 LTV 계산기</h2>
 
-    <!-- Step 1 -->
     <label>Step 1. 지역을 선택해주세요</label>
     <select id="region">
       <option value="">선택하세요</option>
@@ -53,7 +65,6 @@
       <option value="서울 외">서울 외</option>
     </select>
 
-    <!-- Step 2 -->
     <label>Step 2. 부동산 종류를 선택해주세요</label>
     <select id="propertyType">
       <option value="">선택하세요</option>
@@ -63,127 +74,126 @@
       <option value="토지/임야">토지/임야</option>
     </select>
 
-    <!-- Step 3 -->
     <label>Step 3. 내가 생각하는 시세 (원)</label>
     <input type="text" id="marketValue" placeholder="예: 500,000,000">
     <small style="color:#555;">
       아파트는 KB시세(일반가)를 입력하세요 👉 
-      <a href="https://kbland.kr/" target="_blank" style="color:#2c7be5; text-decoration:underline;">
-        [KB시세 바로가기]
-      </a>
+      <a href="https://kbland.kr/" target="_blank" style="color:#2c7be5; text-decoration:underline;">[KB시세 바로가기]</a>
     </small>
 
-    <!-- Step 4 -->
     <label>Step 4. 선순위 대출 원금 + 임대보증금 (원)</label>
     <input type="text" id="seniorLoan" placeholder="예: 100,000,000">
 
-    <!-- Step 5 -->
     <label>Step 5. 필요한 대출 금액 (원)</label>
     <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
 
-    <!-- 계산하기 버튼 추가 -->
-    <button onclick="calculateLTV()">계산하기</button>
-    
+    <button id="calcBtn">계산하기</button>
+
     <div class="result" id="resultBox" style="display:none;"></div>
   </div>
 
-  <!-- EmailJS SDK -->
-  <script type="text/javascript" src="https://cdn.emailjs.com/sdk/3.2.0/email.min.js"></script>
-  <script type="text/javascript">
-    emailjs.init("22FTCISS9zfQspQtj"); // Public Key
+  <div class="side-design">
+    <img src="huchu.png" alt="후추 캐릭터">
+  </div>
 
-    const LTV_LIMITS = {
-      "서울": { "아파트": 0.73, "다세대/연립": 0.70, "단독/다가구": 0.70, "토지/임야": 0.70 },
-      "서울 외": { "아파트": 0.6998, "다세대/연립": 0.6500, "단독/다가구": 0.6500, "토지/임야": 0.4999 }
-    };
+  <script src="https://cdn.emailjs.com/sdk/3.2.0/email.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // EmailJS 초기화
+      emailjs.init("22FTCISS9zfQspQtj");
 
-    // 3자리 콤마 자동 표시
-    function formatNumberInput(id) {
-      const input = document.getElementById(id);
-      input.addEventListener('input', () => {
-        let value = input.value.replace(/,/g, '');
-        if(!isNaN(value) && value !== '') {
-          input.value = Number(value).toLocaleString();
-        } else {
-          input.value = '';
-        }
+      const LTV_LIMITS = {
+        "서울": { "아파트": 0.73, "다세대/연립": 0.70, "단독/다가구": 0.70, "토지/임야": 0.70 },
+        "서울 외": { "아파트": 0.6998, "다세대/연립": 0.6500, "단독/다가구": 0.6500, "토지/임야": 0.4999 }
+      };
+
+      // 3자리 콤마 입력
+      ['marketValue','seniorLoan','requestedLoan'].forEach(id => {
+        const input = document.getElementById(id);
+        input.addEventListener('input', () => {
+          let value = input.value.replace(/,/g,'');
+          if(!isNaN(value) && value!=='') input.value = Number(value).toLocaleString();
+        });
       });
-    }
-    formatNumberInput('marketValue');
-    formatNumberInput('seniorLoan');
-    formatNumberInput('requestedLoan');
 
-    // LTV 계산 및 결과 표시
-    function calculateLTV() {
-      const region = document.getElementById("region").value;
-      const propertyType = document.getElementById("propertyType").value;
-      const marketValue = Number(document.getElementById("marketValue").value.replace(/,/g, ''));
-      const seniorLoan = Number(document.getElementById("seniorLoan").value.replace(/,/g, ''));
-      const requestedLoan = Number(document.getElementById("requestedLoan").value.replace(/,/g, ''));
+      const calcBtn = document.getElementById('calcBtn');
+      calcBtn.addEventListener('click', () => {
+        const region = document.getElementById("region").value;
+        const propertyType = document.getElementById("propertyType").value;
+        const marketValue = Number(document.getElementById("marketValue").value.replace(/,/g,''));
+        const seniorLoan = Number(document.getElementById("seniorLoan").value.replace(/,/g,''));
+        const requestedLoan = Number(document.getElementById("requestedLoan").value.replace(/,/g,''));
 
-      if (!region || !propertyType || !marketValue) {
-        alert("모든 입력값을 채워주세요!");
-        return;
+        if(!region || !propertyType || !marketValue){
+          alert("모든 입력값을 채워주세요!");
+          return;
+        }
+
+        const maxLtvRatio = LTV_LIMITS[region][propertyType];
+        const maxLoan = marketValue * maxLtvRatio;
+        const availableLoan = maxLoan - seniorLoan;
+        const currentLtv = (seniorLoan / marketValue) * 100;
+
+        let loanStatus = "";
+        if(!requestedLoan){
+          loanStatus = `신규 대출 가능 금액: ${availableLoan>0 ? availableLoan.toLocaleString()+" 원" : "불가능"}`;
+        } else if(requestedLoan <= availableLoan){
+          loanStatus = `요청 금액 ${requestedLoan.toLocaleString()}원 가능 ✅`;
+        } else {
+          loanStatus = `요청 금액 초과 ❌, 최대 ${availableLoan.toLocaleString()}원 가능`;
+        }
+
+        let resultText = `<b>📊 결과</b><br>`;
+        resultText += `- 선택한 지역: ${region}<br>`;
+        resultText += `- 부동산 종류: ${propertyType}<br>`;
+        resultText += `- 시세: ${marketValue.toLocaleString()} 원<br>`;
+        resultText += `- 선순위 대출+보증금: ${seniorLoan.toLocaleString()} 원<br><br>`;
+        resultText += `👉 적용 최대 LTV: ${(maxLtvRatio*100).toFixed(0)}%<br>`;
+        resultText += `👉 현재 LTV(선순위 기준): ${currentLtv.toFixed(1)}%<br>`;
+        resultText += `👉 ${loanStatus}`;
+        resultText += `<br><br><button id='requestBtn'>대출 기관 연결 요청하기</button>`;
+
+        const resultBox = document.getElementById("resultBox");
+        resultBox.style.display = "block";
+        resultBox.innerHTML = resultText;
+
+        document.getElementById('requestBtn').addEventListener('click', showRequestForm);
+      });
+
+      function showRequestForm(){
+        const resultBox = document.getElementById("resultBox");
+        const requestedLoan = document.getElementById("requestedLoan").value;
+        resultBox.innerHTML = `
+          <h3>대출 연결 요청</h3>
+          <label>이름</label><input type="text" id="reqName" placeholder="홍길동">
+          <label>이메일</label><input type="email" id="reqEmail" placeholder="example@domain.com">
+          <label>전화번호</label><input type="text" id="reqPhone" placeholder="010-1234-5678">
+          <label>요청 내용</label><textarea id="reqMessage" rows="5">요청 대출 금액: ${requestedLoan}</textarea>
+          <button id='sendBtn'>입력 완료</button>
+        `;
+        document.getElementById('sendBtn').addEventListener('click', sendRequestEmail);
       }
 
-      const maxLtvRatio = LTV_LIMITS[region][propertyType];
-      const maxLoan = marketValue * maxLtvRatio;
-      const availableLoan = maxLoan - seniorLoan;
-      const currentLtv = (seniorLoan / marketValue) * 100;
+      function sendRequestEmail(){
+        const name = document.getElementById("reqName").value;
+        const email = document.getElementById("reqEmail").value;
+        const phone = document.getElementById("reqPhone").value;
+        const message = document.getElementById("reqMessage").value;
 
-      let loanStatus = "";
-      if (!requestedLoan) {
-        loanStatus = `신규 대출 가능 금액: ${availableLoan > 0 ? availableLoan.toLocaleString() + " 원" : "불가능"}`;
-      } else if (requestedLoan <= availableLoan) {
-        loanStatus = `요청 금액 ${requestedLoan.toLocaleString()}원 가능 ✅`;
-      } else {
-        loanStatus = `요청 금액 초과 ❌, 최대 ${availableLoan.toLocaleString()}원 가능`;
+        if(!name || !email || !message){
+          alert("필수 항목을 모두 입력해주세요.");
+          return;
+        }
+
+        emailjs.send('huchudb@gmail.com', 'template_v94yxrv', {
+          from_name: name,
+          from_email: email,
+          from_phone: phone,
+          message: message
+        }).then(() => alert("요청이 성공적으로 발송되었습니다."),
+                (err) => alert("오류가 발생했습니다: " + err.text));
       }
-
-      let resultText = `<b>📊 결과</b><br>`;
-      resultText += `- 선택한 지역: ${region}<br>`;
-      resultText += `- 부동산 종류: ${propertyType}<br>`;
-      resultText += `- 시세: ${marketValue.toLocaleString()} 원<br>`;
-      resultText += `- 선순위 대출+보증금: ${seniorLoan.toLocaleString()} 원<br><br>`;
-     
-      resultText += `👉 ${loanStatus}`;
-      resultText += `<br><br><button onclick="showRequestForm()">대출 기관 연결 요청하기</button>`;
-
-      document.getElementById("resultBox").style.display = "block";
-      document.getElementById("resultBox").innerHTML = resultText;
-    }
-
-    // 이메일 요청 폼 표시
-    function showRequestForm() {
-      const resultBox = document.getElementById("resultBox");
-      resultBox.innerHTML = `
-        <h3>대출 연결 요청</h3>
-        <label>이름</label><input type="text" id="reqName" placeholder="홍길동">
-        <label>전화번호</label><input type="text" id="reqPhone" placeholder="010-1234-5678">
-        <label>기타 사항</label><textarea id="reqMessage" rows="5" placeholder="대출 연결 요청 관련 내용">${document.getElementById("requestedLoan").value ? "요청 대출 금액: " + document.getElementById("requestedLoan").value : ""}</textarea>
-        <button onclick="sendRequestEmail()">입력 완료</button>
-      `;
-    }
-
-    // EmailJS로 이메일 발송
-    function sendRequestEmail() {
-      const name = document.getElementById("reqName").value;
-      const phone = document.getElementById("reqPhone").value;
-      const message = document.getElementById("reqMessage").value;
-
-      if(!name || !email || !message){
-        alert("필수 항목을 모두 입력해주세요.");
-        return;
-      }
-
-      emailjs.send("huchudb@gmail.com", "template_v94yxrv", {
-        from_name: name,
-        from_email: email,
-        phone: phone,
-        message: message
-      })
-      .then
-
-
-
-
+    });
+  </script>
+</body>
+</html>
