@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>LTV 계산기</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: #fafafa;
+    }
+    h2 { text-align: center; }
+    label { font-weight: bold; display: block; margin: 10px 0 5px; }
+    select, input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2c7be5;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #1a5bb8; }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #f0f8ff;
+      border: 1px solid #d0e6ff;
+    }
+  </style>
+</head>
+<body>
+  <h2>🏦 대출 LTV 계산기</h2>
+
+  <!-- Step 1 -->
+  <label>Step 1. 지역을 선택해주세요</label>
+  <select id="region">
+    <option value="">선택하세요</option>
+    <option value="서울">서울</option>
+    <option value="서울 외">서울 외</option>
+  </select>
+
+  <!-- Step 2 -->
+  <label>Step 2. 부동산 종류를 선택해주세요</label>
+  <select id="propertyType">
+    <option value="">선택하세요</option>
+    <option value="아파트">아파트</option>
+    <option value="다세대/연립">다세대/연립</option>
+    <option value="단독/다가구">단독/다가구</option>
+    <option value="기타">기타</option>
+  </select>
+
+  <!-- Step 3 -->
+  <label>Step 3. 내가 생각하는 시세 (원)</label>
+  <input type="number" id="marketValue" placeholder="예: 500000000">
+
+  <!-- Step 4 -->
+  <label>Step 4. 선순위 대출 원금 + 임대보증금 (원)</label>
+  <input type="number" id="seniorLoan" placeholder="예: 100000000">
+
+  <button onclick="calculateLTV()">계산하기</button>
+
+  <div class="result" id="resultBox" style="display:none;"></div>
+
+  <script>
+    // 🔹 관리자 설정: 지역/부동산별 최대 LTV 값
+    const LTV_LIMITS = {
+      "서울": {
+        "아파트": 0.40,
+        "다세대/연립": 0.30,
+        "단독/다가구": 0.30,
+        "기타": 0.20
+      },
+      "서울 외": {
+        "아파트": 0.60,
+        "다세대/연립": 0.50,
+        "단독/다가구": 0.40,
+        "기타": 0.30
+      }
+    };
+
+    function calculateLTV() {
+      const region = document.getElementById("region").value;
+      const propertyType = document.getElementById("propertyType").value;
+      const marketValue = Number(document.get
