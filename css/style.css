@@ -1,8 +1,8 @@
-body { font-family: Arial, sans-serif; background:#f8f9fa; margin:0; padding:20px; }
+body { font-family: Arial, sans-serif; background:#f8f9fa; margin:0; padding:20px !important; }
 .container { max-width: 640px; margin: auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
-h1 { font-size:24px; margin:0 0 10px; }
-.subtitle { font-size:14px; color:#555; margin:0 0 18px; line-height:1.5; }
-.step { margin-bottom:14px; }
+h1 { font-size:24px; margin:0 0 10px!important; }
+.subtitle { font-size:14px !important; color:#555; margin:0 0 18px; line-height:1.5; }
+.step { margin-bottom:14px !important; }
 label { display:block; margin-bottom:6px; font-weight:700; }
 input, select, textarea { width:100%; padding:9px; border:1px solid #ccc; border-radius:8px; font-size:14px; }
 button { padding:12px 16px; border:0; border-radius:8px; background:#2c7be5; color:#fff; font-size:16px; cursor:pointer; }
