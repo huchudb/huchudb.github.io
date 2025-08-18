@@ -44,7 +44,7 @@
   </style>
 </head>
 <body>
-  <h2>🏦 대출 LTV 계산기</h2>
+  <h2>🏦 후추의 대출 계산기</h2>
 
   <!-- Step 1 -->
   <label>Step 1. 지역을 선택해주세요</label>
@@ -65,12 +65,19 @@
   </select>
 
   <!-- Step 3 -->
-  <label>Step 3. 내가 생각하는 시세 (원)</label>
-  <input type="number" id="marketValue" placeholder="예: 500000000">
+  <label>Step 3. 내가 생각하는 시세는? (원)</label>
+  <input type="number" id="marketValue" placeholder="예: 500,000,000">
 
+  <small style="color:#555;">
+    아파트는 KB시세(일반가)를 입력하세요 👉 
+    <a href="https://onland.kbstar.com/quics?page=C030590" target="_blank" style="color:#2c7be5; text-decoration:underline;">
+      [KB시세 바로가기]
+    </a>
+  </small>
+  
   <!-- Step 4 -->
   <label>Step 4. 선순위 대출 원금 + 임대보증금 (원)</label>
-  <input type="number" id="seniorLoan" placeholder="예: 100000000">
+  <input type="number" id="seniorLoan" placeholder="예: 100,000,000">
 
   <button onclick="calculateLTV()">계산하기</button>
 
@@ -80,16 +87,16 @@
     // 🔹 관리자 설정: 지역/부동산별 최대 LTV 값
     const LTV_LIMITS = {
       "서울": {
-        "아파트": 0.40,
-        "다세대/연립": 0.30,
-        "단독/다가구": 0.30,
-        "기타": 0.20
+        "아파트": 0.73,
+        "다세대/연립": 0.70,
+        "단독/다가구": 0.70,
+        "토지/임야": 0.70.
       },
       "서울 외": {
-        "아파트": 0.60,
-        "다세대/연립": 0.50,
-        "단독/다가구": 0.40,
-        "기타": 0.30
+        "아파트": 0.6999,
+        "다세대/연립": 0.6999,
+        "단독/다가구": 0.6999,
+        "토지/임야": 0.49.
       }
     };
 
@@ -97,3 +104,4 @@
       const region = document.getElementById("region").value;
       const propertyType = document.getElementById("propertyType").value;
       const marketValue = Number(document.get
+
