@@ -41,10 +41,11 @@
       background: #f0f8ff;
       border: 1px solid #d0e6ff;
     }
+    small { display: block; margin-bottom: 15px; }
   </style>
 </head>
 <body>
-  <h2>🏦 후추의 대출 계산기</h2>
+  <h2>🏦 대출 LTV 계산기</h2>
 
   <!-- Step 1 -->
   <label>Step 1. 지역을 선택해주세요</label>
@@ -61,24 +62,26 @@
     <option value="아파트">아파트</option>
     <option value="다세대/연립">다세대/연립</option>
     <option value="단독/다가구">단독/다가구</option>
-    <option value="기타">기타</option>
+    <option value="토지/임야">토지/임야</option>
   </select>
 
   <!-- Step 3 -->
-  <label>Step 3. 내가 생각하는 시세는? (원)</label>
+  <label>Step 3. 내가 생각하는 시세 (원)</label>
   <input type="number" id="marketValue" placeholder="예: 500,000,000">
-
   <small style="color:#555;">
-    **아파트는 KB시세(일반가)를 입력하세요 👉 
-    <a href="https://kbland.kr/" target="_blank" style="color:#2c7be5; text-decoration:underline;">
+    아파트는 KB시세(일반가)를 입력하세요 👉 
+    <a href="https://onland.kbstar.com/quics?page=C030590" target="_blank" style="color:#2c7be5; text-decoration:underline;">
       [KB시세 바로가기]
     </a>
   </small>
 
-  
   <!-- Step 4 -->
   <label>Step 4. 선순위 대출 원금 + 임대보증금 (원)</label>
   <input type="number" id="seniorLoan" placeholder="예: 100,000,000">
+
+  <!-- Step 5 -->
+  <label>Step 5. 필요한 대출 금액 (원)</label>
+  <input type="number" id="requestedLoan" placeholder="예: 50,000,000">
 
   <button onclick="calculateLTV()">계산하기</button>
 
@@ -91,19 +94,56 @@
         "아파트": 0.73,
         "다세대/연립": 0.70,
         "단독/다가구": 0.70,
-        "토지/임야": 0.70.
+        "토지/임야": 0.70
       },
       "서울 외": {
-        "아파트": 0.6999,
-        "다세대/연립": 0.6999,
-        "단독/다가구": 0.6999,
-        "토지/임야": 0.49.
+        "아파트": 0.6998,
+        "다세대/연립": 0.6500,
+        "단독/다가구": 0.6500,
+        "토지/임야": 0.4999
       }
     };
 
     function calculateLTV() {
       const region = document.getElementById("region").value;
       const propertyType = document.getElementById("propertyType").value;
-      const marketValue = Number(document.get
+      const marketValue = Number(document.getElementById("marketValue").value);
+      const seniorLoan = Number(document.getElementById("seniorLoan").value);
+      const requestedLoan = Number(document.getElementById("requestedLoan").value);
 
+      if (!region || !propertyType || !marketValue) {
+        alert("모든 입력값을 채워주세요!");
+        return;
+      }
 
+      const maxLtvRatio = LTV_LIMITS[region][propertyType];
+      const maxLoan = marketValue * maxLtvRatio;  // 총 허용 가능한 최대 대출
+      const availableLoan = maxLoan - seniorLoan; // 신규로 가능한 대출
+      const currentLtv = ((seniorLoan) / marketValue) * 100; // 선순위 기준 현 LTV%
+
+      // 요청 금액 반영
+      let loanStatus = "";
+      if (!requestedLoan) {
+        loanStatus = `신규 대출 가능 금액: ${availableLoan > 0 ? availableLoan.toLocaleString()+" 원" : "불가능"}`;
+      } else if (requestedLoan <= availableLoan) {
+        loanStatus = `요청 금액 ${requestedLoan.toLocaleString()}원 가능 ✅`;
+      } else {
+        loanStatus = `요청 금액 초과 ❌, 최대 ${availableLoan.toLocaleString()}원 가능`;
+      }
+
+      let resultText = `<b>📊 결과</b><br>`;
+      resultText += `- 선택한 지역: ${region}<br>`;
+      resultText += `- 부동산 종류: ${propertyType}<br>`;
+      resultText += `- 시세: ${marketValue.toLocaleString()} 원<br>`;
+      resultText += `- 선순위 대출+보증금: ${seniorLoan.toLocaleString()} 원<br>`;
+      resultText += `<br>`;
+      resultText += `👉 적용 최대 LTV: ${(maxLtvRatio * 100).toFixed(0)}%<br>`;
+      resultText += `👉 현재 LTV(선순위 기준): ${currentLtv.toFixed(1)}%<br>`;
+      resultText += `👉 ${loanStatus}`;
+
+      document.getElementById("resultBox").style.display = "block";
+      document.getElementById("resultBox").innerHTML = resultText;
+    }
+  </script>
+</body>
+</html>
