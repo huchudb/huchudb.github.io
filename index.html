@@ -307,7 +307,7 @@
   <div class="container">
     <h1>온투업(P2P) 담보대출 "나도 가능할까?"</h1>
     <p class="subtitle">
-      * 온투업 실제 대출 데이터를 기반으로 계산됩니다.<br>
+      * 온투업의 실제 대출 데이터를 기반으로 계산됩니다.<br>
       ** 100번을 계산해도 신용점수는 변동되지 않습니다.
     </p>
 
@@ -388,7 +388,7 @@
       <div class="panel-body" id="modalBody"></div>
       <div class="panel-footer">
         <div class="footer-left">
-          <a id="contactBtn" class="btn btn-kakao" href="https://open.kakao.com/me/huchudb" target="_blank" rel="noopener">카톡 문의하기</a>
+          <a id="contactBtn" class="btn btn-kakao" href="https://open.kakao.com/me/huchudb" target="_blank" rel="noopener">채팅 문의</a>
         </div>
         <div class="footer-right">
           <button class="btn btn-secondary" id="modalCloseBtn" aria-label="닫기">닫기</button>
@@ -666,9 +666,9 @@
         const html = `
           ${kpis}
           <div class="notice error">
-            <p><strong>요청하신 금액으로는 실행이 어렵습니다.</strong></p>
-            <p>LTV 범위 내로 조정하거나 상환/보증금 반환 계획을 검토해 주세요.</p>
-            <p class="disclaimer">※ 해당 정보는 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
+            <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
@@ -682,9 +682,9 @@
         const html = `
           ${kpis}
           <div class="notice error">
-            <p><strong>요청하신 금액으로는 실행이 어렵습니다.</strong></p>
-            <p>요청 금액을 <strong>감액</strong>하거나 선순위/상환 금액 조정을 검토해 주세요.</p>
-            <p class="disclaimer">※ 해당 정보는 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
+            <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
@@ -697,7 +697,7 @@
         const html = `
           <div class="notice info">
             <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
-            <p class="disclaimer">※ 해당 정보는 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
           </div>
         `;
         modal.open(html, {type:'info', text:'안내'});
@@ -767,9 +767,9 @@
       const html = `
         ${kpis}
         <div class="notice success">
-          <p><strong>요청하신 금액으로 실행이 가능합니다.</strong></p>
-          <p>추가 가능 금액 내에서 <strong>증액 검토</strong>도 가능합니다.</p>
-          <p class="disclaimer">※ 해당 정보는 온투업체의 심사 결과와 다를 수 있습니다.</p>
+          <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
+          <p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p>
+          <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
         </div>
         ${breakdownCosts}
         ${breakdownInfo}
