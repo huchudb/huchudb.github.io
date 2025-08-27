@@ -83,25 +83,38 @@
     requestAnimationFrame(frame);
   }
 
+  // 캐시버스터 쿼리 파라미터
+  const cb = () => `t=${Date.now()}`;
+
   async function serverGetCount(){
-    const r = await fetch(`${DAILY_API}?t=${Date.now()}`, {
+    const r = await fetch(`${DAILY_API}?${cb()}`, {
       method:'GET',
       mode:'cors',
-      cache:'no-store',
       credentials:'omit',
-      headers: { 'Cache-Control':'no-cache' }
+      cache:'no-store',
+      headers:{
+        'Cache-Control':'no-store, no-cache, must-revalidate',
+        'Pragma':'no-cache'
+      }
     });
+    if(!r.ok) throw new Error('GET failed');
     const j = await r.json();
     return Number(j.count || 0);
   }
   async function serverIncrement(){
-    const r = await fetch(`${DAILY_API}?t=${Date.now()}`, {
+    const r = await fetch(`${DAILY_API}?${cb()}`, {
       method:'POST',
       mode:'cors',
-      cache:'no-store',
       credentials:'omit',
-      headers: { 'Cache-Control':'no-cache' }
+      cache:'no-store',
+      headers:{
+        'Content-Type':'application/json',
+        'Cache-Control':'no-store, no-cache, must-revalidate',
+        'Pragma':'no-cache'
+      },
+      body:'{}'
     });
+    if(!r.ok) throw new Error('POST failed');
     const j = await r.json();
     return Number(j.count || 0);
   }
@@ -110,19 +123,19 @@
     const numEl = document.getElementById('todayUsersCount');
     try{
       const count = await serverGetCount();
-      writeLocal(todayKey(), count);               // 서버 값 로컬에도 동기화
-      if(numEl) animateCount(numEl, count, 400);   // 표시
+      writeLocal(todayKey(), count);
+      if(numEl) animateCount(numEl, count, 400);
     }catch(e){
-      const { count } = readLocal();               // 폴백
+      const { count } = readLocal();
       if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
     }
-
     // 자정 이후 자동 새키 값(분단위 체크)
     setInterval(async ()=>{
       try{
         const c = await serverGetCount();
         writeLocal(todayKey(), c);
-        if(numEl) numEl.textContent = c.toLocaleString('ko-KR');
+        const el = document.getElementById('todayUsersCount');
+        if(el) el.textContent = c.toLocaleString('ko-KR');
       }catch(_){}
     }, 60000);
   }
@@ -130,8 +143,8 @@
   async function bumpDailyUsers(){
     const el = document.getElementById('todayUsersCount');
     try{
-      const count = await serverIncrement();       // 서버 카운트 +1
-      writeLocal(todayKey(), count);               // 로컬 동기화
+      const count = await serverIncrement();
+      writeLocal(todayKey(), count);
       if(el) animateCount(el, count);
     }catch(e){
       // 폴백: 로컬 +1
@@ -199,6 +212,19 @@
 
     return { missing, focusId: ids[missing[0]] };
   }
+
+  /* ── 초기화 ─────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    attachCommaWithPreview('marketValue','marketValue_view');
+    attachCommaWithPreview('seniorLoan','seniorLoan_view');
+    attachCommaWithPreview('requestedLoan','requestedLoan_view');
+    attachCommaWithPreview('deduction','deduction_view');
+
+    const btn = document.getElementById('calcBtn');
+    if (btn) btn.addEventListener('click', onCalculate);
+
+    initDailyUsersUI();
+  });
 
   /* ── KPI 빌더들 ───────────────────────────── */
   const kpisHTML = (label1, val1, label2, val2) => `
@@ -377,17 +403,4 @@
     modal.open(html, {type:'success', text:'대출 가능'});
     await bumpDailyUsers();
   }
-
-  /* ── 초기화 ─────────────────────────────────── */
-  document.addEventListener('DOMContentLoaded', () => {
-    attachCommaWithPreview('marketValue','marketValue_view');
-    attachCommaWithPreview('seniorLoan','seniorLoan_view');
-    attachCommaWithPreview('requestedLoan','requestedLoan_view');
-    attachCommaWithPreview('deduction','deduction_view');
-
-    const btn = document.getElementById('calcBtn');
-    if (btn) btn.addEventListener('click', onCalculate);
-
-    initDailyUsersUI();
-  });
 </script>
