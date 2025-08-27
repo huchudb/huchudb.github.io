@@ -7,25 +7,42 @@
 
   <style>
     :root {
-      --primary:#1a365d; --primary-dark:#153154; --accent:#d4af37;
-      --bg:#f8f9fa; --card:#fff; --muted:#555; --line:#d0d7e2;
-      --success:#2f855a; --danger:#e53e3e; --info:#2b6cb0;
-      --chip-bg:#f1f5f9; --chip-line:#e2e8f0;
-      --kakao-yellow:#FEE500; --kakao-brown:#3C1E1E;
+      --primary: #1a365d;        /* 네이비 */
+      --primary-dark: #153154;
+      --accent: #d4af37;         /* 골드 */
+      --bg: #f8f9fa;
+      --card: #fff;
+      --muted: #555;
+      --line: #d0d7e2;
+      --success: #2f855a;
+      --danger: #e53e3e;
+      --info: #2b6cb0;
+      --chip-bg:#f1f5f9;
+      --chip-line:#e2e8f0;
+
+      --kakao-yellow:#FEE500;    /* 카카오 톤 */
+      --kakao-brown:#3C1E1E;
 
       /* spacing scale */
-      --s-1:8px; --s-2:12px; --s-3:16px; --s-4:24px; --s-5:28px;
+      --s-1: 8px;
+      --s-2: 12px;
+      --s-3: 16px;
+      --s-4: 24px;
+      --s-5: 28px;
     }
-    *{ box-sizing:border-box; }
-    body{ font-family: Arial, sans-serif; background:var(--bg); margin:0; padding:24px; }
-    .container{
-      max-width:720px; margin:0 auto; background:var(--card); padding:22px;
-      border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.08);
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: var(--bg); margin: 0; padding: 24px; }
+    .container {
+      max-width: 720px; margin: 0 auto; background: var(--card); padding: 22px;
+      border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.08);
     }
-    @media (max-width:520px){ body{padding:16px} .container{padding:16px} }
+    @media (max-width: 520px){
+      body{ padding: 16px; }
+      .container{ padding: 16px; }
+    }
 
-    /* ── Top Stats: 오늘 이용자수 ───────────────── */
-    .top-stats{ max-width:720px; margin:0 auto 12px; }
+    /* ── Top Stats: 오늘 이용자수 카드 ───────────────── */
+    .top-stats{ max-width: 720px; margin: 0 auto 12px; }
     .stat-card{
       display:flex; align-items:center; justify-content:space-between;
       background:#fff; border:1px solid var(--line); border-radius:12px;
@@ -33,110 +50,116 @@
     }
     .stat-label{ display:flex; align-items:center; gap:8px; color:#42526e; font-weight:700; }
     .stat-dot{ width:10px; height:10px; border-radius:50%; background:var(--info); }
-    .stat-value{ display:flex; align-items:baseline; gap:4px; font-variant-numeric:tabular-nums; }
+    .stat-value{ display:flex; align-items:baseline; gap:4px; font-variant-numeric: tabular-nums; }
     .stat-value .num{ font-weight:800; font-size:22px; color:#0b2a66; line-height:1; }
     .stat-value .suffix{ font-size:14px; color:#6b7a99; line-height:1; }
-    @media (max-width:520px){ .stat-card{padding:10px 12px} .stat-value .num{font-size:20px} }
-
-    h1{ margin:0 0 8px; font-size:24px; color:var(--primary); }
-    .subtitle{ margin:0 0 18px; color:var(--muted); line-height:1.55; font-size:14px; }
-
-    .step{
-      margin:16px 0; padding:14px; border-radius:12px; background:#f1f4f9;
-      border:1px solid var(--line); box-shadow:0 2px 8px rgba(0,0,0,.04);
+    @media (max-width:520px){
+      .top-stats{ margin-bottom: 10px; }
+      .stat-card{ padding:10px 12px; }
+      .stat-value .num{ font-size:20px; }
     }
-    label{ display:block; font-weight:700; margin-bottom:6px; color:var(--primary); }
+
+    h1 { margin: 0 0 8px; font-size: 24px; color: var(--primary); }
+    .subtitle { margin: 0 0 18px; color: var(--muted); line-height: 1.55; font-size: 14px; }
+
+    .step {
+      margin: 16px 0; padding: 14px; border-radius: 12px; background: #f1f4f9;
+      border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    label { display: block; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
 
     /* 숫자 뱃지 - 자동 카운터 */
-    #calcSteps{ counter-reset:step; }
+    #calcSteps { counter-reset: step; }
     .steplabel{
-      position:relative; padding-left:30px; font-weight:800; color:var(--primary); line-height:1.2; display:block;
+      position: relative; padding-left: 30px; font-weight: 800; color: var(--primary); line-height: 1.2; display:block;
     }
     .steplabel::before{
-      counter-increment:step; content:counter(step);
-      position:absolute; left:0; top:50%; transform:translateY(-50%);
+      counter-increment: step;
+      content: counter(step);
+      position:absolute; left:0; top:50%; transform: translateY(-50%);
       width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
       border-radius:50%; background:var(--primary); color:#fff; font-size:12px; font-weight:800;
       border:2px solid var(--accent); box-shadow:0 2px 6px rgba(11,31,58,.15);
     }
-    .steplabel.no-badge-before{ padding-left:0; }
-    .steplabel.no-badge-before::before{ display:none; counter-increment:none; }
+    .steplabel.no-badge-before{ padding-left: 0; }
+    .steplabel.no-badge-before::before{ display:none; counter-increment: none; }
 
     .badge-inline{
       display:inline-flex; align-items:center; justify-content:center;
-      width:22px; height:22px; margin:0 6px; border-radius:50%; background:var(--primary); color:#fff;
-      font-size:12px; font-weight:800; box-shadow:0 2px 6px rgba(11,31,58,.15); border:2px solid var(--accent);
-      line-height:1; vertical-align:middle; position:relative; top:-1px;
+      width:22px; height:22px; margin:0 6px;
+      border-radius:50%; background:var(--primary); color:#fff; font-size:12px; font-weight:800;
+      box-shadow:0 2px 6px rgba(11,31,58,.15); border:2px solid var(--accent);
+      line-height:1; vertical-align: middle; position: relative; top:-1px;
     }
     @media (max-width:420px){
-      .steplabel{padding-left:26px}
-      .steplabel::before{width:18px;height:18px;font-size:11px}
-      .badge-inline{width:18px;height:18px;font-size:11px;top:-1px}
+      .steplabel{ padding-left: 26px; }
+      .steplabel::before{ width:18px; height:18px; font-size:11px; }
+      .badge-inline{ width:18px; height:18px; font-size:11px; top:-1px; }
     }
 
-    /* 금액 한 줄 + 실시간 표기 */
+    /* 금액 한 줄 레이아웃 + 실시간 표기 */
     .amount-row{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; width:100%; }
-    .amount-row input{ flex:0 0 336px; width:336px; min-width:0; }
-    @media (max-width:520px){ .amount-row input{flex:0 0 252px; width:252px} }
+    .amount-row input{ flex: 0 0 336px; width: 336px; min-width: 0; }
+    @media (max-width:520px){ .amount-row input{ flex: 0 0 252px; width: 252px; } }
     .amount-display{
       flex:0 0 auto; white-space:nowrap; font-size:13px; color:#334155; background:#F1F5F9;
       padding:8px 10px; border-radius:8px; border:1px solid #E2E8F0; text-align:left;
     }
-    @media (max-width:420px){ .amount-display{font-size:12px; padding:6px 8px} }
+    @media (max-width:420px){ .amount-display{ font-size:12px; padding:6px 8px; } }
 
-    select,input,textarea{ width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px; background:#fff; }
-    .info{ font-size:12px; color:#666; margin:6px 0 0; }
+    select, input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff; }
+    .info { font-size: 12px; color: #666; margin: 6px 0 0; }
 
-    button{
-      width:100%; padding:12px; border:0; border-radius:8px; background:var(--primary);
-      color:#fff; font-size:16px; cursor:pointer; transition:background .15s;
+    button {
+      width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--primary);
+      color: #fff; font-size: 16px; cursor: pointer; transition: background .15s;
     }
-    button:hover{ background:var(--primary-dark); }
-    .hide{ display:none !important; }
+    button:hover { background: var(--primary-dark); }
+    .hide { display: none !important; }
 
     /* 결과 카드 (인라인 fallback) */
-    .resultBox{ margin-top:16px; padding:16px; border-radius:12px; border:1px solid var(--line); background:#f7f9fc; }
-    .resultHeader{ display:flex; align-items:center; gap:10px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #cfd8ea; }
-    .resultIcon{ width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:800; }
+    .resultBox { margin-top: 16px; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: #f7f9fc; }
+    .resultHeader{
+      display:flex; align-items:center; gap:10px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #cfd8ea;
+    }
+    .resultIcon{
+      width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:800;
+    }
     .resultTitle{ font-weight:800; color:#0b2a66; }
-    .resultBox.success .resultIcon{ background:var(--success); }
-    .resultBox.error .resultIcon{ background:var(--danger); }
-    .resultBox.info .resultIcon{ background:var(--info); }
+    .resultBox.success .resultIcon{ background: var(--success); }
+    .resultBox.error   .resultIcon{ background: var(--danger); }
+    .resultBox.info    .resultIcon{ background: var(--info); }
 
     /* KPI 타일 */
-    .kpis{ margin: var(--s-2) 0 var(--s-4); display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .kpi{ background:#ffffff; border:1px solid #e3e9f2; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(11,31,58,.05); }
+    .kpis{ margin: var(--s-2) 0 var(--s-4); display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .kpi{
+      background:#ffffff; border:1px solid #e3e9f2; border-radius:12px; padding:14px 16px;
+      box-shadow:0 2px 6px rgba(11,31,58,.05);
+    }
     .kpi-label{ font-size:12px; color:#5f6b85; letter-spacing:.1px; }
     .kpi-value{ font-size:21px; font-weight:800; color:#0b2a66; margin-top:4px; letter-spacing:.2px; }
 
     /* ── 칩 + 틸드 ───────────────────────── */
-    .section-title{ margin:var(--s-3) 0 var(--s-2); font-weight:800; color:#0b2a66; display:flex; align-items:center; gap:8px; }
-    .chip-row{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:var(--s-3); }
+    .section-title{ margin: var(--s-3) 0 var(--s-2); font-weight:800; color:#0b2a66; display:flex; align-items:center; gap:8px; }
+    .chip-row{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom: var(--s-3); }
     .chip-row.tight{ gap:6px; }
     .chip{
       display:inline-flex; align-items:baseline; gap:10px;
       background:var(--chip-bg); border:1px solid var(--chip-line);
       border-radius:999px; padding:11px 18px; color:#1f2a3a;
-      /* ✅ 칩이 길게 늘어지지 않도록 */
-      flex:0 0 auto; white-space:nowrap;
     }
-    .chip .label,.chip .val{ line-height:1; font-variant-numeric:tabular-nums; }
+    .chip .label, .chip .val{ line-height:1; font-variant-numeric: tabular-nums; }
     .chip .label{ font-size:14px; color:#42526e; font-weight:700; }
-    .chip .label.rate-min{ color:#0ea5e9; font-weight:800; letter-spacing:.2px; } /* 최저(하늘색) */
-    .chip .label.rate-max{ color:#ef4444; font-weight:800; letter-spacing:.2px; } /* 최고(레드) */
+    .chip .label.rate-min{ color:#0ea5e9; font-weight:800; letter-spacing:.2px; } /* 하늘색(최저) */
+    .chip .label.rate-max{ color:#ef4444; font-weight:800; letter-spacing:.2px; } /* 레드(최고) */
     .chip .val{ font-size:20px; font-weight:800; color:#0b2a66; }
-    .chip-tilde{ display:inline-flex; align-items:center; justify-content:center; padding:0 6px; font-size:18px; line-height:1; font-weight:800; color:#6b7a99; }
+    .chip-tilde{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0 6px; font-size:18px; line-height:1; font-weight:800; color:#6b7a99;
+    }
     .chip-tilde.tight{ padding:0 4px; }
 
-    /* 좁은 폭에서는 세로 스택 + ~ 가운데 */
-    @media (max-width:560px){
-      .chip-row{ flex-direction:column; align-items:flex-start; gap:6px; }
-      .chip-row .chip:first-of-type{ order:1; }
-      .chip-row .chip-tilde{ order:2; align-self:center; margin:2px 0; }
-      .chip-row .chip:last-of-type{ order:3; }
-    }
-
-    /* 심플 도트 */
+    /* 심플 도트 아이콘 */
     .icon-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; flex:0 0 10px; }
     .dot-blue{ background:#2b6cb0; }
     .dot-gold{ background:#d4af37; }
@@ -145,17 +168,17 @@
     .dot-slate{ background:#6b7a99; }
 
     /* 라벨-값 2열 */
-    .rowlist{ margin-top:var(--s-3); border-top:1px dashed #e3e9f2; }
+    .rowlist{ margin-top: var(--s-3); border-top:1px dashed #e3e9f2; }
     .rowlist .row{
-      display:grid; grid-template-columns:14px auto 1fr; column-gap:10px;
+      display:grid; grid-template-columns: 14px auto 1fr; column-gap:10px;
       align-items:center; padding:10px 0; border-bottom:1px dashed #e3e9f2;
     }
     .rowlist .row:last-child{ border-bottom:none; }
     .row .label{ color:#42526e; font-weight:700; white-space:nowrap; }
     .row .value{ color:#0b2a66; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    /* Notice */
-    .notice{ margin:var(--s-4) 0; padding:14px 16px; border-radius:10px; border:1px solid #e3e9f2; }
+    /* ── 안내/결과 Notice ───────────────────── */
+    .notice{ margin: var(--s-4) 0; padding:14px 16px; border-radius:10px; border:1px solid #e3e9f2; }
     .notice.success{ background:#f0fff4; border-left:4px solid #2f855a; }
     .notice.error{ background:#fff5f5; border-left:4px solid #e53e3e; }
     .notice.info{ background:#eff6ff; border-left:4px solid #2b6cb0; }
@@ -168,38 +191,57 @@
     .status-pill.error{ background:#fee2e2; color:#991b1b; }
     .status-pill.info{ background:#e0f2fe; color:#075985; }
 
-    /* Breakdown 큰 카드 */
+    /* ── Breakdown 큰 카드(공통) ─────────────── */
     .breakdown-card{
       background:#fff; border:1px solid #e6ecf5; border-radius:14px;
-      box-shadow:0 4px 18px rgba(11,31,58,.06); padding:18px 18px;
+      box-shadow:0 4px 18px rgba(11,31,58,.06);
+      padding:18px 18px;
     }
-    .breakdown-card .card-title{ font-weight:800; color:#0b2a66; margin:0 0 var(--s-2); font-size:16px; letter-spacing:.2px; }
-    .card-section + .card-section{ border-top:1px dashed #e3e9f2; margin-top:var(--s-3); padding-top:var(--s-3); }
-    .breakdown-card .rowlist{ border-top:0; margin-top:var(--s-2); }
-    .breakdown-card .card-section.compact{ margin-top:var(--s-1); padding-top:var(--s-1); border-top:1px dashed #e3e9f2; }
-    .breakdown-card .card-section.compact .section-title{ margin:var(--s-1) 0 6px; }
-    .breakdown-card .card-section:last-child .chip-row{ margin-bottom:var(--s-1); }
+    .breakdown-card .card-title{
+      font-weight:800; color:#0b2a66; margin:0 0 var(--s-2);
+      font-size:16px; letter-spacing:.2px;
+    }
+    .card-section + .card-section{
+      border-top:1px dashed #e3e9f2;
+      margin-top: var(--s-3);
+      padding-top: var(--s-3);
+    }
+    .breakdown-card .rowlist{
+      border-top:0;               /* 카드 내부에서는 상단선 제거 */
+      margin-top: var(--s-2);
+    }
 
-    /* Modal */
+    /* ── Modal (큰 팝업) ───────────────────── */
     body.modal-open{ overflow:hidden; }
     .modal{ position:fixed; inset:0; z-index:1000; }
     .modal.hide{ display:none; }
-    .modal .overlay{ position:absolute; inset:0; background:rgba(2,6,23,.55); backdrop-filter:saturate(120%) blur(2px); }
+    .modal .overlay{
+      position:absolute; inset:0; background:rgba(2,6,23,.55); backdrop-filter:saturate(120%) blur(2px);
+    }
     .modal .panel{
-      position:relative; z-index:1; margin:auto; margin-top:5vh; width:min(92vw,760px); max-height:86vh;
+      position:relative; z-index:1; margin:auto; margin-top:5vh;
+      width:min(92vw, 760px); max-height:86vh;
       background:#fff; border:1px solid var(--line); border-radius:16px;
       box-shadow:0 12px 40px rgba(2,6,23,.25);
       transform:scale(.96) translateY(6px); opacity:0; animation:modalIn .18s ease-out forwards;
+
       display:flex; flex-direction:column;
     }
-    @keyframes modalIn{ to{ transform:scale(1) translateY(0); opacity:1; } }
+    @keyframes modalIn{
+      to{ transform:scale(1) translateY(0); opacity:1; }
+    }
     .modal .panel-header{
       display:flex; align-items:center; justify-content:space-between;
       padding:12px 16px; border-bottom:1px dashed #cfd8ea;
     }
     .modal .panel-title{ font-weight:800; color:#0b2a66; }
-    .modal .panel-body{ padding:var(--s-2) var(--s-4) var(--s-4); overflow:auto; flex:1 1 auto; }
-    .modal .panel-body > * + *{ margin-top:var(--s-4); }
+    .modal .panel-body{
+      padding: var(--s-2) var(--s-4) var(--s-4);  /* 상단 패딩 축소 */
+      overflow:auto; flex:1 1 auto;
+    }
+    /* 모달 본문 인접 요소 간 공통 간격 */
+    .modal .panel-body > * + *{ margin-top: var(--s-4); }
+
     .modal .panel-footer{
       border-top:1px solid #e6ecf5; padding:12px 16px;
       display:grid; grid-template-columns:1fr 1fr; gap:12px;
@@ -208,29 +250,56 @@
     .footer-right{ display:flex; justify-content:flex-end; }
     .panel-footer .btn{ width:100%; }
 
-    .btn{ appearance:none; border:0; border-radius:10px; cursor:pointer; padding:12px 16px; font-weight:800; font-size:14px; line-height:1; }
+    .btn{
+      appearance:none; border:0; border-radius:10px; cursor:pointer;
+      padding:12px 16px; font-weight:800; font-size:14px; line-height:1;
+    }
     .btn-primary{ background:var(--primary); color:#fff; }
     .btn-primary:hover{ background:var(--primary-dark); }
-    .btn-secondary{ background:#f1f5f9; color:#334155; border:1px solid #d6dbe6; }
+    .btn-secondary{
+      background:#f1f5f9; color:#334155; border:1px solid #d6dbe6;
+    }
     .btn-secondary:hover{ background:#e9edf3; }
+
+    /* 카카오 문의 버튼 (말풍선 제거, 톤 유지) */
     .btn-kakao{
-      background:var(--kakao-yellow); color:var(--kakao-brown);
-      border:1px solid #f4d000; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-weight:800;
+      background:var(--kakao-yellow);
+      color:var(--kakao-brown);
+      border:1px solid #f4d000;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      font-weight:800;
     }
     .btn-kakao:hover{ background:#fde236; }
 
     /* KPI 첫 섹션 상단 간격 더 붙이기 */
-    .modal .panel-body .kpis:first-child{ margin-top:var(--s-1); }
+    .modal .panel-body .kpis:first-child { margin-top: var(--s-1); }
+
+    /* 플랫폼수수료 섹션만 간격 타이트하게 */
+    .breakdown-card .card-section.compact{
+      margin-top: var(--s-1);
+      padding-top: var(--s-1);
+      border-top: 1px dashed #e3e9f2;
+    }
+    .breakdown-card .card-section.compact .section-title{
+      margin: var(--s-1) 0 6px;
+    }
+    .breakdown-card .card-section:last-child .chip-row{
+      margin-bottom: var(--s-1); /* 마지막 섹션 하단 여백 축소 */
+    }
   </style>
 </head>
 <body>
 
-  <!-- 금일 이용자수 -->
+  <!-- 금일 이용자수 카드 -->
   <div class="top-stats" aria-label="금일 이용자수">
     <div class="stat-card">
-      <div class="stat-label"><span class="stat-dot"></span>금일 이용자수</div>
+      <div class="stat-label">
+        <span class="stat-dot"></span>
+        금일 이용자수
+      </div>
       <div class="stat-value">
-        <span id="todayUsersCount" class="num" aria-live="polite">0</span><span class="suffix">명</span>
+        <span id="todayUsersCount" class="num" data-target="0" aria-live="polite">0</span>
+        <span class="suffix">명</span>
       </div>
     </div>
   </div>
@@ -246,7 +315,9 @@
       <div class="step">
         <label class="steplabel">지역을 선택해주세요.</label>
         <select id="region">
-          <option value="">선택</option><option value="서울">서울</option><option value="서울 외">서울 외</option>
+          <option value="">선택</option>
+          <option value="서울">서울</option>
+          <option value="서울 외">서울 외</option>
         </select>
       </div>
 
@@ -327,6 +398,9 @@
   </div>
 
   <script>
+    /* ===== 서버 API 베이스(반드시 본인 Vercel 도메인으로 교체) ===== */
+    const API_BASE = 'https://huchudb-github-io.vercel.app'; // 예) https://p2p-calc.vercel.app
+
     /* ===== LTV 한도 ===== */
     const LTV_LIMITS = {
       "서울":   { "아파트": 0.73,   "다세대/연립": 0.70,   "단독/다가구": 0.70,   "토지/임야": 0.70 },
@@ -337,15 +411,16 @@
     const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
     const toNumber = (s) => Number(onlyDigits(s)) || 0;
 
-    function formatKoreanCurrency(num){
+    function formatKoreanCurrency(num) {
       const n = Math.max(0, Math.floor(num));
-      if(n >= 100000000){
-        const eok = Math.floor(n/100000000);
-        const restMan = Math.floor((n%100000000)/10000);
-        return restMan>0 ? `${eok}억 ${restMan.toLocaleString()}만원` : `${eok}억 원`;
-      }else if(n >= 10000){
-        return `${Math.floor(n/10000).toLocaleString()}만원`;
-      }else{
+      if (n >= 100000000) {
+        const eok = Math.floor(n / 100000000);
+        const restMan = Math.floor((n % 100000000) / 10000);
+        if (restMan > 0) return `${eok}억 ${restMan.toLocaleString()}만원`;
+        return `${eok}억 원`;
+      } else if (n >= 10000) {
+        return `${Math.floor(n / 10000).toLocaleString()}만원`;
+      } else {
         return `${n.toLocaleString()}원`;
       }
     }
@@ -360,68 +435,125 @@
     function attachCommaWithPreview(id, viewId){
       const el = document.getElementById(id);
       updatePreview(id, viewId);
-      el.addEventListener('input', () => updatePreview(id, viewId));
+      el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
 
     /* 매월 이자 금액 */
     function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
 
     /* LTV 판정식 */
-    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}){
+    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
-      if(!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
+      if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
       const limit = marketValue * ratio;
       const d = Math.max(0, Math.min(deduction, seniorLoan, requestedLoan));
       const maxRequested = Math.max(0, limit - seniorLoan + d);
-      const status = (requestedLoan > 0) ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded') : 'no-request';
-      return { ratio, limit, maxRequested, usedDeduction:d, status };
+      const status = (requestedLoan > 0)
+        ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded')
+        : 'no-request';
+      return { ratio, limit, maxRequested, usedDeduction: d, status };
     }
 
-    /* ====== 금일 이용자수: 서버(Upstash) 연동 ====== */
-    const counterEl = () => document.getElementById('todayUsersCount');
+    /* ── 금일 이용자수(프런트 로컬 기본 + 서버 연동) ───────────────── */
+    const DAILY_PREFIX = 'huchu.dailyUsers.';
+    let _currentDailyKey = null;
 
-    async function fetchTodayCount(){
-      try{
-        const r = await fetch('/api/daily-users', { cache:'no-store' });
-        if(!r.ok) throw new Error('bad status');
-        const { count } = await r.json();
-        if(counterEl()) counterEl().textContent = Number(count||0).toLocaleString('ko-KR');
-      }catch(e){
-        // 실패해도 UI는 0으로 유지 (조용히 무시)
-        console.warn('fetchTodayCount failed', e);
+    function getKSTDateKey(ts = Date.now()){
+      const msKST = ts + 9 * 60 * 60 * 1000; // KST = UTC+9
+      const d = new Date(msKST);
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+      const dd = String(d.getUTCDate()).padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function todayKey(){ return DAILY_PREFIX + getKSTDateKey(); }
+    function readDaily(){ const key = todayKey(); return { key, count: Number(localStorage.getItem(key)||'0') }; }
+    function writeDaily(key, val){ localStorage.setItem(key, String(val)); }
+
+    function initDailyUsersUI(){
+      _currentDailyKey = todayKey();
+      const { count } = readDaily();
+      const el = document.getElementById('todayUsersCount');
+      if(el){
+        el.setAttribute('data-target', count);
+        el.textContent = count.toLocaleString('ko-KR');
       }
-    }
-    async function bumpTodayCount(){
-      try{
-        const r = await fetch('/api/daily-users', { method:'POST' });
-        if(!r.ok) throw new Error('bad status');
-        const { count } = await r.json();
-        if(counterEl()){
-          animateCount(counterEl(), Number(count||0));
+      // KST 자정 교체 감시(60초마다)
+      setInterval(() => {
+        const newKey = todayKey();
+        if(newKey !== _currentDailyKey){
+          _currentDailyKey = newKey;
+          const fresh = Number(localStorage.getItem(newKey)||'0');
+          const el2 = document.getElementById('todayUsersCount');
+          if(el2){
+            el2.setAttribute('data-target', fresh);
+            el2.textContent = fresh.toLocaleString('ko-KR');
+          }
         }
-      }catch(e){
-        console.warn('bumpTodayCount failed', e);
-      }
+      }, 60000);
     }
 
-    /* 숫자 애니메이션 */
-    function animateCount(el, to, duration=900){
+    function animateCount(el, to, duration = 900){
       const from = Number((el.textContent||"").replace(/[^0-9]/g,"")) || 0;
       const start = performance.now();
       const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
       function frame(now){
-        const p = Math.min(1, (now - start)/duration);
+        const p = Math.min(1, (now - start) / duration);
         const val = Math.round(from + (to - from) * easeOutCubic(p));
         el.textContent = val.toLocaleString('ko-KR');
         if(p < 1) requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
     }
+    function setDailyUsers(n){
+      const key = todayKey();
+      const el = document.getElementById('todayUsersCount');
+      writeDaily(key, n);
+      if(el) animateCount(el, n);
+    }
+    function incrementDailyUsers(delta = 1){
+      const key = todayKey();
+      const current = Number(localStorage.getItem(key)||'0');
+      const next = current + delta;
+      writeDaily(key, next);
+      const el = document.getElementById('todayUsersCount');
+      if(el) animateCount(el, next);
+    }
 
-    /* Modal */
+    /* ── 서버 카운팅 연동 ───────────────────────── */
+    async function fetchServerDailyCount(){
+      try{
+        const r = await fetch(`${API_BASE}/api/daily-users`, { method:'GET', mode:'cors', cache:'no-store' });
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { count } = await r.json();
+        const el = document.getElementById('todayUsersCount');
+        if(el && typeof count === 'number'){
+          animateCount(el, count);
+        }
+      }catch(err){
+        console.warn('[daily-users] GET failed, keep local view:', err);
+      }
+    }
+
+    async function bumpServerDailyCount(){
+      try{
+        const r = await fetch(`${API_BASE}/api/daily-users`, { method:'POST', mode:'cors', cache:'no-store' });
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { count } = await r.json();
+        const el = document.getElementById('todayUsersCount');
+        if(el && typeof count === 'number'){
+          animateCount(el, count);
+        }
+      }catch(err){
+        console.warn('[daily-users] POST failed, fallback +1 local:', err);
+        incrementDailyUsers(1); // 서버 실패 시 화면만 +1로 폴백
+      }
+    }
+
+    /* ── Modal ─────────────────────────────────── */
     const modal = {
-      el:null, body:null, closeBtn:null, statusEl:null,
-      open(html, status){
+      el: null, body: null, closeBtn: null, statusEl: null,
+      open(html, status){ // status: { type: 'success'|'error'|'info', text: '대출 가능'|'대출 불가'|'안내' }
         if(!this.el){
           this.el = document.getElementById('resultModal');
           this.body = document.getElementById('modalBody');
@@ -454,27 +586,29 @@
       }
     };
 
-    /* 필수 입력 검증(1~5) */
+    /* ── 필수 입력 검증(1~5) ───────────────────── */
     function validateRequired(){
       const missing = [];
       const ids = {
-        '1. 지역':'region',
-        '2. 부동산 종류':'propertyType',
-        '3. 시세':'marketValue',
-        '4. 선순위 잔액+보증금':'seniorLoan',
-        '5. 필요 대출금액':'requestedLoan'
+        '1. 지역': 'region',
+        '2. 부동산 종류': 'propertyType',
+        '3. 시세': 'marketValue',
+        '4. 선순위 잔액+보증금': 'seniorLoan',
+        '5. 필요 대출금액': 'requestedLoan'
       };
       const getRaw = id => document.getElementById(id).value.trim();
       const hasNum = id => !!onlyDigits(document.getElementById(id).value);
+
       if(!getRaw(ids['1. 지역'])) missing.push('1. 지역');
       if(!getRaw(ids['2. 부동산 종류'])) missing.push('2. 부동산 종류');
       if(!hasNum(ids['3. 시세'])) missing.push('3. 시세');
       if(getRaw(ids['4. 선순위 잔액+보증금']) === '') missing.push('4. 선순위 잔액+보증금');
       if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
+
       return { missing, focusId: ids[missing[0]] };
     }
 
-    /* 초기화 */
+    /* ── 초기화 ─────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
       attachCommaWithPreview('marketValue','marketValue_view');
       attachCommaWithPreview('seniorLoan','seniorLoan_view');
@@ -482,26 +616,39 @@
       attachCommaWithPreview('deduction','deduction_view');
 
       const btn = document.getElementById('calcBtn');
-      if(btn) btn.addEventListener('click', onCalculate);
+      if (btn) btn.addEventListener('click', onCalculate);
 
-      fetchTodayCount(); // 서버 카운트 표시
+      // 로컬 기본 UI → 서버 값으로 덮어쓰기
+      initDailyUsersUI();
+      fetchServerDailyCount();
+      // setDailyUsers(342); // (테스트용) 서버 카운트 대신 강제 세팅하고 싶으면 사용
     });
 
-    /* KPI 템플릿 */
+    /* ── KPI 빌더들 ───────────────────────────── */
     const kpisHTML = (label1, val1, label2, val2) => `
       <div class="kpis">
-        <div class="kpi"><div class="kpi-label">${label1}</div><div class="kpi-value">${formatKoreanCurrency(val1)}</div></div>
-        <div class="kpi"><div class="kpi-label">${label2}</div><div class="kpi-value">${formatKoreanCurrency(val2)}</div></div>
+        <div class="kpi">
+          <div class="kpi-label">${label1}</div>
+          <div class="kpi-value">${formatKoreanCurrency(val1)}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">${label2}</div>
+          <div class="kpi-value">${formatKoreanCurrency(val2)}</div>
+        </div>
       </div>`;
-    const kpisForPossible = (req, addAvail) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
-    const kpisForDenied   = (req, maxReq)   => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
 
-    /* 메인 계산 */
-    async function onCalculate(){
-      // 0) 필수 입력 체크
+    const kpisForPossible = (req, addAvail) =>
+      kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
+
+    const kpisForDenied = (req, maxReq) =>
+      kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
+
+    /* ── 메인 계산 ──────────────────────────────── */
+    function onCalculate(){
+      // 0) 필수 입력(1~5) 검증
       const { missing, focusId } = validateRequired();
       if(missing.length){
-        const list = missing.map(t=>`<li>${t}</li>`).join('');
+        const list = missing.map(t => `<li>${t}</li>`).join('');
         modal.open(`
           <div class="notice info">
             <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
@@ -522,64 +669,77 @@
       let deduction       = toNumber(document.getElementById('deduction').value);
 
       // 규칙 클램프
-      if(deduction > requestedLoan){ alert('대환+보증금 반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동으로 조정합니다.'); deduction = requestedLoan; }
-      if(deduction > seniorLoan){ alert('대환+보증금 반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동으로 조정합니다.'); deduction = seniorLoan; }
+      if (deduction > requestedLoan) {
+        alert('대환+보증금 반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동으로 조정합니다.');
+        deduction = requestedLoan;
+      }
+      if (deduction > seniorLoan) {
+        alert('대환+보증금 반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동으로 조정합니다.');
+        deduction = seniorLoan;
+      }
       document.getElementById('deduction').value = deduction.toLocaleString();
       updatePreview('deduction','deduction_view');
 
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       const seniorLimit = marketValue * ratio;
 
-      document.getElementById('result').classList.add('hide'); // 인라인 숨김
+      // 인라인 박스 숨김(중복 표시 방지)
+      document.getElementById('result').classList.add('hide');
 
+      // r 계산(불가 케이스에서도 '가능 요청금액' 제공하기 위함)
       let r;
-      try{
+      try {
         r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan});
-      }catch(e){
+      } catch (e) {
         modal.open(`<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
         return;
       }
 
-      // 1) 선순위만으로 LTV 초과 → 불가 + 가능 요청금액
-      if(seniorLoan > seniorLimit){
+      // 1) 선순위만으로 LTV 초과 → 불가 + 가능 요청금액 제시
+      if (seniorLoan > seniorLimit) {
+        const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
-          ${kpisForDenied(requestedLoan, r.maxRequested)}
+          ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
             <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
             <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-          </div>`;
+          </div>
+        `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpTodayCount();
+        bumpServerDailyCount();   // ★ 서버 카운터 증가
         return;
       }
 
-      // 2) 요청 초과 → 불가 + 가능 요청금액
-      if(r.status === 'exceeded'){
+      // 2) 요청 초과 → 불가 + 가능 요청금액 제시
+      if (r.status === 'exceeded') {
+        const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
-          ${kpisForDenied(requestedLoan, r.maxRequested)}
+          ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
             <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
             <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-          </div>`;
+          </div>
+        `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpTodayCount();
+        bumpServerDailyCount();   // ★ 서버 카운터 증가
         return;
       }
 
-      // 3) 요청 없음
-      if(r.status === 'no-request'){
+      // 3) 요청 없음 안내
+      if (r.status === 'no-request') {
         const html = `
           <div class="notice info">
             <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
             <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-          </div>`;
+          </div>
+        `;
         modal.open(html, {type:'info', text:'안내'});
         return;
       }
 
-      /* === 대출 가능 === */
+      /* === r.status === 'possible' (대출 가능) === */
       const addAvail = Math.max(0, r.maxRequested - requestedLoan);
       const mMin = monthlyPayment(requestedLoan, 0.068);
       const mMax = monthlyPayment(requestedLoan, 0.148);
@@ -588,6 +748,7 @@
 
       const kpis = kpisForPossible(requestedLoan, addAvail);
 
+      /* ✅ 카드1: 예상 비용 상세 */
       const breakdownCosts = `
         <div class="breakdown-card" aria-labelledby="costsTitle">
           <div id="costsTitle" class="card-title">예상 비용 상세</div>
@@ -601,6 +762,7 @@
             </div>
           </div>
 
+          <!-- 플랫폼수수료 섹션만 compact 처리 -->
           <div class="card-section compact">
             <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
             <div class="chip-row tight">
@@ -609,17 +771,33 @@
               <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
             </div>
           </div>
-        </div>`;
+        </div>
+      `;
 
+      /* ✅ 카드2: 기타 안내 */
       const breakdownInfo = `
         <div class="breakdown-card" aria-labelledby="infoTitle">
           <div id="infoTitle" class="card-title">기타 안내</div>
+
           <div class="rowlist">
-            <div class="row"><span class="icon-dot dot-navy"></span><span class="label">대출기간</span><span class="value">평균 1년</span></div>
-            <div class="row"><span class="icon-dot dot-green"></span><span class="label">중도상환수수료</span><span class="value">없음</span></div>
-            <div class="row"><span class="icon-dot dot-slate"></span><span class="label">대출연장수수료</span><span class="value">0%~1% (업체별 상이)</span></div>
+            <div class="row">
+              <span class="icon-dot dot-navy"></span>
+              <span class="label">대출기간</span>
+              <span class="value">평균 1년</span>
+            </div>
+            <div class="row">
+              <span class="icon-dot dot-green"></span>
+              <span class="label">중도상환수수료</span>
+              <span class="value">없음</span>
+            </div>
+            <div class="row">
+              <span class="icon-dot dot-slate"></span>
+              <span class="label">대출연장수수료</span>
+              <span class="value">0%~1% (업체별 상이)</span>
+            </div>
           </div>
-        </div>`;
+        </div>
+      `;
 
       const html = `
         ${kpis}
@@ -632,7 +810,7 @@
         ${breakdownInfo}
       `;
       modal.open(html, {type:'success', text:'대출 가능'});
-      await bumpTodayCount();
+      bumpServerDailyCount();     // ★ 서버 카운터 증가
     }
   </script>
 </body>
