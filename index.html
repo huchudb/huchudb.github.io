@@ -1,406 +1,653 @@
-<script>
-  /* ===== 서버 API 베이스 (Vercel) ===== */
-  const API_BASE = 'https://huchudb-github-io.vercel.app';
-  const DAILY_API = `${API_BASE}/api/daily-users`;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>온투업(P2P) 담보대출 "나도 가능할까?"</title>
 
-  /* ===== LTV 한도 ===== */
-  const LTV_LIMITS = {
-    "서울":   { "아파트": 0.73,   "다세대/연립": 0.70,   "단독/다가구": 0.70,   "토지/임야": 0.70 },
-    "서울 외":{ "아파트": 0.6998, "다세대/연립": 0.65,   "단독/다가구": 0.65,   "토지/임야": 0.4999 }
-  };
-
-  /* 숫자 유틸 */
-  const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
-  const toNumber = (s) => Number(onlyDigits(s)) || 0;
-
-  function formatKoreanCurrency(num) {
-    const n = Math.max(0, Math.floor(num));
-    if (n >= 100000000) {
-      const eok = Math.floor(n / 100000000);
-      const restMan = Math.floor((n % 100000000) / 10000);
-      if (restMan > 0) return `${eok}억 ${restMan.toLocaleString()}만원`;
-      return `${eok}억 원`;
-    } else if (n >= 10000) {
-      return `${Math.floor(n / 10000).toLocaleString()}만원`;
-    } else {
-      return `${n.toLocaleString()}원`;
+  <style>
+    :root {
+      --primary: #1a365d; --primary-dark: #153154; --accent: #d4af37;
+      --bg: #f8f9fa; --card:#fff; --muted:#555; --line:#d0d7e2;
+      --success:#2f855a; --danger:#e53e3e; --info:#2b6cb0;
+      --chip-bg:#f1f5f9; --chip-line:#e2e8f0;
+      --kakao-yellow:#FEE500; --kakao-brown:#3C1E1E;
+      --s-1:8px; --s-2:12px; --s-3:16px; --s-4:24px; --s-5:28px;
     }
-  }
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:24px}
+    .container{max-width:720px;margin:0 auto;background:var(--card);padding:22px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    @media (max-width:520px){ body{padding:16px} .container{padding:16px} }
 
-  function updatePreview(inputId, viewId){
-    const el = document.getElementById(inputId);
-    const pv = document.getElementById(viewId);
-    const raw = onlyDigits(el.value);
-    el.value = raw ? Number(raw).toLocaleString() : "";
-    pv.textContent = formatKoreanCurrency(Number(raw||"0"));
-  }
-  function attachCommaWithPreview(id, viewId){
-    const el = document.getElementById(id);
-    updatePreview(id, viewId);
-    el.addEventListener('input', ()=> updatePreview(id, viewId));
-  }
+    .top-stats{max-width:720px;margin:0 auto 12px}
+    .stat-card{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .stat-label{display:flex;align-items:center;gap:8px;color:#42526e;font-weight:700}
+    .stat-dot{width:10px;height:10px;border-radius:50%;background:var(--info)}
+    .stat-value{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
+    .stat-value .num{font-weight:800;font-size:22px;color:#0b2a66;line-height:1}
+    .stat-value .suffix{font-size:14px;color:#6b7a99;line-height:1}
+    @media (max-width:520px){ .top-stats{margin-bottom:10px}.stat-card{padding:10px 12px}.stat-value .num{font-size:20px} }
 
-  /* 매월 이자 금액 */
-  function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
+    h1{margin:0 0 8px;font-size:24px;color:var(--primary)}
+    .subtitle{margin:0 0 18px;color:var(--muted);line-height:1.55;font-size:14px}
 
-  /* LTV 판정식 */
-  function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
-    const ratio = LTV_LIMITS?.[region]?.[propertyType];
-    if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
-    const limit = marketValue * ratio;
-    const d = Math.max(0, Math.min(deduction, seniorLoan, requestedLoan));
-    const maxRequested = Math.max(0, limit - seniorLoan + d);
-    const status = (requestedLoan > 0)
-      ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded')
-      : 'no-request';
-    return { ratio, limit, maxRequested, usedDeduction: d, status };
-  }
+    .step{margin:16px 0;padding:14px;border-radius:12px;background:#f1f4f9;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+    label{display:block;font-weight:700;margin-bottom:6px;color:var(--primary)}
+    #calcSteps{counter-reset:step}
+    .steplabel{position:relative;padding-left:30px;font-weight:800;color:var(--primary);line-height:1.2;display:block}
+    .steplabel::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:50%;transform:translateY(-50%);width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;border:2px solid var(--accent);box-shadow:0 2px 6px rgba(11,31,58,.15)}
+    .steplabel.no-badge-before{padding-left:0}
+    .steplabel.no-badge-before::before{display:none;counter-increment:none}
+    .badge-inline{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 6px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(11,31,58,.15);border:2px solid var(--accent);line-height:1;vertical-align:middle;position:relative;top:-1px}
+    @media (max-width:420px){ .steplabel{padding-left:26px}.steplabel::before{width:18px;height:18px;font-size:11px}.badge-inline{width:18px;height:18px;font-size:11px;top:-1px} }
 
-  /* ── 금일 이용자수: 서버+로컬 폴백 ───────────────── */
-  const DAILY_PREFIX = 'huchu.dailyUsers.'; // 폴백용 로컬 키
-  function getKSTDateKey(ts = Date.now()){
-    const msKST = ts + 9 * 60 * 60 * 1000;
-    const d = new Date(msKST);
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth()+1).padStart(2,'0');
-    const dd = String(d.getUTCDate()).padStart(2,'0');
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  function todayKey(){ return DAILY_PREFIX + getKSTDateKey(); }
-  function readLocal(){ const key=todayKey(); return { key, count: Number(localStorage.getItem(key)||'0') }; }
-  function writeLocal(key,val){ localStorage.setItem(key,String(val)); }
+    .amount-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;width:100%}
+    .amount-row input{flex:0 0 336px;width:336px;min-width:0}
+    @media (max-width:520px){ .amount-row input{flex:0 0 252px;width:252px} }
+    .amount-display{flex:0 0 auto;white-space:nowrap;font-size:13px;color:#334155;background:#F1F5F9;padding:8px 10px;border-radius:8px;border:1px solid #E2E8F0;text-align:left}
+    @media (max-width:420px){ .amount-display{font-size:12px;padding:6px 8px} }
 
-  function animateCount(el, to, duration = 900){
-    const from = Number((el.textContent||"").replace(/[^0-9]/g,"")) || 0;
-    const start = performance.now();
-    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-    function frame(now){
-      const p = Math.min(1, (now - start) / duration);
-      const val = Math.round(from + (to - from) * easeOutCubic(p));
-      el.textContent = val.toLocaleString('ko-KR');
-      if(p < 1) requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
+    select,input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#fff}
+    .info{font-size:12px;color:#666;margin:6px 0 0}
 
-  // 캐시버스터 쿼리 파라미터
-  const cb = () => `t=${Date.now()}`;
+    button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--primary);color:#fff;font-size:16px;cursor:pointer;transition:background .15s}
+    button:hover{background:var(--primary-dark)}
+    .hide{display:none!important}
 
-  async function serverGetCount(){
-    const r = await fetch(`${DAILY_API}?${cb()}`, {
-      method:'GET',
-      mode:'cors',
-      credentials:'omit',
-      cache:'no-store',
-      headers:{
-        'Cache-Control':'no-store, no-cache, must-revalidate',
-        'Pragma':'no-cache'
+    .resultBox{margin-top:16px;padding:16px;border-radius:12px;border:1px solid var(--line);background:#f7f9fc}
+    .resultHeader{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #cfd8ea}
+    .resultIcon{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+    .resultTitle{font-weight:800;color:#0b2a66}
+    .resultBox.success .resultIcon{background:var(--success)}
+    .resultBox.error .resultIcon{background:var(--danger)}
+    .resultBox.info .resultIcon{background:var(--info)}
+
+    .kpis{margin:var(--s-2) 0 var(--s-4);display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(11,31,58,.05)}
+    .kpi-label{font-size:12px;color:#5f6b85;letter-spacing:.1px}
+    .kpi-value{font-size:21px;font-weight:800;color:#0b2a66;margin-top:4px;letter-spacing:.2px}
+
+    .section-title{margin:var(--s-3) 0 var(--s-2);font-weight:800;color:#0b2a66;display:flex;align-items:center;gap:8px}
+    .chip-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:var(--s-3)}
+    .chip-row.tight{gap:6px}
+    .chip{display:inline-flex;align-items:baseline;gap:10px;background:var(--chip-bg);border:1px solid var(--chip-line);border-radius:999px;padding:11px 18px;color:#1f2a3a}
+    .chip .label,.chip .val{line-height:1;font-variant-numeric:tabular-nums}
+    .chip .label{font-size:14px;color:#42526e;font-weight:700}
+    .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
+    .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
+    .chip .val{font-size:20px;font-weight:800;color:#0b2a66}
+    .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
+    .chip-tilde.tight{padding:0 4px}
+
+    .icon-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 10px}
+    .dot-blue{background:#2b6cb0}.dot-gold{background:#d4af37}.dot-navy{background:#1a365d}.dot-green{background:#2f855a}.dot-slate{background:#6b7a99}
+
+    .rowlist{margin-top:var(--s-3);border-top:1px dashed #e3e9f2}
+    .rowlist .row{display:grid;grid-template-columns:14px auto 1fr;column-gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed #e3e9f2}
+    .rowlist .row:last-child{border-bottom:none}
+    .row .label{color:#42526e;font-weight:700;white-space:nowrap}
+    .row .value{color:#0b2a66;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .notice{margin:var(--s-4) 0;padding:14px 16px;border-radius:10px;border:1px solid #e3e9f2}
+    .notice.success{background:#f0fff4;border-left:4px solid #2f855a}
+    .notice.error{background:#fff5f5;border-left:4px solid #e53e3e}
+    .notice.info{background:#eff6ff;border-left:4px solid #2b6cb0}
+    .notice p{margin:6px 0;color:#1f2937}
+    .notice .disclaimer{margin-top:8px;font-size:12px;color:#6b7280}
+
+    .status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-weight:800;font-size:14px}
+    .status-pill.success{background:#dcfce7;color:#166534}
+    .status-pill.error{background:#fee2e2;color:#991b1b}
+    .status-pill.info{background:#e0f2fe;color:#075985}
+
+    .breakdown-card{background:#fff;border:1px solid #e6ecf5;border-radius:14px;box-shadow:0 4px 18px rgba(11,31,58,.06);padding:18px 18px}
+    .breakdown-card .card-title{font-weight:800;color:#0b2a66;margin:0 0 var(--s-2);font-size:16px;letter-spacing:.2px}
+    .card-section + .card-section{border-top:1px dashed #e3e9f2;margin-top:var(--s-3);padding-top:var(--s-3)}
+    .breakdown-card .rowlist{border-top:0;margin-top:var(--s-2)}
+
+    body.modal-open{overflow:hidden}
+    .modal{position:fixed;inset:0;z-index:1000}
+    .modal.hide{display:none}
+    .modal .overlay{position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:saturate(120%) blur(2px)}
+    .modal .panel{position:relative;z-index:1;margin:auto;margin-top:5vh;width:min(92vw,760px);max-height:86vh;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(2,6,23,.25);transform:scale(.96) translateY(6px);opacity:0;animation:modalIn .18s ease-out forwards;display:flex;flex-direction:column}
+    @keyframes modalIn{to{transform:scale(1) translateY(0);opacity:1}}
+    .modal .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px dashed #cfd8ea}
+    .modal .panel-title{font-weight:800;color:#0b2a66}
+    .modal .panel-body{padding:var(--s-2) var(--s-4) var(--s-4);overflow:auto;flex:1 1 auto}
+    .modal .panel-body > * + *{margin-top:var(--s-4)}
+    .modal .panel-footer{border-top:1px solid #e6ecf5;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .footer-left{display:flex;justify-content:flex-start}
+    .footer-right{display:flex;justify-content:flex-end}
+    .panel-footer .btn{width:100%}
+    .btn{appearance:none;border:0;border-radius:10px;cursor:pointer;padding:12px 16px;font-weight:800;font-size:14px;line-height:1}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{background:var(--primary-dark)}
+    .btn-secondary{background:#f1f5n9;color:#334155;border:1px solid #d6dbe6}
+    .btn-secondary:hover{background:#e9edf3}
+    .btn-kakao{background:var(--kakao-yellow);color:var(--kakao-brown);border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
+    .btn-kakao:hover{background:#fde236}
+    .modal .panel-body .kpis:first-child{margin-top:var(--s-1)}
+    .breakdown-card .card-section.compact{margin-top:var(--s-1);padding-top:var(--s-1);border-top:1px dashed #e3e9f2}
+    .breakdown-card .card-section.compact .section-title{margin:var(--s-1) 0 6px}
+    .breakdown-card .card-section:last-child .chip-row{margin-bottom:var(--s-1)}
+  </style>
+</head>
+<body>
+
+  <!-- 금일 이용자수 카드 -->
+  <div class="top-stats" aria-label="금일 이용자수">
+    <div class="stat-card">
+      <div class="stat-label">
+        <span class="stat-dot"></span>
+        금일 이용자수
+      </div>
+      <div class="stat-value">
+        <span id="todayUsersCount" class="num" data-target="0" aria-live="polite">0</span>
+        <span class="suffix">명</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>온투업(P2P) 담보대출 "나도 가능할까?"</h1>
+    <p class="subtitle">
+      * 온투업의 실제 대출 데이터를 기반으로 계산됩니다.<br>
+      ** 100번을 계산해도 신용점수는 변동되지 않습니다.
+    </p>
+
+    <div id="calcSteps">
+      <div class="step">
+        <label class="steplabel">지역을 선택해주세요.</label>
+        <select id="region">
+          <option value="">선택</option>
+          <option value="서울">서울</option>
+          <option value="서울 외">서울 외</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">부동산 종류를 선택해주세요.</label>
+        <select id="propertyType">
+          <option value="">선택</option>
+          <option value="아파트">아파트</option>
+          <option value="다세대/연립">다세대/연립</option>
+          <option value="단독/다가구">단독/다가구</option>
+          <option value="토지/임야">토지/임야</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">내가 생각하는 시세</label>
+        <div class="amount-row">
+          <input type="text" id="marketValue" placeholder="예: 500,000,000">
+          <span id="marketValue_view" class="amount-display">0원</span>
+        </div>
+        <p class="info">
+          *아파트는 KB시세를 입력하세요 →
+          <a href="https://kbland.kr/search" target="_blank">[KB시세 바로가기]</a><br>
+          (3층 이상: 일반가 / 2층 이하: 하위평균가)
+        </p>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">선순위 대출 잔액 + 임대보증금</label>
+        <div class="amount-row">
+          <input type="text" id="seniorLoan" placeholder="예: 100,000,000">
+          <span id="seniorLoan_view" class="amount-display">0원</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">필요 대출금액</label>
+        <div class="amount-row">
+          <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
+          <span id="requestedLoan_view" class="amount-display">0원</span>
+        </div>
+        <p class="info">* 대환(상환)해야 할 금액이 포함된 총 필요 금액을 입력하세요.</p>
+      </div>
+
+      <div class="step">
+        <label class="steplabel no-badge-before">
+          (선택사항) <span class="badge-inline">4</span>금액중 상환+반환할 금액
+        </label>
+        <div class="amount-row">
+          <input type="text" id="deduction" value="0">
+          <span id="deduction_view" class="amount-display">0원</span>
+        </div>
+      </div>
+    </div>
+
+    <button id="calcBtn">대출 가능성 확인하기</button>
+    <div id="result" class="resultBox hide"></div>
+  </div>
+
+  <!-- 결과 모달 -->
+  <div id="resultModal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="overlay" data-close="true"></div>
+    <div class="panel" role="document">
+      <div class="panel-header">
+        <div id="modalTitle" class="panel-title">계산 결과</div>
+        <div id="modalStatus" class="status-pill hide"></div>
+      </div>
+      <div class="panel-body" id="modalBody"></div>
+      <div class="panel-footer">
+        <div class="footer-left">
+          <a id="contactBtn" class="btn btn-kakao" href="https://open.kakao.com/me/huchudb" target="_blank" rel="noopener">채팅 문의</a>
+        </div>
+        <div class="footer-right">
+          <button class="btn btn-secondary" id="modalCloseBtn" aria-label="닫기">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== 서버 API 베이스 (Vercel) ===== */
+    const API_BASE = 'https://huchudb-github-io.vercel.app';
+    const DAILY_API = `${API_BASE}/api/daily-users`;
+
+    /* ===== LTV 한도 ===== */
+    const LTV_LIMITS = {
+      "서울":   { "아파트": 0.73,   "다세대/연립": 0.70,   "단독/다가구": 0.70,   "토지/임야": 0.70 },
+      "서울 외":{ "아파트": 0.6998, "다세대/연립": 0.65,   "단독/다가구": 0.65,   "토지/임야": 0.4999 }
+    };
+
+    /* 숫자 유틸 */
+    const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
+    const toNumber = (s) => Number(onlyDigits(s)) || 0;
+
+    function formatKoreanCurrency(num) {
+      const n = Math.max(0, Math.floor(num));
+      if (n >= 100000000) {
+        const eok = Math.floor(n / 100000000);
+        const restMan = Math.floor((n % 100000000) / 10000);
+        if (restMan > 0) return `${eok}억 ${restMan.toLocaleString()}만원`;
+        return `${eok}억 원`;
+      } else if (n >= 10000) {
+        return `${Math.floor(n / 10000).toLocaleString()}만원`;
+      } else {
+        return `${n.toLocaleString()}원`;
       }
-    });
-    if(!r.ok) throw new Error('GET failed');
-    const j = await r.json();
-    return Number(j.count || 0);
-  }
-  async function serverIncrement(){
-    const r = await fetch(`${DAILY_API}?${cb()}`, {
-      method:'POST',
-      mode:'cors',
-      credentials:'omit',
-      cache:'no-store',
-      headers:{
-        'Content-Type':'application/json',
-        'Cache-Control':'no-store, no-cache, must-revalidate',
-        'Pragma':'no-cache'
-      },
-      body:'{}'
-    });
-    if(!r.ok) throw new Error('POST failed');
-    const j = await r.json();
-    return Number(j.count || 0);
-  }
-
-  async function initDailyUsersUI(){
-    const numEl = document.getElementById('todayUsersCount');
-    try{
-      const count = await serverGetCount();
-      writeLocal(todayKey(), count);
-      if(numEl) animateCount(numEl, count, 400);
-    }catch(e){
-      const { count } = readLocal();
-      if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
     }
-    // 자정 이후 자동 새키 값(분단위 체크)
-    setInterval(async ()=>{
+
+    /* 🔧 안전 버전 미리보기 */
+    function updatePreview(inputId, viewId){
+      const el = document.getElementById(inputId);
+      const pv = document.getElementById(viewId);
+      if(!el){
+        console.warn(`[updatePreview] input #${inputId} 없음`);
+        return;
+      }
+      const raw = onlyDigits(el.value || "");
+      el.value = raw ? Number(raw).toLocaleString() : "";
+      if(pv){
+        pv.textContent = formatKoreanCurrency(Number(raw || "0"));
+      }else{
+        console.warn(`[updatePreview] view #${viewId} 없음`);
+      }
+    }
+    function attachCommaWithPreview(id, viewId){
+      const el = document.getElementById(id);
+      if(!el){
+        console.warn(`[attachCommaWithPreview] input #${id} 없음`);
+        return;
+      }
+      updatePreview(id, viewId);
+      el.addEventListener('input', ()=> updatePreview(id, viewId));
+    }
+
+    /* 매월 이자 금액 */
+    function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
+
+    /* LTV 판정식 */
+    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
+      const ratio = LTV_LIMITS?.[region]?.[propertyType];
+      if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
+      const limit = marketValue * ratio;
+      const d = Math.max(0, Math.min(deduction, seniorLoan, requestedLoan));
+      const maxRequested = Math.max(0, limit - seniorLoan + d);
+      const status = (requestedLoan > 0)
+        ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded')
+        : 'no-request';
+      return { ratio, limit, maxRequested, usedDeduction: d, status };
+    }
+
+    /* ── 금일 이용자수: 서버+로컬 폴백 ───────────────── */
+    const DAILY_PREFIX = 'huchu.dailyUsers.';
+    function getKSTDateKey(ts = Date.now()){
+      const msKST = ts + 9 * 60 * 60 * 1000;
+      const d = new Date(msKST);
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+      const dd = String(d.getUTCDate()).padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function todayKey(){ return DAILY_PREFIX + getKSTDateKey(); }
+    function readLocal(){ const key=todayKey(); return { key, count: Number(localStorage.getItem(key)||'0') }; }
+    function writeLocal(key,val){ localStorage.setItem(key,String(val)); }
+
+    function animateCount(el, to, duration = 900){
+      const from = Number((el.textContent||"").replace(/[^0-9]/g,"")) || 0;
+      const start = performance.now();
+      const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+      function frame(now){
+        const p = Math.min(1, (now - start) / duration);
+        const val = Math.round(from + (to - from) * easeOutCubic(p));
+        el.textContent = val.toLocaleString('ko-KR');
+        if(p < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    async function serverGetCount(){
+      const r = await fetch(DAILY_API, {
+        method:'GET',
+        mode:'cors',
+        credentials:'omit',
+        cache:'no-store',
+        headers:{ 'Cache-Control':'no-cache' }
+      });
+      const j = await r.json();
+      return Number(j.count || 0);
+    }
+    async function serverIncrement(){
+      const r = await fetch(DAILY_API, {
+        method:'POST',
+        mode:'cors',
+        credentials:'omit',
+        cache:'no-store',
+        headers:{ 'Cache-Control':'no-cache' }
+      });
+      const j = await r.json();
+      return Number(j.count || 0);
+    }
+
+    async function initDailyUsersUI(){
+      const numEl = document.getElementById('todayUsersCount');
       try{
-        const c = await serverGetCount();
-        writeLocal(todayKey(), c);
-        const el = document.getElementById('todayUsersCount');
-        if(el) el.textContent = c.toLocaleString('ko-KR');
-      }catch(_){}
-    }, 60000);
-  }
-
-  async function bumpDailyUsers(){
-    const el = document.getElementById('todayUsersCount');
-    try{
-      const count = await serverIncrement();
-      writeLocal(todayKey(), count);
-      if(el) animateCount(el, count);
-    }catch(e){
-      // 폴백: 로컬 +1
-      const key = todayKey();
-      const curr = Number(localStorage.getItem(key)||'0') + 1;
-      writeLocal(key, curr);
-      if(el) animateCount(el, curr);
-    }
-  }
-
-  /* ── Modal ─────────────────────────────────── */
-  const modal = {
-    el: null, body: null, closeBtn: null, statusEl: null,
-    open(html, status){
-      if(!this.el){
-        this.el = document.getElementById('resultModal');
-        this.body = document.getElementById('modalBody');
-        this.closeBtn = document.getElementById('modalCloseBtn');
-        this.statusEl = document.getElementById('modalStatus');
-        this.el.addEventListener('click', (e)=>{ if(e.target.dataset.close === 'true') modal.close(); });
-        this.closeBtn.addEventListener('click', ()=> modal.close());
-        document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') modal.close(); });
+        const count = await serverGetCount();
+        writeLocal(todayKey(), count);
+        if(numEl) animateCount(numEl, count, 400);
+      }catch(e){
+        console.warn('[daily-users] GET 폴백 사용', e);
+        const { count } = readLocal();
+        if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
       }
-      if(this.statusEl){
-        this.statusEl.classList.remove('success','error','info','hide');
-        if(status && status.type && status.text){
-          this.statusEl.textContent = status.text;
-          this.statusEl.classList.add(status.type);
-        }else{
-          this.statusEl.textContent = '';
-          this.statusEl.classList.add('hide');
+
+      // KST 자정 이후 값 갱신(분 단위)
+      setInterval(async ()=>{
+        try{
+          const c = await serverGetCount();
+          writeLocal(todayKey(), c);
+          const el = document.getElementById('todayUsersCount');
+          if(el) el.textContent = c.toLocaleString('ko-KR');
+        }catch(_){}
+      }, 60000);
+    }
+
+    async function bumpDailyUsers(){
+      const el = document.getElementById('todayUsersCount');
+      try{
+        const count = await serverIncrement();
+        writeLocal(todayKey(), count);
+        if(el) animateCount(el, count);
+      }catch(e){
+        console.warn('[daily-users] POST 폴백(+1)', e);
+        const key = todayKey();
+        const curr = Number(localStorage.getItem(key)||'0') + 1;
+        writeLocal(key, curr);
+        if(el) animateCount(el, curr);
+      }
+    }
+
+    /* ── Modal ─────────────────────────────────── */
+    const modal = {
+      el: null, body: null, closeBtn: null, statusEl: null,
+      open(html, status){
+        if(!this.el){
+          this.el = document.getElementById('resultModal');
+          this.body = document.getElementById('modalBody');
+          this.closeBtn = document.getElementById('modalCloseBtn');
+          this.statusEl = document.getElementById('modalStatus');
+          this.el.addEventListener('click', (e)=>{ if(e.target.dataset.close === 'true') modal.close(); });
+          this.closeBtn.addEventListener('click', ()=> modal.close());
+          document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') modal.close(); });
+        }
+        if(this.statusEl){
+          this.statusEl.classList.remove('success','error','info','hide');
+          if(status && status.type && status.text){
+            this.statusEl.textContent = status.text;
+            this.statusEl.classList.add(status.type);
+          }else{
+            this.statusEl.textContent = '';
+            this.statusEl.classList.add('hide');
+          }
+        }
+        this.body.innerHTML = html;
+        this.el.classList.remove('hide');
+        document.body.classList.add('modal-open');
+        this.closeBtn.focus({preventScroll:true});
+      },
+      close(){
+        if(this.el){
+          this.el.classList.add('hide');
+          document.body.classList.remove('modal-open');
         }
       }
-      this.body.innerHTML = html;
-      this.el.classList.remove('hide');
-      document.body.classList.add('modal-open');
-      this.closeBtn.focus({preventScroll:true});
-    },
-    close(){
-      if(this.el){
-        this.el.classList.add('hide');
-        document.body.classList.remove('modal-open');
-      }
-    }
-  };
-
-  /* ── 필수 입력 검증(1~5) ───────────────────── */
-  function validateRequired(){
-    const missing = [];
-    const ids = {
-      '1. 지역': 'region',
-      '2. 부동산 종류': 'propertyType',
-      '3. 시세': 'marketValue',
-      '4. 선순위 잔액+보증금': 'seniorLoan',
-      '5. 필요 대출금액': 'requestedLoan'
     };
-    const getRaw = id => document.getElementById(id).value.trim();
-    const hasNum = id => !!onlyDigits(document.getElementById(id).value);
 
-    if(!getRaw(ids['1. 지역'])) missing.push('1. 지역');
-    if(!getRaw(ids['2. 부동산 종류'])) missing.push('2. 부동산 종류');
-    if(!hasNum(ids['3. 시세'])) missing.push('3. 시세');
-    if(getRaw(ids['4. 선순위 잔액+보증금']) === '') missing.push('4. 선순위 잔액+보증금');
-    if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
+    /* ── 필수 입력 검증(1~5) ───────────────────── */
+    function validateRequired(){
+      const missing = [];
+      const ids = {
+        '1. 지역': 'region',
+        '2. 부동산 종류': 'propertyType',
+        '3. 시세': 'marketValue',
+        '4. 선순위 잔액+보증금': 'seniorLoan',
+        '5. 필요 대출금액': 'requestedLoan'
+      };
+      const getRaw = id => document.getElementById(id).value.trim();
+      const hasNum = id => !!onlyDigits(document.getElementById(id).value);
 
-    return { missing, focusId: ids[missing[0]] };
-  }
+      if(!getRaw(ids['1. 지역'])) missing.push('1. 지역');
+      if(!getRaw(ids['2. 부동산 종류'])) missing.push('2. 부동산 종류');
+      if(!hasNum(ids['3. 시세'])) missing.push('3. 시세');
+      if(getRaw(ids['4. 선순위 잔액+보증금']) === '') missing.push('4. 선순위 잔액+보증금');
+      if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
 
-  /* ── 초기화 ─────────────────────────────────── */
-  document.addEventListener('DOMContentLoaded', () => {
-    attachCommaWithPreview('marketValue','marketValue_view');
-    attachCommaWithPreview('seniorLoan','seniorLoan_view');
-    attachCommaWithPreview('requestedLoan','requestedLoan_view');
-    attachCommaWithPreview('deduction','deduction_view');
+      return { missing, focusId: ids[missing[0]] };
+    }
 
-    const btn = document.getElementById('calcBtn');
-    if (btn) btn.addEventListener('click', onCalculate);
+    /* ── 초기화 ─────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      attachCommaWithPreview('marketValue','marketValue_view');
+      attachCommaWithPreview('seniorLoan','seniorLoan_view');
+      attachCommaWithPreview('requestedLoan','requestedLoan_view');
+      attachCommaWithPreview('deduction','deduction_view');
 
-    initDailyUsersUI();
-  });
+      const btn = document.getElementById('calcBtn');
+      if (btn) btn.addEventListener('click', onCalculate);
 
-  /* ── KPI 빌더들 ───────────────────────────── */
-  const kpisHTML = (label1, val1, label2, val2) => `
-    <div class="kpis">
-      <div class="kpi">
-        <div class="kpi-label">${label1}</div>
-        <div class="kpi-value">${formatKoreanCurrency(val1)}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">${label2}</div>
-        <div class="kpi-value">${formatKoreanCurrency(val2)}</div>
-      </div>
-    </div>`;
+      initDailyUsersUI();
+    });
 
-  const kpisForPossible = (req, addAvail) =>
-    kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
-
-  const kpisForDenied = (req, maxReq) =>
-    kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
-
-  /* ── 메인 계산 ──────────────────────────────── */
-  async function onCalculate(){
-    const { missing, focusId } = validateRequired();
-    if(missing.length){
-      const list = missing.map(t => `<li>${t}</li>`).join('');
-      modal.open(`
-        <div class="notice info">
-          <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
-          <ul style="margin:6px 0 0 18px; color:#334155;">${list}</ul>
-          <p class="disclaimer">※ 안심하세요~^^ 입력하신 정보는 저장되지 않습니다.</p>
+    /* ── KPI 빌더들 ───────────────────────────── */
+    const kpisHTML = (label1, val1, label2, val2) => `
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">${label1}</div>
+          <div class="kpi-value">${formatKoreanCurrency(val1)}</div>
         </div>
-      `, {type:'info', text:'안내'});
-      if(focusId){ setTimeout(()=> document.getElementById(focusId).focus({preventScroll:true}), 150); }
-      return;
-    }
+        <div class="kpi">
+          <div class="kpi-label">${label2}</div>
+          <div class="kpi-value">${formatKoreanCurrency(val2)}</div>
+        </div>
+      </div>`;
 
-    const region        = document.getElementById('region').value;
-    const propertyType  = document.getElementById('propertyType').value;
-    const marketValue   = toNumber(document.getElementById('marketValue').value);
-    const seniorLoan    = toNumber(document.getElementById('seniorLoan').value);
-    const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
-    let deduction       = toNumber(document.getElementById('deduction').value);
+    const kpisForPossible = (req, addAvail) =>
+      kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
 
-    if (deduction > requestedLoan) {
-      alert('대환+보증금 반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동으로 조정합니다.');
-      deduction = requestedLoan;
-    }
-    if (deduction > seniorLoan) {
-      alert('대환+보증금 반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동으로 조정합니다.');
-      deduction = seniorLoan;
-    }
-    document.getElementById('deduction').value = deduction.toLocaleString();
-    updatePreview('deduction','deduction_view');
+    const kpisForDenied = (req, maxReq) =>
+      kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
 
-    const ratio = LTV_LIMITS?.[region]?.[propertyType];
-    const seniorLimit = marketValue * ratio;
+    /* ── 메인 계산 ──────────────────────────────── */
+    async function onCalculate(){
+      const { missing, focusId } = validateRequired();
+      if(missing.length){
+        const list = missing.map(t => `<li>${t}</li>`).join('');
+        modal.open(`
+          <div class="notice info">
+            <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
+            <ul style="margin:6px 0 0 18px; color:#334155;">${list}</ul>
+            <p class="disclaimer">※ 안심하세요~^^ 입력하신 정보는 저장되지 않습니다.</p>
+          </div>
+        `, {type:'info', text:'안내'});
+        if(focusId){ setTimeout(()=> document.getElementById(focusId).focus({preventScroll:true}), 150); }
+        return;
+      }
 
-    document.getElementById('result').classList.add('hide');
+      const region        = document.getElementById('region').value;
+      const propertyType  = document.getElementById('propertyType').value;
+      const marketValue   = toNumber(document.getElementById('marketValue').value);
+      const seniorLoan    = toNumber(document.getElementById('seniorLoan').value);
+      const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
+      let deduction       = toNumber(document.getElementById('deduction').value);
 
-    let r;
-    try {
-      r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan});
-    } catch (e) {
-      modal.open(`<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
-      return;
-    }
+      if (deduction > requestedLoan) {
+        alert('대환+보증금 반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동으로 조정합니다.');
+        deduction = requestedLoan;
+      }
+      if (deduction > seniorLoan) {
+        alert('대환+보증금 반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동으로 조정합니다.');
+        deduction = seniorLoan;
+      }
+      document.getElementById('deduction').value = deduction.toLocaleString();
+      updatePreview('deduction','deduction_view');
 
-    if (seniorLoan > seniorLimit) {
-      const kpis = kpisForDenied(requestedLoan, r.maxRequested);
+      const ratio = LTV_LIMITS?.[region]?.[propertyType];
+      const seniorLimit = marketValue * ratio;
+
+      document.getElementById('result').classList.add('hide');
+
+      let r;
+      try {
+        r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan});
+      } catch (e) {
+        modal.open(`<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
+        return;
+      }
+
+      if (seniorLoan > seniorLimit) {
+        const kpis = kpisForDenied(requestedLoan, r.maxRequested);
+        const html = `
+          ${kpis}
+          <div class="notice error">
+            <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
+            <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+          </div>
+        `;
+        modal.open(html, {type:'error', text:'대출 불가'});
+        await bumpDailyUsers();
+        return;
+      }
+
+      if (r.status === 'exceeded') {
+        const kpis = kpisForDenied(requestedLoan, r.maxRequested);
+        const html = `
+          ${kpis}
+          <div class="notice error">
+            <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
+            <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+          </div>
+        `;
+        modal.open(html, {type:'error', text:'대출 불가'});
+        await bumpDailyUsers();
+        return;
+      }
+
+      if (r.status === 'no-request') {
+        const html = `
+          <div class="notice info">
+            <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+          </div>
+        `;
+        modal.open(html, {type:'info', text:'안내'});
+        return;
+      }
+
+      /* === 가능 === */
+      const addAvail = Math.max(0, r.maxRequested - requestedLoan);
+      const mMin = monthlyPayment(requestedLoan, 0.068);
+      const mMax = monthlyPayment(requestedLoan, 0.148);
+      const feeMin = requestedLoan * 0.01;
+      const feeMax = requestedLoan * 0.015;
+
+      const kpis = kpisForPossible(requestedLoan, addAvail);
+
+      const breakdownCosts = `
+        <div class="breakdown-card" aria-labelledby="costsTitle">
+          <div id="costsTitle" class="card-title">예상 비용 상세</div>
+
+          <div class="card-section">
+            <div class="section-title"><span class="icon-dot dot-blue"></span>매월 이자 금액</div>
+            <div class="chip-row tight">
+              <span class="chip plain"><span class="label rate-min">6.8%</span><span class="val">${formatKoreanCurrency(mMin)}</span></span>
+              <span class="chip-tilde tight">~</span>
+              <span class="chip plain"><span class="label rate-max">14.8%</span><span class="val">${formatKoreanCurrency(mMax)}</span></span>
+            </div>
+          </div>
+
+          <div class="card-section compact">
+            <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
+            <div class="chip-row tight">
+              <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
+              <span class="chip-tilde tight">~</span>
+              <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const breakdownInfo = `
+        <div class="breakdown-card" aria-labelledby="infoTitle">
+          <div id="infoTitle" class="card-title">기타 안내</div>
+
+          <div class="rowlist">
+            <div class="row">
+              <span class="icon-dot dot-navy"></span>
+              <span class="label">대출기간</span>
+              <span class="value">평균 1년</span>
+            </div>
+            <div class="row">
+              <span class="icon-dot dot-green"></span>
+              <span class="label">중도상환수수료</span>
+              <span class="value">없음</span>
+            </div>
+            <div class="row">
+              <span class="icon-dot dot-slate"></span>
+              <span class="label">대출연장수수료</span>
+              <span class="value">0%~1% (업체별 상이)</span>
+            </div>
+          </div>
+        </div>
+      `;
+
       const html = `
         ${kpis}
-        <div class="notice error">
-          <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
-          <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+        <div class="notice success">
+          <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
+          <p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p>
           <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
         </div>
+        ${breakdownCosts}
+        ${breakdownInfo}
       `;
-      modal.open(html, {type:'error', text:'대출 불가'});
+      modal.open(html, {type:'success', text:'대출 가능'});
       await bumpDailyUsers();
-      return;
     }
-
-    if (r.status === 'exceeded') {
-      const kpis = kpisForDenied(requestedLoan, r.maxRequested);
-      const html = `
-        ${kpis}
-        <div class="notice error">
-          <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
-          <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
-          <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-        </div>
-      `;
-      modal.open(html, {type:'error', text:'대출 불가'});
-      await bumpDailyUsers();
-      return;
-    }
-
-    if (r.status === 'no-request') {
-      const html = `
-        <div class="notice info">
-          <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
-          <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-        </div>
-      `;
-      modal.open(html, {type:'info', text:'안내'});
-      return;
-    }
-
-    /* === 가능 === */
-    const addAvail = Math.max(0, r.maxRequested - requestedLoan);
-    const mMin = monthlyPayment(requestedLoan, 0.068);
-    const mMax = monthlyPayment(requestedLoan, 0.148);
-    const feeMin = requestedLoan * 0.01;
-    const feeMax = requestedLoan * 0.015;
-
-    const kpis = kpisForPossible(requestedLoan, addAvail);
-
-    const breakdownCosts = `
-      <div class="breakdown-card" aria-labelledby="costsTitle">
-        <div id="costsTitle" class="card-title">예상 비용 상세</div>
-
-        <div class="card-section">
-          <div class="section-title"><span class="icon-dot dot-blue"></span>매월 이자 금액</div>
-          <div class="chip-row tight">
-            <span class="chip plain"><span class="label rate-min">6.8%</span><span class="val">${formatKoreanCurrency(mMin)}</span></span>
-            <span class="chip-tilde tight">~</span>
-            <span class="chip plain"><span class="label rate-max">14.8%</span><span class="val">${formatKoreanCurrency(mMax)}</span></span>
-          </div>
-        </div>
-
-        <div class="card-section compact">
-          <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
-          <div class="chip-row tight">
-            <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
-            <span class="chip-tilde tight">~</span>
-            <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const breakdownInfo = `
-      <div class="breakdown-card" aria-labelledby="infoTitle">
-        <div id="infoTitle" class="card-title">기타 안내</div>
-
-        <div class="rowlist">
-          <div class="row">
-            <span class="icon-dot dot-navy"></span>
-            <span class="label">대출기간</span>
-            <span class="value">평균 1년</span>
-          </div>
-          <div class="row">
-            <span class="icon-dot dot-green"></span>
-            <span class="label">중도상환수수료</span>
-            <span class="value">없음</span>
-          </div>
-          <div class="row">
-            <span class="icon-dot dot-slate"></span>
-            <span class="label">대출연장수수료</span>
-            <span class="value">0%~1% (업체별 상이)</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const html = `
-      ${kpis}
-      <div class="notice success">
-        <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
-        <p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p>
-        <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
-      </div>
-      ${breakdownCosts}
-      ${breakdownInfo}
-    `;
-    modal.open(html, {type:'success', text:'대출 가능'});
-    await bumpDailyUsers();
-  }
-</script>
+  </script>
+</body>
+</html>
