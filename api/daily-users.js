@@ -4,8 +4,8 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 // 필요한 도메인으로 바꾸세요.
 const ALLOWED_ORIGINS = [
-  'https://<YOUR_GH_PAGES_USERNAME>.github.io', // GitHub Pages
-  'https://<YOUR_CUSTOM_DOMAIN>'               // (있다면) 커스텀 도메인
+  'https://huchudb.github.io', // GitHub Pages
+  'https://www.huchulab.com'               // (있다면) 커스텀 도메인
   // 'https://<your-vercel-project>.vercel.app' // 프리뷰/프로덕션에서 직접 테스트도 허용하고 싶으면 추가
 ];
 
