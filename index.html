@@ -121,7 +121,6 @@
     .btn{appearance:none;border:0;border-radius:10px;cursor:pointer;padding:12px 16px;font-weight:800;font-size:14px;line-height:1}
     .btn-primary{background:var(--primary);color:#fff}
     .btn-primary:hover{background:var(--primary-dark)}
-    /* ▼ 여기 오타 수정: f1f5n9 → f1f5f9 */
     .btn-secondary{background:#f1f5f9;color:#334155;border:1px solid #d6dbe6}
     .btn-secondary:hover{background:#e9edf3}
     .btn-kakao{background:var(--kakao-yellow);color:var(--kakao-brown);border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
@@ -271,36 +270,26 @@
       }
     }
 
-    /* 🔧 안전 버전 미리보기 */
+    /* 미리보기 포맷 */
     function updatePreview(inputId, viewId){
       const el = document.getElementById(inputId);
       const pv = document.getElementById(viewId);
-      if(!el){
-        console.warn(`[updatePreview] input #${inputId} 없음`);
-        return;
-      }
+      if(!el){ console.warn(`[updatePreview] input #${inputId} 없음`); return; }
       const raw = onlyDigits(el.value || "");
       el.value = raw ? Number(raw).toLocaleString() : "";
-      if(pv){
-        pv.textContent = formatKoreanCurrency(Number(raw || "0"));
-      }else{
-        console.warn(`[updatePreview] view #${viewId} 없음`);
-      }
+      if(pv){ pv.textContent = formatKoreanCurrency(Number(raw || "0")); }
     }
     function attachCommaWithPreview(id, viewId){
       const el = document.getElementById(id);
-      if(!el){
-        console.warn(`[attachCommaWithPreview] input #${id} 없음`);
-        return;
-      }
+      if(!el){ console.warn(`[attachCommaWithPreview] input #${id} 없음`); return; }
       updatePreview(id, viewId);
       el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
 
-    /* 매월 이자 금액 */
+    /* 월 이자 */
     function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
 
-    /* LTV 판정식 */
+    /* LTV 계산 */
     function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
@@ -340,26 +329,26 @@
       requestAnimationFrame(frame);
     }
 
+    /* ▼ GET: 커스텀 헤더 제거 (프리플라이트 방지) */
     async function serverGetCount(){
       const r = await fetch(`${DAILY_API}?${bust()}`, {
         method:'GET',
         mode:'cors',
-        credentials:'omit',
         cache:'no-store',
-        headers:{ 'Cache-Control':'no-cache', 'Pragma':'no-cache' },
-        referrerPolicy:'no-referrer'
+        credentials:'omit'
       });
       const j = await r.json();
       return Number(j.count || 0);
     }
+
+    /* ▼ POST: JSON만 전송 */
     async function serverIncrement(){
       const r = await fetch(`${DAILY_API}?${bust()}`, {
         method:'POST',
         mode:'cors',
-        credentials:'omit',
         cache:'no-store',
-        headers:{ 'Content-Type':'application/json', 'Cache-Control':'no-cache', 'Pragma':'no-cache' },
-        referrerPolicy:'no-referrer',
+        credentials:'omit',
+        headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ event:'calc' })
       });
       const j = await r.json();
@@ -378,7 +367,7 @@
         if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
       }
 
-      // KST 자정 이후 값 갱신(분 단위)
+      // 분 단위로 재조회 (자정 경계 포함)
       setInterval(async ()=>{
         try{
           const c = await serverGetCount();
@@ -475,7 +464,7 @@
       initDailyUsersUI();
     });
 
-    /* ── KPI 빌더들 ───────────────────────────── */
+    /* ── KPI 빌더 ───────────────────────────── */
     const kpisHTML = (label1, val1, label2, val2) => `
       <div class="kpis">
         <div class="kpi">
@@ -494,7 +483,7 @@
     const kpisForDenied = (req, maxReq) =>
       kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
 
-    /* ── 메인 계산 ──────────────────────────────── */
+    /* ── 메인 계산 ───────────────────────────── */
     async function onCalculate(){
       const { missing, focusId } = validateRequired();
       if(missing.length){
