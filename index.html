@@ -73,9 +73,8 @@
     .chip{display:inline-flex;align-items:baseline;gap:10px;background:var(--chip-bg);border:1px solid var(--chip-line);border-radius:999px;padding:11px 18px;color:#1f2a3a}
     .chip .label,.chip .val{line-height:1;font-variant-numeric:tabular-nums}
     .chip .label{font-size:14px;color:#42526e;font-weight:700}
-    .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
-    .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
-    .chip .val{font-size:20px;font-weight:800;color:#0b2a66}
+    /* ▼ 금액 크기 약 20% 축소 */
+    .chip .val{font-size:16px;font-weight:800;color:#0b2a66}
     .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
     .chip-tilde.tight{padding:0 4px}
 
@@ -122,7 +121,8 @@
     .btn{appearance:none;border:0;border-radius:10px;cursor:pointer;padding:12px 16px;font-weight:800;font-size:14px;line-height:1}
     .btn-primary{background:var(--primary);color:#fff}
     .btn-primary:hover{background:var(--primary-dark)}
-    .btn-secondary{background:#f1f5n9;color:#334155;border:1px solid #d6dbe6}
+    /* ▼ 여기 오타 수정: f1f5n9 → f1f5f9 */
+    .btn-secondary{background:#f1f5f9;color:#334155;border:1px solid #d6dbe6}
     .btn-secondary:hover{background:#e9edf3}
     .btn-kakao{background:var(--kakao-yellow);color:var(--kakao-brown);border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
     .btn-kakao:hover{background:#fde236}
@@ -245,6 +245,7 @@
     /* ===== 서버 API 베이스 (Vercel) ===== */
     const API_BASE = 'https://huchudb-github-io.vercel.app';
     const DAILY_API = `${API_BASE}/api/daily-users`;
+    const bust = () => `t=${Date.now()}`;
 
     /* ===== LTV 한도 ===== */
     const LTV_LIMITS = {
@@ -340,23 +341,26 @@
     }
 
     async function serverGetCount(){
-      const r = await fetch(DAILY_API, {
+      const r = await fetch(`${DAILY_API}?${bust()}`, {
         method:'GET',
         mode:'cors',
         credentials:'omit',
         cache:'no-store',
-        headers:{ 'Cache-Control':'no-cache' }
+        headers:{ 'Cache-Control':'no-cache', 'Pragma':'no-cache' },
+        referrerPolicy:'no-referrer'
       });
       const j = await r.json();
       return Number(j.count || 0);
     }
     async function serverIncrement(){
-      const r = await fetch(DAILY_API, {
+      const r = await fetch(`${DAILY_API}?${bust()}`, {
         method:'POST',
         mode:'cors',
         credentials:'omit',
         cache:'no-store',
-        headers:{ 'Cache-Control':'no-cache' }
+        headers:{ 'Content-Type':'application/json', 'Cache-Control':'no-cache', 'Pragma':'no-cache' },
+        referrerPolicy:'no-referrer',
+        body: JSON.stringify({ event:'calc' })
       });
       const j = await r.json();
       return Number(j.count || 0);
