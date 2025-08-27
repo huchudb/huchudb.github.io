@@ -1,18 +1,22 @@
-// api/daily-users.js (Vercel Functions - Node.js 런타임)
+// /api/daily-users.js  (Vercel Functions - Node.js 런타임)
+
+// ⬇️ Vercel Project Settings > Environment Variables 에 이미 넣은 값 사용
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// 필요한 도메인으로 바꾸세요.
+// ⬇️ CORS 허용 도메인 (GitHub Pages, 커스텀 도메인, Vercel 도메인까지)
 const ALLOWED_ORIGINS = [
-  'https://huchudb.github.io', // GitHub Pages
-  'https://www.huchulab.com'               // (있다면) 커스텀 도메인
-  // 'https://<your-vercel-project>.vercel.app' // 프리뷰/프로덕션에서 직접 테스트도 허용하고 싶으면 추가
+  'https://huchudb.github.io',
+  'https://huchulab.com',
+  'https://www.huchulab.com',
+  'https://huchudb-github-io.vercel.app'
 ];
 
 function corsHeaders(origin) {
-  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const isAllowed = ALLOWED_ORIGINS.includes(origin);
   return {
-    'Access-Control-Allow-Origin': allow,
+    'Vary': 'Origin',
+    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://huchudb.github.io',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '600',
@@ -39,7 +43,6 @@ async function upstashGet(key) {
     cache: 'no-store',
   });
   const data = await r.json();
-  // Upstash GET 응답: { result: "123" } 또는 { result: null }
   return Number(data.result || 0);
 }
 
@@ -48,8 +51,7 @@ async function upstashIncrAndExpire(key, ttlSec) {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
   });
-  const j1 = await r1.json(); // { result: 123 }
-  // 만료(자정) 설정
+  const j1 = await r1.json(); // { result: <number> }
   await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
@@ -62,10 +64,16 @@ export default async function handler(req, res) {
   const headers = corsHeaders(origin);
 
   if (req.method === 'OPTIONS') {
-    res.status(204).setHeader('Content-Length', '0');
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+    res.status(204).setHeader('Content-Length', '0');
     return res.end();
   }
+
+  // 원하면 아래 두 줄 주석 해제하여 '허용 안 된 오리진'은 차단
+  // if (!ALLOWED_ORIGINS.includes(origin)) {
+  //   Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+  //   return res.status(403).json({ error: 'Origin not allowed' });
+  // }
 
   try {
     const key = kstKey();
@@ -91,4 +99,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server Error' });
   }
 }
-
