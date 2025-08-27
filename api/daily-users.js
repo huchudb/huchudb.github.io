@@ -9,17 +9,24 @@ const ALLOWED_ORIGINS = [
   'https://huchudb.github.io',
   'https://huchulab.com',
   'https://www.huchulab.com',
-  'https://huchudb-github-io.vercel.app'
+  'https://huchudb-github-io.vercel.app',
 ];
 
-function corsHeaders(origin) {
+function responseHeaders(origin) {
   const isAllowed = ALLOWED_ORIGINS.includes(origin);
   return {
+    // CORS
     'Vary': 'Origin',
     'Access-Control-Allow-Origin': isAllowed ? origin : 'https://huchudb.github.io',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '600',
+    // ✅ 캐시 완전 비활성화 (304 방지)
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    // 응답 타입
+    'Content-Type': 'application/json; charset=utf-8',
   };
 }
 
@@ -42,7 +49,8 @@ async function upstashGet(key) {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
   });
-  const data = await r.json();
+  if (!r.ok) throw new Error(`Upstash GET failed: ${r.status}`);
+  const data = await r.json(); // { result: "123" } or { result: null }
   return Number(data.result || 0);
 }
 
@@ -51,51 +59,54 @@ async function upstashIncrAndExpire(key, ttlSec) {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
   });
+  if (!r1.ok) throw new Error(`Upstash INCR failed: ${r1.status}`);
   const j1 = await r1.json(); // { result: <number> }
-  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`, {
+
+  // 만료(자정) 설정
+  const r2 = await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
   });
+  if (!r2.ok) throw new Error(`Upstash EXPIRE failed: ${r2.status}`);
+
   return Number(j1.result || 0);
 }
 
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
-  const headers = corsHeaders(origin);
+  const headers = responseHeaders(origin);
 
-  if (req.method === 'OPTIONS') {
+  const send = (status, payload) => {
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    res.status(204).setHeader('Content-Length', '0');
-    return res.end();
+    return res.status(status).end(JSON.stringify(payload));
+  };
+
+  // Preflight
+  if (req.method === 'OPTIONS') {
+    return send(204, {});
   }
 
-  // 원하면 아래 두 줄 주석 해제하여 '허용 안 된 오리진'은 차단
-  // if (!ALLOWED_ORIGINS.includes(origin)) {
-  //   Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-  //   return res.status(403).json({ error: 'Origin not allowed' });
-  // }
-
   try {
+    if (!REDIS_URL || !REDIS_TOKEN) {
+      return send(500, { error: 'Missing Upstash credentials' });
+    }
+
     const key = kstKey();
 
     if (req.method === 'GET') {
       const count = await upstashGet(key);
-      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-      return res.status(200).json({ count });
+      return send(200, { count });
     }
 
     if (req.method === 'POST') {
       const ttl = secondsUntilKstMidnight();
       const count = await upstashIncrAndExpire(key, ttl);
-      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-      return res.status(200).json({ count });
+      return send(200, { count });
     }
 
-    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return send(405, { error: 'Method Not Allowed' });
   } catch (e) {
     console.error(e);
-    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    return res.status(500).json({ error: 'Server Error' });
+    return send(500, { error: 'Server Error' });
   }
 }
