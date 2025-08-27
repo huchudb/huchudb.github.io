@@ -239,7 +239,6 @@
       padding: var(--s-2) var(--s-4) var(--s-4);  /* 상단 패딩 축소 */
       overflow:auto; flex:1 1 auto;
     }
-    /* 모달 본문 인접 요소 간 공통 간격 */
     .modal .panel-body > * + *{ margin-top: var(--s-4); }
 
     .modal .panel-footer{
@@ -261,7 +260,7 @@
     }
     .btn-secondary:hover{ background:#e9edf3; }
 
-    /* 카카오 문의 버튼 (말풍선 제거, 톤 유지) */
+    /* 카카오 문의 버튼 */
     .btn-kakao{
       background:var(--kakao-yellow);
       color:var(--kakao-brown);
@@ -284,7 +283,7 @@
       margin: var(--s-1) 0 6px;
     }
     .breakdown-card .card-section:last-child .chip-row{
-      margin-bottom: var(--s-1); /* 마지막 섹션 하단 여백 축소 */
+      margin-bottom: var(--s-1);
     }
   </style>
 </head>
@@ -398,8 +397,8 @@
   </div>
 
   <script>
-    /* ===== 서버 API 베이스(반드시 본인 Vercel 도메인으로 교체) ===== */
-    const API_BASE = 'https://huchudb-github-io.vercel.app'; // 예) https://p2p-calc.vercel.app
+    /* ===== (중요) 금일 이용자수 API: Vercel 도메인으로 고정 호출 ===== */
+    const DAILY_USERS_API = 'https://huchudb-github-io.vercel.app/api/daily-users';
 
     /* ===== LTV 한도 ===== */
     const LTV_LIMITS = {
@@ -454,100 +453,51 @@
       return { ratio, limit, maxRequested, usedDeduction: d, status };
     }
 
-    /* ── 금일 이용자수(프런트 로컬 기본 + 서버 연동) ───────────────── */
-    const DAILY_PREFIX = 'huchu.dailyUsers.';
-    let _currentDailyKey = null;
-
-    function getKSTDateKey(ts = Date.now()){
-      const msKST = ts + 9 * 60 * 60 * 1000; // KST = UTC+9
-      const d = new Date(msKST);
-      const yyyy = d.getUTCFullYear();
-      const mm = String(d.getUTCMonth()+1).padStart(2,'0');
-      const dd = String(d.getUTCDate()).padStart(2,'0');
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    function todayKey(){ return DAILY_PREFIX + getKSTDateKey(); }
-    function readDaily(){ const key = todayKey(); return { key, count: Number(localStorage.getItem(key)||'0') }; }
-    function writeDaily(key, val){ localStorage.setItem(key, String(val)); }
-
-    function initDailyUsersUI(){
-      _currentDailyKey = todayKey();
-      const { count } = readDaily();
-      const el = document.getElementById('todayUsersCount');
-      if(el){
-        el.setAttribute('data-target', count);
-        el.textContent = count.toLocaleString('ko-KR');
-      }
-      // KST 자정 교체 감시(60초마다)
-      setInterval(() => {
-        const newKey = todayKey();
-        if(newKey !== _currentDailyKey){
-          _currentDailyKey = newKey;
-          const fresh = Number(localStorage.getItem(newKey)||'0');
-          const el2 = document.getElementById('todayUsersCount');
-          if(el2){
-            el2.setAttribute('data-target', fresh);
-            el2.textContent = fresh.toLocaleString('ko-KR');
-          }
-        }
-      }, 60000);
-    }
-
+    /* ── 금일 이용자수: 서버 카운터 연동 ───────────────── */
     function animateCount(el, to, duration = 900){
       const from = Number((el.textContent||"").replace(/[^0-9]/g,"")) || 0;
       const start = performance.now();
       const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
       function frame(now){
         const p = Math.min(1, (now - start) / duration);
-        const val = Math.round(from + (to - from) * easeOutCubic(p));
+        const val = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
         el.textContent = val.toLocaleString('ko-KR');
         if(p < 1) requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
     }
-    function setDailyUsers(n){
-      const key = todayKey();
+
+    function updateDailyUsersUI(count, animate=true){
       const el = document.getElementById('todayUsersCount');
-      writeDaily(key, n);
-      if(el) animateCount(el, n);
-    }
-    function incrementDailyUsers(delta = 1){
-      const key = todayKey();
-      const current = Number(localStorage.getItem(key)||'0');
-      const next = current + delta;
-      writeDaily(key, next);
-      const el = document.getElementById('todayUsersCount');
-      if(el) animateCount(el, next);
+      if(!el) return;
+      if(animate) animateCount(el, Number(count)||0);
+      else el.textContent = Number(count||0).toLocaleString('ko-KR');
     }
 
-    /* ── 서버 카운팅 연동 ───────────────────────── */
-    async function fetchServerDailyCount(){
+    async function getDailyUsersCount(){
       try{
-        const r = await fetch(`${API_BASE}/api/daily-users`, { method:'GET', mode:'cors', cache:'no-store' });
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const { count } = await r.json();
-        const el = document.getElementById('todayUsersCount');
-        if(el && typeof count === 'number'){
-          animateCount(el, count);
-        }
-      }catch(err){
-        console.warn('[daily-users] GET failed, keep local view:', err);
+        const res = await fetch(DAILY_USERS_API, { cache:'no-store', mode:'cors' });
+        const data = await res.json();
+        updateDailyUsersUI(data.count||0, false);
+      }catch(e){
+        console.warn('GET daily-users 실패', e);
       }
     }
 
-    async function bumpServerDailyCount(){
+    async function bumpDailyUsersCount(){
       try{
-        const r = await fetch(`${API_BASE}/api/daily-users`, { method:'POST', mode:'cors', cache:'no-store' });
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const { count } = await r.json();
-        const el = document.getElementById('todayUsersCount');
-        if(el && typeof count === 'number'){
-          animateCount(el, count);
-        }
-      }catch(err){
-        console.warn('[daily-users] POST failed, fallback +1 local:', err);
-        incrementDailyUsers(1); // 서버 실패 시 화면만 +1로 폴백
+        const res = await fetch(DAILY_USERS_API, { method:'POST', mode:'cors' });
+        const data = await res.json();
+        updateDailyUsersUI(data.count||0, true);
+      }catch(e){
+        console.warn('POST daily-users 실패', e);
       }
+    }
+
+    function initDailyUsersUI(){
+      getDailyUsersCount();
+      // 1분마다 갱신(서버는 KST 자정에 리셋)
+      setInterval(getDailyUsersCount, 60000);
     }
 
     /* ── Modal ─────────────────────────────────── */
@@ -618,10 +568,7 @@
       const btn = document.getElementById('calcBtn');
       if (btn) btn.addEventListener('click', onCalculate);
 
-      // 로컬 기본 UI → 서버 값으로 덮어쓰기
-      initDailyUsersUI();
-      fetchServerDailyCount();
-      // setDailyUsers(342); // (테스트용) 서버 카운트 대신 강제 세팅하고 싶으면 사용
+      initDailyUsersUI(); // 서버 카운트 초기 로딩
     });
 
     /* ── KPI 빌더들 ───────────────────────────── */
@@ -637,11 +584,8 @@
         </div>
       </div>`;
 
-    const kpisForPossible = (req, addAvail) =>
-      kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
-
-    const kpisForDenied = (req, maxReq) =>
-      kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
+    const kpisForPossible = (req, add) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', add);
+    const kpisForDenied   = (req, max) => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, max));
 
     /* ── 메인 계산 ──────────────────────────────── */
     function onCalculate(){
@@ -683,10 +627,9 @@
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       const seniorLimit = marketValue * ratio;
 
-      // 인라인 박스 숨김(중복 표시 방지)
       document.getElementById('result').classList.add('hide');
 
-      // r 계산(불가 케이스에서도 '가능 요청금액' 제공하기 위함)
+      // r 계산
       let r;
       try {
         r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan});
@@ -695,7 +638,7 @@
         return;
       }
 
-      // 1) 선순위만으로 LTV 초과 → 불가 + 가능 요청금액 제시
+      // 1) 선순위만으로 LTV 초과 → 불가 + 가능 요청금액
       if (seniorLoan > seniorLimit) {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
@@ -707,11 +650,11 @@
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        bumpServerDailyCount();   // ★ 서버 카운터 증가
+        bumpDailyUsersCount(); // ✅ 서버 카운터 +1
         return;
       }
 
-      // 2) 요청 초과 → 불가 + 가능 요청금액 제시
+      // 2) 요청 초과 → 불가 + 가능 요청금액
       if (r.status === 'exceeded') {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
@@ -723,11 +666,11 @@
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        bumpServerDailyCount();   // ★ 서버 카운터 증가
+        bumpDailyUsersCount(); // ✅ 서버 카운터 +1
         return;
       }
 
-      // 3) 요청 없음 안내
+      // 3) 요청 없음 안내 (집계 X)
       if (r.status === 'no-request') {
         const html = `
           <div class="notice info">
@@ -748,7 +691,7 @@
 
       const kpis = kpisForPossible(requestedLoan, addAvail);
 
-      /* ✅ 카드1: 예상 비용 상세 */
+      /* 카드1: 예상 비용 상세 */
       const breakdownCosts = `
         <div class="breakdown-card" aria-labelledby="costsTitle">
           <div id="costsTitle" class="card-title">예상 비용 상세</div>
@@ -762,7 +705,6 @@
             </div>
           </div>
 
-          <!-- 플랫폼수수료 섹션만 compact 처리 -->
           <div class="card-section compact">
             <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
             <div class="chip-row tight">
@@ -774,7 +716,7 @@
         </div>
       `;
 
-      /* ✅ 카드2: 기타 안내 */
+      /* 카드2: 기타 안내 */
       const breakdownInfo = `
         <div class="breakdown-card" aria-labelledby="infoTitle">
           <div id="infoTitle" class="card-title">기타 안내</div>
@@ -810,7 +752,7 @@
         ${breakdownInfo}
       `;
       modal.open(html, {type:'success', text:'대출 가능'});
-      bumpServerDailyCount();     // ★ 서버 카운터 증가
+      bumpDailyUsersCount(); // ✅ 서버 카운터 +1
     }
   </script>
 </body>
