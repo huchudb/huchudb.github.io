@@ -19,7 +19,6 @@
     .container{max-width:720px;margin:0 auto;background:var(--card);padding:22px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
     @media (max-width:520px){ body{padding:16px} .container{padding:16px} }
 
-    /* ── Top Stats ───────────────── */
     .top-stats{max-width:720px;margin:0 auto 12px}
     .stat-card{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
     .stat-label{display:flex;align-items:center;gap:8px;color:#42526e;font-weight:700}
@@ -55,7 +54,6 @@
     button:hover{background:var(--primary-dark)}
     .hide{display:none!important}
 
-    /* 결과 카드 */
     .resultBox{margin-top:16px;padding:16px;border-radius:12px;border:1px solid var(--line);background:#f7f9fc}
     .resultHeader{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #cfd8ea}
     .resultIcon{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
@@ -64,13 +62,11 @@
     .resultBox.error .resultIcon{background:var(--danger)}
     .resultBox.info .resultIcon{background:var(--info)}
 
-    /* KPI */
     .kpis{margin:var(--s-2) 0 var(--s-4);display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+    .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(11,31,58,.05)}
     .kpi-label{font-size:12px;color:#5f6b85;letter-spacing:.1px}
     .kpi-value{font-size:21px;font-weight:800;color:#0b2a66;margin-top:4px;letter-spacing:.2px}
 
-    /* 섹션 & 칩 */
     .section-title{margin:var(--s-3) 0 var(--s-2);font-weight:800;color:#0b2a66;display:flex;align-items:center;gap:8px}
     .chip-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:var(--s-3)}
     .chip-row.tight{gap:6px}
@@ -79,23 +75,20 @@
     .chip .label{font-size:14px;color:#42526e;font-weight:700}
     .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
     .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
-    /* ⬇️ 금액 텍스트 20% 축소 */
+    /* ↓ 금액 텍스트 20% 축소 */
     .chip .val{font-size:16px;font-weight:800;color:#0b2a66}
-    @media (max-width:520px){ .chip .val{font-size:15px} }
     .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
     .chip-tilde.tight{padding:0 4px}
 
     .icon-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 10px}
     .dot-blue{background:#2b6cb0}.dot-gold{background:#d4af37}.dot-navy{background:#1a365d}.dot-green{background:#2f855a}.dot-slate{background:#6b7a99}
 
-    /* row list */
     .rowlist{margin-top:var(--s-3);border-top:1px dashed #e3e9f2}
     .rowlist .row{display:grid;grid-template-columns:14px auto 1fr;column-gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed #e3e9f2}
     .rowlist .row:last-child{border-bottom:none}
     .row .label{color:#42526e;font-weight:700;white-space:nowrap}
     .row .value{color:#0b2a66;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    /* notice */
     .notice{margin:var(--s-4) 0;padding:14px 16px;border-radius:10px;border:1px solid #e3e9f2}
     .notice.success{background:#f0fff4;border-left:4px solid #2f855a}
     .notice.error{background:#fff5f5;border-left:4px solid #e53e3e}
@@ -103,19 +96,16 @@
     .notice p{margin:6px 0;color:#1f2937}
     .notice .disclaimer{margin-top:8px;font-size:12px;color:#6b7280}
 
-    /* status pill */
     .status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-weight:800;font-size:14px}
     .status-pill.success{background:#dcfce7;color:#166534}
     .status-pill.error{background:#fee2e2;color:#991b1b}
     .status-pill.info{background:#e0f2fe;color:#075985}
 
-    /* breakdown card */
     .breakdown-card{background:#fff;border:1px solid #e6ecf5;border-radius:14px;box-shadow:0 4px 18px rgba(11,31,58,.06);padding:18px 18px}
     .breakdown-card .card-title{font-weight:800;color:#0b2a66;margin:0 0 var(--s-2);font-size:16px;letter-spacing:.2px}
     .card-section + .card-section{border-top:1px dashed #e3e9f2;margin-top:var(--s-3);padding-top:var(--s-3)}
     .breakdown-card .rowlist{border-top:0;margin-top:var(--s-2)}
 
-    /* modal */
     body.modal-open{overflow:hidden}
     .modal{position:fixed;inset:0;z-index:1000}
     .modal.hide{display:none}
@@ -141,6 +131,28 @@
     .breakdown-card .card-section.compact{margin-top:var(--s-1);padding-top:var(--s-1);border-top:1px dashed #e3e9f2}
     .breakdown-card .card-section.compact .section-title{margin:var(--s-1) 0 6px}
     .breakdown-card .card-section:last-child .chip-row{margin-bottom:var(--s-1)}
+
+    /* ===== 입력 요약 미니칩 ===== */
+    .summary-block{
+      margin: var(--s-2) 0 var(--s-3);
+      background:#fff; border:1px solid #e6ecf5; border-radius:10px;
+      padding:10px 12px;
+    }
+    .summary-header{
+      font-size:12px; font-weight:800; color:#42526e; margin-bottom:8px;
+    }
+    .mini-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+    .mini-chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 8px; border-radius:999px;
+      background:var(--chip-bg); border:1px solid var(--chip-line);
+      color:#334155; font-size:12px;
+    }
+    .mini-chip .k{ font-weight:700; color:#42526e; }
+    .mini-chip .v{ font-weight:800; color:#0b2a66; }
+    @media (max-width:420px){
+      .mini-chip{ font-size:11px; padding:5px 7px; }
+    }
   </style>
 </head>
 <body>
@@ -284,14 +296,12 @@
     function updatePreview(inputId, viewId){
       const el = document.getElementById(inputId);
       const pv = document.getElementById(viewId);
-      if(!el || !pv) return; // 안전가드
       const raw = onlyDigits(el.value);
       el.value = raw ? Number(raw).toLocaleString() : "";
       pv.textContent = formatKoreanCurrency(Number(raw||"0"));
     }
     function attachCommaWithPreview(id, viewId){
       const el = document.getElementById(id);
-      if(!el) return;
       updatePreview(id, viewId);
       el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
@@ -339,22 +349,13 @@
       requestAnimationFrame(frame);
     }
 
-    // ⬇️ 단순 CORS 요청(헤더/바디/캐시옵션 제거) + 쿼리스트링으로 캐시무력화
     async function serverGetCount(){
-      const url = `${DAILY_API}?t=${Date.now()}`;
-      const r = await fetch(url, { method:'GET', mode:'cors' });
-      if (!r.ok) throw new Error(`GET ${r.status}`);
+      const r = await fetch(DAILY_API, { method:'GET', mode:'cors', credentials:'omit' });
       const j = await r.json();
       return Number(j.count || 0);
     }
     async function serverIncrement(){
-      const url = `${DAILY_API}?t=${Date.now()}`;
-      const r = await fetch(url, { method:'POST', mode:'cors' });
-      if (!r.ok) {
-        let detail = '';
-        try { const jj = await r.clone().json(); detail = jj.detail || jj.error || ''; } catch {}
-        throw new Error(`POST ${r.status} ${detail}`);
-      }
+      const r = await fetch(DAILY_API, { method:'POST', mode:'cors', credentials:'omit' });
       const j = await r.json();
       return Number(j.count || 0);
     }
@@ -364,19 +365,18 @@
       try{
         const count = await serverGetCount();
         writeLocal(todayKey(), count);
-        if (numEl) animateCount(numEl, count, 300);
-      }catch{
+        if(numEl) animateCount(numEl, count, 400);
+      }catch(e){
         const { count } = readLocal();
-        if (numEl) numEl.textContent = count.toLocaleString('ko-KR');
+        if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
       }
-
-      // KST 자정 교체 감시(분단위)
       setInterval(async ()=>{
         try{
           const c = await serverGetCount();
           writeLocal(todayKey(), c);
-          if (numEl) numEl.textContent = c.toLocaleString('ko-KR');
-        }catch{}
+          const el = document.getElementById('todayUsersCount');
+          if(el) el.textContent = c.toLocaleString('ko-KR');
+        }catch(_){}
       }, 60000);
     }
 
@@ -386,8 +386,7 @@
         const count = await serverIncrement();
         writeLocal(todayKey(), count);
         if(el) animateCount(el, count);
-      }catch{
-        // 폴백: 로컬 +1
+      }catch(e){
         const key = todayKey();
         const curr = Number(localStorage.getItem(key)||'0') + 1;
         writeLocal(key, curr);
@@ -451,6 +450,26 @@
       if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
 
       return { missing, focusId: ids[missing[0]] };
+    }
+
+    /* ===== 입력 요약 미니칩 빌더 ===== */
+    function buildInputSummaryChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction}) {
+      const items = [
+        ['지역', region || '-'],
+        ['종류', propertyType || '-'],
+        ['시세', formatKoreanCurrency(marketValue)],
+        ['선순위+보증금', formatKoreanCurrency(seniorLoan)],
+        ['요청금액', formatKoreanCurrency(requestedLoan)],
+        ['상환·반환(선택)', formatKoreanCurrency(deduction)],
+      ];
+      const chips = items
+        .map(([k,v]) => `<span class="mini-chip"><span class="k">${k}</span><span class="v">${v}</span></span>`)
+        .join('');
+      return `
+        <div class="summary-block" aria-label="입력 요약">
+          <div class="summary-header">입력 요약</div>
+          <div class="mini-chips">${chips}</div>
+        </div>`;
     }
 
     /* ── 초기화 ─────────────────────────────────── */
@@ -532,9 +551,15 @@
         return;
       }
 
+      // ✅ 입력 요약칩
+      const summary = buildInputSummaryChips({
+        region, propertyType, marketValue, seniorLoan, requestedLoan, deduction
+      });
+
       if (seniorLoan > seniorLimit) {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
+          ${summary}
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
@@ -550,6 +575,7 @@
       if (r.status === 'exceeded') {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         const html = `
+          ${summary}
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
@@ -631,6 +657,7 @@
       `;
 
       const html = `
+        ${summary}
         ${kpis}
         <div class="notice success">
           <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
