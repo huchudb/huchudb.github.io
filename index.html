@@ -33,17 +33,25 @@
     .stat-value .suffix{font-size:14px;color:#6b7a99;line-height:1}
     @media (max-width:520px){ .top-stats{margin-bottom:10px}.stat-card{padding:10px 12px}.stat-value .num{font-size:20px} }
 
-    /* 종류별 칩(우측 정렬) */
+    /* ✅ 종류별 칩(컨테이너에 딱 맞게 4등분, 1줄 고정) */
     .stat-chips{
-      display:flex;flex-wrap:wrap;gap:8px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:8px;
       width:100%;
-      justify-content:flex-end; /* 오른쪽 정렬 */
       margin-top:8px;
     }
     .stat-chip{
-      display:inline-flex;align-items:center;gap:6px;
+      display:flex;align-items:center;justify-content:center;gap:6px;
       background:#eef2f7;border:1px solid #d6deea;
-      color:#0b2a66;border-radius:999px;padding:6px 10px;font-size:12px
+      color:#0b2a66;border-radius:999px;
+      padding:6px 8px;
+      font-size: clamp(10px, 1.5vw, 12px); /* 화면 줄어들면 자동 축소 */
+      line-height:1.1;
+      white-space:nowrap;
+      min-width:0;           /* grid 자식 축소 허용 */
+      overflow:hidden;       /* 너무 좁을 때 넘침 방지 */
+      text-overflow:ellipsis;
     }
     .stat-chip .lab{opacity:.85}
     .stat-chip .cnt{font-weight:800}
@@ -75,7 +83,6 @@
     button:hover{background:var(--primary-dark)}
     .hide{display:none!important}
 
-    /* 결과 카드 (인라인 fallback) */
     .resultBox{margin-top:16px;padding:16px;border-radius:12px;border:1px solid var(--line);background:#f7f9fc}
     .resultHeader{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #cfd8ea}
     .resultIcon{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
@@ -84,7 +91,7 @@
     .resultBox.error .resultIcon{background:var(--danger)}
     .resultBox.info .resultIcon{background:var(--info)}
 
-    /* KPI 타일 */
+    /* KPI */
     .kpis{margin:var(--s-2) 0 var(--s-4);display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(11,31,58,.05)}
     .kpi-label{font-size:12px;color:#5f6b85;letter-spacing:.1px}
@@ -99,22 +106,19 @@
     .chip .label{font-size:14px;color:#42526e;font-weight:700}
     .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
     .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
-    .chip .val{font-size:16px;font-weight:800;color:#0b2a66} /* 금액 텍스트 20% 축소(기존 20px) */
+    .chip .val{font-size:16px;font-weight:800;color:#0b2a66} /* 금액 텍스트 20% 축소 */
     .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
     .chip-tilde.tight{padding:0 4px}
 
-    /* 심플 도트 아이콘 */
     .icon-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 10px}
     .dot-blue{background:#2b6cb0}.dot-gold{background:#d4af37}.dot-navy{background:#1a365d}.dot-green{background:#2f855a}.dot-slate{background:#6b7a99}
 
-    /* 라벨-값 2열 */
     .rowlist{margin-top:var(--s-3);border-top:1px dashed #e3e9f2}
     .rowlist .row{display:grid;grid-template-columns:14px auto 1fr;column-gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed #e3e9f2}
     .rowlist .row:last-child{border-bottom:none}
     .row .label{color:#42526e;font-weight:700;white-space:nowrap}
     .row .value{color:#0b2a66;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    /* 안내/결과 Notice */
     .notice{margin:var(--s-4) 0;padding:14px 16px;border-radius:10px;border:1px solid #e3e9f2}
     .notice.success{background:#f0fff4;border-left:4px solid #2f855a}
     .notice.error{background:#fff5f5;border-left:4px solid #e53e3e}
@@ -122,19 +126,16 @@
     .notice p{margin:6px 0;color:#1f2937}
     .notice .disclaimer{margin-top:8px;font-size:12px;color:#6b7280}
 
-    /* 상태 Pill */
     .status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-weight:800;font-size:14px}
     .status-pill.success{background:#dcfce7;color:#166534}
     .status-pill.error{background:#fee2e2;color:#991b1b}
     .status-pill.info{background:#e0f2fe;color:#075985}
 
-    /* Breakdown 큰 카드 */
     .breakdown-card{background:#fff;border:1px solid #e6ecf5;border-radius:14px;box-shadow:0 4px 18px rgba(11,31,58,.06);padding:18px 18px}
     .breakdown-card .card-title{font-weight:800;color:#0b2a66;margin:0 0 var(--s-2);font-size:16px;letter-spacing:.2px}
     .card-section + .card-section{border-top:1px dashed #e3e9f2;margin-top:var(--s-3);padding-top:var(--s-3)}
     .breakdown-card .rowlist{border-top:0;margin-top:var(--s-2)}
 
-    /* Modal */
     body.modal-open{overflow:hidden}
     .modal{position:fixed;inset:0;z-index:1000}
     .modal.hide{display:none}
@@ -176,7 +177,7 @@
         <span class="suffix">명</span>
       </div>
     </div>
-    <!-- 종류별 칩(우측 정렬) -->
+    <!-- 종류별 칩: 컨테이너에 딱 맞는 4등분 -->
     <div id="typeChips" class="stat-chips" aria-label="종류별 집계"></div>
   </div>
 
@@ -284,7 +285,6 @@
       "서울 외":{ "아파트": 0.6998, "다세대/연립": 0.65,   "단독/다가구": 0.65,   "토지/임야": 0.4999 }
     };
 
-    /* 숫자 유틸 */
     const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
     const toNumber = (s) => Number(onlyDigits(s)) || 0;
 
@@ -317,10 +317,8 @@
       el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
 
-    /* 매월 이자 금액 */
     function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
 
-    /* LTV 판정식 */
     function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
@@ -333,8 +331,8 @@
       return { ratio, limit, maxRequested, usedDeduction: d, status };
     }
 
-    /* ── 금일 이용자수: 서버 + 우회 폴백 + 1일 1회 제한 ───────────────── */
-    const BUMP_PREFIX = 'huchu.bumped.'; // 유저당 하루 1회 제한 키
+    /* ── 금일 이용자수: 서버 + 1일 1회 제한 ───────────────── */
+    const BUMP_PREFIX = 'huchu.bumped.';
     function getKSTDateKey(ts = Date.now()){
       const msKST = ts + 9 * 60 * 60 * 1000;
       const d = new Date(msKST);
@@ -399,11 +397,9 @@
         if(numEl) animateCount(numEl, count, 400);
         renderTypeChips(byType);
       }catch(e){
-        // 서버 실패 시 0으로 표시(간단 폴백)
         if(numEl) numEl.textContent = '0';
         renderTypeChips({});
       }
-      // 1분마다 갱신
       setInterval(async ()=>{
         try{
           const { count, byType } = await serverGetDaily();
@@ -416,7 +412,7 @@
     async function bumpDailyUsersOnce(type){
       const bumpedKey = todayBumpKey();
       if(localStorage.getItem(bumpedKey)==='1'){
-        return; // 이미 오늘 1회 집계됨
+        return;
       }
       try{
         const { count, byType } = await serverIncrement(type);
@@ -425,7 +421,6 @@
         renderTypeChips(byType);
         localStorage.setItem(bumpedKey, '1');
       }catch(e){
-        // 실패해도 중복 폭주 방지 위해 today만 잠금
         localStorage.setItem(bumpedKey, '1');
       }
     }
@@ -578,7 +573,7 @@
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpDailyUsersOnce(propertyType); // ✅ 유저당 1일 1회만 집계
+        await bumpDailyUsersOnce(propertyType);
         return;
       }
 
@@ -593,7 +588,7 @@
           </div>
         `;
         modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpDailyUsersOnce(propertyType); // ✅ 유저당 1일 1회만 집계
+        await bumpDailyUsersOnce(propertyType);
         return;
       }
 
@@ -601,7 +596,7 @@
         const html = `
           <div class="notice info">
             <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
-            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다르 수 있습니다.</p>
+            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
           </div>
         `;
         modal.open(html, {type:'info', text:'안내'});
@@ -677,7 +672,7 @@
       `;
       modal.open(html, {type:'success', text:'대출 가능'});
 
-      await bumpDailyUsersOnce(propertyType); // ✅ 유저당 1일 1회만 집계
+      await bumpDailyUsersOnce(propertyType);
     }
   </script>
 </body>
