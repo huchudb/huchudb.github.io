@@ -1,10 +1,10 @@
 // /api/daily-users.js  (Vercel Functions - Node.js 런타임)
 
-// ⬇️ Vercel Project Settings > Environment Variables 에 등록한 값
+// 환경변수 (Vercel > Project Settings > Environment Variables)
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// ⬇️ CORS 허용 도메인 (GitHub Pages, 커스텀 도메인, Vercel 도메인)
+// CORS 허용 도메인
 const ALLOWED_ORIGINS = [
   'https://huchudb.github.io',
   'https://huchulab.com',
@@ -12,14 +12,15 @@ const ALLOWED_ORIGINS = [
   'https://huchudb-github-io.vercel.app',
 ];
 
+const TYPES = ['아파트','다세대/연립','단독/다가구','토지/임야'];
+
 function corsHeaders(origin) {
   const isAllowed = ALLOWED_ORIGINS.includes(origin);
   return {
-    Vary: 'Origin',
-    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://huchudb.github.io',
+    'Vary': 'Origin',
+    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    // 브라우저가 preflight에서 cache-control, pragma를 보낼 수 있어 허용 목록에 포함
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control',
     'Access-Control-Max-Age': '600',
   };
 }
@@ -32,60 +33,60 @@ function kstKey() {
   const dd = String(d.getUTCDate()).padStart(2, '0');
   return `daily:${yyyy}-${mm}-${dd}`;
 }
-
+function typeKey(type) {
+  return `${kstKey()}:type:${type}`;
+}
 function secondsUntilKstMidnight() {
   const nowKstSec = Math.floor((Date.now() + 9 * 60 * 60 * 1000) / 1000);
   return 86400 - (nowKstSec % 86400);
 }
 
 async function upstashGet(key) {
-  const url = `${REDIS_URL}/get/${encodeURIComponent(key)}`;
-  const r = await fetch(url, {
+  const r = await fetch(`${REDIS_URL}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
   });
-  const txt = await r.text();
-  // 디버그 로그
-  console.log('[UPSTASH GET]', r.status, txt);
-  if (!r.ok) throw new Error(`Upstash GET failed: ${r.status} ${txt}`);
-  const data = JSON.parse(txt); // { result: "123" | null }
+  const data = await r.json();
   return Number(data.result || 0);
 }
-
 async function upstashIncrAndExpire(key, ttlSec) {
-  const incrUrl = `${REDIS_URL}/incr/${encodeURIComponent(key)}`;
-  const expireUrl = `${REDIS_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`;
-
-  const r1 = await fetch(incrUrl, {
+  const r1 = await fetch(`${REDIS_URL}/incr/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
-    method: 'POST', // 일부 환경에서 POST로만 허용되는 케이스 대비
   });
-  const txt1 = await r1.text();
-  console.log('[UPSTASH INCR]', r1.status, txt1);
-  if (!r1.ok) throw new Error(`Upstash INCR failed: ${r1.status} ${txt1}`);
-  const j1 = JSON.parse(txt1); // { result: <number> }
-
-  const r2 = await fetch(expireUrl, {
+  const j1 = await r1.json(); // { result: <number> }
+  await fetch(`${REDIS_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
     cache: 'no-store',
-    method: 'POST',
   });
-  const txt2 = await r2.text();
-  console.log('[UPSTASH EXPIRE]', r2.status, txt2);
-  if (!r2.ok) throw new Error(`Upstash EXPIRE failed: ${r2.status} ${txt2}`);
-
   return Number(j1.result || 0);
+}
+
+async function readJsonBody(req) {
+  try {
+    const chunks = [];
+    for await (const ch of req) chunks.push(ch);
+    const raw = Buffer.concat(chunks).toString('utf8');
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function getAllCounts() {
+  const total = await upstashGet(kstKey());
+  const byType = {};
+  for (const t of TYPES) {
+    byType[t] = await upstashGet(typeKey(t));
+  }
+  return { count: total, byType };
 }
 
 export default async function handler(req, res) {
   const origin = req.headers.origin || '';
   const headers = corsHeaders(origin);
 
-  // 디버그: 환경변수 유무/오리진 로깅 (비밀 값 자체는 로깅 안함)
-  console.log('[CORS]', { method: req.method, origin, hasURL: !!REDIS_URL, hasToken: !!REDIS_TOKEN });
-
-  // CORS 프리플라이트
   if (req.method === 'OPTIONS') {
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
     res.status(204).setHeader('Content-Length', '0');
@@ -93,34 +94,40 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!REDIS_URL || !REDIS_TOKEN) {
-      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-      return res
-        .status(500)
-        .json({ error: 'Missing Upstash env. Check UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN.' });
-    }
-
-    const key = kstKey();
-
     if (req.method === 'GET') {
-      const count = await upstashGet(key);
+      const counts = await getAllCounts();
       Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-      return res.status(200).json({ count });
+      return res.status(200).json(counts);
     }
 
     if (req.method === 'POST') {
       const ttl = secondsUntilKstMidnight();
-      const count = await upstashIncrAndExpire(key, ttl);
+      const url = new URL(req.url, 'http://x');
+      const body = await readJsonBody(req);
+
+      const type = body.propertyType || url.searchParams.get('propertyType') || '';
+      const bumpTotalParam = body.bumpTotal ?? url.searchParams.get('bumpTotal');
+      const bumpTotal = bumpTotalParam === true || bumpTotalParam === 'true';
+
+      if (bumpTotal) {
+        await upstashIncrAndExpire(kstKey(), ttl);
+      }
+      if (TYPES.includes(type)) {
+        await upstashIncrAndExpire(typeKey(type), ttl);
+      }
+
+      const counts = await getAllCounts();
       Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-      return res.status(200).json({ count });
+      return res.status(200).json(counts);
     }
 
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (e) {
-    console.error('[SERVER ERROR]', e?.message || e);
     Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    // 디버그 편의상 에러 메시지를 그대로 내려줌 (원인 파악용)
-    return res.status(500).json({ error: 'Server Error', detail: String(e?.message || e) });
+    return res.status(500).json({
+      error: 'Server Error',
+      detail: e?.message || String(e),
+    });
   }
 }
