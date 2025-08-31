@@ -6,7 +6,7 @@
   <title>온투업(P2P) 담보대출 "나도 가능할까?"</title>
 
   <style>
-    :root {
+    :root{
       --primary:#1a365d; --primary-dark:#153154; --accent:#d4af37;
       --bg:#f8f9fa; --card:#fff; --muted:#555; --line:#d0d7e2;
       --success:#2f855a; --danger:#e53e3e; --info:#2b6cb0;
@@ -17,44 +17,35 @@
     *{box-sizing:border-box}
     body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:24px}
     .container{max-width:720px;margin:0 auto;background:var(--card);padding:22px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-    @media (max-width:520px){ body{padding:16px} .container{padding:16px} }
+    @media(max-width:520px){ body{padding:16px} .container{padding:16px} }
 
-    /* ── Top Stats: 오늘 이용자수 카드 ───────────────── */
+    /* ── Top Stats ───────────────────────── */
     .top-stats{max-width:720px;margin:0 auto 12px}
-    .stat-card{
-      display:flex;align-items:center;justify-content:space-between;
-      background:#fff;border:1px solid var(--line);border-radius:12px;
-      padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)
-    }
+    .stat-card{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
     .stat-label{display:flex;align-items:center;gap:8px;color:#42526e;font-weight:700}
     .stat-dot{width:10px;height:10px;border-radius:50%;background:var(--info)}
     .stat-value{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
     .stat-value .num{font-weight:800;font-size:22px;color:#0b2a66;line-height:1}
     .stat-value .suffix{font-size:14px;color:#6b7a99;line-height:1}
-    @media (max-width:520px){ .top-stats{margin-bottom:10px}.stat-card{padding:10px 12px}.stat-value .num{font-size:20px} }
+    @media(max-width:520px){ .top-stats{margin-bottom:10px} .stat-card{padding:10px 12px} .stat-value .num{font-size:20px} }
 
-    /* ✅ 종류별 칩(컨테이너에 딱 맞게 4등분, 1줄 고정) */
-    .stat-chips{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap:8px;
-      width:100%;
-      margin-top:8px;
+    /* 종류별 칩: 컨테이너 폭 가득 4등분 */
+    .type-chip-wrap{margin-top:8px}
+    .type-chips{
+      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;
     }
-    .stat-chip{
-      display:flex;align-items:center;justify-content:center;gap:6px;
-      background:#eef2f7;border:1px solid #d6deea;
-      color:#0b2a66;border-radius:999px;
-      padding:6px 8px;
-      font-size: clamp(10px, 1.5vw, 12px); /* 화면 줄어들면 자동 축소 */
-      line-height:1.1;
-      white-space:nowrap;
-      min-width:0;           /* grid 자식 축소 허용 */
-      overflow:hidden;       /* 너무 좁을 때 넘침 방지 */
-      text-overflow:ellipsis;
+    .type-chip{
+      display:flex; justify-content:space-between; align-items:center;
+      border:1px solid var(--chip-line); background:var(--chip-bg);
+      border-radius:999px; padding:8px 10px; min-width:0;
     }
-    .stat-chip .lab{opacity:.85}
-    .stat-chip .cnt{font-weight:800}
+    .type-chip .label{font-size:12px; color:#42526e; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .type-chip .val{font-size:14px; font-weight:800; color:#0b2a66; margin-left:8px}
+    @media(max-width:460px){
+      .type-chip{padding:6px 8px}
+      .type-chip .label{font-size:11px}
+      .type-chip .val{font-size:13px}
+    }
 
     h1{margin:0 0 8px;font-size:24px;color:var(--primary)}
     .subtitle{margin:0 0 18px;color:var(--muted);line-height:1.55;font-size:14px}
@@ -67,14 +58,13 @@
     .steplabel.no-badge-before{padding-left:0}
     .steplabel.no-badge-before::before{display:none;counter-increment:none}
     .badge-inline{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 6px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(11,31,58,.15);border:2px solid var(--accent);line-height:1;vertical-align:middle;position:relative;top:-1px}
-    @media (max-width:420px){ .steplabel{padding-left:26px}.steplabel::before{width:18px;height:18px;font-size:11px}.badge-inline{width:18px;height:18px;font-size:11px;top:-1px} }
+    @media(max-width:420px){ .steplabel{padding-left:26px}.steplabel::before{width:18px;height:18px;font-size:11px}.badge-inline{width:18px;height:18px;font-size:11px;top:-1px} }
 
-    /* 금액 한 줄 레이아웃 + 실시간 표기 */
     .amount-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;width:100%}
     .amount-row input{flex:0 0 336px;width:336px;min-width:0}
-    @media (max-width:520px){ .amount-row input{flex:0 0 252px;width:252px} }
+    @media(max-width:520px){ .amount-row input{flex:0 0 252px;width:252px} }
     .amount-display{flex:0 0 auto;white-space:nowrap;font-size:13px;color:#334155;background:#F1F5F9;padding:8px 10px;border-radius:8px;border:1px solid #E2E8F0;text-align:left}
-    @media (max-width:420px){ .amount-display{font-size:12px;padding:6px 8px} }
+    @media(max-width:420px){ .amount-display{font-size:12px;padding:6px 8px} }
 
     select,input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#fff}
     .info{font-size:12px;color:#666;margin:6px 0 0}
@@ -83,21 +73,12 @@
     button:hover{background:var(--primary-dark)}
     .hide{display:none!important}
 
-    .resultBox{margin-top:16px;padding:16px;border-radius:12px;border:1px solid var(--line);background:#f7f9fc}
-    .resultHeader{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #cfd8ea}
-    .resultIcon{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-    .resultTitle{font-weight:800;color:#0b2a66}
-    .resultBox.success .resultIcon{background:var(--success)}
-    .resultBox.error .resultIcon{background:var(--danger)}
-    .resultBox.info .resultIcon{background:var(--info)}
-
-    /* KPI */
+    /* 결과(모달 내부 공용) */
     .kpis{margin:var(--s-2) 0 var(--s-4);display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(11,31,58,.05)}
     .kpi-label{font-size:12px;color:#5f6b85;letter-spacing:.1px}
     .kpi-value{font-size:21px;font-weight:800;color:#0b2a66;margin-top:4px;letter-spacing:.2px}
 
-    /* 칩 + 틸드 */
     .section-title{margin:var(--s-3) 0 var(--s-2);font-weight:800;color:#0b2a66;display:flex;align-items:center;gap:8px}
     .chip-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:var(--s-3)}
     .chip-row.tight{gap:6px}
@@ -106,7 +87,7 @@
     .chip .label{font-size:14px;color:#42526e;font-weight:700}
     .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
     .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
-    .chip .val{font-size:16px;font-weight:800;color:#0b2a66} /* 금액 텍스트 20% 축소 */
+    .chip .val{font-size:18px;font-weight:800;color:#0b2a66} /* 금액 글자 20% 축소 */
     .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
     .chip-tilde.tight{padding:0 4px}
 
@@ -136,6 +117,7 @@
     .card-section + .card-section{border-top:1px dashed #e3e9f2;margin-top:var(--s-3);padding-top:var(--s-3)}
     .breakdown-card .rowlist{border-top:0;margin-top:var(--s-2)}
 
+    /* Modal */
     body.modal-open{overflow:hidden}
     .modal{position:fixed;inset:0;z-index:1000}
     .modal.hide{display:none}
@@ -145,7 +127,7 @@
     .modal .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px dashed #cfd8ea}
     .modal .panel-title{font-weight:800;color:#0b2a66}
     .modal .panel-body{padding:var(--s-2) var(--s-4) var(--s-4);overflow:auto;flex:1 1 auto}
-    .modal .panel-body > * + *{margin-top:var(--s-4)}
+    .modal .panel-body>*+*{margin-top:var(--s-4)}
     .modal .panel-footer{border-top:1px solid #e6ecf5;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .footer-left{display:flex;justify-content:flex-start}
     .footer-right{display:flex;justify-content:flex-end}
@@ -157,10 +139,7 @@
     .btn-secondary:hover{background:#e9edf3}
     .btn-kakao{background:var(--kakao-yellow);color:var(--kakao-brown);border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
     .btn-kakao:hover{background:#fde236}
-    .modal .panel-body .kpis:first-child{margin-top:var(--s-1)}
-    .breakdown-card .card-section.compact{margin-top:var(--s-1);padding-top:var(--s-1);border-top:1px dashed #e3e9f2}
-    .breakdown-card .card-section.compact .section-title{margin:var(--s-1) 0 6px}
-    .breakdown-card .card-section:last-child .chip-row{margin-bottom:var(--s-1)}
+
   </style>
 </head>
 <body>
@@ -177,8 +156,16 @@
         <span class="suffix">명</span>
       </div>
     </div>
-    <!-- 종류별 칩: 컨테이너에 딱 맞는 4등분 -->
-    <div id="typeChips" class="stat-chips" aria-label="종류별 집계"></div>
+
+    <!-- 종류별 카운트 칩 (컨테이너 폭 가득 4등분) -->
+    <div class="type-chip-wrap">
+      <div class="type-chips">
+        <div class="type-chip"><span class="label">아파트</span><span id="aptCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">다세대/연립</span><span id="multiCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">단독/다가구</span><span id="houseCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">토지/임야</span><span id="landCount" class="val">0</span></div>
+      </div>
+    </div>
   </div>
 
   <div class="container">
@@ -285,41 +272,40 @@
       "서울 외":{ "아파트": 0.6998, "다세대/연립": 0.65,   "단독/다가구": 0.65,   "토지/임야": 0.4999 }
     };
 
+    /* 숫자 유틸 */
     const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
     const toNumber = (s) => Number(onlyDigits(s)) || 0;
-
-    function formatKoreanCurrency(num) {
+    function formatKoreanCurrency(num){
       const n = Math.max(0, Math.floor(num));
-      if (n >= 100000000) {
-        const eok = Math.floor(n / 100000000);
-        const restMan = Math.floor((n % 100000000) / 10000);
+      if (n >= 100000000){
+        const eok = Math.floor(n/100000000);
+        const restMan = Math.floor((n%100000000)/10000);
         if (restMan > 0) return `${eok}억 ${restMan.toLocaleString()}만원`;
         return `${eok}억 원`;
-      } else if (n >= 10000) {
-        return `${Math.floor(n / 10000).toLocaleString()}만원`;
-      } else {
+      }else if(n >= 10000){
+        return `${Math.floor(n/10000).toLocaleString()}만원`;
+      }else{
         return `${n.toLocaleString()}원`;
       }
     }
-
     function updatePreview(inputId, viewId){
       const el = document.getElementById(inputId);
-      if(!el) return;
       const pv = document.getElementById(viewId);
       const raw = onlyDigits(el.value);
       el.value = raw ? Number(raw).toLocaleString() : "";
-      if(pv) pv.textContent = formatKoreanCurrency(Number(raw||"0"));
+      pv.textContent = formatKoreanCurrency(Number(raw||"0"));
     }
     function attachCommaWithPreview(id, viewId){
       const el = document.getElementById(id);
-      if(!el) return;
       updatePreview(id, viewId);
       el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
 
-    function monthlyPayment(principal, annualRate){ return principal * annualRate / 12; }
+    /* 매월 이자 금액 */
+    const monthlyPayment = (principal, annualRate) => principal * annualRate / 12;
 
-    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}) {
+    /* LTV 판정식 */
+    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}){
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
       const limit = marketValue * ratio;
@@ -331,8 +317,11 @@
       return { ratio, limit, maxRequested, usedDeduction: d, status };
     }
 
-    /* ── 금일 이용자수: 서버 + 1일 1회 제한 ───────────────── */
-    const BUMP_PREFIX = 'huchu.bumped.';
+    /* ── 금일 이용자수(서버 + 1일1회 제한) ───────────────── */
+    const dailyNumEl = () => document.getElementById('todayUsersCount');
+    const typeCountEl = id => document.getElementById(id);
+
+    const DAILY_FLAG_PREFIX = 'huchu.dailyUsers.bumped.';
     function getKSTDateKey(ts = Date.now()){
       const msKST = ts + 9 * 60 * 60 * 1000;
       const d = new Date(msKST);
@@ -341,32 +330,10 @@
       const dd = String(d.getUTCDate()).padStart(2,'0');
       return `${yyyy}-${mm}-${dd}`;
     }
-    function todayBumpKey(){ return BUMP_PREFIX + getKSTDateKey(); }
+    const todayFlagKey = () => DAILY_FLAG_PREFIX + getKSTDateKey();
 
-    async function serverGetDaily(){
-      const r = await fetch(DAILY_API, { method:'GET', mode:'cors', credentials:'omit' });
-      const j = await r.json();
-      return {
-        count: Number(j.count || 0),
-        byType: j.byType || {}
-      };
-    }
-    async function serverIncrement(type){
-      const r = await fetch(DAILY_API, {
-        method:'POST',
-        mode:'cors',
-        credentials:'omit',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ type })
-      });
-      const j = await r.json();
-      return {
-        count: Number(j.count || 0),
-        byType: j.byType || {}
-      };
-    }
-
-    function animateCount(el, to, duration = 900){
+    function animateCount(el, to, duration = 500){
+      if (!el) return;
       const from = Number((el.textContent||"").replace(/[^0-9]/g,"")) || 0;
       const start = performance.now();
       const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
@@ -379,64 +346,74 @@
       requestAnimationFrame(frame);
     }
 
-    function renderTypeChips(byType){
-      const order = ['아파트','다세대/연립','단독/다가구','토지/임야'];
-      const wrap = document.getElementById('typeChips');
-      if(!wrap) return;
-      const html = order.map(lab=>{
-        const cnt = Number(byType?.[lab] || 0);
-        return `<span class="stat-chip"><span class="lab">${lab}</span><span class="cnt">${cnt.toLocaleString('ko-KR')}</span>회</span>`;
-      }).join('');
-      wrap.innerHTML = html;
+    async function serverGetCount(){
+      const r = await fetch(`${DAILY_API}?t=${Date.now()}`, {
+        method:'GET', mode:'cors', credentials:'omit',
+        headers:{ 'Accept':'application/json' }, cache:'no-store'
+      });
+      const j = await r.json();
+      return {
+        total: Number(j.count || 0),
+        byType: j.byType || { '아파트':0,'다세대/연립':0,'단독/다가구':0,'토지/임야':0 }
+      };
+    }
+    async function serverIncrementOncePerDay(typeKor){
+      const flag = todayFlagKey();
+      if (localStorage.getItem(flag) === '1') return null; // 이미 오늘 올림
+
+      const r = await fetch(`${DAILY_API}?t=${Date.now()}`, {
+        method:'POST', mode:'cors', credentials:'omit',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ type: String(typeKor||'') }),
+        cache:'no-store'
+      });
+      const j = await r.json();
+      localStorage.setItem(flag, '1');
+      return {
+        total: Number(j.count || 0),
+        byType: j.byType || { '아파트':0,'다세대/연립':0,'단독/다가구':0,'토지/임야':0 }
+      };
+    }
+
+    function renderDaily({ total, byType }){
+      animateCount(dailyNumEl(), total);
+      if (byType){
+        const set = (id, v) => { const el = typeCountEl(id); if (el) el.textContent = (v||0).toLocaleString('ko-KR'); };
+        set('aptCount', byType['아파트']);
+        set('multiCount', byType['다세대/연립']);
+        set('houseCount', byType['단독/다가구']);
+        set('landCount', byType['토지/임야']);
+      }
     }
 
     async function initDailyUsersUI(){
-      const numEl = document.getElementById('todayUsersCount');
       try{
-        const { count, byType } = await serverGetDaily();
-        if(numEl) animateCount(numEl, count, 400);
-        renderTypeChips(byType);
-      }catch(e){
-        if(numEl) numEl.textContent = '0';
-        renderTypeChips({});
-      }
+        const data = await serverGetCount();
+        renderDaily(data);
+      }catch(_){}
       setInterval(async ()=>{
-        try{
-          const { count, byType } = await serverGetDaily();
-          if(numEl) numEl.textContent = count.toLocaleString('ko-KR');
-          renderTypeChips(byType);
-        }catch(_){}
+        try{ renderDaily(await serverGetCount()); }catch(_){}
       }, 60000);
     }
-
-    async function bumpDailyUsersOnce(type){
-      const bumpedKey = todayBumpKey();
-      if(localStorage.getItem(bumpedKey)==='1'){
-        return;
-      }
+    async function bumpDailyUsersOncePerDay(propertyTypeKor){
       try{
-        const { count, byType } = await serverIncrement(type);
-        const el = document.getElementById('todayUsersCount');
-        if(el) animateCount(el, count);
-        renderTypeChips(byType);
-        localStorage.setItem(bumpedKey, '1');
-      }catch(e){
-        localStorage.setItem(bumpedKey, '1');
-      }
+        const data = await serverIncrementOncePerDay(propertyTypeKor);
+        if (data) renderDaily(data);
+      }catch(_){}
     }
 
     /* ── Modal ─────────────────────────────────── */
     const modal = {
-      el: null, body: null, closeBtn: null, statusEl: null,
+      el:null, body:null, closeBtn:null, statusEl:null,
       open(html, status){
         if(!this.el){
           this.el = document.getElementById('resultModal');
           this.body = document.getElementById('modalBody');
           this.closeBtn = document.getElementById('modalCloseBtn');
           this.statusEl = document.getElementById('modalStatus');
-          this.el.addEventListener('click', (e)=>{ if(e.target.dataset.close === 'true') modal.close(); });
+          this.el.addEventListener('click', (e)=>{ if(e.target.dataset.close==='true') modal.close(); });
           this.closeBtn.addEventListener('click', ()=> modal.close());
-          document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') modal.close(); });
+          document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') modal.close(); });
         }
         if(this.statusEl){
           this.statusEl.classList.remove('success','error','info','hide');
@@ -461,7 +438,7 @@
       }
     };
 
-    /* ── 필수 입력 검증(1~5) ───────────────────── */
+    /* ── 필수 입력 검증 ────────────────────────── */
     function validateRequired(){
       const missing = [];
       const ids = {
@@ -496,7 +473,7 @@
       initDailyUsersUI();
     });
 
-    /* ── KPI 빌더들 ───────────────────────────── */
+    /* ── KPI 빌더 ──────────────────────────────── */
     const kpisHTML = (label1, val1, label2, val2) => `
       <div class="kpis">
         <div class="kpi">
@@ -508,14 +485,10 @@
           <div class="kpi-value">${formatKoreanCurrency(val2)}</div>
         </div>
       </div>`;
+    const kpisForPossible = (req, addAvail) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
+    const kpisForDenied   = (req, maxReq) => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
 
-    const kpisForPossible = (req, addAvail) =>
-      kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
-
-    const kpisForDenied = (req, maxReq) =>
-      kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
-
-    /* ── 메인 계산 ──────────────────────────────── */
+    /* ── 계산 ──────────────────────────────────── */
     async function onCalculate(){
       const { missing, focusId } = validateRequired();
       if(missing.length){
@@ -524,7 +497,7 @@
           <div class="notice info">
             <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
             <ul style="margin:6px 0 0 18px; color:#334155;">${list}</ul>
-            <p class="disclaimer">※ 안심하세요~^^ 입력하신 정보는 저장되지 않습니다.</p>
+            <p class="disclaimer">※ 안심하세요~ 입력하신 정보는 저장되지 않습니다.</p>
           </div>
         `, {type:'info', text:'안내'});
         if(focusId){ setTimeout(()=> document.getElementById(focusId).focus({preventScroll:true}), 150); }
@@ -538,14 +511,8 @@
       const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
       let deduction       = toNumber(document.getElementById('deduction').value);
 
-      if (deduction > requestedLoan) {
-        alert('대환+보증금 반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동으로 조정합니다.');
-        deduction = requestedLoan;
-      }
-      if (deduction > seniorLoan) {
-        alert('대환+보증금 반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동으로 조정합니다.');
-        deduction = seniorLoan;
-      }
+      if (deduction > requestedLoan) { alert('상환/반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동조정합니다.'); deduction = requestedLoan; }
+      if (deduction > seniorLoan)    { alert('상환/반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동조정합니다.'); deduction = seniorLoan; }
       document.getElementById('deduction').value = deduction.toLocaleString();
       updatePreview('deduction','deduction_view');
 
@@ -562,48 +529,48 @@
         return;
       }
 
+      // 선순위만으로 LTV 초과
       if (seniorLoan > seniorLimit) {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
-        const html = `
+        modal.open(`
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
             <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
-            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
           </div>
-        `;
-        modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpDailyUsersOnce(propertyType);
+        `, {type:'error', text:'대출 불가'});
+        await bumpDailyUsersOncePerDay(propertyType);
         return;
       }
 
+      // 요청 초과
       if (r.status === 'exceeded') {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
-        const html = `
+        modal.open(`
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
             <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
-            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
           </div>
-        `;
-        modal.open(html, {type:'error', text:'대출 불가'});
-        await bumpDailyUsersOnce(propertyType);
+        `, {type:'error', text:'대출 불가'});
+        await bumpDailyUsersOncePerDay(propertyType);
         return;
       }
 
+      // 요청 없음
       if (r.status === 'no-request') {
-        const html = `
+        modal.open(`
           <div class="notice info">
             <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
-            <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+            <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
           </div>
-        `;
-        modal.open(html, {type:'info', text:'안내'});
+        `, {type:'info', text:'안내'});
         return;
       }
 
-      /* === 가능 === */
+      // === 가능 ===
       const addAvail = Math.max(0, r.maxRequested - requestedLoan);
       const mMin = monthlyPayment(requestedLoan, 0.068);
       const mMax = monthlyPayment(requestedLoan, 0.148);
@@ -611,7 +578,6 @@
       const feeMax = requestedLoan * 0.015;
 
       const kpis = kpisForPossible(requestedLoan, addAvail);
-
       const breakdownCosts = `
         <div class="breakdown-card" aria-labelledby="costsTitle">
           <div id="costsTitle" class="card-title">예상 비용 상세</div>
@@ -635,7 +601,6 @@
           </div>
         </div>
       `;
-
       const breakdownInfo = `
         <div class="breakdown-card" aria-labelledby="infoTitle">
           <div id="infoTitle" class="card-title">기타 안내</div>
@@ -665,14 +630,13 @@
         <div class="notice success">
           <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
           <p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p>
-          <p class="disclaimer">※ 위 정보는 온투업의 실제 대출 데이터를 기반으로 평가된 결과이며, 실제 온투업체의 심사 결과와 다를 수 있습니다.</p>
+          <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
         </div>
         ${breakdownCosts}
         ${breakdownInfo}
       `;
       modal.open(html, {type:'success', text:'대출 가능'});
-
-      await bumpDailyUsersOnce(propertyType);
+      await bumpDailyUsersOncePerDay(propertyType);
     }
   </script>
 </body>
