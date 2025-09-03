@@ -29,11 +29,9 @@
     .stat-value .suffix{font-size:14px;color:#6b7a99;line-height:1}
     @media(max-width:520px){ .top-stats{margin-bottom:10px} .stat-card{padding:10px 12px} .stat-value .num{font-size:20px} }
 
-    /* 종류별 칩: 컨테이너 폭 가득 4등분 */
+    /* 종류별 칩 */
     .type-chip-wrap{margin-top:8px}
-    .type-chips{
-      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;
-    }
+    .type-chips{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
     .type-chip{
       display:flex; justify-content:space-between; align-items:center;
       border:1px solid var(--chip-line); background:var(--chip-bg);
@@ -47,17 +45,17 @@
       .type-chip .val{font-size:13px}
     }
 
-    h1{margin:0 0 8px;font-size:24px;color:var(--primary)}
-    .subtitle{margin:0 0 18px;color:var(--muted);line-height:1.55;font-size:14px}
+    h1{margin:0 0 8px;font-size:24px;color:#1a365d}
+    .subtitle{margin:0 0 18px;color:#555;line-height:1.55;font-size:14px}
 
     .step{margin:16px 0;padding:14px;border-radius:12px;background:#f1f4f9;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.04)}
-    label{display:block;font-weight:700;margin-bottom:6px;color:var(--primary)}
+    label{display:block;font-weight:700;margin-bottom:6px;color:#1a365d}
     #calcSteps{counter-reset:step}
-    .steplabel{position:relative;padding-left:30px;font-weight:800;color:var(--primary);line-height:1.2;display:block}
-    .steplabel::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:50%;transform:translateY(-50%);width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;border:2px solid var(--accent);box-shadow:0 2px 6px rgba(11,31,58,.15)}
+    .steplabel{position:relative;padding-left:30px;font-weight:800;color:#1a365d;line-height:1.2;display:block}
+    .steplabel::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:50%;transform:translateY(-50%);width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#1a365d;color:#fff;font-size:12px;font-weight:800;border:2px solid #d4af37;box-shadow:0 2px 6px rgba(11,31,58,.15)}
     .steplabel.no-badge-before{padding-left:0}
     .steplabel.no-badge-before::before{display:none;counter-increment:none}
-    .badge-inline{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 6px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(11,31,58,.15);border:2px solid var(--accent);line-height:1;vertical-align:middle;position:relative;top:-1px}
+    .badge-inline{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 6px;border-radius:50%;background:#1a365d;color:#fff;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(11,31,58,.15);border:2px solid #d4af37;line-height:1;vertical-align:middle;position:relative;top:-1px}
     @media(max-width:420px){ .steplabel{padding-left:26px}.steplabel::before{width:18px;height:18px;font-size:11px}.badge-inline{width:18px;height:18px;font-size:11px;top:-1px} }
 
     .amount-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;width:100%}
@@ -69,45 +67,52 @@
     select,input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#fff}
     .info{font-size:12px;color:#666;margin:6px 0 0}
 
-    button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--primary);color:#fff;font-size:16px;cursor:pointer;transition:background .15s}
-    button:hover{background:var(--primary-dark)}
+    button{width:100%;padding:12px;border:0;border-radius:8px;background:#1a365d;color:#fff;font-size:16px;cursor:pointer;transition:background .15s}
+    button:hover{background:#153154}
     .hide{display:none!important}
 
     /* 결과(모달 내부 공용) */
     .kpis{margin:var(--s-2) 0 var(--s-4);display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(11,31,58,.05)}
+    .kpi{background:#fff;border:1px solid #e3e9f2;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
     .kpi-label{font-size:12px;color:#5f6b85;letter-spacing:.1px}
-    /* ↓ 숫자/단위가 절대 줄바꿈 되지 않도록 + 화면폭에 맞춰 약간 축소 */
     .kpi-value{
-      font-size:clamp(18px, 2.6vw, 20px);
+      font-size:clamp(15px, 2.4vw, 19px);
       font-weight:800; color:#0b2a66; margin-top:4px; letter-spacing:.2px;
-      white-space:nowrap; line-height:1.15;
+      white-space:nowrap; line-height:1.15; overflow:hidden; text-overflow:ellipsis;
     }
 
     .section-title{margin:var(--s-3) 0 var(--s-2);font-weight:800;color:#0b2a66;display:flex;align-items:center;gap:8px}
-    .chip-row{
-      display:flex;align-items:center;gap:12px;margin-bottom:var(--s-3);
-      flex-wrap:wrap;
-    }
-    /* ↓ 두 줄 방지: 한 줄 고정 + 필요시 가로 스크롤 */
-    .chip-row.tight{
-      gap:8px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
-      scrollbar-width:thin;
-    }
-    .chip{
-      display:inline-flex;align-items:baseline;gap:8px;
-      background:var(--chip-bg); border:1px solid var(--chip-line);
-      border-radius:999px; padding:9px 14px; color:#1f2a3a;
-      white-space:nowrap; flex:0 0 auto;
-    }
-    .chip .label,.chip .val{line-height:1; font-variant-numeric:tabular-nums}
+
+    /* 기본 칩 줄 */
+    .chip-row{display:flex;align-items:center;gap:12px;margin-bottom:var(--s-3);flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:baseline;gap:8px;background:var(--chip-bg);border:1px solid var(--chip-line);border-radius:999px;padding:9px 14px;color:#1f2a3a;white-space:nowrap;flex:0 0 auto}
+    .chip .label,.chip .val{line-height:1;font-variant-numeric:tabular-nums}
     .chip .label{font-size:13px;color:#42526e;font-weight:700}
     .chip .label.rate-min{color:#0ea5e9;font-weight:800;letter-spacing:.2px}
     .chip .label.rate-max{color:#ef4444;font-weight:800;letter-spacing:.2px}
-    /* ↓ 금액 글자 20% 축소 + 화면폭에 맞춰 추가 축소 */
-    .chip .val{font-size:clamp(15px, 4vw, 16px); font-weight:800; color:#0b2a66}
+    .chip .val{font-size:clamp(14px, 3.2vw, 16px); font-weight:800; color:#0b2a66}
     .chip-tilde{display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:18px;line-height:1;font-weight:800;color:#6b7a99}
-    .chip-tilde.tight{padding:0 4px}
+
+    /* ▶ 이자/수수료 줄: 칩이 절대 늘어나지 않도록 고정(PC/모바일 모두 1줄 유지) */
+    .chip-row.rate{
+      display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:nowrap;
+    }
+    .chip-row.rate .chip{
+      flex:0 0 auto; /* ← grow/shrink 금지: 내용만큼만 */
+      width:auto; max-width:none; min-width:auto; padding:8px 12px;
+    }
+    .chip-row.rate .chip .label{font-size:12px}
+    .chip-row.rate .chip .val{
+      font-size:clamp(12px, 2.6vw, 15px);
+      overflow:hidden; text-overflow:ellipsis; max-width:100%;
+    }
+
+    /* 입력 요약(칩 30% 축소) */
+    .input-summary .chip{padding:8px 12px}
+    .input-summary .chip .label{font-size:10px}
+    .input-summary .chip .val{font-size:13px}
+    .input-summary .chip-row{justify-content:flex-start}
+    .input-summary .chip-row .chip{flex:0 0 auto}
 
     .icon-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 10px}
     .dot-blue{background:#2b6cb0}.dot-gold{background:#d4af37}.dot-navy{background:#1a365d}.dot-green{background:#2f855a}.dot-slate{background:#6b7a99}
@@ -151,11 +156,12 @@
     .footer-right{display:flex;justify-content:flex-end}
     .panel-footer .btn{width:100%}
     .btn{appearance:none;border:0;border-radius:10px;cursor:pointer;padding:12px 16px;font-weight:800;font-size:14px;line-height:1}
-    .btn-primary{background:var(--primary);color:#fff}
-    .btn-primary:hover{background:var(--primary-dark)}
+    .btn-primary{background:#1a365d;color:#fff}
+    .btn-primary:hover{background:#153154}
     .btn-secondary{background:#f1f5f9;color:#334155;border:1px solid #d6dbe6}
-    .btn-secondary:hover{background:#e9edf3}
-    .btn-kakao{background:var(--kakao-yellow);color:var(--kakao-brown);border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
+    .btn-secondary:hover{background:#e9edf3;color:#334155}
+    .btn-secondary:focus{color:#334155}
+    .btn-kakao{background:#FEE500;color:#3C1E1E;border:1px solid #f4d000;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800}
     .btn-kakao:hover{background:#fde236}
   </style>
 </head>
@@ -174,7 +180,7 @@
       </div>
     </div>
 
-    <!-- 종류별 카운트 칩 (컨테이너 폭 가득 4등분) -->
+    <!-- 종류별 카운트 칩 -->
     <div class="type-chip-wrap">
       <div class="type-chips">
         <div class="type-chip"><span class="label">아파트</span><span id="aptCount" class="val">0</span></div>
@@ -252,6 +258,18 @@
           <span id="deduction_view" class="amount-display">0원</span>
         </div>
       </div>
+
+      <!-- (선택사항) 지분율 -->
+      <div class="step">
+        <label class="steplabel no-badge-before">
+          (선택사항) 지분 대출의 경우 지분율 입력
+        </label>
+        <div class="amount-row">
+          <input type="number" id="sharePercent" inputmode="numeric" min="1" max="100" placeholder="예: 50">
+          <span id="sharePercent_view" class="amount-display">100%</span>
+        </div>
+        <p class="info">지분 대출이면 본인 지분율(1~100%)을 입력하세요. 미입력 시 전체 소유(100%) 기준으로 계산합니다.</p>
+      </div>
     </div>
 
     <button id="calcBtn">대출 가능성 확인하기</button>
@@ -318,20 +336,52 @@
       el.addEventListener('input', ()=> updatePreview(id, viewId));
     }
 
+    // 지분율 파싱/미리보기
+    function parseSharePercent(raw){
+      const n = Number(onlyDigits(raw));
+      if (!n) return 0;
+      return Math.min(100, Math.max(1, n));
+    }
+    function updatePercentPreview(id, viewId){
+      const el = document.getElementById(id);
+      const n = parseSharePercent(el.value);
+      el.value = n ? String(n) : '';
+      const pv = document.getElementById(viewId);
+      pv.textContent = n ? `${n}%` : '100%';
+    }
+    function attachPercentWithPreview(id, viewId){
+      const el = document.getElementById(id);
+      updatePercentPreview(id, viewId);
+      el.addEventListener('input', ()=> updatePercentPreview(id, viewId));
+      el.addEventListener('blur', ()=> updatePercentPreview(id, viewId));
+    }
+
     /* 매월 이자 금액 */
     const monthlyPayment = (principal, annualRate) => principal * annualRate / 12;
 
-    /* LTV 판정식 */
-    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan}){
+    /* LTV 판정식 (지분 모드 지원) */
+    function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan, sharePercent}){
       const ratio = LTV_LIMITS?.[region]?.[propertyType];
       if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
-      const limit = marketValue * ratio;
-      const d = Math.max(0, Math.min(deduction, seniorLoan, requestedLoan));
-      const maxRequested = Math.max(0, limit - seniorLoan + d);
-      const status = (requestedLoan > 0)
-        ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded')
-        : 'no-request';
-      return { ratio, limit, maxRequested, usedDeduction: d, status };
+
+      const isShare = sharePercent && sharePercent >= 1 && sharePercent <= 100;
+      const baseValue = isShare ? (marketValue * (sharePercent/100)) : marketValue;
+      const limit = baseValue * ratio;
+
+      if (isShare){
+        const maxRequested = Math.max(0, limit - seniorLoan);
+        const status = (requestedLoan > 0)
+          ? (seniorLoan > limit ? 'exceeded' : (requestedLoan <= maxRequested ? 'possible' : 'exceeded'))
+          : 'no-request';
+        return { mode:'share', ratio, limitBase: baseValue, limit, maxRequested, usedDeduction: 0, status };
+      } else {
+        const d = Math.max(0, Math.min(deduction, seniorLoan, requestedLoan));
+        const maxRequested = Math.max(0, limit - seniorLoan + d);
+        const status = (requestedLoan > 0)
+          ? (requestedLoan <= maxRequested ? 'possible' : 'exceeded')
+          : 'no-request';
+        return { mode:'normal', ratio, limitBase: baseValue, limit, maxRequested, usedDeduction: d, status };
+      }
     }
 
     /* ── 금일 이용자수(서버 + 1일1회 제한) ───────────────── */
@@ -376,7 +426,7 @@
     }
     async function serverIncrementOncePerDay(typeKor){
       const flag = todayFlagKey();
-      if (localStorage.getItem(flag) === '1') return null; // 이미 오늘 올림
+      if (localStorage.getItem(flag) === '1') return null;
 
       const r = await fetch(`${DAILY_API}?t=${Date.now()}`, {
         method:'POST', mode:'cors', credentials:'omit',
@@ -455,6 +505,37 @@
       }
     };
 
+    /* ── 입력 요약 칩 ───── */
+    function buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent}){
+      const shareUsed = sharePercent && sharePercent >= 1 && sharePercent <= 100;
+      const shareBase = shareUsed ? Math.floor(marketValue * (sharePercent/100)) : null;
+
+      const chips = [
+        `<span class="chip"><span class="label">지역</span><span class="val">${region || '-'}</span></span>`,
+        `<span class="chip"><span class="label">종류</span><span class="val">${propertyType || '-'}</span></span>`,
+        `<span class="chip"><span class="label">시세</span><span class="val">${formatKoreanCurrency(marketValue)}</span></span>`,
+        `<span class="chip"><span class="label">선순위+보증금</span><span class="val">${formatKoreanCurrency(seniorLoan)}</span></span>`,
+        `<span class="chip"><span class="label">요청금액</span><span class="val">${formatKoreanCurrency(requestedLoan)}</span></span>`,
+      ];
+
+      if (deduction > 0){
+        chips.push(`<span class="chip"><span class="label">상환/반환</span><span class="val">${formatKoreanCurrency(deduction)}</span></span>`);
+      }
+      if (shareUsed){
+        chips.push(`<span class="chip"><span class="label">지분율</span><span class="val">${sharePercent}%</span></span>`);
+        chips.push(`<span class="chip"><span class="label">지분 시세</span><span class="val">${formatKoreanCurrency(shareBase)}</span></span>`);
+      }
+
+      return `
+        <div class="breakdown-card input-summary" aria-labelledby="inputsTitle">
+          <div id="inputsTitle" class="card-title">입력 요약</div>
+          <div class="chip-row">
+            ${chips.join('')}
+          </div>
+        </div>
+      `;
+    }
+
     /* ── 필수 입력 검증 ────────────────────────── */
     function validateRequired(){
       const missing = [];
@@ -483,6 +564,7 @@
       attachCommaWithPreview('seniorLoan','seniorLoan_view');
       attachCommaWithPreview('requestedLoan','requestedLoan_view');
       attachCommaWithPreview('deduction','deduction_view');
+      attachPercentWithPreview('sharePercent','sharePercent_view');
 
       const btn = document.getElementById('calcBtn');
       if (btn) btn.addEventListener('click', onCalculate);
@@ -505,7 +587,7 @@
     const kpisForPossible = (req, addAvail) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
     const kpisForDenied   = (req, maxReq) => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
 
-    /* ── 계산 ──────────────────────────────────── */
+    /* ── 계산 ─────────────────────────────────── */
     async function onCalculate(){
       const { missing, focusId } = validateRequired();
       if(missing.length){
@@ -527,29 +609,31 @@
       const seniorLoan    = toNumber(document.getElementById('seniorLoan').value);
       const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
       let deduction       = toNumber(document.getElementById('deduction').value);
+      const sharePercent  = parseSharePercent(document.getElementById('sharePercent').value);
 
       if (deduction > requestedLoan) { alert('상환/반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동조정합니다.'); deduction = requestedLoan; }
       if (deduction > seniorLoan)    { alert('상환/반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동조정합니다.'); deduction = seniorLoan; }
       document.getElementById('deduction').value = deduction.toLocaleString();
       updatePreview('deduction','deduction_view');
 
-      const ratio = LTV_LIMITS?.[region]?.[propertyType];
-      const seniorLimit = marketValue * ratio;
-
       document.getElementById('result').classList.add('hide');
 
       let r;
       try {
-        r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan});
+        r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan, sharePercent});
       } catch (e) {
-        modal.open(`<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
+        const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
+        modal.open(`${inputs}<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
         return;
       }
 
+      const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
+
       // 선순위만으로 LTV 초과
-      if (seniorLoan > seniorLimit) {
+      if (seniorLoan > r.limit) {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         modal.open(`
+          ${inputs}
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
@@ -565,6 +649,7 @@
       if (r.status === 'exceeded') {
         const kpis = kpisForDenied(requestedLoan, r.maxRequested);
         modal.open(`
+          ${inputs}
           ${kpis}
           <div class="notice error">
             <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
@@ -579,6 +664,7 @@
       // 요청 없음
       if (r.status === 'no-request') {
         modal.open(`
+          ${inputs}
           <div class="notice info">
             <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
             <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
@@ -601,18 +687,18 @@
 
           <div class="card-section">
             <div class="section-title"><span class="icon-dot dot-blue"></span>매월 이자 금액</div>
-            <div class="chip-row tight">
+            <div class="chip-row rate">
               <span class="chip plain"><span class="label rate-min">6.8%</span><span class="val">${formatKoreanCurrency(mMin)}</span></span>
-              <span class="chip-tilde tight">~</span>
+              <span class="chip-tilde">~</span>
               <span class="chip plain"><span class="label rate-max">14.8%</span><span class="val">${formatKoreanCurrency(mMax)}</span></span>
             </div>
           </div>
 
           <div class="card-section compact">
             <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
-            <div class="chip-row tight">
+            <div class="chip-row rate">
               <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
-              <span class="chip-tilde tight">~</span>
+              <span class="chip-tilde">~</span>
               <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
             </div>
           </div>
@@ -643,6 +729,7 @@
       `;
 
       const html = `
+        ${inputs}
         ${kpis}
         <div class="notice success">
           <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
