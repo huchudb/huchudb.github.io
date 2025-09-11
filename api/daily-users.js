@@ -9,6 +9,7 @@ const ALLOWED_ORIGINS = [
   'https://www.huchulab.com',
   'https://huchulab.com',
   'https://huchudb-github-io.vercel.app',
+  'http://www.huchulab.com',
 ];
 
 function corsHeaders(origin) {
