@@ -5,17 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>후추 | 온투업(P2P) 통계 · 계산기</title>
   <meta name="description" content="개인정보 수집 없이, 실제 사례 기반 계산으로 합리적인 온투업 대출기관을 선택하세요. P2P센터 공시를 수동 검증·반영한 통계를 제공합니다.">
-  <link rel="stylesheet" href="./styles.css?v=20251112-fix2"/>
+
+  <!-- 공용 스타일 (assets로 이동) -->
+  <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
+
+  <!-- 홈(도넛)에서만 Chart.js 필요 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="./app.js?v=20251112-fix2" defer></script>
+
+  <!-- 공용 유틸 + 홈 전용 -->
+  <script src="/assets/shared.js?v=20251113-split" defer></script>
+  <script src="/assets/home.js?v=20251113-split" defer></script>
 </head>
 <body>
 
   <!-- Header -->
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
-      <a href="#home" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <img id="siteLogo" class="logo-img" alt="후추 로고"/>
+      <a href="/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <!-- 로고 이미지: /assets/logo/huchu-logo.png 가 있으면 표시, 없으면 텍스트 폴백 -->
+        <img id="siteLogo" class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
         <span id="logoFallback" class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
       </a>
 
@@ -25,49 +33,44 @@
 
       <nav id="siteNav" class="nav-menu" aria-label="주요 메뉴">
         <ul>
-          <li><a href="#home" data-route-link>홈</a></li>
-          <li><a href="#calculator" data-route-link>계산기</a></li>
+          <li><a href="/index.html">홈</a></li>
+          <li><a href="/calculator.html">계산기</a></li>
 
-          <!-- 상품 (단일 드롭다운 안에 3개 카테고리 그룹) -->
+          <!-- 상품 -->
           <li class="has-sub">
             <button class="menu-group" aria-expanded="false">상품</button>
             <ul class="sub">
-              <!-- 담보대출 -->
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">담보대출</strong></li>
-              <li><a href="/products/담보대출/아파트.html">아파트 담보대출</a></li>
-              <li><a href="/products/담보대출/다세대-연립.html">다세대/연립 담보대출</a></li>
-              <li><a href="/products/담보대출/단독-다가구.html">단독/다가구 담보대출</a></li>
-              <li><a href="/products/담보대출/토지-임야.html">토지/임야 담보대출</a></li>
+              <li><a href="/products/담보대출/아파트/">아파트 담보대출</a></li>
+              <li><a href="/products/담보대출/다세대-연립/">다세대/연립 담보대출</a></li>
+              <li><a href="/products/담보대출/단독-다가구/">단독/다가구 담보대출</a></li>
+              <li><a href="/products/담보대출/토지-임야/">토지/임야 담보대출</a></li>
 
-              <!-- 구분선 -->
               <li><hr style="border:none;border-top:1px dashed #e2e8f0;margin:8px 0"/></li>
 
-              <!-- 지분대출 -->
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">지분대출</strong></li>
-              <li><a href="/products/지분대출/아파트.html">아파트 지분대출</a></li>
-              <li><a href="/products/지분대출/빌라-다세대-연립.html">다세대/연립 지분대출</a></li>
-              <li><a href="/products/지분대출/단독-다가구.html">단독/다가구 지분대출</a></li>
-              <li><a href="/products/지분대출/토지-임야.html">토지/임야 지분대출</a></li>
+              <li><a href="/products/지분대출/아파트/">아파트 지분대출</a></li>
+              <li><a href="/products/지분대출/빌라-다세대-연립/">다세대/연립 지분대출</a></li>
+              <li><a href="/products/지분대출/단독-다가구/">단독/다가구 지분대출</a></li>
+              <li><a href="/products/지분대출/토지-임야/">토지/임야 지분대출</a></li>
 
-              <!-- 구분선 -->
               <li><hr style="border:none;border-top:1px dashed #e2e8f0;margin:8px 0"/></li>
 
-              <!-- 경락잔금대출 -->
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">경락잔금대출</strong></li>
-              <li><a href="/products/경락잔금대출/아파트.html">아파트 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/다세대-연립.html">다세대/연립 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/단독-다가구.html">단독/다가구 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/토지-임야.html">토지/임야 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/아파트/">아파트 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/다세대-연립/">다세대/연립 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/단독-다가구/">단독/다가구 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/토지-임야/">토지/임야 경락잔금대출</a></li>
             </ul>
           </li>
 
-          <!-- 안내사항 -->
+          <!-- 안내사항(홈 내부 섹션 앵커) -->
           <li class="has-sub">
             <button class="menu-group" aria-expanded="false">안내사항</button>
             <ul class="sub">
-              <li><a href="#notices" data-route-link>공지사항</a></li>
-              <li><a href="#faq" data-route-link>자주묻는질문</a></li>
-              <li><a href="#methodology" data-route-link>근거/프라이버시</a></li>
+              <li><a href="/index.html#notices">공지사항</a></li>
+              <li><a href="/index.html#faq">자주묻는질문</a></li>
+              <li><a href="/index.html#methodology">근거/프라이버시</a></li>
             </ul>
           </li>
         </ul>
@@ -75,220 +78,91 @@
     </div>
   </header>
 
-  <!-- Route: 홈(통계) -->
-  <main id="route-home" data-route="home">
-    <!-- 공지 캐러셀 -->
-    <section class="notice-carousel-sec" aria-label="최근 공지">
-      <div class="notice-carousel" id="noticeCarousel" aria-live="polite"></div>
-      <div class="notice-dots" id="noticeDots" aria-hidden="true"></div>
-    </section>
+  <!-- 홈: 공지 캐러셀 -->
+  <section class="notice-carousel-sec" aria-label="최근 공지" id="notices">
+    <div class="notice-carousel" id="noticeCarousel" aria-live="polite"></div>
+    <div class="notice-dots" id="noticeDots" aria-hidden="true"></div>
+  </section>
 
-    <!-- 전체대출현황(온투업) + 기준월 칩 -->
-    <section aria-label="온투업 통계 요약">
-      <div class="section-header">
-        <h2 class="huchu-section-title">전체대출현황(온투업)</h2>
+  <!-- 전체대출현황(온투업) + 기준월 칩 -->
+  <section aria-label="온투업 통계 요약">
+    <div class="section-header">
+      <h2 class="huchu-section-title">전체대출현황(온투업)</h2>
+      <button id="periodPickerBtn" class="period-chip" aria-haspopup="dialog" aria-controls="periodModal" aria-label="통계 기준월 변경">
+        <span class="pc-label">통계 기준</span>
+        <strong id="huchuPeriodInline" class="pc-value">YYYY/MM</strong>
+        <svg class="ico-cal" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z" fill="currentColor"/></svg>
+      </button>
+    </div>
 
-        <button id="periodPickerBtn" class="period-chip" aria-haspopup="dialog" aria-controls="periodModal" aria-label="통계 기준월 변경">
-          <span class="pc-label">통계 기준</span>
-          <strong id="huchuPeriodInline" class="pc-value">YYYY/MM</strong>
-          <svg class="ico-cal" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z" fill="currentColor"/></svg>
-        </button>
-      </div>
-
-      <div class="huchu-kpi3" role="list">
-        <div class="huchu-card" role="listitem">
-          <div class="huchu-kpi-title">누접대출금액</div>
-          <div class="kpi-row">
-            <div id="kpi2-loan" class="huchu-kpi-val">0조 0000억 0000만원</div>
-            <span id="kpi2-loan-delta" class="delta-badge flat">0.0%</span>
-          </div>
-        </div>
-        <div class="huchu-card" role="listitem">
-          <div class="huchu-kpi-title">누적상환금액</div>
-          <div class="kpi-row">
-            <div id="kpi2-repay" class="huchu-kpi-val">0조 0000억 0000만원</div>
-            <span id="kpi2-repay-delta" class="delta-badge flat">0.0%</span>
-          </div>
-        </div>
-        <div class="huchu-card" role="listitem">
-          <div class="huchu-kpi-title">대출잔액</div>
-          <div class="kpi-row">
-            <div id="kpi2-balance" class="huchu-kpi-val">0조 0000억 0000만원</div>
-            <span id="kpi2-balance-delta" class="delta-badge flat">0.0%</span>
-          </div>
+    <div class="huchu-kpi3" role="list">
+      <div class="huchu-card" role="listitem">
+        <div class="huchu-kpi-title">누적대출금액</div>
+        <div class="kpi-row">
+          <div id="kpi2-loan" class="huchu-kpi-val">0조 0000억 0000만원</div>
+          <span id="kpi2-loan-delta" class="delta-badge flat">0.0%</span>
         </div>
       </div>
-
-      <div class="section-header">
-        <h2 class="huchu-section-title">상품유형별 대출잔액</h2>
-      </div>
-
-      <div class="huchu-donut-wrap">
-        <div class="huchu-donut">
-          <div class="donut-canvas-wrap">
-            <canvas id="huchuDonut" aria-label="상품유형별 대출잔액 구성 비율" role="img"></canvas>
-          </div>
-          <div class="huchu-legend" id="huchuLegend" aria-label="범례"></div>
+      <div class="huchu-card" role="listitem">
+        <div class="huchu-kpi-title">누적상환금액</div>
+        <div class="kpi-row">
+          <div id="kpi2-repay" class="huchu-kpi-val">0조 0000억 0000만원</div>
+          <span id="kpi2-repay-delta" class="delta-badge flat">0.0%</span>
         </div>
-        <div class="huchu-footnote">금액 표시는 ‘만원’ 기준 반올림입니다.</div>
       </div>
-    </section>
-  </main>
-
-  <!-- Route: 계산기 -->
-  <main id="route-calculator" data-route="calculator" hidden>
-    <div class="top-stats" aria-label="금일 이용자수">
-      <div class="stat-card">
-        <div class="stat-label"><span class="stat-dot"></span>금일 이용자수</div>
-        <div class="stat-value"><span id="todayUsersCount" class="num" data-target="0" aria-live="polite">0</span><span class="suffix">명</span></div>
-      </div>
-      <div class="type-chip-wrap">
-        <div class="type-chips">
-          <div class="type-chip"><span class="label">아파트</span><span id="aptCount" class="val">0</span></div>
-          <div class="type-chip"><span class="label">다세대/연립</span><span id="multiCount" class="val">0</span></div>
-          <div class="type-chip"><span class="label">단독/다가구</span><span id="houseCount" class="val">0</span></div>
-          <div class="type-chip"><span class="label">토지/임야</span><span id="landCount" class="val">0</span></div>
+      <div class="huchu-card" role="listitem">
+        <div class="huchu-kpi-title">대출잔액</div>
+        <div class="kpi-row">
+          <div id="kpi2-balance" class="huchu-kpi-val">0조 0000억 0000만원</div>
+          <span id="kpi2-balance-delta" class="delta-badge flat">0.0%</span>
         </div>
       </div>
     </div>
 
-    <div class="container">
-      <h1>온투업(P2P) 담보대출 계산기</h1>
-      <p class="subtitle">
-        * 온투업의 실제 대출 데이터를 기반으로 계산됩니다.<br/>
-        ** 100번을 계산해도 신용점수는 변동되지 않습니다.
-      </p>
-
-      <div id="calcSteps">
-        <!-- (필드 동일, 생략 없이 유지) -->
-        <div class="step">
-          <label class="steplabel">지역을 선택해주세요.</label>
-          <select id="region">
-            <option value="">선택</option>
-            <option value="서울">서울</option>
-            <option value="서울 외">서울 외</option>
-          </select>
-        </div>
-
-        <div class="step">
-          <label class="steplabel">부동산 종류를 선택해주세요.</label>
-          <select id="propertyType">
-            <option value="">선택</option>
-            <option value="아파트">아파트</option>
-            <option value="다세대/연립">다세대/연립</option>
-            <option value="단독/다가구">단독/다가구</option>
-            <option value="토지/임야">토지/임야</option>
-          </select>
-        </div>
-
-        <div class="step">
-          <label class="steplabel">내가 생각하는 시세</label>
-          <div class="amount-row">
-            <input type="text" id="marketValue" placeholder="예: 500,000,000">
-            <span id="marketValue_view" class="amount-display">0원</span>
-          </div>
-          <p class="info">
-            *아파트는 KB시세를 입력하세요 →
-            <a href="https://kbland.kr/search" target="_blank">[KB시세 바로가기]</a><br>
-            (3층 이상: 일반가 / 2층 이하: 하위평균가)
-          </p>
-        </div>
-
-        <div class="step">
-          <label class="steplabel">선순위 대출 잔액 + 임대보증금</label>
-          <div class="amount-row">
-            <input type="text" id="seniorLoan" placeholder="예: 100,000,000">
-            <span id="seniorLoan_view" class="amount-display">0원</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <label class="steplabel">필요 대출금액</label>
-          <div class="amount-row">
-            <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
-            <span id="requestedLoan_view" class="amount-display">0원</span>
-          </div>
-          <p class="info">* 대환(상환)해야 할 금액이 포함된 총 필요 금액을 입력하세요.</p>
-        </div>
-
-        <div class="step">
-          <label class="steplabel no-badge-before">
-            (선택사항) <span class="badge-inline">4</span>금액중 상환+반환할 금액
-          </label>
-          <div class="amount-row">
-            <input type="text" id="deduction" value="0">
-            <span id="deduction_view" class="amount-display">0원</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <label class="steplabel no-badge-before">
-            (선택사항) 지분 대출의 경우 지분율 입력
-          </label>
-          <div class="amount-row">
-            <input type="number" id="sharePercent" inputmode="numeric" min="1" max="100" placeholder="예: 50">
-            <span id="sharePercent_view" class="amount-display">100%</span>
-          </div>
-          <p class="info">지분 대출이면 본인 지분율(1~100%)을 입력하세요. 미입력 시 전체 소유(100%) 기준으로 계산합니다.</p>
-        </div>
-      </div>
-
-      <button id="calcBtn">대출 가능성 확인하기</button>
-      <div id="result" class="resultBox hide"></div>
+    <div class="section-header">
+      <h2 class="huchu-section-title">상품유형별 대출잔액</h2>
     </div>
 
-    <!-- 결과 모달 -->
-    <div class="modal hide" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="overlay" data-close="true"></div>
-      <div class="panel" role="document">
-        <div class="panel-header">
-          <div id="modalTitle" class="panel-title">계산 결과</div>
-          <div id="modalStatus" class="status-pill hide"></div>
+    <div class="huchu-donut-wrap">
+      <div class="huchu-donut">
+        <div class="donut-canvas-wrap">
+          <canvas id="huchuDonut" aria-label="상품유형별 대출잔액 구성 비율" role="img"></canvas>
         </div>
-        <div class="panel-body" id="modalBody"></div>
-        <div class="panel-footer">
-          <div class="footer-left"><a id="contactBtn" class="btn btn-kakao" href="https://open.kakao.com/me/huchudb" target="_blank" rel="noopener">카카오톡 문의</a></div>
-          <div class="footer-right"><button class="btn btn-secondary" id="modalCloseBtn" aria-label="닫기">닫기</button></div>
-        </div>
+        <div class="huchu-legend" id="huchuLegend" aria-label="범례"></div>
       </div>
+      <div class="huchu-footnote">금액 표시는 ‘만원’ 기준 반올림입니다.</div>
     </div>
-  </main>
+  </section>
 
-  <!-- Route: 공지사항 -->
-  <main id="route-notices" data-route="notices" hidden>
-    <section class="notices">
-      <h2 class="huchu-section-title" style="margin-top:0">공지사항</h2>
-      <div class="notice-grid" id="noticeGrid"></div>
-      <p class="n-help">* 이미지를 클릭하면 상세 페이지로 이동합니다.</p>
-    </section>
-  </main>
+  <!-- 공지 그리드 -->
+  <section class="notices" aria-label="공지 그리드">
+    <h2 class="huchu-section-title" style="margin-top:0">공지사항</h2>
+    <div class="notice-grid" id="noticeGrid"></div>
+    <p class="n-help">* 이미지를 클릭하면 상세 페이지로 이동합니다.</p>
+  </section>
 
-  <!-- Route: FAQ -->
-  <main id="route-faq" data-route="faq" hidden>
-    <section class="faq">
-      <h2 class="huchu-section-title" style="margin-top:0">자주묻는질문</h2>
-      <div class="faq-list">
-        <details open><summary>개인정보를 정말 수집하지 않나요?</summary><p>네. 후추는 어떠한 경우에도 개인정보를 수집하지 않습니다. 상담 연결은 계산 결과 화면에서만 이루어지며, 해당 기관과 직접 진행됩니다.</p></details>
-        <details><summary>P2P센터 통계는 어떻게 반영되나요?</summary><p>운영자가 공시를 수동으로 검증·정리하여 반영합니다. 외부 수치와 다를 경우 정정 요청을 통해 수정됩니다.</p></details>
-      </div>
-    </section>
-  </main>
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <h2 class="huchu-section-title" style="margin-top:0">자주묻는질문</h2>
+    <div class="faq-list">
+      <details open><summary>개인정보를 정말 수집하지 않나요?</summary><p>네. 후추는 어떠한 경우에도 개인정보를 수집하지 않습니다. 상담 연결은 계산 결과 화면에서만 이루어지며, 해당 기관과 직접 진행됩니다.</p></details>
+      <details><summary>P2P센터 통계는 어떻게 반영되나요?</summary><p>운영자가 공시를 수동으로 검증·정리하여 반영합니다. 외부 수치와 다를 경우 정정 요청을 통해 수정됩니다.</p></details>
+    </div>
+  </section>
 
-  <!-- Route: 근거/프라이버시 -->
-  <main id="route-methodology" data-route="methodology" hidden>
-    <section class="methodology">
-      <h2 class="huchu-section-title" style="margin-top:0">근거/프라이버시</h2>
-      <h3>데이터 출처</h3>
-      <p>온투업중앙기록관리기관(P2P센터) 공시를 운영자가 수동으로 검증·정리하여 반영합니다.</p>
-      <p>각 온투업체에서 대출 승인된(상품모집페이지) 내용을 운영자가 수동으로 정리하여 반영합니다.</p>
-      <p>외부 출처와 수치가 다를 수 있으며, 정정 요청 경로를 제공합니다.</p>
-      <h3>프라이버시</h3>
-      <p>후추는 어떠한 경우에도 개인정보를 수집하지 않습니다.</p>
-      <p>대출기관과 직접 상담 연결은 계산 결과 화면에서만 제공됩니다.</p>
-      <h3>정정 요청</h3>
-      <p>잘못된 수치 또는 표현은 이메일로 접수해 주십시오.</p>
-    </section>
-  </main>
+  <!-- 근거/프라이버시 -->
+  <section class="methodology" id="methodology">
+    <h2 class="huchu-section-title" style="margin-top:0">근거/프라이버시</h2>
+    <h3>데이터 출처</h3>
+    <p>온투업중앙기록관리기관(P2P센터) 공시를 운영자가 수동으로 검증·정리하여 반영합니다.</p>
+    <p>각 온투업체에서 대출 승인된(상품모집페이지) 내용을 운영자가 수동으로 정리하여 반영합니다.</p>
+    <p>외부 출처와 수치가 다를 수 있으며, 정정 요청 경로를 제공합니다.</p>
+    <h3>프라이버시</h3>
+    <p>후추는 어떠한 경우에도 개인정보를 수집하지 않습니다.</p>
+    <p>대출기관과 직접 상담 연결은 계산 결과 화면에서만 제공됩니다.</p>
+    <h3>정정 요청</h3>
+    <p>잘못된 수치 또는 표현은 이메일로 접수해 주십시오.</p>
+  </section>
 
   <!-- 기준월 선택 모달(소형) -->
   <div id="periodModal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="periodTitle">
@@ -324,7 +198,7 @@
         <div class="f-title">정정 요청</div>
         <p class="f-note">잘못된 수치/표현은 이메일로 접수해 주세요. 이름/연락처 등 개인정보 없이 <b>내용만</b> 보내주셔도 됩니다.</p>
         <p class="f-mail">이메일: <a id="correctionEmailLink" href="#" rel="nofollow">설정 필요</a></p>
-        <div class="f-admin-link"><a class="btn btn-secondary" href="./admin.html">관리자</a></div>
+        <div class="f-admin-link"><a class="btn btn-secondary" href="/admin.html">관리자</a></div>
       </div>
     </div>
   </footer>
