@@ -4,18 +4,14 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>후추 | 온투업(P2P) 담보대출 계산기</title>
-  <meta name="description" content="개인정보 입력 없이 실제 사례 기반으로 한도·금리를 미리 계산하세요.">
+  <meta name="description" content="온투업 실제 사례 기반 담보대출 계산기">
 
-  <!-- ✅ 공용 스타일: 절대경로 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
-  <!-- ✅ 공용 유틸(네비 드롭다운, 로고, 스토어 키 포함) -->
-  <script src="/assets/shared.js?v=20251113-split" defer></script>
-
-  <!-- ✅ 계산기 전용 스크립트 -->
-  <script src="/assets/calculator.js?v=20251113-split" defer></script>
+  <!-- 공용 유틸 + 계산기 전용 (ES Modules) -->
+  <script type="module" src="/assets/shared.js?v=20251113-split"></script>
+  <script type="module" src="/assets/calculator.js?v=20251113-split"></script>
 </head>
-
 <body>
 
   <!-- Header -->
@@ -217,6 +213,5 @@
   </div>
 </body>
 </html>
-
 
 
