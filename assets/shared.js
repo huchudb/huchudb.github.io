@@ -20,28 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const path = location.pathname.replace(/\/index\.html$/, '/');
   document.querySelectorAll('.nav-menu a[href]').forEach(a => {
     const href = a.getAttribute('href');
-    const isActive =
-      (href === '/index.html' && (path === '/' || path === '/')) ||
-      (href === '/calculator.html' && path.endsWith('/calculator.html'));
-    if (isActive) a.setAttribute('aria-current', 'page');
+    const isHome = href === '/index.html' && (path === '/' || path === '/');
+    const isCalc = href === '/calculator.html' && path.endsWith('/calculator.html');
+    if (isHome || isCalc) a.setAttribute('aria-current', 'page');
   });
 
-  // 로고: src 없으면 폴백 경로 지정, 로드 실패 시 텍스트 폴백 표시
+  // 로고: src 없으면 기본 로고로 채우고, 성공시 폴백 숨김
   const img = document.getElementById('siteLogo');
   const fallback = document.getElementById('logoFallback');
   if (img && !img.getAttribute('src')) {
-    // 정확한 기본 경로: /assets/logo/huchu-logo.png
+    // ✅ 올바른 기본 경로
     img.setAttribute('src', '/assets/logo/huchu-logo.png');
   }
-  if (img) {
-    const showImg = () => { img.style.display = 'block'; if (fallback) fallback.style.display = 'none'; };
-    const showFallback = () => { img.style.display = 'none'; if (fallback) fallback.style.display = 'inline-flex'; };
-    if (img.complete) {
-      (img.naturalWidth > 0 ? showImg : showFallback)();
-    } else {
-      img.addEventListener('load', showImg);
-      img.addEventListener('error', showFallback);
+  function showImgIfLoaded() {
+    if (img && img.complete && img.naturalWidth > 0) {
+      img.style.display = 'block';
+      if (fallback) fallback.style.display = 'none';
     }
+  }
+  if (img) {
+    img.addEventListener('load', showImgIfLoaded);
+    showImgIfLoaded();
   }
 
   // 기타 공용
@@ -101,7 +100,7 @@ export function latestExistingOr(targetYM, map){
   return pick;
 }
 
-/* ===== 계산기에서 공용 쓸 포맷 ===== */
+/* ===== 계산기 공용 ===== */
 export const onlyDigits = (s) => (s||"").replace(/[^0-9]/g,"");
 export const toNumber = (s) => Number(onlyDigits(s)) || 0;
 export function formatKoreanCurrency(num){

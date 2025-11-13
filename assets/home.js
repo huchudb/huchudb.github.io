@@ -31,6 +31,7 @@ const DonutLabelPlugin = {
 };
 let donutChart = null;
 
+/* ===== 홈 통계 렌더 ===== */
 function renderByPeriod(ym){
   const map = Store.getStatsMap();
   const rec = map[ym];
@@ -124,6 +125,7 @@ function renderByPeriod(ym){
   }
 }
 
+/* ===== 기준월 모달 ===== */
 function initPeriodPicker(){
   const btn = document.getElementById('periodPickerBtn');
   const modal = document.getElementById('periodModal');
@@ -156,6 +158,7 @@ function initPeriodPicker(){
   renderByPeriod(pick);
 }
 
+/* ===== 공지 ===== */
 function initNotices(){
   const list = (Store.getNotices()||[]).filter(n=>n.active);
   const wrap = document.getElementById('noticeCarousel');
@@ -206,7 +209,32 @@ function initNotices(){
   }
 }
 
+/* ===== 보조 섹션: 해시 있을 때만 펼침 ===== */
+function initAuxSections(){
+  const map = {
+    '#notices': document.querySelector('.notices'),
+    '#faq': document.getElementById('faq')?.closest('section'),
+    '#methodology': document.getElementById('methodology')?.closest('section'),
+  };
+  // 기본은 숨김
+  Object.values(map).forEach(sec => { if (sec) { sec.classList.add('aux-section'); sec.classList.remove('is-open'); } });
+
+  function openByHash(){
+    const h = location.hash;
+    Object.entries(map).forEach(([key,sec])=>{
+      if(!sec) return;
+      const open = (h === key);
+      sec.classList.toggle('is-open', open);
+      if(open) setTimeout(()=>sec.scrollIntoView({behavior:'smooth', block:'start'}), 30);
+    });
+  }
+  window.addEventListener('hashchange', openByHash);
+  openByHash();
+}
+
+/* ===== 시작 ===== */
 document.addEventListener('DOMContentLoaded', ()=>{
   initPeriodPicker();
   initNotices();
+  initAuxSections();
 });
