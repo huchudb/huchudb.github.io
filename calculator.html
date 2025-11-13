@@ -3,20 +3,25 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>후추 계산기 | 개인정보 없이 한도·금리 확인</title>
-  <meta name="description" content="온투업 실제 사례 기반으로 대출 가능성, 한도, 예상 이자·수수료를 개인정보 없이 바로 계산하세요.">
-  <link rel="stylesheet" href="./styles.css?v=20251112-fix2"/>
+  <title>후추 | 온투업(P2P) 담보대출 계산기</title>
+  <meta name="description" content="개인정보 수집 없이, 실제 사례 기반 계산으로 담보대출 가능 금액과 비용을 가늠해보세요.">
+
+  <!-- 공용 스타일 (루트 기준 절대경로) -->
+  <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
   <!-- 공용 유틸 + 계산기 전용 -->
-  <script src="./assets/shared.js?v=20251113-split" defer></script>
-  <script src="./assets/calculator.js?v=20251113-split" defer></script>
+  <script src="/assets/shared.js?v=20251113-split" defer></script>
+  <script src="/assets/calculator.js?v=20251113-split" defer></script>
 </head>
 <body>
-  <!-- Header (동일) -->
+
+  <!-- Header -->
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
       <a href="/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <img id="siteLogo" class="logo-img" alt="후추 로고"/>
+        <img id="siteLogo" class="logo-img" src="/assets/logo/huchu-logo.png"
+             srcset="/assets/logo/huchu-logo.png 1x, /assets/logo/huchu-logo@2x.png 2x"
+             alt="후추 로고"/>
         <span id="logoFallback" class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
       </a>
 
@@ -27,31 +32,33 @@
       <nav id="siteNav" class="nav-menu" aria-label="주요 메뉴">
         <ul>
           <li><a href="/index.html">홈</a></li>
-          <li><a href="/calculator.html">계산기</a></li>
+          <li><a href="/calculator.html" aria-current="page">계산기</a></li>
 
+          <!-- 상품 -->
           <li class="has-sub">
             <button class="menu-group" aria-expanded="false">상품</button>
             <ul class="sub">
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">담보대출</strong></li>
-              <li><a href="/products/담보대출/아파트.html">아파트 담보대출</a></li>
-              <li><a href="/products/담보대출/다세대-연립.html">다세대/연립 담보대출</a></li>
-              <li><a href="/products/담보대출/단독-다가구.html">단독/다가구 담보대출</a></li>
-              <li><a href="/products/담보대출/토지-임야.html">토지/임야 담보대출</a></li>
+              <li><a href="/products/담보대출/아파트/">아파트 담보대출</a></li>
+              <li><a href="/products/담보대출/다세대-연립/">다세대/연립 담보대출</a></li>
+              <li><a href="/products/담보대출/단독-다가구/">단독/다가구 담보대출</a></li>
+              <li><a href="/products/담보대출/토지-임야/">토지/임야 담보대출</a></li>
               <li><hr style="border:none;border-top:1px dashed #e2e8f0;margin:8px 0"/></li>
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">지분대출</strong></li>
-              <li><a href="/products/지분대출/아파트.html">아파트 지분대출</a></li>
-              <li><a href="/products/지분대출/빌라-다세대-연립.html">다세대/연립 지분대출</a></li>
-              <li><a href="/products/지분대출/단독-다가구.html">단독/다가구 지분대출</a></li>
-              <li><a href="/products/지분대출/토지-임야.html">토지/임야 지분대출</a></li>
+              <li><a href="/products/지분대출/아파트/">아파트 지분대출</a></li>
+              <li><a href="/products/지분대출/빌라-다세대-연립/">다세대/연립 지분대출</a></li>
+              <li><a href="/products/지분대출/단독-다가구/">단독/다가구 지분대출</a></li>
+              <li><a href="/products/지분대출/토지-임야/">토지/임야 지분대출</a></li>
               <li><hr style="border:none;border-top:1px dashed #e2e8f0;margin:8px 0"/></li>
               <li><strong style="display:block;padding:6px 10px;color:#0b2a66;">경락잔금대출</strong></li>
-              <li><a href="/products/경락잔금대출/아파트.html">아파트 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/다세대-연립.html">다세대/연립 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/단독-다가구.html">단독/다가구 경락잔금대출</a></li>
-              <li><a href="/products/경락잔금대출/토지-임야.html">토지/임야 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/아파트/">아파트 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/다세대-연립/">다세대/연립 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/단독-다가구/">단독/다가구 경락잔금대출</a></li>
+              <li><a href="/products/경락잔금대출/토지-임야/">토지/임야 경락잔금대출</a></li>
             </ul>
           </li>
 
+          <!-- 안내사항 -->
           <li class="has-sub">
             <button class="menu-group" aria-expanded="false">안내사항</button>
             <ul class="sub">
@@ -65,11 +72,11 @@
     </div>
   </header>
 
-  <!-- 계산기: 금일 이용자수 & 타입칩 -->
+  <!-- 금일 이용자수 & 타입칩 -->
   <div class="top-stats" aria-label="금일 이용자수">
     <div class="stat-card">
       <div class="stat-label"><span class="stat-dot"></span>금일 이용자수</div>
-      <div class="stat-value"><span id="todayUsersCount" class="num" aria-live="polite">0</span><span class="suffix">명</span></div>
+      <div class="stat-value"><span id="todayUsersCount" class="num" data-target="0" aria-live="polite">0</span><span class="suffix">명</span></div>
     </div>
     <div class="type-chip-wrap">
       <div class="type-chips">
@@ -196,11 +203,12 @@
         <div class="f-title">정정 요청</div>
         <p class="f-note">잘못된 수치/표현은 이메일로 접수해 주세요. 이름/연락처 등 개인정보 없이 <b>내용만</b> 보내주셔도 됩니다.</p>
         <p class="f-mail">이메일: <a id="correctionEmailLink" href="#" rel="nofollow">설정 필요</a></p>
-        <div class="f-admin-link"><a class="btn btn-secondary" href="./admin.html">관리자</a></div>
+        <div class="f-admin-link"><a class="btn btn-secondary" href="/admin.html">관리자</a></div>
       </div>
     </div>
   </footer>
 
+  <!-- Footer bar -->
   <div class="huchu-footer__bar">
     <small><span id="copyrightYear">2025</span> © Huchu. All rights reserved.</small>
   </div>
