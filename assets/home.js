@@ -211,16 +211,30 @@ function initNotices(){
 
 /* ===== 보조 섹션: 해시 있을 때만 펼침 ===== */
 function initAuxSections(){
+  // 코어(캐러셀 + 통계/도넛) 섹션
+  const coreSections = [
+    document.querySelector('.notice-carousel-sec'),
+    document.querySelector('section[aria-label="온투업 통계 요약"]')
+  ];
+
+  // 보조 섹션 맵
   const map = {
     '#notices': document.querySelector('.notices'),
     '#faq': document.getElementById('faq')?.closest('section'),
     '#methodology': document.getElementById('methodology')?.closest('section'),
   };
-  // 기본은 숨김
+
+  // 기본 숨김
   Object.values(map).forEach(sec => { if (sec) { sec.classList.add('aux-section'); sec.classList.remove('is-open'); } });
 
   function openByHash(){
     const h = location.hash;
+    const isAux = Boolean(map[h]);
+
+    // 코어는 해시가 보조 섹션일 때 숨김
+    coreSections.forEach(sec => { if (sec) sec.style.display = isAux ? 'none' : ''; });
+
+    // 보조 섹션 온/오프
     Object.entries(map).forEach(([key,sec])=>{
       if(!sec) return;
       const open = (h === key);
