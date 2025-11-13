@@ -6,15 +6,15 @@
   <title>후추 | 온투업(P2P) 통계 · 계산기</title>
   <meta name="description" content="개인정보 수집 없이, 실제 사례 기반 계산으로 합리적인 온투업 대출기관을 선택하세요. P2P센터 공시를 수동 검증·반영한 통계를 제공합니다.">
 
-  <!-- 공용 스타일 (assets로 이동) -->
+  <!-- 공용 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
-  <!-- 홈(도넛)에서만 Chart.js 필요 -->
+  <!-- 홈(도넛)에서만 Chart.js 필요 (UMD 전역 Chart 사용) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- 공용 유틸 + 홈 전용 -->
-  <script src="/assets/shared.js?v=20251113-split" defer></script>
-  <script src="/assets/home.js?v=20251113-split" defer></script>
+  <!-- 공용 유틸 + 홈 전용 (ES Modules) -->
+  <script type="module" src="/assets/shared.js?v=20251113-split"></script>
+  <script type="module" src="/assets/home.js?v=20251113-split"></script>
 </head>
 <body>
 
@@ -208,5 +208,4 @@
   </div>
 </body>
 </html>
-
 
