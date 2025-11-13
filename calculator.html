@@ -9,8 +9,12 @@
   <!-- 공용 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
-  <!-- 계산기 전용 스크립트만 모듈로 로드 (shared.js는 내부 import) -->
-  <script type="module" src="/assets/calculator.js?v=20251113-split"></script>
+  <!-- 모듈 진입점: shared(공용) 먼저 실행 → calculator(페이지 전용). 
+       별도 src 스크립트 대신, 확실히 실행되도록 인라인 모듈에서 import 한다. -->
+  <script type="module">
+    import '/assets/shared.js';
+    import '/assets/calculator.js';
+  </script>
 </head>
 <body>
 
@@ -18,6 +22,7 @@
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
       <a href="/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <!-- 로고: 파일이 있으면 이미지가, 없으면 폴백 텍스트가 보임 -->
         <img id="siteLogo" class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
         <span id="logoFallback" class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
       </a>
