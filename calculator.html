@@ -9,19 +9,17 @@
   <!-- 공용 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
-  <!-- 계산기 전용 스크립트 (ES Module) -->
-  <script type="module" src="/assets/calculator.js?v=20251113-split" defer></script>
+  <!-- 계산기 전용 스크립트만 모듈로 로드 (shared.js는 내부 import) -->
+  <script type="module" src="/assets/calculator.js?v=20251113-split"></script>
 </head>
 <body>
 
-  <!-- Header (index와 동일 구조) -->
+  <!-- Header -->
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
       <a href="/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img id="siteLogo" class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
-        <span id="logoFallback" class="logo-fallback">
-          <span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span>
-        </span>
+        <span id="logoFallback" class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
       </a>
 
       <button class="nav-toggle" aria-expanded="false" aria-controls="siteNav" aria-label="메뉴 열기">
@@ -74,7 +72,7 @@
     </div>
   </header>
 
-  <!-- (계산기 본문은 기존 calculator.html의 본문 그대로 유지) -->
+  <!-- 상단 통계 -->
   <div class="top-stats" aria-label="금일 이용자수">
     <div class="stat-card">
       <div class="stat-label"><span class="stat-dot"></span>금일 이용자수</div>
@@ -90,6 +88,7 @@
     </div>
   </div>
 
+  <!-- 계산기 본문 -->
   <div class="container">
     <h1>온투업(P2P) 담보대출 계산기</h1>
     <p class="subtitle">
@@ -212,8 +211,5 @@
   <div class="huchu-footer__bar">
     <small><span id="copyrightYear">2025</span> © Huchu. All rights reserved.</small>
   </div>
-
-  <!-- 공용 스크립트(네비/로고 등) -->
-  <script src="/assets/shared.js?v=20251113-split" defer></script>
 </body>
 </html>

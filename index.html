@@ -9,11 +9,10 @@
   <!-- 공용 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251112-fix2"/>
 
-  <!-- 홈(도넛)에서만 Chart.js 필요 (UMD 전역 Chart 사용) -->
+  <!-- 홈(도넛)에서만 Chart.js 필요 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- 공용 유틸 + 홈 전용 (ES Modules) -->
-  <script type="module" src="/assets/shared.js?v=20251113-split"></script>
+  <!-- 홈 전용 스크립트만 모듈로 로드 (shared.js는 내부 import) -->
   <script type="module" src="/assets/home.js?v=20251113-split"></script>
 </head>
 <body>
@@ -22,7 +21,7 @@
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
       <a href="/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <!-- 로고 이미지: /assets/logo/huchu-logo.png 가 있으면 표시, 없으면 텍스트 폴백 -->
+        <!-- 로고 이미지 -->
         <img id="siteLogo" class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
         <span id="logoFallback" class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
       </a>
@@ -33,7 +32,7 @@
 
       <nav id="siteNav" class="nav-menu" aria-label="주요 메뉴">
         <ul>
-          <li><a href="/index.html">홈</a></li>
+          <li><a href="/index.html" aria-current="page">홈</a></li>
           <li><a href="/calculator.html">계산기</a></li>
 
           <!-- 상품 -->
@@ -208,4 +207,3 @@
   </div>
 </body>
 </html>
-
