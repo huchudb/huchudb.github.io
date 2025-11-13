@@ -1,19 +1,19 @@
-// 공용 유틸/스토어
-const { onlyDigits, toNumber, formatKoreanCurrency } = window.HUCHU_UTIL;
+import { onlyDigits, toNumber, formatKoreanCurrency } from './shared.js';
 
-// LTV 한도 (기존 값 유지)
+/* LTV 한도 */
 const LTV_LIMITS = {
   "서울":   { "아파트": 0.73,   "다세대/연립": 0.70,   "단독/다가구": 0.70,   "토지/임야": 0.70 },
   "서울 외":{ "아파트": 0.6998, "다세대/연립": 0.65,   "단독/다가구": 0.65,   "토지/임야": 0.4999 }
 };
 
-/* ===== Input 프리뷰 ===== */
+/* 숫자 입력 미리보기(콤마 + 단위) */
 function updatePreview(inputId, viewId){
   const el = document.getElementById(inputId);
   const pv = document.getElementById(viewId);
+  if (!el) return;
   const raw = onlyDigits(el.value);
-  el.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
-  pv.textContent = formatKoreanCurrency(Number(raw||'0'));
+  el.value = raw ? Number(raw).toLocaleString('ko-KR') : "";
+  if (pv) pv.textContent = formatKoreanCurrency(Number(raw||"0"));
 }
 function attachCommaWithPreview(id, viewId){
   const el = document.getElementById(id);
@@ -39,12 +39,11 @@ function attachPercentWithPreview(id, viewId){
   if(!el) return;
   updatePercentPreview(id, viewId);
   el.addEventListener('input', ()=> updatePercentPreview(id, viewId));
-  el.addEventListener('blur',  ()=> updatePercentPreview(id, viewId));
+  el.addEventListener('blur', ()=> updatePercentPreview(id, viewId));
 }
 
-/* ===== 핵심 계산 ===== */
+/* 계산 로직 */
 const monthlyPayment = (principal, annualRate) => principal * annualRate / 12;
-
 function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan, sharePercent}){
   const ratio = LTV_LIMITS?.[region]?.[propertyType];
   if (!ratio) throw new Error('지역/부동산 종류를 다시 선택해주세요.');
@@ -69,7 +68,7 @@ function computeLtv({region, propertyType, marketValue, seniorLoan, deduction, r
   }
 }
 
-/* ===== 모달 ===== */
+/* 결과 모달 */
 const calcModal = {
   el:null, body:null, closeBtn:null, statusEl:null,
   open(html, status){
@@ -91,7 +90,7 @@ const calcModal = {
     this.body.innerHTML = html;
     this.el.classList.remove('hide');
     document.body.classList.add('modal-open');
-    this.closeBtn.focus({preventScroll:true});
+    this.closeBtn.focus?.({preventScroll:true});
   },
   close(){ if(this.el){ this.el.classList.add('hide'); document.body.classList.remove('modal-open'); } }
 };
@@ -119,7 +118,18 @@ function buildInputChips({region, propertyType, marketValue, seniorLoan, request
   `;
 }
 
-function validateRequired(){
+function kpisHTML(label1, val1, label2, val2){
+  return `
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">${label1}</div><div class="kpi-value">${formatKoreanCurrency(val1)}</div></div>
+      <div class="kpi"><div class="kpi-label">${label2}</div><div class="kpi-value">${formatKoreanCurrency(val2)}</div></div>
+    </div>`;
+}
+const kpisForPossible = (req, addAvail) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
+const kpisForDenied   = (req, maxReq) => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
+
+async function onCalculate(){
+  // 필수 체크
   const missing = [];
   const ids = {
     '1. 지역': 'region',
@@ -137,20 +147,118 @@ function validateRequired(){
   if(getRaw(ids['4. 선순위 잔액+보증금']) === '') missing.push('4. 선순위 잔액+보증금');
   if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
 
-  return { missing, focusId: ids[missing[0]] };
-}
+  if(missing.length){
+    const list = missing.map(t => `<li>${t}</li>`).join('');
+    calcModal.open(`
+      <div class="notice info">
+        <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
+        <ul style="margin:6px 0 0 18px; color:#334155;">${list}</ul>
+        <p class="disclaimer">※ 안심하세요~ 입력하신 정보는 저장되지 않습니다.</p>
+      </div>
+    `, {type:'info', text:'안내'});
+    const focusId = ids[missing[0]];
+    if(focusId){ setTimeout(()=> document.getElementById(focusId).focus({preventScroll:true}), 150); }
+    return;
+  }
 
-function kpisHTML(label1, val1, label2, val2){
-  return `
-    <div class="kpis">
-      <div class="kpi"><div class="kpi-label">${label1}</div><div class="kpi-value">${formatKoreanCurrency(val1)}</div></div>
-      <div class="kpi"><div class="kpi-label">${label2}</div><div class="kpi-value">${formatKoreanCurrency(val2)}</div></div>
+  const region        = document.getElementById('region').value;
+  const propertyType  = document.getElementById('propertyType').value;
+  const marketValue   = toNumber(document.getElementById('marketValue').value);
+  const seniorLoan    = toNumber(document.getElementById('seniorLoan').value);
+  const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
+  let deduction       = toNumber(document.getElementById('deduction').value);
+  const sharePercent  = parseSharePercent(document.getElementById('sharePercent').value);
+
+  if (deduction > requestedLoan) { alert('상환/반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동조정합니다.'); deduction = requestedLoan; }
+  if (deduction > seniorLoan)    { alert('상환/반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동조정합니다.'); deduction = seniorLoan; }
+  document.getElementById('deduction').value = deduction.toLocaleString('ko-KR');
+  updatePreview('deduction','deduction_view');
+
+  let r;
+  try { r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan, sharePercent}); }
+  catch (e) {
+    const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
+    calcModal.open(`${inputs}<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
+    return;
+  }
+
+  const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
+
+  if (seniorLoan > r.limit || r.status === 'exceeded') {
+    const kpis = kpisForDenied(requestedLoan, r.maxRequested);
+    calcModal.open(`
+      ${inputs}
+      ${kpis}
+      <div class="notice error">
+        <p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p>
+        <p><strong>가능 요청금액</strong>만큼 가능합니다.</p>
+        <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
+      </div>
+    `, {type:'error', text:'대출 불가'});
+    await bumpDailyUsersOncePerDay(propertyType);
+    return;
+  }
+
+  if (r.status === 'no-request') {
+    calcModal.open(`
+      ${inputs}
+      <div class="notice info">
+        <p><strong>요청 금액</strong>을 입력하면 가능 여부를 알려드립니다.</p>
+        <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
+      </div>
+    `, {type:'info', text:'안내'});
+    return;
+  }
+
+  const addAvail = Math.max(0, r.maxRequested - requestedLoan);
+  const mMin = monthlyPayment(requestedLoan, 0.068);
+  const mMax = monthlyPayment(requestedLoan, 0.148);
+  const feeMin = requestedLoan * 0.01;
+  const feeMax = requestedLoan * 0.015;
+
+  const kpis = kpisForPossible(requestedLoan, addAvail);
+  const breakdownCosts = `
+    <div class="breakdown-card" aria-labelledby="costsTitle">
+      <div id="costsTitle" class="card-title">예상 비용 상세</div>
+      <div class="card-section">
+        <div class="section-title"><span class="icon-dot dot-blue"></span>매월 이자 금액</div>
+        <div class="chip-row rate">
+          <span class="chip plain"><span class="label rate-min">6.8%</span><span class="val">${formatKoreanCurrency(mMin)}</span></span>
+          <span class="chip-tilde">~</span>
+          <span class="chip plain"><span class="label rate-max">14.8%</span><span class="val">${formatKoreanCurrency(mMax)}</span></span>
+        </div>
+      </div>
+      <div class="card-section compact">
+        <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
+        <div class="chip-row rate">
+          <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
+          <span class="chip-tilde">~</span>
+          <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
+        </div>
+      </div>
     </div>`;
-}
-const kpisForPossible = (req, addAvail) => kpisHTML('요청 금액(총 실행)', req, '추가 가능 금액', addAvail);
-const kpisForDenied   = (req, maxReq) => kpisHTML('요청 금액(총 실행)', req, '가능 요청금액', Math.max(0, maxReq));
+  const breakdownInfo = `
+    <div class="breakdown-card" aria-labelledby="infoTitle">
+      <div id="infoTitle" class="card-title">기타 안내</div>
+      <div class="rowlist">
+        <div class="row"><span class="icon-dot dot-navy"></span><span class="label">대출기간</span><span class="value">평균 1년</span></div>
+        <div class="row"><span class="icon-dot dot-green"></span><span class="label">중도상환수수료</span><span class="value">없음</span></div>
+        <div class="row"><span class="icon-dot dot-slate"></span><span class="label">대출연장수수료</span><span class="value">0%~1% (업체별 상이)</span></div>
+      </div>
+    </div>`;
 
-/* ===== 일일 이용자수 (기존 API 그대로) ===== */
+  const html = `${inputs}${kpis}
+    <div class="notice success">
+      <p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p>
+      <p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p>
+      <p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p>
+    </div>
+    ${breakdownCosts}${breakdownInfo}`;
+  calcModal.open(html, {type:'success', text:'대출 가능'});
+  await bumpDailyUsersOncePerDay(propertyType);
+}
+
+/* 일일 이용자수 */
 const API_BASE = 'https://huchudb-github-io.vercel.app';
 const DAILY_API = `${API_BASE}/api/daily-users`;
 const dailyNumEl = () => document.getElementById('todayUsersCount');
@@ -212,136 +320,20 @@ async function bumpDailyUsersOncePerDay(propertyTypeKor){
   try{ const data = await serverIncrementOncePerDay(propertyTypeKor); if (data) renderDaily(data); }catch(_){}
 }
 
-/* ===== 계산 클릭 ===== */
-function validateAndCompute(){
-  const missing = [];
-  const ids = {
-    '1. 지역': 'region',
-    '2. 부동산 종류': 'propertyType',
-    '3. 시세': 'marketValue',
-    '4. 선순위 잔액+보증금': 'seniorLoan',
-    '5. 필요 대출금액': 'requestedLoan'
-  };
-  const getRaw = id => document.getElementById(id).value.trim();
-  const hasNum = id => !!onlyDigits(document.getElementById(id).value);
-
-  if(!getRaw(ids['1. 지역'])) missing.push('1. 지역');
-  if(!getRaw(ids['2. 부동산 종류'])) missing.push('2. 부동산 종류');
-  if(!hasNum(ids['3. 시세'])) missing.push('3. 시세');
-  if(getRaw(ids['4. 선순위 잔액+보증금']) === '') missing.push('4. 선순위 잔액+보증금');
-  if(!hasNum(ids['5. 필요 대출금액'])) missing.push('5. 필요 대출금액');
-
-  return { missing, focusId: ids[missing[0]] };
-}
-
-function kpisForInfo(msg){
-  return `<div class="notice info"><p>${msg}</p><p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p></div>`;
-}
-
-async function onCalculate(){
-  const { missing, focusId } = validateAndCompute();
-  if(missing.length){
-    const list = missing.map(t => `<li>${t}</li>`).join('');
-    calcModal.open(`
-      <div class="notice info">
-        <p><strong>필수 입력(1~5)</strong>을 모두 작성해주세요.</p>
-        <ul style="margin:6px 0 0 18px; color:#334155;">${list}</ul>
-        <p class="disclaimer">※ 안심하세요~ 입력하신 정보는 저장되지 않습니다.</p>
-      </div>
-    `, {type:'info', text:'안내'});
-    if(focusId){ setTimeout(()=> document.getElementById(focusId).focus({preventScroll:true}), 150); }
-    return;
-  }
-
-  const region        = document.getElementById('region').value;
-  const propertyType  = document.getElementById('propertyType').value;
-  const marketValue   = toNumber(document.getElementById('marketValue').value);
-  const seniorLoan    = toNumber(document.getElementById('seniorLoan').value);
-  const requestedLoan = toNumber(document.getElementById('requestedLoan').value);
-  let deduction       = toNumber(document.getElementById('deduction').value);
-  const sharePercent  = parseSharePercent(document.getElementById('sharePercent').value);
-
-  if (deduction > requestedLoan) { alert('상환/반환 금액이 "필요한 대출 금액"을 초과할 수 없습니다. 자동조정합니다.'); deduction = requestedLoan; }
-  if (deduction > seniorLoan)    { alert('상환/반환 금액이 선순위 잔액을 초과할 수 없습니다. 자동조정합니다.'); deduction = seniorLoan; }
-  document.getElementById('deduction').value = deduction.toLocaleString('ko-KR');
-  updatePreview('deduction','deduction_view');
-
-  let r;
-  try { r = computeLtv({region, propertyType, marketValue, seniorLoan, deduction, requestedLoan, sharePercent}); }
-  catch (e) {
-    const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
-    calcModal.open(`${inputs}<div class="notice error"><p>${e.message}</p></div>`, {type:'error', text:'오류'});
-    return;
-  }
-
-  const inputs = buildInputChips({region, propertyType, marketValue, seniorLoan, requestedLoan, deduction, sharePercent});
-
-  if (seniorLoan > r.limit || r.status === 'exceeded') {
-    const kpis = kpisForDenied(requestedLoan, r.maxRequested);
-    calcModal.open(`${inputs}${kpis}
-      <div class="notice error"><p><strong>요청하신 금액으로는 대출이 어렵습니다.</strong></p><p><strong>가능 요청금액</strong>만큼 가능합니다.</p><p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p></div>
-    `, {type:'error', text:'대출 불가'});
-    await bumpDailyUsersOncePerDay(propertyType);
-    return;
-  }
-
-  if (r.status === 'no-request') {
-    calcModal.open(`${inputs}${kpisForInfo('요청 금액을 입력하면 가능 여부를 알려드립니다.')}`, {type:'info', text:'안내'});
-    return;
-  }
-
-  const addAvail = Math.max(0, r.maxRequested - requestedLoan);
-  const mMin = monthlyPayment(requestedLoan, 0.068);
-  const mMax = monthlyPayment(requestedLoan, 0.148);
-  const feeMin = requestedLoan * 0.01;
-  const feeMax = requestedLoan * 0.015;
-
-  const kpis = kpisForPossible(requestedLoan, addAvail);
-  const breakdownCosts = `
-    <div class="breakdown-card" aria-labelledby="costsTitle">
-      <div id="costsTitle" class="card-title">예상 비용 상세</div>
-      <div class="card-section">
-        <div class="section-title"><span class="icon-dot dot-blue"></span>매월 이자 금액</div>
-        <div class="chip-row rate">
-          <span class="chip plain"><span class="label rate-min">6.8%</span><span class="val">${formatKoreanCurrency(mMin)}</span></span>
-          <span class="chip-tilde">~</span>
-          <span class="chip plain"><span class="label rate-max">14.8%</span><span class="val">${formatKoreanCurrency(mMax)}</span></span>
-        </div>
-      </div>
-      <div class="card-section compact">
-        <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
-        <div class="chip-row rate">
-          <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
-          <span class="chip-tilde">~</span>
-          <span class="chip plain"><span class="label rate-max">1.5%</span><span class="val">${formatKoreanCurrency(feeMax)}</span></span>
-        </div>
-      </div>
-    </div>`;
-  const breakdownInfo = `
-    <div class="breakdown-card" aria-labelledby="infoTitle">
-      <div id="infoTitle" class="card-title">기타 안내</div>
-      <div class="rowlist">
-        <div class="row"><span class="icon-dot dot-navy"></span><span class="label">대출기간</span><span class="value">평균 1년</span></div>
-        <div class="row"><span class="icon-dot dot-green"></span><span class="label">중도상환수수료</span><span class="value">없음</span></div>
-        <div class="row"><span class="icon-dot dot-slate"></span><span class="label">대출연장수수료</span><span class="value">0%~1% (업체별 상이)</span></div>
-      </div>
-    </div>`;
-
-  const html = `${inputs}${kpis}
-    <div class="notice success"><p><strong>요청하신 금액으로 대출이 가능합니다.</strong></p><p>추가 가능 금액 내에서 <strong>증액</strong>도 가능합니다.</p><p class="disclaimer">※ 실제 온투업체 심사 결과와 다를 수 있습니다.</p></div>
-    ${breakdownCosts}${breakdownInfo}`;
-  calcModal.open(html, {type:'success', text:'대출 가능'});
-  await bumpDailyUsersOncePerDay(propertyType);
-}
-
-/* ===== 시작 ===== */
-document.addEventListener('DOMContentLoaded', ()=>{
+/* ===== 초기화 ===== */
+function init(){
   attachCommaWithPreview('marketValue','marketValue_view');
   attachCommaWithPreview('seniorLoan','seniorLoan_view');
   attachCommaWithPreview('requestedLoan','requestedLoan_view');
   attachCommaWithPreview('deduction','deduction_view');
   attachPercentWithPreview('sharePercent','sharePercent_view');
   document.getElementById('calcBtn')?.addEventListener('click', onCalculate);
-
   initDailyUsersUI();
-});
+}
+
+// DOMContentLoaded가 이미 끝난 뒤에 스크립트가 불려도 확실히 실행되도록 처리
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  init();
+}
