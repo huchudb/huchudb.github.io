@@ -1,27 +1,27 @@
 // api/_lib/cors.js
-const allowOrigin = process.env.SITE_ORIGIN || '*';
-const allowHeaders = 'Content-Type, Authorization, X-Admin-Token';
-const allowMethods = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
+export function withCORS(handler) {
+  const ALLOW_ORIGINS = [
+    'https://www.huchulab.com',
+    'https://huchudb-github-io.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
 
-export function applyCors(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-  res.setHeader('Access-Control-Allow-Headers', allowHeaders);
-  res.setHeader('Access-Control-Allow-Methods', allowMethods);
-  res.setHeader('Access-Control-Max-Age', '86400');
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return true;
-  }
-  return false;
-}
+  return async (req, res) => {
+    const origin = req.headers.origin || '';
+    const allowed = ALLOW_ORIGINS.includes(origin);
+    if (allowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
 
-export async function readJson(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try { resolve(body ? JSON.parse(body) : {}); }
-      catch (e) { reject(e); }
-    });
-  });
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      return res.end();
+    }
+    return handler(req, res);
+  };
 }
