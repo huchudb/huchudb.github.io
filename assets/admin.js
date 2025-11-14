@@ -1,293 +1,248 @@
-/* ==== 저장 어댑터 (메인과 동일 키 사용) ==== */
-const Storage = {
-  getNotices(){ try{ return JSON.parse(localStorage.getItem('huchu.notices')||'[]') }catch(_){ return [] } },
-  setNotices(arr){ localStorage.setItem('huchu.notices', JSON.stringify(arr||[])) },
-  getStatsMap(){ try{ return JSON.parse(localStorage.getItem('huchu.statsMap')||'{}') }catch(_){ return {} } },
-  setStatsMap(obj){ localStorage.setItem('huchu.statsMap', JSON.stringify(obj||{})) }
+/* admin.js — 관리자 전용. Vercel Functions + Supabase 연동 */
+
+const API_BASE = ''; // 같은 도메인 배포 기준. 프록시/서브도메인 쓰면 채워넣기.
+const ENDPOINTS = {
+  adminLogin:   '/api/admin/login',
+  presign:      '/api/admin/presign',
+  noticesList:  '/api/admin/notices/list',
+  noticesUpsert:'/api/admin/notices/upsert',
+  noticesDelete:'/api/admin/notices/delete',
+  kpiGet:       '/api/admin/kpi/get',
+  kpiUpsert:    '/api/admin/kpi/upsert',
 };
 
-const onlyDigits = s => (s||"").replace(/[^0-9]/g,"");
-const toNumber = s => Number(onlyDigits(s))||0;
+function qs(sel, p=document){ return p.querySelector(sel); }
+function qsa(sel, p=document){ return [...p.querySelectorAll(sel)]; }
+function byId(id){ return document.getElementById(id); }
 
-/* ===== 입력 헬퍼: 콤마 포맷 & 퍼센트 처리 ===== */
-// 숫자 3자리 콤마
-function formatComma(val){
-  const n = toNumber(val);
-  return n ? n.toLocaleString('ko-KR') : '';
-}
-// 퍼센트인지 판별
-function isPercent(val){
-  return /%/.test(String(val||''));
-}
-// "12%" → 0.12
-function parsePercent(val){
-  const m = String(val||'').match(/([\d.]+)\s*%/);
-  if(!m) return null;
-  const p = parseFloat(m[1]);
-  if(!isFinite(p) || p<0) return null;
-  return p/100;
-}
-// 상품별 입력칸에 입력 이벤트 바인딩(콤마 자동)
-function attachCommaInput(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('input', ()=>{
-    // 퍼센트가 포함되면 그대로(예: "12%") 유지
-    if(isPercent(el.value)) return;
-    el.value = formatComma(el.value);
-  });
-  el.addEventListener('blur', ()=>{
-    // blur에서 최종 콤마 보정
-    if(isPercent(el.value)) return;
-    el.value = formatComma(el.value);
-  });
-}
-// 퍼센트 → 잔액×퍼센트로 즉시 환산
-function attachPercentToAmount(id, getBalance){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('blur', ()=>{
-    if(!isPercent(el.value)) return;
-    const pct = parsePercent(el.value);
-    const bal = toNumber(getBalance());
-    if(pct!=null){
-      const computed = Math.round(bal * pct);
-      el.value = computed.toLocaleString('ko-KR');
+const Admin = {
+  tokenKey: 'huchu.admin.token',
+  get token(){ return localStorage.getItem(this.tokenKey) || ''; },
+  set token(v){ localStorage.setItem(this.tokenKey, v||''); }
+};
+
+async function fetchJSON(url, opt={}){
+  const r = await fetch(API_BASE + url, {
+    ...opt,
+    headers: {
+      'Accept':'application/json',
+      ...(opt.body ? {'Content-Type':'application/json'} : {}),
+      ...(Admin.token ? {'Authorization':'Bearer ' + Admin.token} : {}),
+      ...(opt.headers || {})
     }
   });
-}
-
-/* ==== 공지 관리 ==== */
-let editingId = null;
-
-function renderNoticeTable(){
-  const tb = document.querySelector('#nTable tbody'); if(!tb) return;
-  const arr = Storage.getNotices().sort((a,b)=> new Date(b.publishedAt)-new Date(a.publishedAt));
-  tb.innerHTML = arr.map((n,idx)=>`
-    <tr>
-      <td>${idx+1}</td>
-      <td>${n.title||''}</td>
-      <td>${n.publishedAt||''}</td>
-      <td>${n.active?'활성':'비활성'}</td>
-      <td>
-        <button class="btn btn-secondary btn-sm" data-act="edit" data-id="${n.id}">수정</button>
-        <button class="btn btn-secondary btn-sm" data-act="del" data-id="${n.id}">삭제</button>
-      </td>
-    </tr>
-  `).join('');
-  tb.querySelectorAll('button').forEach(b=>{
-    const id=b.dataset.id, act=b.dataset.act;
-    b.addEventListener('click', ()=>{
-      if(act==='edit'){ loadNoticeToForm(id); }
-      else if(act==='del'){ if(confirm('삭제할까요?')){ const list=Storage.getNotices().filter(x=>x.id!==id); Storage.setNotices(list); renderNoticeTable(); } }
-    });
-  });
-}
-function loadNoticeToForm(id){
-  const n = Storage.getNotices().find(x=>x.id===id); if(!n) return;
-  editingId = id;
-  document.getElementById('nTitle').value = n.title||'';
-  document.getElementById('nImg').value   = n.imageUrl||'';
-  document.getElementById('nLink').value  = n.linkUrl||'';
-  document.getElementById('nDate').value  = n.publishedAt||'';
-  document.getElementById('nActive').value = String(!!n.active);
-}
-function resetNoticeForm(){
-  editingId=null;
-  ['nTitle','nImg','nLink','nDate'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('nActive').value='true';
-}
-function saveNotice(){
-  const title = document.getElementById('nTitle').value.trim();
-  const imageUrl = document.getElementById('nImg').value.trim();
-  const linkUrl = document.getElementById('nLink').value.trim();
-  const publishedAt = document.getElementById('nDate').value;
-  const active = document.getElementById('nActive').value==='true';
-  if(!title || !imageUrl || !publishedAt){ alert('제목, 이미지URL, 게시일은 필수입니다.'); return; }
-  const list = Storage.getNotices();
-  if(editingId){
-    const i = list.findIndex(x=>x.id===editingId);
-    if(i>-1) list[i] = { ...list[i], title, imageUrl, linkUrl, publishedAt, active };
-  }else{
-    list.push({ id:crypto.randomUUID(), title, imageUrl, linkUrl, publishedAt, active });
+  if (!r.ok){
+    const t = await r.text().catch(()=> '');
+    throw new Error(`HTTP ${r.status}: ${t}`);
   }
-  Storage.setNotices(list);
-  resetNoticeForm();
-  renderNoticeTable();
-  alert('저장되었습니다.');
+  return r.json();
 }
 
-/* ==== 통계 관리 ==== */
-function renderStatsTable(){
-  const tb = document.querySelector('#sTable tbody'); if(!tb) return;
-  const map = Storage.getStatsMap();
-  const keys = Object.keys(map).sort().reverse();
-  tb.innerHTML = keys.map(k=>{
-    const it = map[k]?.kpi2||{};
-    return `<tr>
-      <td>${k}</td>
-      <td>${(it.cumulative_loan_krw||0).toLocaleString('ko-KR')}</td>
-      <td>${(it.cumulative_repayment_krw||0).toLocaleString('ko-KR')}</td>
-      <td>${(it.balance_krw||0).toLocaleString('ko-KR')}</td>
-      <td>
-        <button class="btn btn-secondary btn-sm" data-k="${k}" data-act="load">불러오기</button>
-        <button class="btn btn-secondary btn-sm" data-k="${k}" data-act="del">삭제</button>
-      </td>
-    </tr>`;
-  }).join('');
-  tb.querySelectorAll('button').forEach(b=>{
-    const k=b.dataset.k, act=b.dataset.act;
-    b.addEventListener('click', ()=>{
-      const map=Storage.getStatsMap();
-      if(act==='load'){
-        document.getElementById('sMonth').value = k;
-        const it = map[k];
-        if(it){
-          document.getElementById('sLoan').value  = (it.kpi2?.cumulative_loan_krw||'').toLocaleString('ko-KR');
-          document.getElementById('sRepay').value = (it.kpi2?.cumulative_repayment_krw||'').toLocaleString('ko-KR');
-          document.getElementById('sBal').value   = (it.kpi2?.balance_krw||'').toLocaleString('ko-KR');
-          const rowMap = {};
-          (it.kpi1_rows||[]).forEach(r=> rowMap[r.product_type_name_kr]=r.balance_krw );
-          document.getElementById('pPF').value       = (rowMap['부동산PF']||'').toLocaleString('ko-KR');
-          document.getElementById('pSecured').value  = (rowMap['부동산담보']||'').toLocaleString('ko-KR');
-          document.getElementById('pNote').value     = (rowMap['어음·매출채권담보']||'').toLocaleString('ko-KR');
-          document.getElementById('pOther').value    = (rowMap['기타담보']||'').toLocaleString('ko-KR');
-          document.getElementById('pPersonal').value = (rowMap['개인신용']||'').toLocaleString('ko-KR');
-          document.getElementById('pCorp').value     = (rowMap['법인신용']||'').toLocaleString('ko-KR');
-        }
-      }else if(act==='del'){
-        if(confirm(`${k} 데이터를 삭제할까요?`)){
-          delete map[k]; Storage.setStatsMap(map); renderStatsTable();
-        }
+/* ========== 로그인 영역 ========== */
+function bindLogin(){
+  const tokenInput = byId('adminToken');
+  const btnLogin  = byId('btnLogin');
+  const loginBox  = byId('loginBox');
+  const appBox    = byId('appBox');
+
+  if (!btnLogin) return;
+
+  const showApp = ()=>{ if (loginBox) loginBox.classList.add('hide'); if (appBox) appBox.classList.remove('hide'); };
+  const showLogin = ()=>{ if (loginBox) loginBox.classList.remove('hide'); if (appBox) appBox.classList.add('hide'); };
+
+  async function doCheck(){
+    try {
+      await fetchJSON(ENDPOINTS.adminLogin, { method: 'GET' });
+      showApp();
+    } catch (_) {
+      showLogin();
+    }
+  }
+
+  btnLogin.addEventListener('click', async ()=>{
+    const t = (tokenInput?.value || '').trim();
+    if (!t) { alert('관리자 토큰을 입력하세요.'); return; }
+    Admin.token = t;
+    try {
+      await fetchJSON(ENDPOINTS.adminLogin, { method: 'GET' });
+      showApp();
+    } catch (e) {
+      alert('토큰이 올바르지 않습니다.');
+      Admin.token = '';
+      showLogin();
+    }
+  });
+
+  // 새로고침 시에도 자동 확인
+  doCheck();
+}
+
+/* ========== 공지 관리 ========== */
+function bindNoticeForm(){
+  const form = byId('noticeForm');
+  const fileInput = byId('noticeImage');
+  const listBox = byId('noticeList');
+
+  async function loadNotices(){
+    const j = await fetchJSON(ENDPOINTS.noticesList, { method: 'GET' });
+    const items = j.items || [];
+    renderNoticeList(items);
+  }
+
+  function renderNoticeList(items){
+    if (!listBox) return;
+    listBox.innerHTML = items.map(n=>`
+      <div class="row" data-id="${n.id}">
+        <div class="left">
+          <img src="${n.image_url||''}" alt="" style="width:64px;height:64px;object-fit:cover;border:1px solid #e2e8f0;border-radius:8px"/>
+          <div class="meta">
+            <div class="title">${n.title||''}</div>
+            <div class="sub">${n.published_at||''} · ${n.active ? '활성' : '비활성'}</div>
+            <div class="link">${n.link_url||''}</div>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn-edit">수정</button>
+          <button class="btn-del">삭제</button>
+        </div>
+      </div>
+    `).join('');
+
+    qsa('.row .btn-del', listBox).forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const row = btn.closest('.row'); const id = row?.dataset.id;
+        if (!id) return;
+        if (!confirm('삭제하시겠습니까?')) return;
+        await fetchJSON(ENDPOINTS.noticesDelete, {
+          method:'DELETE',
+          body: JSON.stringify({ id })
+        });
+        await loadNotices();
+      });
+    });
+
+    qsa('.row .btn-edit', listBox).forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = btn.closest('.row');
+        const id = row?.dataset.id;
+        if (!id) return;
+        // 리스트 DOM에서 값 읽어오기 (간단 UI)
+        const title = row.querySelector('.title')?.textContent || '';
+        const link = row.querySelector('.link')?.textContent || '';
+        byId('noticeId').value = id;
+        byId('noticeTitle').value = title;
+        byId('noticeLink').value = link;
+        byId('noticeActive').checked = (row.querySelector('.sub')?.textContent || '').includes('활성');
+        byId('noticePublishedAt').value = ''; // 필요하면 편집시 값 표기 로직 보완
+        alert('상단 폼에서 수정 후 저장을 누르세요.');
+      });
+    });
+  }
+
+  async function uploadImageIfNeeded(){
+    const f = fileInput?.files?.[0];
+    if (!f) return { image_url: '' };
+    // presign
+    const pres = await fetchJSON(ENDPOINTS.presign, {
+      method:'POST',
+      body: JSON.stringify({ fileName: f.name, contentType: f.type || 'application/octet-stream' })
+    });
+    // PUT 업로드
+    await fetch(pres.uploadUrl, { method:'PUT', headers: { 'Content-Type': pres.contentType }, body: f });
+    return { image_url: pres.publicUrl };
+  }
+
+  if (form){
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      try {
+        const id = byId('noticeId').value.trim() || undefined;
+        const title = byId('noticeTitle').value.trim();
+        const link_url = byId('noticeLink').value.trim();
+        const active = byId('noticeActive').checked;
+        const published_at = byId('noticePublishedAt').value ? new Date(byId('noticePublishedAt').value).toISOString() : null;
+
+        if (!title) { alert('제목을 입력하세요'); return; }
+
+        const img = await uploadImageIfNeeded();
+
+        const payload = { id, title, link_url, active, published_at, ...(img.image_url ? { image_url: img.image_url } : {}) };
+
+        await fetchJSON(ENDPOINTS.noticesUpsert, {
+          method: id ? 'PUT' : 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        // 폼 리셋
+        form.reset();
+        byId('noticeId').value = '';
+
+        await loadNotices();
+        alert('저장되었습니다.');
+      } catch (e) {
+        console.error(e);
+        alert('오류: ' + e.message);
       }
     });
-  });
+  }
+
+  // 초기 목록 로드
+  loadNotices().catch(console.error);
 }
 
-// 퍼센트 입력 처리 포함하여 값 읽기
-function readProductAmount(inputId, balance){
-  const val = document.getElementById(inputId).value;
-  if(isPercent(val)){
-    const pct = parsePercent(val);
-    if(pct!=null){
-      return Math.round(balance * pct);
+/* ========== KPI 관리 ========== */
+function bindKpiForm(){
+  const form = byId('kpiForm');
+  const ymInput = byId('kpiYM');
+  const loadBtn = byId('btnKpiLoad');
+
+  async function loadOne(ym){
+    const u = new URL(ENDPOINTS.kpiGet, location.origin);
+    u.searchParams.set('ym', ym);
+    const j = await fetchJSON(u.pathname + u.search, { method: 'GET' });
+    const item = j.item || null;
+    byId('kpi2').value      = JSON.stringify(item?.kpi2 || {}, null, 2);
+    byId('kpi2_prev').value = JSON.stringify(item?.kpi2_prev || {}, null, 2);
+    byId('kpi1_rows').value = JSON.stringify(item?.kpi1_rows || [], null, 2);
+    byId('kpi1_prev').value = JSON.stringify(item?.kpi1_prev || [], null, 2);
+  }
+
+  loadBtn?.addEventListener('click', async ()=>{
+    const ym = (ymInput?.value || '').trim();
+    if (!ym) { alert('기준월(YYYY-MM)을 입력하세요'); return; }
+    try { await loadOne(ym); } catch(e){ alert('불러오기 실패: ' + e.message); }
+  });
+
+  form?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    try {
+      const ym = (ymInput?.value || '').trim();
+      if (!ym) { alert('기준월(YYYY-MM)을 입력하세요'); return; }
+
+      const payload = {
+        ym,
+        kpi2:      JSON.parse(byId('kpi2').value || '{}'),
+        kpi2_prev: JSON.parse(byId('kpi2_prev').value || '{}'),
+        kpi1_rows: JSON.parse(byId('kpi1_rows').value || '[]'),
+        kpi1_prev: JSON.parse(byId('kpi1_prev').value || '[]'),
+      };
+
+      await fetchJSON(ENDPOINTS.kpiUpsert, {
+        method:'PUT',
+        body: JSON.stringify(payload)
+      });
+
+      alert('KPI 저장 완료');
+    } catch (e) {
+      console.error(e);
+      alert('KPI 저장 실패: ' + e.message);
     }
-  }
-  return toNumber(val);
-}
-
-function saveStats(){
-  const m = document.getElementById('sMonth').value || '2025-11';
-  const loan  = toNumber(document.getElementById('sLoan').value);
-  const repay = toNumber(document.getElementById('sRepay').value);
-  const bal   = toNumber(document.getElementById('sBal').value);
-  if(!(Number.isFinite(loan) && Number.isFinite(repay) && Number.isFinite(bal))){
-    alert('누적대출/누적상환/잔액은 정확한 숫자로 입력해 주세요.'); return;
-  }
-
-  // 상품 금액 읽기(퍼센트 허용: bal × %)
-  const pf       = readProductAmount('pPF', bal);
-  const secured  = readProductAmount('pSecured', bal);
-  const note     = readProductAmount('pNote', bal);
-  const other    = readProductAmount('pOther', bal);
-  const personal = readProductAmount('pPersonal', bal);
-  const corp     = readProductAmount('pCorp', bal);
-
-  const mode = document.getElementById('sPrevAuto').value;
-  let prevKpi2, prevRows;
-  if(mode==='auto'){
-    const factor = 0.97; // -3% 가정
-    prevKpi2 = {
-      cumulative_loan_krw: Math.round(loan*factor),
-      cumulative_repayment_krw: Math.round(repay*factor),
-      balance_krw: Math.round(bal*factor)
-    };
-    prevRows = [
-      {product_type_name_kr:'부동산PF', balance_krw:Math.round(pf*factor)},
-      {product_type_name_kr:'부동산담보', balance_krw:Math.round(secured*factor)},
-      {product_type_name_kr:'어음·매출채권담보', balance_krw:Math.round(note*factor)},
-      {product_type_name_kr:'기타담보', balance_krw:Math.round(other*factor)},
-      {product_type_name_kr:'개인신용', balance_krw:Math.round(personal*factor)},
-      {product_type_name_kr:'법인신용', balance_krw:Math.round(corp*factor)}
-    ];
-  }else{
-    prevKpi2 = { cumulative_loan_krw:loan, cumulative_repayment_krw:repay, balance_krw:bal };
-    prevRows = [
-      {product_type_name_kr:'부동산PF', balance_krw:pf},
-      {product_type_name_kr:'부동산담보', balance_krw:secured},
-      {product_type_name_kr:'어음·매출채권담보', balance_krw:note},
-      {product_type_name_kr:'기타담보', balance_krw:other},
-      {product_type_name_kr:'개인신용', balance_krw:personal},
-      {product_type_name_kr:'법인신용', balance_krw:corp}
-    ];
-  }
-
-  const map = Storage.getStatsMap();
-  map[m] = {
-    kpi2:{ cumulative_loan_krw:loan, cumulative_repayment_krw:repay, balance_krw:bal },
-    kpi2_prev: prevKpi2,
-    kpi1_rows:[
-      {product_type_name_kr:'부동산PF', balance_krw:pf},
-      {product_type_name_kr:'부동산담보', balance_krw:secured},
-      {product_type_name_kr:'어음·매출채권담보', balance_krw:note},
-      {product_type_name_kr:'기타담보', balance_krw:other},
-      {product_type_name_kr:'개인신용', balance_krw:personal},
-      {product_type_name_kr:'법인신용', balance_krw:corp}
-    ],
-    kpi1_prev: prevRows
-  };
-  Storage.setStatsMap(map);
-
-  // 저장 후 폼에 콤마 보정 반영
-  document.getElementById('sLoan').value  = loan.toLocaleString('ko-KR');
-  document.getElementById('sRepay').value = repay.toLocaleString('ko-KR');
-  document.getElementById('sBal').value   = bal.toLocaleString('ko-KR');
-  document.getElementById('pPF').value       = pf.toLocaleString('ko-KR');
-  document.getElementById('pSecured').value  = secured.toLocaleString('ko-KR');
-  document.getElementById('pNote').value     = note.toLocaleString('ko-KR');
-  document.getElementById('pOther').value    = other.toLocaleString('ko-KR');
-  document.getElementById('pPersonal').value = personal.toLocaleString('ko-KR');
-  document.getElementById('pCorp').value     = corp.toLocaleString('ko-KR');
-
-  renderStatsTable();
-  alert('저장되었습니다. 메인 페이지에서 기준월을 선택해 확인하세요.');
-}
-
-function loadStatsToForm(){
-  const m = document.getElementById('sMonth').value || '2025-11';
-  const map = Storage.getStatsMap(); const it = map[m];
-  if(!it){ alert('해당 월 데이터가 없습니다.'); return; }
-  document.getElementById('sLoan').value  = (it.kpi2?.cumulative_loan_krw||'').toLocaleString('ko-KR');
-  document.getElementById('sRepay').value = (it.kpi2?.cumulative_repayment_krw||'').toLocaleString('ko-KR');
-  document.getElementById('sBal').value   = (it.kpi2?.balance_krw||'').toLocaleString('ko-KR');
-  const rowMap={}; (it.kpi1_rows||[]).forEach(r=> rowMap[r.product_type_name_kr]=r.balance_krw );
-  document.getElementById('pPF').value       = (rowMap['부동산PF']||'').toLocaleString('ko-KR');
-  document.getElementById('pSecured').value  = (rowMap['부동산담보']||'').toLocaleString('ko-KR');
-  document.getElementById('pNote').value     = (rowMap['어음·매출채권담보']||'').toLocaleString('ko-KR');
-  document.getElementById('pOther').value    = (rowMap['기타담보']||'').toLocaleString('ko-KR');
-  document.getElementById('pPersonal').value = (rowMap['개인신용']||'').toLocaleString('ko-KR');
-  document.getElementById('pCorp').value     = (rowMap['법인신용']||'').toLocaleString('ko-KR');
-}
-
-/* ==== 초기화 ==== */
-document.addEventListener('DOMContentLoaded', ()=>{
-  // 공지
-  renderNoticeTable();
-  document.getElementById('nSave').addEventListener('click', saveNotice);
-  document.getElementById('nReset').addEventListener('click', resetNoticeForm);
-
-  // 통계
-  renderStatsTable();
-  document.getElementById('sSave').addEventListener('click', saveStats);
-  document.getElementById('sLoad').addEventListener('click', loadStatsToForm);
-
-  // 콤마 자동 포맷: 대출 KPI 3종
-  ['sLoan','sRepay','sBal'].forEach(attachCommaInput);
-
-  // 상품별 콤마 & 퍼센트 → 금액 변환(blur 시)
-  const getBalance = ()=> document.getElementById('sBal').value;
-  ['pPF','pSecured','pNote','pOther','pPersonal','pCorp'].forEach(id=>{
-    attachCommaInput(id);
-    attachPercentToAmount(id, getBalance);
   });
+}
+
+/* ========== 시작 ========== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  bindLogin();
+  bindNoticeForm();
+  bindKpiForm();
 });

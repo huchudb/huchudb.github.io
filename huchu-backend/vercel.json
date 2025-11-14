@@ -1,0 +1,20 @@
+{
+  "functions": {
+    "api/admin/**.[jt]s": { "runtime": "nodejs18.x" },
+    "api/public/**.[jt]s": { "runtime": "nodejs18.x" }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://www.huchulab.com https://huchudb.github.io" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+      ]
+    }
+  ]
+}
