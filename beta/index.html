@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>후추 | 온투업(P2P) 대출 통계 (베타)</title>
+  <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 자료를 기반으로 온투업 담보대출 통계를 시각화합니다.">
+  <link rel="stylesheet" href="/assets/styles.css?v=20251114-calc-only"/>
+  <!-- daily-users / footer 연도 갱신 때문에 calculator.js 재사용 -->
+  <script type="module" src="/assets/calculator.js?v=20251114-calc-only"></script>
+</head>
+<body>
+
+  <header class="huchu-header" role="banner">
+    <div class="huchu-header__inner">
+      <a href="/beta/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
+        </span>
+      </a>
+
+      <nav class="huchu-nav" aria-label="주요 메뉴">
+        <a href="/beta/" class="huchu-nav__link huchu-nav__link--active">대출통계(베타)</a>
+        <a href="/beta/calculator.html" class="huchu-nav__link">대출계산기</a>
+        <a href="/beta/products/" class="huchu-nav__link">대출상품 소개</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 상단 통계: 기존 구조 그대로 재사용 -->
+  <section class="top-stats" aria-label="금일 이용자수">
+    <div class="stat-card">
+      <div class="stat-label">
+        <span class="stat-dot"></span>금일 이용자수
+      </div>
+      <div class="stat-value">
+        <span id="todayUsersCount" class="num" aria-live="polite">0</span>
+        <span class="suffix">명</span>
+      </div>
+    </div>
+    <div class="type-chip-wrap">
+      <div class="type-chips">
+        <div class="type-chip"><span class="label">아파트</span><span id="aptCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">다세대/연립</span><span id="multiCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">단독/다가구</span><span id="houseCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">토지/임야</span><span id="landCount" class="val">0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="container" aria-label="온투업(P2P) 대출 통계 요약">
+    <h1>온투업(P2P) 담보대출 통계 (베타)</h1>
+    <p class="subtitle">
+      온라인투자연계금융업 중앙기록관리기관 공개 자료를 바탕으로,<br/>
+      온투업 담보대출 시장의 규모와 금리, 상품 구성을 한눈에 볼 수 있도록 준비 중입니다.
+    </p>
+
+    <!-- 여기 아래는 일단 레이아웃만 잡아두고,
+         나중에 실제 통계/그래프/표를 붙이면 됨 -->
+
+    <section class="step">
+      <label class="steplabel no-badge-before">1. 월별 취급액 추이 (준비 중)</label>
+      <p class="info">
+        월별 온투업 담보대출 취급액을 그래프로 보여줄 예정입니다.<br/>
+        (중앙기록관리기관 공개 자료를 정리하는 중입니다.)
+      </p>
+    </section>
+
+    <section class="step">
+      <label class="steplabel no-badge-before">2. 상품 유형별 비중 (준비 중)</label>
+      <p class="info">
+        아파트 담보, 빌라/다세대, 토지/임야 등 담보 유형별 비중과 평균 금리 정보를 제공할 예정입니다.
+      </p>
+    </section>
+
+    <section class="step">
+      <label class="steplabel no-badge-before">3. 후추 계산기와의 연계</label>
+      <p class="info">
+        실제 온투업 사례 기준 통계를 바탕으로, <strong>후추 온투업 담보대출 계산기</strong>의 한도·금리 가이드가 개선될 예정입니다.<br/>
+        아래 버튼을 눌러 베타 계산기를 이용해 보세요.
+      </p>
+      <a href="/beta/calculator.html">
+        <button type="button">베타 계산기 열기</button>
+      </a>
+    </section>
+  </main>
+
+  <footer class="huchu-footer" role="contentinfo">
+    <div class="huchu-footer__inner">
+      <div class="f-col">
+        <p class="f-mission">
+          개인정보 입력 없이, 실제 사례와 공시 자료를 기반으로
+          합리적인 온투업 대출기관 선택을 돕습니다.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="huchu-footer__bar">
+    <small><span id="copyrightYear">2025</span> © Huchu. All rights reserved.</small>
+  </div>
+</body>
+</html>
