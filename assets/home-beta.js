@@ -10,9 +10,6 @@ let productChart = null;
 
 /* -----------------------------
  * 개발용 샘플 통계 (fallback)
- * 관리자/ontu-stats API가 아직 준비 안됐을 때
- * UI 포맷만 먼저 확인하려고 넣어둔 값.
- * 나중에 필요 없으면 이 블럭 통째로 지워도 됨.
  * ----------------------------- */
 const FALLBACK_STATS = {
   baseMonth: '2025-10',
@@ -20,11 +17,11 @@ const FALLBACK_STATS = {
   summary: {
     firmCount: 49,
     // 18조 3,580억 776만원
-    cumulativeLoan: 18358007760000,
+    cumulativeLoan: 18_358_007_760_000,
     // 16조 9,241억 4,401만원
-    cumulativeRepayment: 16924144010000,
+    cumulativeRepayment: 16_924_144_010_000,
     // 1조 4,338억 6,375만원
-    outstandingBalance: 1433863750000,
+    outstandingBalance: 1_433_863_750_000,
   },
   productBreakdown: [
     { type: '부동산담보',         share: 0.43 },
@@ -74,6 +71,42 @@ async function fetchOntuStats(requestedMonth) {
 }
 
 /* -----------------------------
+ * 도넛 차트용 퍼센트 라벨 플러그인
+ * ----------------------------- */
+
+const percentageLabelPlugin = {
+  id: 'percentageLabelPlugin',
+  afterDraw(chart) {
+    const { ctx } = chart;
+    const dataset = chart.data.datasets[0];
+    if (!dataset) return;
+
+    const meta = chart.getDatasetMeta(0);
+    const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0);
+    if (!total) return;
+
+    ctx.save();
+    ctx.font = '11px Arial';
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    meta.data.forEach((arc, idx) => {
+      const val = Number(dataset.data[idx]);
+      if (!val || val <= 0) return;
+
+      const percentage = (val / total) * 100;
+      const label = percentage.toFixed(1) + '%';
+
+      const p = arc.getCenterPoint();
+      ctx.fillText(label, p.x, p.y);
+    });
+
+    ctx.restore();
+  },
+};
+
+/* -----------------------------
  * 도넛 차트
  * ----------------------------- */
 
@@ -110,7 +143,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
       : null;
     return {
       type: item.type || '-',
-      sharePct: formatPercent(item.share),
       amountFormatted: amount != null ? formatKoreanCurrency(amount) : '-',
     };
   });
@@ -146,6 +178,7 @@ function renderProductDonut(outstandingBalance, breakdown) {
         },
         cutout: '60%',
       },
+      plugins: [percentageLabelPlugin],
     });
   }
 
@@ -155,9 +188,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
       <div class="amount-row" style="margin:4px 0; align-items:center; justify-content:space-between; gap:8px;">
         <div style="font-size:13px; color:#1f2933; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${item.type}
-        </div>
-        <div style="font-size:12px; color:#64748b; white-space:nowrap; margin-right:4px;">
-          ${item.sharePct}
         </div>
         <div style="font-size:13px; font-weight:700; color:#0b2a66; white-space:nowrap;">
           ${item.amountFormatted}
@@ -315,7 +345,6 @@ async function loadAndRenderOntuStats(requestedMonth) {
     renderOntuSummary(stats, requestedMonth);
   } catch (e) {
     console.error('ontu-stats fetch error, use fallback data instead.', e);
-    // 🔥 API 실패 시 샘플 데이터로 렌더
     renderOntuSummary(FALLBACK_STATS, FALLBACK_STATS.baseMonth);
   }
 }
