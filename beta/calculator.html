@@ -1,1 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>후추 | 온투업(P2P) 담보대출 계산기</title>
+  <meta name="description" content="개인정보 수집 없이, 실제 사례 기반 계산으로 온투업 담보대출 가능성을 가늠해보세요.">
+  <link rel="stylesheet" href="/assets/styles.css?v=20251114-calc-only"/>
+  <script type="module" src="/assets/calculator.js?v=20251114-calc-only"></script>
+</head>
+<body>
+
+  <!-- Header (로고만) -->
+  <header class="huchu-header" role="banner">
+    <div class="huchu-header__inner">
+      <a href="#" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고"/>
+        <span class="logo-fallback"><span class="logo-mark">%</span><span class="logo-text">후추 Huchu</span></span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 상단 통계(금일 이용자/유형 별 카운트) -->
+  <section class="top-stats" aria-label="금일 이용자수">
+    <div class="stat-card">
+      <div class="stat-label"><span class="stat-dot"></span>금일 이용자수</div>
+      <div class="stat-value"><span id="todayUsersCount" class="num" aria-live="polite">0</span><span class="suffix">명</span></div>
+    </div>
+    <div class="type-chip-wrap">
+      <div class="type-chips">
+        <div class="type-chip"><span class="label">아파트</span><span id="aptCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">다세대/연립</span><span id="multiCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">단독/다가구</span><span id="houseCount" class="val">0</span></div>
+        <div class="type-chip"><span class="label">토지/임야</span><span id="landCount" class="val">0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 계산기 본문 -->
+  <main class="container" aria-label="온투업(P2P) 담보대출 계산기">
+    <h1>온투업(P2P) 담보대출 계산기</h1>
+    <p class="subtitle">
+      * 온투업의 실제 대출 데이터를 기반으로 계산됩니다.<br/>
+      ** 100번을 계산해도 신용점수는 변동되지 않습니다.
+    </p>
+
+    <div id="calcSteps">
+      <div class="step">
+        <label class="steplabel">지역을 선택해주세요.</label>
+        <select id="region">
+          <option value="">선택</option>
+          <option value="서울">서울</option>
+          <option value="서울 외">서울 외</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">부동산 종류를 선택해주세요.</label>
+        <select id="propertyType">
+          <option value="">선택</option>
+          <option value="아파트">아파트</option>
+          <option value="다세대/연립">다세대/연립</option>
+          <option value="단독/다가구">단독/다가구</option>
+          <option value="토지/임야">토지/임야</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">내가 생각하는 시세</label>
+        <div class="amount-row">
+          <input type="text" id="marketValue" placeholder="예: 500,000,000">
+          <span id="marketValue_view" class="amount-display">0원</span>
+        </div>
+        <p class="info">
+          *아파트는 KB시세를 입력하세요 → <a href="https://kbland.kr/search" target="_blank" rel="noopener">[KB시세 바로가기]</a><br>
+          (3층 이상: 일반가 / 2층 이하: 하위평균가)
+        </p>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">선순위 대출 잔액 + 임대보증금</label>
+        <div class="amount-row">
+          <input type="text" id="seniorLoan" placeholder="예: 100,000,000">
+          <span id="seniorLoan_view" class="amount-display">0원</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <label class="steplabel">필요 대출금액</label>
+        <div class="amount-row">
+          <input type="text" id="requestedLoan" placeholder="예: 50,000,000">
+          <span id="requestedLoan_view" class="amount-display">0원</span>
+        </div>
+        <p class="info">* 대환(상환)해야 할 금액이 포함된 총 필요 금액을 입력하세요.</p>
+      </div>
+
+      <div class="step">
+        <label class="steplabel no-badge-before">(선택사항) 금액중 상환+반환할 금액
+        </label>
+        <div class="amount-row">
+          <input type="text" id="deduction" value="0">
+          <span id="deduction_view" class="amount-display">0원</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <label class="steplabel no-badge-before">(선택사항) 지분 대출의 경우 지분율 입력</label>
+        <div class="amount-row">
+          <input type="number" id="sharePercent" inputmode="numeric" min="1" max="100" placeholder="예: 50">
+          <span id="sharePercent_view" class="amount-display">100%</span>
+        </div>
+        <p class="info">지분 대출이면 본인 지분율(1~100%)을 입력하세요. 미입력 시 전체 소유(100%) 기준으로 계산합니다.</p>
+      </div>
+    </div>
+
+    <button id="calcBtn">대출 가능성 확인하기</button>
+    <div id="result" class="resultBox hide"></div>
+  </main>
+
+  <!-- 결과 모달 -->
+  <div class="modal hide" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="overlay" data-close="true"></div>
+    <div class="panel" role="document">
+      <div class="panel-header">
+        <div id="modalTitle" class="panel-title">계산 결과</div>
+        <div id="modalStatus" class="status-pill hide"></div>
+      </div>
+      <div class="panel-body" id="modalBody"></div>
+      <div class="panel-footer">
+        <div class="footer-left"><a id="contactBtn" class="btn btn-kakao" href="https://open.kakao.com/me/huchudb" target="_blank" rel="noopener">카카오톡 문의</a></div>
+        <div class="footer-right"><button class="btn btn-secondary" id="modalCloseBtn" aria-label="닫기">닫기</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="huchu-footer" role="contentinfo">
+    <div class="huchu-footer__inner">
+      <div class="f-col">
+        <div class="f-brand">
+        <p class="f-mission">개인정보 입력 없이, 실제 사례 기반 계산으로 합리적인 대출기관 선택을 돕습니다.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="huchu-footer__bar">
+    <small><span id="copyrightYear">2025</span> © Huchu. All rights reserved.</small>
+  </div>
+</body>
+</html>
+
+
+
 
