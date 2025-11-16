@@ -111,3 +111,31 @@ button:hover{background:#153154}
 .notice.info{border-color:#bfdbfe;background:#eff6ff}
 .notice.success{border-color:#bbf7d0;background:#ecfdf5}
 .notice.error{border-color:#fecaca;background:#fef2f2}
+
+/* 상단 네비게이션 (beta 전용) */
+.huchu-nav{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:14px;
+}
+.huchu-nav__link{
+  text-decoration:none;
+  color:#1f2933;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.huchu-nav__link:hover{
+  background:#e5edff;
+  border-color:#d0d7e2;
+}
+.huchu-nav__link--active{
+  background:#1a365d;
+  color:#fff;
+  border-color:#1a365d;
+  font-weight:700;
+}
+
