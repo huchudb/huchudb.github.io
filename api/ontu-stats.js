@@ -1,4 +1,21 @@
-
+{
+  "baseMonth": "2025-10",
+  "lastUpdated": "2025-11-17T...",
+  "summary": {
+    "firmCount": 49,
+    "cumulativeLoan": 18358007760000,
+    "cumulativeRepayment": 16924144010000,
+    "outstandingBalance": 1433863750000
+  },
+  "productBreakdown": [
+    { "type": "부동산담보",         "share": 0.43 },
+    { "type": "부동산PF",          "share": 0.02 },
+    { "type": "어음·매출채권담보", "share": 0.09 },
+    { "type": "기타담보(주식 등)", "share": 0.38 },
+    { "type": "개인신용",          "share": 0.06 },
+    { "type": "법인신용",          "share": 0.03 }
+  ]
+}
 // /api/ontu-stats.js  — Node.js (Vercel Serverless Function with Upstash Redis)
 // 환경변수: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
@@ -19,7 +36,7 @@ const ALLOWED_ORIGINS = [
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    'Vary': 'Origin',
+    Vary: 'Origin',
     'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Cache-Control, Pragma, Accept',
@@ -58,19 +75,30 @@ async function setJson(key, obj) {
   await upstash(`set/${enc(key)}/${enc(str)}`);
 }
 
-// 기본값 (없을 때 빈 틀)
+// 기본값 (비어있을 때)
+const PRODUCT_TYPES = [
+  '부동산담보',
+  '부동산PF',
+  '어음·매출채권담보',
+  '기타담보(주식 등)',
+  '개인신용',
+  '법인신용',
+];
+
 function defaultOntuStats() {
   return {
     baseMonth: null,      // 'YYYY-MM'
     lastUpdated: null,    // ISO string
     summary: {
-      totalAmount: null,  // 원 단위
-      loanCount: null,    // 건수
-      avgRate: null,      // 0~1
+      firmCount: null,
+      cumulativeLoan: null,
+      cumulativeRepayment: null,
+      outstandingBalance: null,
     },
-    byType: [
-      // { type: '아파트', share: 0.55, avgRate: 0.11 }, ...
-    ],
+    productBreakdown: PRODUCT_TYPES.map(type => ({
+      type,
+      share: null,        // 0~1
+    })),
   };
 }
 
@@ -119,27 +147,37 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'invalid body' });
       }
 
-      const baseMonth   = body.baseMonth || null;
+      const baseMonth = body.baseMonth || null;
       const summaryBody = body.summary || {};
-      const byTypeBody  = Array.isArray(body.byType) ? body.byType : [];
+      const breakdownBody = Array.isArray(body.productBreakdown)
+        ? body.productBreakdown
+        : [];
 
       const summary = {
-        totalAmount: (typeof summaryBody.totalAmount === 'number') ? summaryBody.totalAmount : null,
-        loanCount:   (typeof summaryBody.loanCount   === 'number') ? summaryBody.loanCount   : null,
-        avgRate:     (typeof summaryBody.avgRate     === 'number') ? summaryBody.avgRate     : null,
+        firmCount: (typeof summaryBody.firmCount === 'number')
+          ? summaryBody.firmCount
+          : null,
+        cumulativeLoan: (typeof summaryBody.cumulativeLoan === 'number')
+          ? summaryBody.cumulativeLoan
+          : null,
+        cumulativeRepayment: (typeof summaryBody.cumulativeRepayment === 'number')
+          ? summaryBody.cumulativeRepayment
+          : null,
+        outstandingBalance: (typeof summaryBody.outstandingBalance === 'number')
+          ? summaryBody.outstandingBalance
+          : null,
       };
 
-      const byType = byTypeBody.map(item => ({
-        type:    String(item.type || ''),
-        share:   (typeof item.share   === 'number') ? item.share   : null,
-        avgRate: (typeof item.avgRate === 'number') ? item.avgRate : null,
+      const productBreakdown = breakdownBody.map(item => ({
+        type: String(item.type || ''),
+        share: (typeof item.share === 'number') ? item.share : null,
       }));
 
       const stats = {
         baseMonth,
         lastUpdated: body.lastUpdated || new Date().toISOString(),
         summary,
-        byType,
+        productBreakdown,
       };
 
       try {
