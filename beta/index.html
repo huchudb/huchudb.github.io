@@ -6,11 +6,16 @@
   <title>후추 | 온투업(P2P) 담보대출 통계 (베타)</title>
   <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로 온투업(P2P) 담보대출 통계를 요약해 보여줍니다.">
   <link rel="stylesheet" href="/assets/styles.css?v=20251116-beta-home"/>
+
+  <!-- Chart.js (도넛 차트용) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 베타 홈 스크립트 -->
   <script type="module" src="/assets/home-beta.js?v=20251116-beta-home"></script>
 </head>
 <body>
 
-  <!-- Header (로고만 재사용) -->
+  <!-- Header (로고만) -->
   <header class="huchu-header" role="banner">
     <div class="huchu-header__inner">
       <a href="/beta/" class="huchu-logo" aria-label="후추 Huchu 홈 (베타)">
@@ -30,8 +35,8 @@
       월별 온투업 담보대출 현황을 한눈에 볼 수 있게 정리했습니다.
     </p>
 
-    <!-- 상단 메뉴(칩 형태 네비게이션) -->
-    <div class="chip-row" style="margin-bottom:16px;">
+    <!-- 상단 네비게이션 칩 -->
+    <div class="chip-row" style="margin-bottom:12px;">
       <a href="/beta/" class="chip" style="text-decoration:none;">
         <span class="label">통계 요약</span>
         <span class="val">현재 화면</span>
@@ -46,14 +51,37 @@
       </a>
     </div>
 
+    <!-- 조회년월 선택 영역 -->
+    <section class="step" style="margin-top:0; margin-bottom:16px;">
+      <label class="steplabel no-badge-before">조회년월</label>
+      <div class="amount-row" style="align-items:center; gap:8px; flex-wrap:wrap;">
+        <div id="monthDisplayLabel" style="font-weight:800; color:#0b2a66;">
+          -
+        </div>
+        <button
+          id="monthPickerBtn"
+          type="button"
+          class="btn-secondary"
+          style="flex:0 0 auto; width:auto; padding:8px 12px; font-size:13px;"
+        >
+          📅 월 변경
+        </button>
+        <input id="monthPickerInput" type="month" class="hide"/>
+      </div>
+      <p style="margin:6px 0 0; font-size:12px; color:#6b7280;">
+        조회년월을 변경하면, 해당 월 기준으로 입력된 통계를 불러옵니다.
+        아직 입력되지 않은 월은 최근 기준월 데이터가 대신 표시됩니다.
+      </p>
+    </section>
+
     <!-- 온투업 통계 요약 렌더 영역 -->
     <section id="ontuSummary" aria-label="온투업 중앙기록 통계 요약">
       <!-- home-beta.js 에서 내용이 채워짐 -->
     </section>
 
-    <!-- 간단 안내 섹션 -->
+    <!-- 추가 안내 섹션 -->
     <section class="step" style="margin-top:20px;">
-      <label class="steplabel no-badge-before">이 통계는 어떻게 사용되나요?</label>
+      <label class="steplabel no-badge-before">이 통계는 어떻게 활용되나요?</label>
       <p style="margin:8px 0 4px; font-size:14px; color:#4b5563;">
         후추의 온투업 담보대출 계산기와 상품 안내는, 중앙기록관리기관 자료를 기준으로
         <strong>실제 시장에서 형성된 한도·금리 구간</strong>을 참고하여 설계됩니다.
