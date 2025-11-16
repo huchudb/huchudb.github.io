@@ -1,4 +1,4 @@
-// assets/admin-beta.js
+// /assets/admin-beta.js
 // 베타 전용 관리자 스크립트
 // 1) 물건별 LTV·금리 기준 관리
 // 2) 온투업 중앙기록 통계 입력/수정
@@ -8,6 +8,14 @@ const LOAN_CONFIG_API = `${API_BASE}/api/loan-config`;
 const ONTU_STATS_API  = `${API_BASE}/api/ontu-stats`;
 
 const PROPERTY_TYPES = ['아파트', '다세대/연립', '단독/다가구', '토지/임야'];
+const PRODUCT_TYPES = [
+  '부동산담보',
+  '부동산PF',
+  '어음·매출채권담보',
+  '기타담보(주식 등)',
+  '개인신용',
+  '법인신용',
+];
 
 /* -----------------------------
  * 공통 헬퍼
@@ -16,6 +24,12 @@ const PROPERTY_TYPES = ['아파트', '다세대/연립', '단독/다가구', '�
 function safeNumber(v) {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function safeInt(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -184,47 +198,40 @@ function renderOntuStatsForm(data) {
   const wrap = document.getElementById('ontuStatsForm');
   if (!wrap) return;
 
-  const baseMonth   = data?.baseMonth   || '';
-  const summary     = data?.summary     || {};
-  const byType      = data?.byType      || [];
-  const totalAmount = summary.totalAmount ?? '';
-  const loanCount   = summary.loanCount   ?? '';
-  const avgRate     = summary.avgRate     ?? '';
+  const stats   = data || {};
+  const baseMonth = stats.baseMonth || '';
+  const summary = stats.summary || {};
+  const breakdownArr = Array.isArray(stats.productBreakdown)
+    ? stats.productBreakdown
+    : [];
 
-  // byType 배열을 PROPERTY_TYPES 기준으로 맞춰줌
-  const typeMap = {};
-  byType.forEach(item => { typeMap[item.type] = item; });
+  const firmCount          = summary.firmCount          ?? '';
+  const cumulativeLoan     = summary.cumulativeLoan     ?? '';
+  const cumulativeRepayment= summary.cumulativeRepayment?? '';
+  const outstandingBalance = summary.outstandingBalance ?? '';
 
-  const typeRows = PROPERTY_TYPES.map(type => {
-    const item = typeMap[type] || {};
-    const share   = item.share   ?? '';
-    const rate    = item.avgRate ?? '';
+  const breakdownMap = {};
+  breakdownArr.forEach(item => {
+    if (!item || !item.type) return;
+    breakdownMap[item.type] = item;
+  });
+
+  const rows = PRODUCT_TYPES.map(type => {
+    const item = breakdownMap[type] || {};
+    const share = item.share ?? '';
     return `
       <div class="amount-row" style="margin:6px 0; align-items:center; gap:8px; flex-wrap:wrap;">
-        <div style="flex:0 0 82px; font-weight:700; color:#1a365d;">${type}</div>
+        <div style="flex:0 0 120px; font-weight:700; color:#1a365d;">${type}</div>
         <input
           type="number"
           step="0.0001"
           min="0"
           max="1"
-          data-group="ontu-stats-type"
+          data-group="ontu-product"
           data-type="${type}"
-          data-field="share"
-          placeholder="비중 (0~1)"
+          placeholder="잔액 비중 (0~1, 예: 0.43)"
           value="${share !== '' ? share : ''}"
-          style="flex:1 1 120px;"
-        />
-        <input
-          type="number"
-          step="0.0001"
-          min="0"
-          max="1"
-          data-group="ontu-stats-type"
-          data-type="${type}"
-          data-field="avgRate"
-          placeholder="평균 금리 (예: 0.115)"
-          value="${rate !== '' ? rate : ''}"
-          style="flex:1 1 140px;"
+          style="flex:1 1 160px;"
         />
       </div>
     `;
@@ -232,88 +239,114 @@ function renderOntuStatsForm(data) {
 
   wrap.innerHTML = `
     <div class="notice info" style="margin-bottom:10px;">
-      <p><strong>온투업 중앙기록관리기관 자료를 정리해 입력하는 영역</strong>입니다.</p>
-      <p style="margin:4px 0 0;">비중과 금리는 모두 <strong>0~1</strong> 사이 값으로 입력해주세요. (예: 11.5% → 0.115)</p>
+      <p><strong>온투업 중앙기록관리기관 공시자료를 정리해서 입력하는 영역</strong>입니다.</p>
+      <p style="margin:4px 0 0; font-size:12px; color:#64748b;">
+        금액은 '원' 단위, 비율은 <strong>0~1</strong> 사이의 값으로 입력해주세요. (예: 43% → 0.43)
+      </p>
     </div>
 
     <div style="margin-bottom:12px;">
-      <label class="steplabel no-badge-before" for="baseMonth">기준월</label>
+      <label class="steplabel no-badge-before" for="baseMonth">조회년월 (기준월)</label>
       <input
         id="baseMonth"
         type="month"
-        value="${baseMonth}"
+        value="${baseMonth || ''}"
         style="max-width:220px;"
       />
     </div>
 
-    <div class="amount-row" style="margin:6px 0; flex-wrap:wrap;">
-      <div style="flex:0 0 82px; font-weight:700; color:#1a365d;">요약</div>
-      <input
-        type="number"
-        step="1"
-        min="0"
-        id="totalAmount"
-        placeholder="월 취급액 (원 단위)"
-        value="${totalAmount !== '' ? totalAmount : ''}"
-        style="flex:1 1 180px;"
-      />
-      <input
-        type="number"
-        step="1"
-        min="0"
-        id="loanCount"
-        placeholder="건수"
-        value="${loanCount !== '' ? loanCount : ''}"
-        style="flex:1 1 120px;"
-      />
-      <input
-        type="number"
-        step="0.0001"
-        min="0"
-        max="1"
-        id="avgRate"
-        placeholder="전체 평균 금리 (예: 0.115)"
-        value="${avgRate !== '' ? avgRate : ''}"
-        style="flex:1 1 140px;"
-      />
+    <div class="step" style="margin:12px 0;">
+      <label class="steplabel no-badge-before">대출현황 요약</label>
+      <div class="amount-row" style="margin:6px 0; flex-wrap:wrap;">
+        <div style="flex:0 0 120px; font-weight:700; color:#1a365d;">온투업체 수</div>
+        <input
+          type="number"
+          step="1"
+          min="0"
+          id="firmCount"
+          placeholder="예: 49"
+          value="${firmCount !== '' ? firmCount : ''}"
+          style="flex:1 1 120px;"
+        />
+      </div>
+      <div class="amount-row" style="margin:6px 0; flex-wrap:wrap;">
+        <div style="flex:0 0 120px; font-weight:700; color:#1a365d;">누적대출금액</div>
+        <input
+          type="number"
+          step="1"
+          min="0"
+          id="cumulativeLoan"
+          placeholder="원 단위 (예: 18358007760000)"
+          value="${cumulativeLoan !== '' ? cumulativeLoan : ''}"
+          style="flex:1 1 220px;"
+        />
+      </div>
+      <div class="amount-row" style="margin:6px 0; flex-wrap:wrap;">
+        <div style="flex:0 0 120px; font-weight:700; color:#1a365d;">누적상환금액</div>
+        <input
+          type="number"
+          step="1"
+          min="0"
+          id="cumulativeRepayment"
+          placeholder="원 단위"
+          value="${cumulativeRepayment !== '' ? cumulativeRepayment : ''}"
+          style="flex:1 1 220px;"
+        />
+      </div>
+      <div class="amount-row" style="margin:6px 0; flex-wrap:wrap;">
+        <div style="flex:0 0 120px; font-weight:700; color:#1a365d;">대출잔액</div>
+        <input
+          type="number"
+          step="1"
+          min="0"
+          id="outstandingBalance"
+          placeholder="원 단위"
+          value="${outstandingBalance !== '' ? outstandingBalance : ''}"
+          style="flex:1 1 220px;"
+        />
+      </div>
     </div>
 
-    <div style="margin-top:14px;">
-      <label class="steplabel no-badge-before">상품 유형별 비중 / 평균 금리</label>
-      ${typeRows}
+    <div class="step" style="margin-top:12px;">
+      <label class="steplabel no-badge-before">상품유형별 대출잔액 비중</label>
+      <p style="margin:4px 0 8px; font-size:12px; color:#64748b;">
+        각 상품유형별 <strong>대출잔액 비중(%)</strong>을 0~1 값으로 입력합니다. (예: 43% → 0.43)<br/>
+        합이 1.0에 가까울수록 전체 잔액 분포와 일치합니다.
+      </p>
+      ${rows}
     </div>
   `;
 }
 
 async function saveOntuStats() {
-  const baseMonth   = document.getElementById('baseMonth')?.value || '';
-  const totalAmount = safeNumber(document.getElementById('totalAmount')?.value);
-  const loanCount   = safeNumber(document.getElementById('loanCount')?.value);
-  const avgRate     = safeNumber(document.getElementById('avgRate')?.value);
+  const baseMonth = document.getElementById('baseMonth')?.value || null;
 
-  const typeInputs = document.querySelectorAll('input[data-group="ontu-stats-type"][data-type][data-field]');
-  const byTypeMap = {};
+  const firmCount          = safeInt(document.getElementById('firmCount')?.value);
+  const cumulativeLoan     = safeNumber(document.getElementById('cumulativeLoan')?.value);
+  const cumulativeRepayment= safeNumber(document.getElementById('cumulativeRepayment')?.value);
+  const outstandingBalance = safeNumber(document.getElementById('outstandingBalance')?.value);
 
-  typeInputs.forEach(input => {
+  const summary = {
+    firmCount,
+    cumulativeLoan,
+    cumulativeRepayment,
+    outstandingBalance,
+  };
+
+  const productInputs = document.querySelectorAll('input[data-group="ontu-product"][data-type]');
+  const productBreakdown = [];
+
+  productInputs.forEach(input => {
     const type  = input.dataset.type;
-    const field = input.dataset.field;
-    const val   = safeNumber(input.value);
-
-    if (!byTypeMap[type]) byTypeMap[type] = { type };
-    byTypeMap[type][field] = val;
+    const share = safeNumber(input.value);
+    productBreakdown.push({ type, share });
   });
 
-  const byType = Object.values(byTypeMap);
-
   const payload = {
-    baseMonth: baseMonth || null,
+    baseMonth,
     lastUpdated: new Date().toISOString(),
-    summary: {
-      totalAmount,
-      loanCount,
-      avgRate,
-    },
-    byType,
+    summary,
+    productBreakdown,
   };
 
   try {
