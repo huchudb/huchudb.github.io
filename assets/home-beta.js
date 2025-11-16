@@ -1,5 +1,5 @@
 // /assets/home-beta.js
-// 베타 홈: 온투업 중앙기록 통계 + 도넛 차트
+// 베타 홈: 온투업 중앙기록 통계 + 도넛 차트 (API 실패 시 샘플 데이터 fallback)
 
 import { formatKoreanCurrency } from './shared.js';
 
@@ -7,6 +7,34 @@ const API_BASE = 'https://huchudb-github-io.vercel.app';
 const ONTU_STATS_API = `${API_BASE}/api/ontu-stats`;
 
 let productChart = null;
+
+/* -----------------------------
+ * 개발용 샘플 통계 (fallback)
+ * 관리자/ontu-stats API가 아직 준비 안됐을 때
+ * UI 포맷만 먼저 확인하려고 넣어둔 값.
+ * 나중에 필요 없으면 이 블럭 통째로 지워도 됨.
+ * ----------------------------- */
+const FALLBACK_STATS = {
+  baseMonth: '2025-10',
+  lastUpdated: '2025-11-16T00:00:00.000Z',
+  summary: {
+    firmCount: 49,
+    // 18조 3,580억 776만원
+    cumulativeLoan: 18358007760000,
+    // 16조 9,241억 4,401만원
+    cumulativeRepayment: 16924144010000,
+    // 1조 4,338억 6,375만원
+    outstandingBalance: 1433863750000,
+  },
+  productBreakdown: [
+    { type: '부동산담보',         share: 0.43 },
+    { type: '부동산PF',          share: 0.02 },
+    { type: '어음·매출채권담보', share: 0.09 },
+    { type: '기타담보(주식 등)', share: 0.38 },
+    { type: '개인신용',          share: 0.06 },
+    { type: '법인신용',          share: 0.03 },
+  ],
+};
 
 function formatPercent(v) {
   if (typeof v !== 'number' || isNaN(v)) return '-';
@@ -57,7 +85,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
     return;
   }
 
-  // share > 0 인 항목만 사용
   const validItems = (breakdown || []).filter(
     item => item && typeof item.share === 'number' && item.share > 0
   );
@@ -77,7 +104,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
   const labels = validItems.map(item => item.type || '-');
   const shares = validItems.map(item => item.share);
 
-  // 금액 계산
   const legendItems = validItems.map(item => {
     const amount = (typeof outstandingBalance === 'number' && !isNaN(outstandingBalance))
       ? Math.round(outstandingBalance * (item.share || 0))
@@ -89,7 +115,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
     };
   });
 
-  // 차트 인스턴스 생성/업데이트
   const ctx = canvas.getContext('2d');
   if (productChart) {
     productChart.data.labels = labels;
@@ -124,7 +149,6 @@ function renderProductDonut(outstandingBalance, breakdown) {
     });
   }
 
-  // 범례 렌더
   const legendWrap = document.getElementById('productDonutLegend');
   if (legendWrap) {
     legendWrap.innerHTML = legendItems.map(item => `
@@ -188,7 +212,7 @@ function renderOntuSummary(stats, requestedMonth) {
   if (requestedMonth && baseMonth && requestedMonth !== baseMonth) {
     monthNotice = `
       <p style="margin-top:4px; font-size:12px; color:#dc2626;">
-        선택한 월(${requestedMonth})의 데이터가 없어, 등록된 최근 기준월(${baseMonth}) 자료를 표시합니다.
+        선택한 월(${requestedMonth})의 데이터가 없어, 등록된 기준월(${baseMonth}) 자료를 표시합니다.
       </p>
     `;
   }
@@ -290,17 +314,9 @@ async function loadAndRenderOntuStats(requestedMonth) {
     const stats = await fetchOntuStats(requestedMonth);
     renderOntuSummary(stats, requestedMonth);
   } catch (e) {
-    console.error('ontu-stats fetch error', e);
-    if (wrap) {
-      wrap.innerHTML = `
-        <div class="notice error">
-          <p>온투업 통계를 불러오지 못했습니다.</p>
-          <p style="margin-top:4px; font-size:12px; color:#6b7280;">
-            잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해주세요.
-          </p>
-        </div>
-      `;
-    }
+    console.error('ontu-stats fetch error, use fallback data instead.', e);
+    // 🔥 API 실패 시 샘플 데이터로 렌더
+    renderOntuSummary(FALLBACK_STATS, FALLBACK_STATS.baseMonth);
   }
 }
 
@@ -329,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadAndRenderOntuStats(null);
 
-  // Footer 연도
   const y = document.getElementById('copyrightYear');
   if (y) y.textContent = String(new Date().getFullYear());
 });
