@@ -138,11 +138,6 @@ button:hover{background:#153154}
   border-color:#1a365d;
   font-weight:700;
 }
-/* ===========================
-   베타 전용 레이아웃 / 헤더 / 푸터
-   (beta- 접두사, 기존 계산기에는 영향 없음)
-   =========================== */
-
 /* ===== 베타 헤더 / 메뉴 드롭다운 ===== */
 
 /* 상단 바: 배경 흰색 */
@@ -200,15 +195,19 @@ button:hover{background:#153154}
   border-radius:12px;
   border:1px solid #e5e7eb;
   box-shadow:0 10px 30px rgba(15,23,42,.15);
-  padding:8px 0;
+  padding:6px 0;
   z-index:200;
 }
+
+/* 여기 색/사이즈 수정됨 */
 .beta-menu-link{
   display:block;
-  padding:8px 14px;
-  font-size:13px;
-  color:#111827;
+  padding:7px 14px;
+  font-size:12px;              /* 더 작게 */
+  font-weight:600;
+  color:#111827 !important;    /* 진한 검정으로 고정 */
   text-decoration:none;
+  white-space:nowrap;
 }
 .beta-menu-link:hover{
   background:#f3f4f6;
