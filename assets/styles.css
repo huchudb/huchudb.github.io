@@ -143,18 +143,77 @@ button:hover{background:#153154}
    (beta- 접두사, 기존 계산기에는 영향 없음)
    =========================== */
 
-/* 헤더 */
+/* ===== 베타 헤더 / 메뉴 드롭다운 ===== */
+
+/* ===== 베타 헤더 / 메뉴 드롭다운 ===== */
+
+/* 상단 바: 기존 huchu-header 위에 살짝만 덮어씀 */
 .beta-header{
-  background:#0f172a;
-  border-bottom:1px solid #111827;
+  background:#ffffff;          /* 완전 흰색 */
 }
 .beta-header__inner{
-  max-width:960px;
-  margin:0 auto;
-  padding:18px 16px;
   display:flex;
   align-items:center;
   justify-content:space-between;
+}
+
+/* 메뉴 래퍼 */
+.beta-menu{
+  position:relative;
+}
+
+/* MENU 버튼 */
+.beta-menu-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #111827;
+  background:#111827;
+  color:#f9fafb;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.beta-menu-toggle__icon{
+  display:inline-flex;
+  flex-direction:column;
+  gap:3px;
+}
+.beta-menu-toggle__icon span{
+  width:12px;
+  height:2px;
+  border-radius:999px;
+  background:#f9fafb;
+  display:block;
+}
+.beta-menu-toggle__label{
+  letter-spacing:0.06em;
+}
+
+/* 드롭다운 패널 */
+.beta-menu-panel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  min-width:200px;
+  background:#ffffff;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 10px 30px rgba(15,23,42,.15);
+  padding:8px 0;
+  z-index:200;
+}
+.beta-menu-link{
+  display:block;
+  padding:8px 14px;
+  font-size:13px;
+  color:#111827;
+  text-decoration:none;
+}
+.beta-menu-link:hover{
+  background:#f3f4f6;
 }
 
 /* 텍스트 로고 */
@@ -613,3 +672,4 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0 0 3px;
 }
+
