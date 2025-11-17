@@ -163,37 +163,30 @@
             </div>
           </div>
 
-          <!-- 상품유형별 -->
-          <div style="border-top:1px dashed #e5e7eb;padding-top:10px;margin-top:12px;">
-            <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">[상품유형별 대출잔액]</h3>
-            <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">
-              비율은 <strong>전체 대출잔액 기준 % (0~100)</strong>, 금액은 <strong>원</strong> 단위로 입력해주세요.
-              (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
-            </p>
-            <div style="overflow-x:auto;margin-top:6px;">
-              <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px;">
-                <thead>
-                  <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb;">
-                    <th style="text-align:left;padding:6px 4px;">상품유형</th>
-                    <th style="text-align:right;padding:6px 4px;">비율 (%)</th>
-                    <th style="text-align:right;padding:6px 4px;">대출잔액 (원)</th>
-                  </tr>
-                </thead>
-                <tbody id="productStatsBody">
-                  <!-- JS에서 행 동적 생성 -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <section class="admin-section">
+  <h3>[상품유형별 대출잔액]</h3>
+  <p class="admin-help">
+    비율은 전체 <strong>대출잔액 기준 % (0~100)</strong>, 금액은 <strong>원 단위</strong>로 입력해주세요.
+    (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
+  </p>
 
-          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" id="statsSaveBtn" style="width:auto;padding:8px 16px;">
-              통계 데이터 저장
-            </button>
-            <span id="statsStatus" style="font-size:12px;color:#6b7280;"></span>
-          </div>
-        </div>
-      </section>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th style="width:40%">상품유형</th>
+        <th style="width:20%">비율 (%)</th>
+        <th style="width:40%">대출잔액 (원)</th>
+      </tr>
+    </thead>
+    <tbody id="productTableBody">
+      <!-- admin-beta.js에서 자동 생성 -->
+    </tbody>
+  </table>
+
+  <button type="button" id="btnSaveStats" class="admin-btn-primary">
+    통계 데이터 저장
+  </button>
+</section>
 
     </div>
   </main>
