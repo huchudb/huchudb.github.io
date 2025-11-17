@@ -16,37 +16,40 @@
 
   <!-- 상단 헤더: 로고 + MENU 버튼 -->
   <header class="huchu-header beta-header" role="banner">
-    <div class="huchu-header__inner beta-header__inner">
-      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-        <span class="logo-fallback">
-          <span class="logo-mark">%</span>
-          <span class="logo-text">후추 Huchu</span>
+  <div class="huchu-header__inner beta-header__inner">
+    <!-- 로고 -->
+    <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+      <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+      <span class="logo-fallback">
+        <span class="logo-mark">%</span>
+        <span class="logo-text">후추 Huchu</span>
+      </span>
+    </a>
+
+    <!-- MENU + 드롭다운 -->
+    <div class="beta-menu">
+      <button id="betaMenuToggle"
+              class="beta-menu-toggle"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span class="beta-menu-toggle__icon">
+          <span></span><span></span><span></span>
         </span>
-      </a>
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
 
-      <div class="beta-menu">
-        <button id="betaMenuToggle"
-                class="beta-menu-toggle"
-                type="button"
-                aria-haspopup="true"
-                aria-expanded="false">
-          <span class="beta-menu-toggle__icon">
-            <span></span><span></span><span></span>
-          </span>
-          <span class="beta-menu-toggle__label">MENU</span>
-        </button>
-
-        <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
-          <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
-          <a class="beta-menu-link" href="/">담보대출 계산기</a>
-          <a class="beta-menu-link" href="/company.html">회사소개</a>
-          <a class="beta-menu-link" href="/contact.html">제휴 및 기타문의</a>
-        </div>
+      <!-- 처음에는 숨김: hide 클래스 중요!! -->
+      <div id="betaMenuPanel" class="beta-menu-panel hide">
+        <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
+        <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
+        <a class="beta-menu-link" href="/">담보대출 계산기</a>
+        <a class="beta-menu-link" href="/company.html">회사소개</a>
+        <a class="beta-menu-link" href="/contact.html">제휴 및 기타문의</a>
       </div>
     </div>
-  </header>
+  </div>
+</header>
 
   <!-- 메인 -->
   <main class="beta-main">
