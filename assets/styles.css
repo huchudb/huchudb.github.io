@@ -253,7 +253,7 @@ button:hover{background:#153154}
 
 /* 베타 메인 컨테이너 */
 .beta-main{
-  background:#0b1120;
+  background:var(--bg); /* 기존 #0b1120 에서 변경 */
   min-height:100vh;
 }
 .beta-inner{
@@ -418,38 +418,46 @@ button:hover{background:#153154}
 /* 서브 인포 바 */
 .beta-subinfo{
   margin-bottom:18px;
-  border-radius:16px;
-  background:#020617;
-  border:1px solid #1e293b;
-  padding:10px 12px 12px;
+  padding:0 0 10px;
 }
+
+/* 위: 금일 이용자수 작은 칩 형태 */
 .beta-subinfo__top{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
   gap:8px;
   margin-bottom:8px;
 }
+.beta-subinfo__metric{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border-radius:999px;
+  background:#eef2ff;
+}
 .beta-subinfo__metric .label{
   font-size:12px;
-  color:#9ca3af;
+  color:#4b5563;
 }
 .beta-subinfo__metric .value{
-  font-size:14px;
+  font-size:13px;
   font-weight:800;
-  color:#e5e7eb;
-  margin-left:8px;
+  color:#111827;
 }
 .beta-subinfo__metric .unit{
   font-size:12px;
-  margin-left:2px;
-  color:#9ca3af;
+  color:#6b7280;
 }
+
+/* 아래: 서브 배너 이미지는 카드 느낌 */
 .beta-subinfo__banner{
   border-radius:12px;
   overflow:hidden;
   background:#020617;
   min-height:80px;
+  border:1px solid #1e293b;
 }
 .beta-subinfo__banner img{
   width:100%;
@@ -632,5 +640,6 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0 0 3px;
 }
+
 
 
