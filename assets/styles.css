@@ -501,4 +501,61 @@ button:hover{background:#153154}
 .beta-footer__info p + p{
   margin-top:2px;
 }
+/* ======================= 베타 전용 상단 레이아웃 ======================= */
+
+/* 베타 페이지용 body: 상단 여백 제거 + 상단에 붙이기 */
+.beta-body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+}
+
+/* 혹시 body 바로 아래에 남아있는 옛날 텍스트 링크(파란 밑줄) 강제 숨김 */
+.beta-body > a{
+  display:none;
+}
+
+/* 베타 헤더: 전체 폭 흰색, sticky 해제, 심플한 상단 바 */
+.beta-header.huchu-header{
+  position:relative;
+  top:auto;
+  background:#ffffff;
+  border-bottom:1px solid var(--line);
+}
+
+/* 로고는 왼쪽, MENU 버튼은 오른쪽 끝으로 */
+.beta-header__inner{
+  max-width:960px;
+  margin:0 auto;
+  padding:12px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+/* MENU 버튼 – 예전 네이비 사각형 스타일로 복원 */
+.beta-menu-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 18px;
+  border-radius:8px;
+  border:0;
+  background:#1f3556;      /* 네이비 */
+  color:#ffffff;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(15,23,42,.25);
+  width:auto;               /* 전역 button{width:100%} 덮어쓰기 */
+}
+
+/* 햄버거 아이콘은 숨기고, 글자만 보이게 */
+.beta-menu-toggle__icon{
+  display:none;
+}
+.beta-menu-toggle__label{
+  letter-spacing:0;
+}
+
 
