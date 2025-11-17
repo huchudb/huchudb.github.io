@@ -494,13 +494,14 @@ button:hover{background:#153154}
 /* 카드 박스 */
 .beta-card{
   border-radius:16px;
-  background:#020617;
-  border:1px solid #1f2937;
+  background:#f3f4f6;           /* 기존 #020617 → 밝은 회색 */
+  border:1px solid #e5e7eb;     /* 라이트 그레이 */
   padding:14px 14px 12px;
 }
 .beta-card--wide{
   padding:14px 14px 16px;
 }
+
 
 /* 대출현황 카드 5개 */
 .beta-loanstatus-grid{
@@ -520,20 +521,21 @@ button:hover{background:#153154}
 }
 .beta-loanstatus-item{
   border-radius:12px;
-  background:#0b1120;
-  border:1px solid #1f2937;
+  background:#ffffff;          /* 흰색 */
+  border:1px solid #e5e7eb;
   padding:10px 10px 9px;
 }
 .beta-loanstatus-item__label{
   font-size:11px;
-  color:#9ca3af;
+  color:#6b7280;
   margin-bottom:4px;
 }
 .beta-loanstatus-item__value{
   font-size:13px;
   font-weight:800;
-  color:#e5e7eb;
+  color:#111827;
 }
+
 
 /* 상품유형별 대출잔액: 좌 도넛 / 우 3×2 그리드 */
 .beta-product-grid{
@@ -640,6 +642,7 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0 0 3px;
 }
+
 
 
 
