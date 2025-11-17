@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>후추 | 온투업(P2P) 대출 통계 (베타)</title>
-  <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 통계를 한눈에 정리했습니다.">
+  <title>후추 | 온투업(P2P) 담보대출 통계 (베타)</title>
+  <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 현황을 한눈에 정리했습니다.">
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta-home" />
   <!-- Chart.js (도넛 그래프용) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,48 +13,34 @@
 </head>
 <body>
 
+  <!-- (A) 최상단 헤더: 기존 로고 + MENU 드롭다운 -->
   <header class="huchu-header beta-header" role="banner">
-  <div class="huchu-header__inner beta-header__inner">
-    <!-- 기존 로고 그대로 사용 -->
-    <a href="/beta/" class="huchu-logo" aria-label="후추 Huchu 홈">
-      <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-      <span class="logo-fallback">
-        <span class="logo-mark">%</span>
-        <span class="logo-text">후추 Huchu</span>
-      </span>
-    </a>
-
-    <!-- MENU 버튼 + 드롭다운 패널 -->
-    <div class="beta-menu">
-      <button
-        type="button"
-        class="beta-menu-toggle"
-        id="betaMenuToggle"
-        aria-haspopup="true"
-        aria-expanded="false"
-      >
-        <span class="beta-menu-toggle__icon">
-          <span></span><span></span><span></span>
+    <div class="huchu-header__inner beta-header__inner">
+      <!-- 왼쪽: 기존 후추 로고 -->
+      <a href="/beta/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
         </span>
-        <span class="beta-menu-toggle__label">MENU</span>
-      </button>
+      </a>
 
-      <nav class="beta-menu-panel hide" id="betaMenuPanel" aria-label="전체 메뉴">
-        <a href="/beta/" class="beta-menu-link">온투업 대출통계</a>
-        <a href="/beta/products.html" class="beta-menu-link">온투업 대출상품정보</a>
-        <a href="/beta/calculator.html" class="beta-menu-link">담보대출 계산기</a>
-        <a href="/beta/about.html" class="beta-menu-link">회사소개</a>
-        <a href="/beta/contact.html" class="beta-menu-link">제휴 및 기타문의</a>
-      </nav>
-    </div>
-  </div>
-</header>
+      <!-- 오른쪽: MENU 버튼 + 드롭다운 패널 -->
+      <div class="beta-menu">
+        <button
+          type="button"
+          class="beta-menu-toggle"
+          id="betaMenuToggle"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          <span class="beta-menu-toggle__icon">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
 
-    <!-- 풀스크린 메뉴 오버레이 -->
-    <div class="beta-menu-overlay hide" id="betaMenuOverlay" aria-hidden="true">
-      <div class="beta-menu-overlay__inner">
-        <button type="button" class="beta-menu-close" id="betaMenuClose" aria-label="메뉴 닫기">×</button>
-        <nav class="beta-menu-nav" aria-label="전체 메뉴">
+        <nav class="beta-menu-panel hide" id="betaMenuPanel" aria-label="전체 메뉴">
           <a href="/beta/" class="beta-menu-link">온투업 대출통계</a>
           <a href="/beta/products.html" class="beta-menu-link">온투업 대출상품정보</a>
           <a href="/beta/calculator.html" class="beta-menu-link">담보대출 계산기</a>
@@ -75,7 +61,7 @@
           <!-- 왼쪽: 배너 캐러셀 -->
           <section class="beta-hero-banner" aria-label="공지 배너">
             <div class="beta-hero-banner__slides" id="heroBannerSlides">
-              <!-- 지금은 플레이스홀더 1장 -->
+              <!-- 일단 1장만 (관리자 업로드 영역은 나중에 확장) -->
               <article class="beta-hero-slide is-active">
                 <div class="beta-hero-slide__content">
                   <div class="beta-hero-slide__pill">UPDATE NEWS</div>
@@ -177,7 +163,7 @@
             <h2 id="loanStatusTitle" class="beta-section__title">대출현황</h2>
           </div>
           <div class="beta-section__meta" id="loanStatusMonth">
-            <!-- 최근 기준월: YYYY년 MM월 -->
+            <!-- 최근 기준월: 2025년 10월 -->
           </div>
         </div>
         <div class="beta-card beta-card--wide" id="ontuLoanStatus">
