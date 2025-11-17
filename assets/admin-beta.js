@@ -28,10 +28,20 @@ function formatPct(num) {
   return s.endsWith(".0") ? s.slice(0, -2) : s;
 }
 
+// 숫자 파싱 (콤마 제거 포함)
 function parseNumber(value) {
   if (value == null) return null;
-  const n = Number(String(value).trim());
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (!cleaned) return null;
+  const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
+}
+
+// 3자리 콤마 포맷
+function formatWithCommas(value) {
+  const n = parseNumber(value);
+  if (n == null) return "";
+  return n.toLocaleString("ko-KR");
 }
 
 // 작은 상태 메시지 출력
@@ -39,7 +49,7 @@ function setStatus(el, message, kind = "info") {
   if (!el) return;
   el.textContent = message || "";
   el.style.color =
-    kind === "error" ? "#b91c1c" :
+    kind === "error"   ? "#b91c1c" :
     kind === "success" ? "#166534" :
     "#6b7280";
 }
@@ -71,9 +81,9 @@ async function loadLoanConfig() {
 
     PROPERTY_TYPES.forEach((label, idx) => {
       const conf = table[label] || {};
-      const maxLtvPct   = conf.maxLtv != null ? formatPct(conf.maxLtv * 100) : "";
-      const rateMinPct  = conf.rateMin != null ? formatPct(conf.rateMin * 100) : "";
-      const rateMaxPct  = conf.rateMax != null ? formatPct(conf.rateMax * 100) : "";
+      const maxLtvPct   = conf.maxLtv   != null ? formatPct(conf.maxLtv * 100)   : "";
+      const rateMinPct  = conf.rateMin  != null ? formatPct(conf.rateMin * 100)  : "";
+      const rateMaxPct  = conf.rateMax  != null ? formatPct(conf.rateMax * 100)  : "";
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -107,7 +117,7 @@ async function loadLoanConfig() {
     setStatus(statusEl, "불러오기 완료", "success");
   } catch (e) {
     console.error("[admin-beta] loadLoanConfig 에러:", e);
-    setStatus(statusEl, "설정을 불러오지 못했습니다.", "error");
+    setStatus(statusEl, "설정을 불러오지 못했습니다. (서버 API 미구현 상태일 수 있음)", "error");
   }
 }
 
@@ -175,7 +185,8 @@ async function saveLoanConfig() {
     setStatus(statusEl, "저장 완료! (베타 계산기에서 새 LTV/금리 적용 가능)", "success");
   } catch (e) {
     console.error("[admin-beta] saveLoanConfig 에러:", e);
-    setStatus(statusEl, "저장 중 오류가 발생했습니다.", "error");
+    // 지금은 서버 API 미구현 상태라 Failed to fetch가 뜨는 게 정상
+    setStatus(statusEl, "서버 저장에 실패했습니다. (API 미구현 상태일 수 있음)", "error");
   }
 }
 
@@ -198,7 +209,6 @@ async function loadOntuStatsForMonth(month) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // home-beta.js가 기대하는 형태: {month, summary, byType}
     const monthVal = data.month || month;
     const summary  = data.summary || {};
     const byType   = data.byType  || {};
@@ -207,25 +217,32 @@ async function loadOntuStatsForMonth(month) {
     const monthInput = document.getElementById("statsMonth");
     if (monthInput) monthInput.value = monthVal;
 
-    // Summary 채우기
-    const f = (id, v) => {
+    // Summary 채우기 (금액 3자리 콤마)
+    const setVal = (id, v, useComma = false) => {
       const el = document.getElementById(id);
-      if (el) el.value = v != null ? v : "";
+      if (!el) return;
+      if (v == null || v === 0) {
+        el.value = "";
+      } else if (useComma) {
+        el.value = Number(v).toLocaleString("ko-KR");
+      } else {
+        el.value = v;
+      }
     };
 
-    f("sum-registeredFirms", summary.registeredFirms);
-    f("sum-dataFirms",       summary.dataFirms);
-    f("sum-totalLoan",       summary.totalLoan);
-    f("sum-totalRepaid",     summary.totalRepaid);
-    f("sum-balance",         summary.balance);
+    setVal("sum-registeredFirms", summary.registeredFirms ?? "", false);
+    setVal("sum-dataFirms",       summary.dataFirms       ?? "", false);
+    setVal("sum-totalLoan",       summary.totalLoan,         true);
+    setVal("sum-totalRepaid",     summary.totalRepaid,       true);
+    setVal("sum-balance",         summary.balance,           true);
 
     // 상품유형별 테이블
     const tbody = document.getElementById("productStatsBody");
     if (tbody) {
       tbody.innerHTML = "";
-      PRODUCT_TYPES.forEach((name, idx) => {
+      PRODUCT_TYPES.forEach((name) => {
         const cfg = byType[name] || {};
-        const ratioPct = cfg.ratio != null ? formatPct(cfg.ratio * 100) : "";
+        const ratioPct = cfg.ratio  != null ? formatPct(cfg.ratio * 100) : "";
         const amount   = cfg.amount != null ? cfg.amount : "";
 
         const tr = document.createElement("tr");
@@ -240,21 +257,26 @@ async function loadOntuStatsForMonth(month) {
                    style="width:72px;padding:4px 6px;font-size:12px;text-align:right;">
           </td>
           <td style="padding:6px 4px;text-align:right;">
-            <input type="number"
+            <input type="text"
                    class="pt-amount"
-                   min="0" step="1000000"
-                   value="${amount}"
+                   value="${amount !== "" ? Number(amount).toLocaleString("ko-KR") : ""}"
                    style="width:140px;padding:4px 6px;font-size:12px;text-align:right;">
           </td>
         `;
         tbody.appendChild(tr);
       });
+
+      // 상품유형별 이벤트(콤마 포맷 + 비율 입력 시 자동 산출) 다시 연결
+      setupProductRowEvents();
     }
+
+    // 요약 금액 필드 blur 때 콤마 유지
+    setupSummaryAmountFormatting();
 
     setStatus(statusEl, "불러오기 완료", "success");
   } catch (e) {
     console.error("[admin-beta] loadOntuStatsForMonth 에러:", e);
-    setStatus(statusEl, "통계를 불러오지 못했습니다.", "error");
+    setStatus(statusEl, "통계를 불러오지 못했습니다. (API 미구현 상태일 수 있음)", "error");
   }
 }
 
@@ -269,10 +291,10 @@ async function saveOntuStats() {
 
     const summary = {
       registeredFirms: parseNumber(document.getElementById("sum-registeredFirms")?.value) ?? 0,
-      dataFirms:       parseNumber(document.getElementById("sum-dataFirms")?.value) ?? 0,
-      totalLoan:       parseNumber(document.getElementById("sum-totalLoan")?.value) ?? 0,
-      totalRepaid:     parseNumber(document.getElementById("sum-totalRepaid")?.value) ?? 0,
-      balance:         parseNumber(document.getElementById("sum-balance")?.value) ?? 0,
+      dataFirms:       parseNumber(document.getElementById("sum-dataFirms")?.value)       ?? 0,
+      totalLoan:       parseNumber(document.getElementById("sum-totalLoan")?.value)       ?? 0,
+      totalRepaid:     parseNumber(document.getElementById("sum-totalRepaid")?.value)     ?? 0,
+      balance:         parseNumber(document.getElementById("sum-balance")?.value)         ?? 0,
     };
 
     const tbody = document.getElementById("productStatsBody");
@@ -331,8 +353,62 @@ async function saveOntuStats() {
     );
   } catch (e) {
     console.error("[admin-beta] saveOntuStats 에러:", e);
-    setStatus(statusEl, e.message || "저장 중 오류가 발생했습니다.", "error");
+    // 지금은 서버 API 미구현이라 Failed to fetch가 날 수 있음
+    setStatus(statusEl, e.message || "저장 중 오류가 발생했습니다. (API 미구현 상태일 수 있음)", "error");
   }
+}
+
+// =============== 3. 금액 콤마 / 비율→금액 자동 계산 로직 ===============
+
+// summary 금액 필드 blur 시 3자리 콤마
+function setupSummaryAmountFormatting() {
+  const ids = ["sum-totalLoan", "sum-totalRepaid", "sum-balance"];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!el._commaBound) {
+      el.addEventListener("blur", () => {
+        el.value = formatWithCommas(el.value);
+      });
+      el._commaBound = true;
+    }
+  });
+}
+
+// 상품유형별 행에 이벤트 연결
+function setupProductRowEvents() {
+  const tbody = document.getElementById("productStatsBody");
+  if (!tbody) return;
+
+  const balanceInput = document.getElementById("sum-balance");
+
+  tbody.querySelectorAll("tr").forEach((tr) => {
+    const ratioInput  = tr.querySelector(".pt-ratio");
+    const amountInput = tr.querySelector(".pt-amount");
+
+    // 1) 비율 입력 후 blur → balance × 비율로 금액 자동 계산
+    if (ratioInput && !ratioInput._autoCalcBound) {
+      ratioInput.addEventListener("blur", () => {
+        const ratioPct = parseNumber(ratioInput.value);
+        const balance  = balanceInput ? parseNumber(balanceInput.value) : null;
+        if (ratioPct == null || balance == null) return;
+
+        const amount = Math.round(balance * (ratioPct / 100)); // balance × oo%
+        if (amountInput) {
+          amountInput.value = amount.toLocaleString("ko-KR");
+        }
+      });
+      ratioInput._autoCalcBound = true;
+    }
+
+    // 2) 금액 필드는 blur 때 콤마
+    if (amountInput && !amountInput._commaBound) {
+      amountInput.addEventListener("blur", () => {
+        amountInput.value = formatWithCommas(amountInput.value);
+      });
+      amountInput._commaBound = true;
+    }
+  });
 }
 
 // =============== 상단 MENU 드롭다운 (베타용) ===============
@@ -401,8 +477,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 페이지 처음 들어왔을 때 현재월 기준으로 한번 불러오기
-  if (monthInput && monthInput.value) {
-    loadOntuStatsForMonth(monthInput.value);
-  }
+  // 요약 금액 필드 콤마 포맷 이벤트
+  setupSummaryAmountFormatting();
 });
