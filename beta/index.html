@@ -13,23 +13,42 @@
 </head>
 <body>
 
-  <!-- (A) 최상단 헤더: 텍스트 로고 + MENU 버튼 -->
   <header class="huchu-header beta-header" role="banner">
-    <div class="huchu-header__inner beta-header__inner">
-      <!-- 텍스트 로고 -->
-      <a href="/beta/" class="beta-logo" aria-label="후추 Huchu 홈">
-        <span class="beta-logo__mark">%</span>
-        <span class="beta-logo__text">후추</span>
-      </a>
+  <div class="huchu-header__inner beta-header__inner">
+    <!-- 기존 로고 그대로 사용 -->
+    <a href="/beta/" class="huchu-logo" aria-label="후추 Huchu 홈">
+      <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+      <span class="logo-fallback">
+        <span class="logo-mark">%</span>
+        <span class="logo-text">후추 Huchu</span>
+      </span>
+    </a>
 
-      <!-- MENU 버튼 -->
-      <button type="button" class="beta-menu-toggle" aria-label="메뉴 열기">
+    <!-- MENU 버튼 + 드롭다운 패널 -->
+    <div class="beta-menu">
+      <button
+        type="button"
+        class="beta-menu-toggle"
+        id="betaMenuToggle"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
         <span class="beta-menu-toggle__icon">
           <span></span><span></span><span></span>
         </span>
         <span class="beta-menu-toggle__label">MENU</span>
       </button>
+
+      <nav class="beta-menu-panel hide" id="betaMenuPanel" aria-label="전체 메뉴">
+        <a href="/beta/" class="beta-menu-link">온투업 대출통계</a>
+        <a href="/beta/products.html" class="beta-menu-link">온투업 대출상품정보</a>
+        <a href="/beta/calculator.html" class="beta-menu-link">담보대출 계산기</a>
+        <a href="/beta/about.html" class="beta-menu-link">회사소개</a>
+        <a href="/beta/contact.html" class="beta-menu-link">제휴 및 기타문의</a>
+      </nav>
     </div>
+  </div>
+</header>
 
     <!-- 풀스크린 메뉴 오버레이 -->
     <div class="beta-menu-overlay hide" id="betaMenuOverlay" aria-hidden="true">
