@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>후추 | 온투업(P2P) 관리자 (베타)</title>
+  <meta name="description" content="온투업 담보대출 LTV·금리 설정 및 중앙기록관리기관 통계 데이터를 관리하는 베타 관리자 페이지입니다.">
+
+  <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+  <script type="module" src="/assets/admin-beta.js?v=20251117-beta"></script>
+</head>
+<body class="beta-body">
+
+  <!-- 상단 헤더: 베타 홈과 동일한 구조 -->
+  <header class="huchu-header beta-header" role="banner">
+    <div class="huchu-header__inner beta-header__inner">
+      <!-- 로고 -->
+      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
+        </span>
+      </a>
+
+      <!-- MENU + 드롭다운 -->
+      <div class="beta-menu">
+        <button id="betaMenuToggle"
+                class="beta-menu-toggle"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false">
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
+
+        <div id="betaMenuPanel" class="beta-menu-panel hide">
+          <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
+          <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
+          <a class="beta-menu-link" href="/">담보대출 계산기</a>
+          <a class="beta-menu-link" href="/company.html">회사소개</a>
+          <a class="beta-menu-link" href="/contact.html">제휴 및 기타문의</a>
+          <a class="beta-menu-link" href="/admin-beta.html">관리자(베타)</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="beta-main">
+    <div class="beta-inner">
+
+      <section class="beta-section">
+        <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h1 class="beta-section__title">온투업 베타 관리자</h1>
+          </div>
+        </div>
+        <div class="beta-card beta-card--wide">
+          <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
+            이 페이지에서 <strong>LTV·금리 설정(loan-config)</strong>과
+            <strong>온투업 대출 통계(ontu-stats)</strong>를 직접 저장할 수 있습니다.
+          </p>
+          <p style="margin:0;font-size:12px;color:#9ca3af;">
+            ※ 저장 즉시 베타 통계 페이지(/beta)와 베타 계산기에서 해당 값이 사용됩니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- 1. 담보대출 LTV / 금리 설정 -->
+      <section class="beta-section" id="adminLoanConfigSection">
+        <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h2 class="beta-section__title">담보대출 LTV / 금리 설정</h2>
+          </div>
+        </div>
+
+        <div class="beta-card beta-card--wide">
+          <p style="margin:0 0 10px;font-size:13px;color:#4b5563;">
+            부동산 종류별 <strong>최대 LTV(%)</strong>와 <strong>금리 범위(연 %)</strong>를 입력해주세요.
+            <br />※ 저장 시 내부에는 <code>0.73</code>, <code>0.068</code>처럼 소수(비율)로 저장됩니다.
+          </p>
+
+          <div style="overflow-x:auto;margin-top:10px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px;">
+              <thead>
+                <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb;">
+                  <th style="text-align:left;padding:6px 4px;">부동산 종류</th>
+                  <th style="text-align:right;padding:6px 4px;">최대 LTV (%)</th>
+                  <th style="text-align:right;padding:6px 4px;">최소 금리 (연 %)</th>
+                  <th style="text-align:right;padding:6px 4px;">최대 금리 (연 %)</th>
+                </tr>
+              </thead>
+              <tbody id="loanConfigBody">
+                <!-- JS에서 행 동적 생성 -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button type="button" id="loanConfigSaveBtn" style="width:auto;padding:8px 16px;">
+              LTV / 금리 설정 저장
+            </button>
+            <span id="loanConfigStatus" style="font-size:12px;color:#6b7280;"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 온투업 통계 (중앙기록관리기관) -->
+      <section class="beta-section" id="adminOntuStatsSection">
+        <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h2 class="beta-section__title">온투업 대출 통계 (중앙기록관리)</h2>
+          </div>
+        </div>
+
+        <div class="beta-card beta-card--wide">
+          <!-- 기준월 + 불러오기 -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <label style="font-size:13px;color:#374151;">
+              조회년월
+              <input type="month" id="statsMonth"
+                     style="margin-left:6px;padding:4px 8px;font-size:13px;">
+            </label>
+            <button type="button" id="statsLoadBtn" style="width:auto;padding:6px 12px;font-size:13px;">
+              해당 월 데이터 불러오기
+            </button>
+            <span style="font-size:12px;color:#9ca3af;">
+              (입력 후 저장하면 /beta 메인에 바로 반영됩니다.)
+            </span>
+          </div>
+
+          <!-- 대출현황 summary -->
+          <div style="border-top:1px dashed #e5e7eb;padding-top:10px;margin-top:8px;">
+            <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">[대출현황]</h3>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:13px;">
+              <label>
+                금융위 등록 온투업체수
+                <input type="number" id="sum-registeredFirms" min="0"
+                       style="width:100%;margin-top:2px;padding:4px 8px;">
+              </label>
+              <label>
+                데이터 수집 온투업체수
+                <input type="number" id="sum-dataFirms" min="0"
+                       style="width:100%;margin-top:2px;padding:4px 8px;">
+              </label>
+              <label>
+                누적대출금액 (원)
+                <input type="number" id="sum-totalLoan" min="0"
+                       style="width:100%;margin-top:2px;padding:4px 8px;">
+              </label>
+              <label>
+                누적상환금액 (원)
+                <input type="number" id="sum-totalRepaid" min="0"
+                       style="width:100%;margin-top:2px;padding:4px 8px;">
+              </label>
+              <label>
+                대출잔액 (원)
+                <input type="number" id="sum-balance" min="0"
+                       style="width:100%;margin-top:2px;padding:4px 8px;">
+              </label>
+            </div>
+          </div>
+
+          <!-- 상품유형별 -->
+          <div style="border-top:1px dashed #e5e7eb;padding-top:10px;margin-top:12px;">
+            <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">[상품유형별 대출잔액]</h3>
+            <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">
+              비율은 <strong>전체 대출잔액 기준 % (0~100)</strong>, 금액은 <strong>원</strong> 단위로 입력해주세요.
+              (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
+            </p>
+            <div style="overflow-x:auto;margin-top:6px;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px;">
+                <thead>
+                  <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb;">
+                    <th style="text-align:left;padding:6px 4px;">상품유형</th>
+                    <th style="text-align:right;padding:6px 4px;">비율 (%)</th>
+                    <th style="text-align:right;padding:6px 4px;">대출잔액 (원)</th>
+                  </tr>
+                </thead>
+                <tbody id="productStatsBody">
+                  <!-- JS에서 행 동적 생성 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button type="button" id="statsSaveBtn" style="width:auto;padding:8px 16px;">
+              통계 데이터 저장
+            </button>
+            <span id="statsStatus" style="font-size:12px;color:#6b7280;"></span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="beta-footer" role="contentinfo">
+    <div class="beta-footer__top">
+      <a href="/company.html">회사소개</a>
+      <a href="/terms.html">서비스이용약관</a>
+      <a href="/privacy.html">개인정보 취급방침</a>
+    </div>
+    <div class="beta-footer__bottom">
+      <div class="beta-footer__brand">
+        <span class="beta-footer__logo-mark">%</span>
+        <span class="beta-footer__logo-text">HUCHU</span>
+      </div>
+      <div class="beta-footer__info">
+        <p>상호: (예시) 후추랩 | 대표: 장현성</p>
+        <p>주소: (예시) 경기도 고양시 일산동구 00로 00</p>
+        <p>E-MAIL: huchudb01@gmail.com | 사업자번호: 000-00-00000</p>
+        <p>2025 © HUCHU. ALL RIGHTS RESERVED.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
