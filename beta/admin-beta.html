@@ -163,30 +163,217 @@
             </div>
           </div>
 
+          <!-- [통계 요약] : 누적대출 / 누적상환 / 대출잔액 -->
+<section class="admin-section">
+  <h2 class="admin-section__title">[통계 요약]</h2>
+  <p class="admin-section__desc">
+    공시 기준으로 누적대출 / 누적상환 / 대출잔액(원)을 입력해주세요.
+  </p>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>금액 (원)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>누적대출금액</td>
+          <td>
+            <input
+              id="statTotalLoan"
+              type="text"
+              data-type="money"
+              class="admin-input"
+              placeholder="예) 18358007760000"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>누적상환금액</td>
+          <td>
+            <input
+              id="statTotalRepaid"
+              type="text"
+              data-type="money"
+              class="admin-input"
+              placeholder="예) 16924144010000"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>대출잔액 (원)</td>
+          <td>
+            <input
+              id="statBalance"
+              type="text"
+              data-type="money"
+              class="admin-input"
+              placeholder="예) 1433867500000"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
         <section class="admin-section">
-  <h3>[상품유형별 대출잔액]</h3>
-  <p class="admin-help">
-    비율은 전체 <strong>대출잔액 기준 % (0~100)</strong>, 금액은 <strong>원 단위</strong>로 입력해주세요.
+ <!-- [상품유형별 대출잔액] -->
+<section class="admin-section">
+  <h2 class="admin-section__title">[상품유형별 대출잔액]</h2>
+  <p class="admin-section__desc">
+    비율은 전체 대출잔액 기준 % (0~100), 금액은 원 단위로 입력해주세요.
     (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
   </p>
 
-  <table class="admin-table">
-    <thead>
-      <tr>
-        <th style="width:40%">상품유형</th>
-        <th style="width:20%">비율 (%)</th>
-        <th style="width:40%">대출잔액 (원)</th>
-      </tr>
-    </thead>
-    <tbody id="productTableBody">
-      <!-- admin-beta.js에서 자동 생성 -->
-    </tbody>
-  </table>
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>상품유형</th>
+          <th>비율 (%)</th>
+          <th>대출잔액 (원)</th>
+        </tr>
+      </thead>
+      <tbody id="productRows">
+        <tr data-key="부동산담보">
+          <td>부동산담보</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="부동산담보"
+              min="0" max="100" step="0.1"
+              placeholder="예) 43"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="부동산담보"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
 
-  <button type="button" id="btnSaveStats" class="admin-btn-primary">
-    통계 데이터 저장
-  </button>
+        <tr data-key="부동산PF">
+          <td>부동산PF</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="부동산PF"
+              min="0" max="100" step="0.1"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="부동산PF"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
+
+        <tr data-key="어음·매출채권담보">
+          <td>어음·매출채권담보</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="어음·매출채권담보"
+              min="0" max="100" step="0.1"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="어음·매출채권담보"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
+
+        <tr data-key="기타담보(주식 등)">
+          <td>기타담보(주식 등)</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="기타담보(주식 등)"
+              min="0" max="100" step="0.1"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="기타담보(주식 등)"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
+
+        <tr data-key="개인신용">
+          <td>개인신용</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="개인신용"
+              min="0" max="100" step="0.1"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="개인신용"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
+
+        <tr data-key="법인신용">
+          <td>법인신용</td>
+          <td>
+            <input
+              type="number"
+              class="admin-input js-ratio"
+              data-key="법인신용"
+              min="0" max="100" step="0.1"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              class="admin-input js-amount"
+              data-key="법인신용"
+              data-type="money"
+              readonly
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button id="saveOntuStatsBtn" type="button" class="admin-btn">
+      통계 데이터 저장
+    </button>
+  </div>
 </section>
+
 
     </div>
   </main>
