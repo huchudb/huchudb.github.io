@@ -477,3 +477,28 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0;
 }
+/* MENU 버튼은 calculator용 button 전역 스타일을 덮어쓴다 */
+.beta-menu-toggle{
+  width:auto;              /* 전역 button{width:100%} 무효화 */
+}
+
+/* 베타 푸터: 로고 위, 회사 정보 아래로 세로 정렬 */
+.beta-footer__bottom{
+  max-width:960px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;   /* 가로 → 세로 */
+  gap:4px;
+}
+
+.beta-footer__brand{
+  margin-bottom:4px;
+}
+
+.beta-footer__info p{
+  margin:0;
+}
+.beta-footer__info p + p{
+  margin-top:2px;
+}
+
