@@ -49,19 +49,15 @@
   <main class="beta-main" aria-label="온투업 담보대출 통계 메인">
     <div class="beta-inner">
 
-      <!-- (B) 히어로 영역: 좌측 캐러셀 / 우측 2×2 카드 -->
+      <!-- (B) 히어로 영역 -->
       <section class="beta-hero">
         <div class="beta-hero-grid">
 
           <!-- 왼쪽: 배너 캐러셀 -->
           <section class="beta-hero-banner" aria-label="공지 배너">
             <div class="beta-hero-banner__slides" id="heroBannerSlides">
-              <!-- 
-                추후 관리자 연동: JS로 슬라이드 목록 렌더링
-                지금은 간단한 안내용 플레이스홀더 1장
-              -->
+              <!-- 지금은 플레이스홀더 1장 -->
               <article class="beta-hero-slide is-active">
-                <div class="beta-hero-slide__bg"></div>
                 <div class="beta-hero-slide__content">
                   <div class="beta-hero-slide__pill">UPDATE NEWS</div>
                   <h1 class="beta-hero-slide__title">온투업(P2P) 담보대출 통계 베타 오픈</h1>
@@ -74,65 +70,83 @@
                 </div>
               </article>
             </div>
-            <!-- 인디케이터 (추후 다중 슬라이드 시 사용) -->
             <div class="beta-hero-banner__dots" id="heroBannerDots">
               <button type="button" class="dot is-active" aria-label="1번 배너"></button>
-              <!-- 관리자에서 여러 장 등록되면 JS로 dot 추가 예정 -->
             </div>
           </section>
 
-/* 오른쪽 2×2 카드 (이미지 전용) */
-.beta-hero-cards__grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-@media (max-width:480px){
-  .beta-hero-cards__grid{
-    grid-template-columns:1fr;
-  }
-}
-.beta-hero-card{
-  display:block;
-  border-radius:14px;
-  overflow:hidden;
-  border:1px solid rgba(148,163,184,.4);
-  background:#e5e7eb;
-}
-.beta-hero-card img{
-  width:100%;
-  display:block;
-  object-fit:cover;
-}
-.beta-hero-card:hover{
-  border-color:#6366f1;
-  box-shadow:0 4px 14px rgba(15,23,42,.08);
-}
+          <!-- 오른쪽: 2×2 카드 + 금일 이용자수 + 아래 이미지 -->
+          <section class="beta-hero-right">
 
-/* 이미지 전용 카드용 보조 클래스 (여유) */
-.beta-hero-card--image-only{
-  /* 필요시 별도 효과 넣을 수 있음 */
-}
+            <!-- 2×2 이미지 카드 -->
+            <div class="beta-hero-cards" aria-label="주요 기능 바로가기">
+              <div class="beta-hero-cards__grid">
 
-      <!-- (C) 서브 인포 바 -->
-      <section class="beta-subinfo" aria-label="금일 이용자수 및 안내 배너">
-        <div class="beta-subinfo__top">
-          <div class="beta-subinfo__metric">
-            <span class="label">금일 계산기 이용자수</span>
-            <span class="value">
-              <span id="todayUsersCount">0</span><span class="unit">명</span>
-            </span>
-          </div>
-          <!-- 추후 위험영역/적정영역/저위험영역 라벨 추가 가능 영역 -->
-        </div>
-        <div class="beta-subinfo__banner">
-          <!-- 관리자에서 등록한 이미지를 추후 JS로 교체 예정 -->
-          <img
-            src="/assets/banner/subinfo-placeholder.png"
-            alt="온투업 담보대출 관련 안내 배너"
-            loading="lazy"
-            onerror="this.style.display='none';"
-          >
+                <!-- 1. 온투업 대출 통계 -->
+                <a href="/beta/" class="beta-hero-card beta-hero-card--image-only">
+                  <img
+                    src="/assets/cards/card-stat.png"
+                    alt="온투업(P2P) 대출 통계"
+                    loading="lazy"
+                    onerror="this.style.display='none';"
+                  >
+                </a>
+
+                <!-- 2. 온투업 대출 상품 정보 -->
+                <a href="/beta/products.html" class="beta-hero-card beta-hero-card--image-only">
+                  <img
+                    src="/assets/cards/card-products.png"
+                    alt="온투업(P2P) 대출 상품 정보"
+                    loading="lazy"
+                    onerror="this.style.display='none';"
+                  >
+                </a>
+
+                <!-- 3. 담보대출 계산기 -->
+                <a href="/beta/calculator.html" class="beta-hero-card beta-hero-card--image-only">
+                  <img
+                    src="/assets/cards/card-calculator.png"
+                    alt="온투업 담보대출 계산기"
+                    loading="lazy"
+                    onerror="this.style.display='none';"
+                  >
+                </a>
+
+                <!-- 4. 네이버 블로그 -->
+                <a href="https://blog.naver.com/" target="_blank" rel="noopener" class="beta-hero-card beta-hero-card--image-only">
+                  <img
+                    src="/assets/cards/card-blog.png"
+                    alt="후추 네이버 공식 블로그"
+                    loading="lazy"
+                    onerror="this.style.display='none';"
+                  >
+                </a>
+
+              </div>
+            </div>
+
+            <!-- 금일 이용자수 + 아래 이미지 (폭 동일) -->
+            <div class="beta-subinfo" aria-label="금일 계산기 이용자수 및 안내">
+              <div class="beta-subinfo__metric-row">
+                <div class="beta-subinfo__label">금일 계산기 이용자수</div>
+                <div class="beta-subinfo__value">
+                  <span id="todayUsersCount">0</span>
+                  <span class="unit">명</span>
+                </div>
+              </div>
+
+              <div class="beta-subinfo__banner">
+                <img
+                  src="/assets/banner/subinfo-tags.png"
+                  alt="온투업 담보대출 특징 안내"
+                  loading="lazy"
+                  onerror="this.style.display='none';"
+                >
+              </div>
+            </div>
+
+          </section>
+
         </div>
       </section>
 
@@ -141,16 +155,14 @@
         <div class="beta-section__header">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-gold"></span>
-            <h2 id="loanStatusTitle" class="beta-section__title">
-              대출현황
-            </h2>
+            <h2 id="loanStatusTitle" class="beta-section__title">대출현황</h2>
           </div>
           <div class="beta-section__meta" id="loanStatusMonth">
             <!-- 최근 기준월: YYYY년 MM월 -->
           </div>
         </div>
         <div class="beta-card beta-card--wide" id="ontuLoanStatus">
-          <!-- home-beta.js에서 요약 카드 5개 렌더링 -->
+          <!-- home-beta.js에서 카드 5개 렌더링 -->
         </div>
       </section>
 
@@ -159,9 +171,7 @@
         <div class="beta-section__header">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-blue"></span>
-            <h2 id="productOutstandingTitle" class="beta-section__title">
-              상품유형별 대출잔액
-            </h2>
+            <h2 id="productOutstandingTitle" class="beta-section__title">상품유형별 대출잔액</h2>
           </div>
         </div>
         <div class="beta-card beta-card--wide" id="ontuProductSection">
