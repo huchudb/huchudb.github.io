@@ -348,3 +348,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const y = document.getElementById('copyrightYear');
   if (y) y.textContent = String(new Date().getFullYear());
 });
+  // ===== 베타 상단 MENU 드롭다운 =====
+  (function setupBetaMenu(){
+    const btn = document.getElementById('betaMenuToggle');
+    const panel = document.getElementById('betaMenuPanel');
+    if (!btn || !panel) return;
+
+    const close = () => {
+      panel.classList.add('hide');
+      btn.setAttribute('aria-expanded','false');
+    };
+    const open = () => {
+      panel.classList.remove('hide');
+      btn.setAttribute('aria-expanded','true');
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      if (expanded) close(); else open();
+    });
+
+    // 바깥 클릭 시 닫기
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && !btn.contains(e.target)) {
+        close();
+      }
+    });
+  })();
+
