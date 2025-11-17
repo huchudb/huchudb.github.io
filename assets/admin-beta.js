@@ -1,62 +1,71 @@
-// /assets/admin-beta.js
-
-import { onlyDigits, REGION_OPTIONS } from './shared.js';
+// /assets/admin-beta.js (베타 관리자 전용 JS)
 
 // ─────────────────────────────────────────
-// 상수
+// 상수 정의
 // ─────────────────────────────────────────
 
-const LOCAL_KEY_STATS = 'huchu_ontu_stats_beta';
-const LOCAL_KEY_LOAN  = 'huchu_loan_config_beta';
-
-const PRODUCT_TYPES = [
-  '부동산담보',
-  '부동산PF',
-  '어음·매출채권담보',
-  '기타담보(주식 등)',
-  '개인신용',
-  '법인신용',
+// LTV/금리 설정용 지역 리스트 (계산기 1번과 동일)
+const REGIONS = [
+  "서울",
+  "경기",
+  "인천",
+  "충청도",
+  "전라도",
+  "강원도",
+  "경상도",
+  "제주도",
 ];
 
-const DEFAULT_LOAN_ITEMS = [
-  { region: '서울', type: '아파트',     maxLtv: 0.73, rateMin: 0.068, rateMax: 0.148 },
-  { region: '서울', type: '다세대/연립', maxLtv: 0.70, rateMin: 0.078, rateMax: 0.158 },
-  { region: '서울', type: '단독/다가구', maxLtv: 0.70, rateMin: 0.080, rateMax: 0.160 },
-  { region: '서울', type: '토지/임야',   maxLtv: 0.50, rateMin: 0.100, rateMax: 0.180 },
+// LTV/금리 설정용 부동산 종류 (계산기와 맞춤)
+const PROPERTY_TYPES_LTV = [
+  "아파트",
+  "다세대/연립",
+  "단독/다가구",
+  "토지/임야",
 ];
 
+// 온투업 통계용 상품유형
+const PRODUCT_TYPES_STATS = [
+  "부동산담보",
+  "부동산PF",
+  "어음·매출채권담보",
+  "기타담보(주식 등)",
+  "개인신용",
+  "법인신용",
+];
+
+// localStorage 키
+const LOCAL_KEY_LOAN_CONFIG = "huchu_loan_config_beta";
+const LOCAL_KEY_ONTU_STATS  = "huchu_ontu_stats_beta";
+
 // ─────────────────────────────────────────
-// 공통: 콤마 포맷 유틸
+// 숫자 / 통화 유틸
 // ─────────────────────────────────────────
 
-function formatWithCommas(value) {
-  const digits = onlyDigits(value);
-  if (!digits) return '';
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function stripNonDigits(str) {
+  return (str || "").replace(/[^\d]/g, "");
 }
 
-function parseMoney(value) {
-  const digits = onlyDigits(value);
+function formatWithCommas(str) {
+  const digits = stripNonDigits(str);
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function getMoneyValueFromInput(inputEl) {
+  if (!inputEl) return 0;
+  const digits = stripNonDigits(inputEl.value);
   return digits ? Number(digits) : 0;
 }
 
+// data-type="money" 인풋에 쉼표 포맷 적용
 function setupMoneyInputs() {
   const moneyInputs = document.querySelectorAll('input[data-type="money"]');
   moneyInputs.forEach((input) => {
-    input.addEventListener('input', (e) => {
+    input.addEventListener("input", (e) => {
       const target = e.target;
-      const caretPos = target.selectionStart;
-      const beforeLen = target.value.length;
-
       const formatted = formatWithCommas(target.value);
       target.value = formatted;
-
-      // 대충 caret 보정 (완벽하진 않아도 입력감은 유지)
-      if (caretPos != null) {
-        const afterLen = formatted.length;
-        const diff = afterLen - beforeLen;
-        target.setSelectionRange(caretPos + diff, caretPos + diff);
-      }
     });
 
     // 초기값도 포맷
@@ -67,31 +76,31 @@ function setupMoneyInputs() {
 }
 
 // ─────────────────────────────────────────
-// 상단 MENU 드롭다운 (베타 헤더용)
+// 상단 MENU 드롭다운 (베타 공통)
 // ─────────────────────────────────────────
 
 function setupBetaMenu() {
-  const btn   = document.getElementById('betaMenuToggle');
-  const panel = document.getElementById('betaMenuPanel');
+  const btn   = document.getElementById("betaMenuToggle");
+  const panel = document.getElementById("betaMenuPanel");
   if (!btn || !panel) return;
 
   const close = () => {
-    panel.classList.add('hide');
-    btn.setAttribute('aria-expanded', 'false');
+    panel.classList.add("hide");
+    btn.setAttribute("aria-expanded", "false");
   };
   const open = () => {
-    panel.classList.remove('hide');
-    btn.setAttribute('aria-expanded', 'true');
+    panel.classList.remove("hide");
+    btn.setAttribute("aria-expanded", "true");
   };
 
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    const expanded = btn.getAttribute("aria-expanded") === "true";
     if (expanded) close();
     else open();
   });
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener("click", (e) => {
     if (!panel.contains(e.target) && !btn.contains(e.target)) {
       close();
     }
@@ -99,350 +108,426 @@ function setupBetaMenu() {
 }
 
 // ─────────────────────────────────────────
-// 1. 담보대출 LTV / 금리 설정
+// 1. 담보대출 LTV / 금리 설정 영역
 // ─────────────────────────────────────────
 
-function loadLoanConfigFromLocal() {
-  try {
-    const raw = localStorage.getItem(LOCAL_KEY_LOAN);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.items)) return null;
-    return parsed;
-  } catch (e) {
-    console.warn('[admin-beta] loan-config load error:', e);
-    return null;
-  }
-}
-
-function buildLoanConfigRows() {
-  const tbody = document.getElementById('loanConfigBody');
+// LTV/금리 설정 테이블 렌더링
+function buildLoanConfigTable() {
+  const tbody = document.getElementById("loanConfigBody");
   if (!tbody) return;
 
-  const stored = loadLoanConfigFromLocal();
-  const rowsData = stored?.items && stored.items.length ? stored.items : DEFAULT_LOAN_ITEMS;
-
-  const regionOptionsHTML = (selected) =>
-    REGION_OPTIONS.map((r) =>
-      `<option value="${r}" ${r === selected ? 'selected' : ''}>${r}</option>`
-    ).join('');
-
-  tbody.innerHTML = rowsData.map((row, idx) => {
-    const maxLtvPercent  = row.maxLtv != null ? (row.maxLtv * 100) : '';
-    const rateMinPercent = row.rateMin != null ? (row.rateMin * 100) : '';
-    const rateMaxPercent = row.rateMax != null ? (row.rateMax * 100) : '';
+  const rowsHtml = PROPERTY_TYPES_LTV.map((type) => {
+    const regionSelect = `
+      <select class="admin-input js-region" data-type-key="${type}">
+        ${REGIONS.map((r) => `<option value="${r}">${r}</option>`).join("")}
+      </select>
+    `;
 
     return `
-      <tr data-type="${row.type}">
-        <td>
-          <select class="admin-select js-region">
-            ${regionOptionsHTML(row.region || REGION_OPTIONS[0])}
-          </select>
-        </td>
-        <td>${row.type}</td>
-        <td style="text-align:right;">
+      <tr data-type="${type}">
+        <td style="padding:4px 4px;">${type}</td>
+        <td style="padding:4px 4px;">${regionSelect}</td>
+        <td style="padding:4px 4px;text-align:right;">
           <input
             type="number"
-            step="0.1"
-            min="0"
-            max="100"
             class="admin-input js-maxLtv"
-            value="${maxLtvPercent !== '' ? maxLtvPercent : ''}"
+            data-type-key="${type}"
+            min="0" max="100" step="0.1"
             placeholder="예) 73"
+            style="width:100%;text-align:right;"
           />
         </td>
-        <td style="text-align:right;">
+        <td style="padding:4px 4px;text-align:right;">
           <input
             type="number"
-            step="0.1"
-            min="0"
-            max="100"
             class="admin-input js-rateMin"
-            value="${rateMinPercent !== '' ? rateMinPercent : ''}"
+            data-type-key="${type}"
+            min="0" max="100" step="0.01"
             placeholder="예) 6.8"
+            style="width:100%;text-align:right;"
           />
         </td>
-        <td style="text-align:right;">
+        <td style="padding:4px 4px;text-align:right;">
           <input
             type="number"
-            step="0.1"
-            min="0"
-            max="100"
             class="admin-input js-rateMax"
-            value="${rateMaxPercent !== '' ? rateMaxPercent : ''}"
+            data-type-key="${type}"
+            min="0" max="100" step="0.01"
             placeholder="예) 14.8"
+            style="width:100%;text-align:right;"
           />
         </td>
       </tr>
     `;
-  }).join('');
+  }).join("");
+
+  tbody.innerHTML = rowsHtml;
 }
 
-function saveLoanConfigToLocal(payload) {
+// localStorage에서 LTV/금리 설정 로드
+function loadLoanConfigFromLocal() {
   try {
-    localStorage.setItem(LOCAL_KEY_LOAN, JSON.stringify(payload));
-  } catch (e) {
-    console.warn('[admin-beta] loan-config save error:', e);
-  }
-}
-
-function handleLoanConfigSave() {
-  const tbody = document.getElementById('loanConfigBody');
-  const statusEl = document.getElementById('loanConfigStatus');
-  if (!tbody) return;
-
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  const items = [];
-
-  rows.forEach((row) => {
-    const regionSel = row.querySelector('.js-region');
-    const maxLtvEl  = row.querySelector('.js-maxLtv');
-    const rateMinEl = row.querySelector('.js-rateMin');
-    const rateMaxEl = row.querySelector('.js-rateMax');
-
-    const region   = regionSel ? regionSel.value.trim() : '';
-    const type     = row.getAttribute('data-type') || '';
-    const maxLtvP  = maxLtvEl ? parseFloat(maxLtvEl.value) : NaN;
-    const rateMinP = rateMinEl ? parseFloat(rateMinEl.value) : NaN;
-    const rateMaxP = rateMaxEl ? parseFloat(rateMaxEl.value) : NaN;
-
-    if (!type) return;
-
-    const item = {
-      region: region || REGION_OPTIONS[0],
-      type,
-      maxLtv: isNaN(maxLtvP)  ? 0 : maxLtvP  / 100,
-      rateMin:isNaN(rateMinP) ? 0 : rateMinP / 100,
-      rateMax:isNaN(rateMaxP) ? 0 : rateMaxP / 100,
-    };
-    items.push(item);
-  });
-
-  const payload = {
-    updatedAt: new Date().toISOString(),
-    items,
-  };
-
-  saveLoanConfigToLocal(payload);
-  console.log('[beta admin] loan-config (local only):', payload);
-
-  if (statusEl) {
-    statusEl.textContent = '브라우저(localStorage)에 저장되었습니다.';
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
-  }
-}
-
-function initLoanConfigSection() {
-  buildLoanConfigRows();
-  const btn = document.getElementById('loanConfigSaveBtn');
-  if (btn) {
-    btn.addEventListener('click', handleLoanConfigSave);
-  }
-}
-
-// ─────────────────────────────────────────
-// 2. 온투업 대출 통계
-// ─────────────────────────────────────────
-
-function loadStatsStore() {
-  try {
-    const raw = localStorage.getItem(LOCAL_KEY_STATS);
-    if (!raw) return {};
+    const raw = localStorage.getItem(LOCAL_KEY_LOAN_CONFIG);
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
   } catch (e) {
-    console.warn('[admin-beta] stats load error:', e);
-    return {};
+    console.warn("[admin-beta] loan-config parse 실패:", e);
+    return null;
   }
 }
 
-function saveStatsStore(store) {
-  try {
-    localStorage.setItem(LOCAL_KEY_STATS, JSON.stringify(store));
-  } catch (e) {
-    console.warn('[admin-beta] stats save error:', e);
-  }
-}
+// LTV/금리 설정 UI에 값 반영
+function hydrateLoanConfigUI(config) {
+  if (!config || !config.byType) return;
 
-function getBalanceValue() {
-  const el = document.getElementById('sum-balance');
-  if (!el) return 0;
-  return parseMoney(el.value);
-}
+  PROPERTY_TYPES_LTV.forEach((type) => {
+    const rowData = config.byType[type];
+    if (!rowData) return;
 
-function recalcProductAmounts() {
-  const balance = getBalanceValue();
-  const rows = document.querySelectorAll('#productRows tr');
+    const regionEl   = document.querySelector(`select.js-region[data-type-key="${type}"]`);
+    const maxLtvEl   = document.querySelector(`input.js-maxLtv[data-type-key="${type}"]`);
+    const rateMinEl  = document.querySelector(`input.js-rateMin[data-type-key="${type}"]`);
+    const rateMaxEl  = document.querySelector(`input.js-rateMax[data-type-key="${type}"]`);
 
-  rows.forEach((row) => {
-    const ratioInput  = row.querySelector('.js-ratio');
-    const amountInput = row.querySelector('.js-amount');
-    if (!ratioInput || !amountInput) return;
-
-    const ratio = parseFloat(ratioInput.value);
-    if (!balance || isNaN(ratio)) {
-      amountInput.value = '';
-      return;
+    if (regionEl && rowData.region && REGIONS.includes(rowData.region)) {
+      regionEl.value = rowData.region;
     }
-    const amount = Math.round(balance * (ratio / 100));
-    amountInput.value = formatWithCommas(String(amount));
+    if (maxLtvEl && typeof rowData.maxLtv === "number") {
+      const pct = (rowData.maxLtv * 100).toFixed(1).replace(/\.0$/, "");
+      maxLtvEl.value = pct;
+    }
+    if (rateMinEl && typeof rowData.rateMin === "number") {
+      const pct = (rowData.rateMin * 100).toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
+      rateMinEl.value = pct;
+    }
+    if (rateMaxEl && typeof rowData.rateMax === "number") {
+      const pct = (rowData.rateMax * 100).toFixed(2).replace(/0$/, "").replace(/\.0$/, "");
+      rateMaxEl.value = pct;
+    }
   });
 }
 
-function collectOntuFormData() {
-  const monthInput = document.getElementById('statsMonth');
+// LTV/금리 설정 저장
+function setupLoanConfigSave() {
+  const btn    = document.getElementById("loanConfigSaveBtn");
+  const status = document.getElementById("loanConfigStatus");
+  if (!btn) return;
 
-  const regInput   = document.getElementById('sum-registeredFirms');
-  const dataInput  = document.getElementById('sum-dataFirms');
-  const totalLoanInput   = document.getElementById('sum-totalLoan');
-  const totalRepaidInput = document.getElementById('sum-totalRepaid');
-  const balanceInput     = document.getElementById('sum-balance');
+  btn.addEventListener("click", () => {
+    const byType = {};
 
-  const month = monthInput ? (monthInput.value || '').trim() : '';
+    PROPERTY_TYPES_LTV.forEach((type) => {
+      const regionEl  = document.querySelector(`select.js-region[data-type-key="${type}"]`);
+      const maxLtvEl  = document.querySelector(`input.js-maxLtv[data-type-key="${type}"]`);
+      const rateMinEl = document.querySelector(`input.js-rateMin[data-type-key="${type}"]`);
+      const rateMaxEl = document.querySelector(`input.js-rateMax[data-type-key="${type}"]`);
+
+      const region      = regionEl ? (regionEl.value || "").trim() : "";
+      const maxLtvPct   = maxLtvEl ? parseFloat(maxLtvEl.value) : NaN;
+      const rateMinPct  = rateMinEl ? parseFloat(rateMinEl.value) : NaN;
+      const rateMaxPct  = rateMaxEl ? parseFloat(rateMaxEl.value) : NaN;
+
+      const maxLtv  = isNaN(maxLtvPct)  ? null : maxLtvPct / 100;
+      const rateMin = isNaN(rateMinPct) ? null : rateMinPct / 100;
+      const rateMax = isNaN(rateMaxPct) ? null : rateMaxPct / 100;
+
+      byType[type] = {
+        region: region || null,
+        maxLtv,
+        rateMin,
+        rateMax,
+      };
+    });
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      byType,
+    };
+
+    try {
+      localStorage.setItem(LOCAL_KEY_LOAN_CONFIG, JSON.stringify(payload));
+      console.log("[admin-beta] loan-config 저장:", payload);
+      if (status) {
+        status.textContent = "LTV/금리 설정이 브라우저(localStorage)에 저장되었습니다.";
+        status.style.color = "#16a34a";
+      }
+    } catch (e) {
+      console.error("[admin-beta] loan-config 저장 실패:", e);
+      if (status) {
+        status.textContent = "저장 중 오류가 발생했습니다. (콘솔 확인)";
+        status.style.color = "#b91c1c";
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────
+// 2. 온투업 통계 영역 (요약 + 상품유형별)
+// ─────────────────────────────────────────
+
+// localStorage에서 온투 통계 전체 스토어 로드
+function loadOntuStore() {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY_ONTU_STATS);
+    if (!raw) {
+      return { byMonth: {}, lastMonth: null };
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return { byMonth: {}, lastMonth: null };
+    }
+    if (!parsed.byMonth || typeof parsed.byMonth !== "object") {
+      parsed.byMonth = {};
+    }
+    return parsed;
+  } catch (e) {
+    console.warn("[admin-beta] ontu-stats parse 실패:", e);
+    return { byMonth: {}, lastMonth: null };
+  }
+}
+
+// 온투 통계 스토어 저장
+function saveOntuStore(store) {
+  try {
+    localStorage.setItem(LOCAL_KEY_ONTU_STATS, JSON.stringify(store));
+  } catch (e) {
+    console.error("[admin-beta] ontu-stats 저장 실패:", e);
+  }
+}
+
+// 현재 UI에서 통계 데이터 수집
+function collectOntuStatsFromUI() {
+  const monthInput = document.getElementById("statsMonth");
+  const month = monthInput ? (monthInput.value || "").trim() : "";
+
+  const regFirmsEl   = document.getElementById("summary-registeredFirms");
+  const dataFirmsEl  = document.getElementById("summary-dataFirms");
+  const totalLoanEl  = document.getElementById("summary-totalLoan");
+  const totalRepEl   = document.getElementById("summary-totalRepaid");
+  const balanceEl    = document.getElementById("summary-balance");
 
   const summary = {
-    registeredFirms: regInput ? Number(regInput.value || 0) : 0,
-    dataFirms:       dataInput ? Number(dataInput.value || 0) : 0,
-    totalLoan:       totalLoanInput ? parseMoney(totalLoanInput.value) : 0,
-    totalRepaid:     totalRepaidInput ? parseMoney(totalRepaidInput.value) : 0,
-    balance:         balanceInput ? parseMoney(balanceInput.value) : 0,
+    registeredFirms: regFirmsEl ? Number(regFirmsEl.value || 0) : 0,
+    dataFirms:       dataFirmsEl ? Number(dataFirmsEl.value || 0) : 0,
+    totalLoan:       getMoneyValueFromInput(totalLoanEl),
+    totalRepaid:     getMoneyValueFromInput(totalRepEl),
+    balance:         getMoneyValueFromInput(balanceEl),
   };
 
   const byType = {};
-  const rows = document.querySelectorAll('#productRows tr[data-key]');
-  rows.forEach((row) => {
-    const key = row.getAttribute('data-key');
-    if (!key) return;
-    const ratioInput  = row.querySelector('.js-ratio');
-    const amountInput = row.querySelector('.js-amount');
+  PRODUCT_TYPES_STATS.forEach((name) => {
+    const ratioEl  = document.querySelector(`.js-ratio[data-key="${name}"]`);
+    const amountEl = document.querySelector(`.js-amount[data-key="${name}"]`);
 
-    const ratioPercent = ratioInput ? parseFloat(ratioInput.value) : NaN;
+    const ratioPercent = ratioEl ? parseFloat(ratioEl.value) : NaN;
     const ratio = isNaN(ratioPercent) ? 0 : (ratioPercent / 100);
-    const amount = amountInput ? parseMoney(amountInput.value) : 0;
 
-    byType[key] = { ratio, amount };
+    const amount = getMoneyValueFromInput(amountEl);
+
+    byType[name] = {
+      ratio,
+      amount,
+    };
   });
 
   return { month, summary, byType };
 }
 
-function fillOntuForm(data) {
-  if (!data) return;
-
-  const { month, summary, byType } = data;
-
-  const monthInput = document.getElementById('statsMonth');
-  if (monthInput && month) monthInput.value = month;
-
-  const regInput   = document.getElementById('sum-registeredFirms');
-  const dataInput  = document.getElementById('sum-dataFirms');
-  const totalLoanInput   = document.getElementById('sum-totalLoan');
-  const totalRepaidInput = document.getElementById('sum-totalRepaid');
-  const balanceInput     = document.getElementById('sum-balance');
-
-  if (regInput)   regInput.value   = summary?.registeredFirms ?? '';
-  if (dataInput)  dataInput.value  = summary?.dataFirms ?? '';
-
-  if (totalLoanInput) {
-    totalLoanInput.value = summary?.totalLoan ? formatWithCommas(String(summary.totalLoan)) : '';
-  }
-  if (totalRepaidInput) {
-    totalRepaidInput.value = summary?.totalRepaid ? formatWithCommas(String(summary.totalRepaid)) : '';
-  }
-  if (balanceInput) {
-    balanceInput.value = summary?.balance ? formatWithCommas(String(summary.balance)) : '';
+// UI에 통계 데이터 바인딩
+function hydrateOntuStatsUI(statsObj) {
+  const monthInput = document.getElementById("statsMonth");
+  if (monthInput && statsObj.month) {
+    monthInput.value = statsObj.month;
   }
 
-  // 상품유형별
-  const rows = document.querySelectorAll('#productRows tr[data-key]');
-  rows.forEach((row) => {
-    const key = row.getAttribute('data-key');
-    const ratioInput  = row.querySelector('.js-ratio');
-    const amountInput = row.querySelector('.js-amount');
-    const item = byType && byType[key];
+  const regFirmsEl   = document.getElementById("summary-registeredFirms");
+  const dataFirmsEl  = document.getElementById("summary-dataFirms");
+  const totalLoanEl  = document.getElementById("summary-totalLoan");
+  const totalRepEl   = document.getElementById("summary-totalRepaid");
+  const balanceEl    = document.getElementById("summary-balance");
 
-    if (!item) {
-      if (ratioInput) ratioInput.value = '';
-      if (amountInput) amountInput.value = '';
+  if (regFirmsEl) regFirmsEl.value = statsObj.summary?.registeredFirms ?? "";
+  if (dataFirmsEl) dataFirmsEl.value = statsObj.summary?.dataFirms ?? "";
+
+  if (totalLoanEl) {
+    const v = statsObj.summary?.totalLoan ?? 0;
+    totalLoanEl.value = v ? formatWithCommas(String(v)) : "";
+  }
+  if (totalRepEl) {
+    const v = statsObj.summary?.totalRepaid ?? 0;
+    totalRepEl.value = v ? formatWithCommas(String(v)) : "";
+  }
+  if (balanceEl) {
+    const v = statsObj.summary?.balance ?? 0;
+    balanceEl.value = v ? formatWithCommas(String(v)) : "";
+  }
+
+  // 상품유형별 비율/금액
+  PRODUCT_TYPES_STATS.forEach((name) => {
+    const typeData = statsObj.byType?.[name] || {};
+    const ratioEl  = document.querySelector(`.js-ratio[data-key="${name}"]`);
+    const amountEl = document.querySelector(`.js-amount[data-key="${name}"]`);
+
+    if (ratioEl && typeof typeData.ratio === "number") {
+      const pct = (typeData.ratio * 100).toFixed(1).replace(/\.0$/, "");
+      ratioEl.value = pct;
+    } else if (ratioEl) {
+      ratioEl.value = "";
+    }
+
+    if (amountEl && typeof typeData.amount === "number") {
+      amountEl.value = typeData.amount
+        ? formatWithCommas(String(typeData.amount))
+        : "";
+    } else if (amountEl) {
+      amountEl.value = "";
+    }
+  });
+}
+
+// [상품유형별 대출잔액] 금액 재계산
+function recalcProductAmounts() {
+  const balanceEl = document.getElementById("summary-balance");
+  if (!balanceEl) return;
+  const balance = getMoneyValueFromInput(balanceEl);
+  const ratioInputs = document.querySelectorAll(".js-ratio");
+
+  ratioInputs.forEach((ratioEl) => {
+    const key = ratioEl.getAttribute("data-key");
+    const amountEl = document.querySelector(`.js-amount[data-key="${key}"]`);
+    if (!amountEl) return;
+
+    const ratioPercent = parseFloat(ratioEl.value);
+    if (!balance || isNaN(ratioPercent)) {
+      amountEl.value = "";
       return;
     }
+    const amount = Math.round(balance * (ratioPercent / 100));
+    amountEl.value = formatWithCommas(String(amount));
+  });
+}
 
-    if (ratioInput) {
-      ratioInput.value = item.ratio != null ? (item.ratio * 100).toFixed(1).replace(/\.0$/, '') : '';
-    }
-    if (amountInput) {
-      amountInput.value = item.amount ? formatWithCommas(String(item.amount)) : '';
-    }
+// 온투 통계 섹션 초기화
+function setupOntuStatsSection() {
+  const balanceEl = document.getElementById("summary-balance");
+  const ratioInputs = document.querySelectorAll(".js-ratio");
+  const saveBtn  = document.getElementById("saveOntuStatsBtn");
+  const statusEl = document.getElementById("ontuStatsStatus");
+  const loadBtn  = document.getElementById("statsLoadBtn");
+  const monthEl  = document.getElementById("statsMonth");
+
+  // 대출잔액 변화 시 전체 재계산
+  if (balanceEl) {
+    balanceEl.addEventListener("input", () => {
+      recalcProductAmounts();
+    });
+  }
+
+  // 각 상품유형 비율 입력 시 금액 재계산
+  ratioInputs.forEach((el) => {
+    el.addEventListener("input", () => recalcProductAmounts());
   });
 
-  // balance 기준으로 다시 한 번 재계산(혹시 값이 어긋난 경우)
-  recalcProductAmounts();
-}
-
-function handleOntuStatsSave() {
-  const statusEl = document.getElementById('statsStatus');
-  const payload = collectOntuFormData();
-
-  if (!payload.month) {
-    alert('조회년월(YYYY-MM)을 먼저 선택해주세요.');
-    return;
-  }
-
-  const store = loadStatsStore();
-  store[payload.month] = payload;
-  saveStatsStore(store);
-
-  console.log('[beta admin] ontu-stats (local only):', payload);
-
-  if (statusEl) {
-    statusEl.textContent = '통계 데이터가 localStorage에 저장되었습니다.';
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
-  }
-}
-
-function handleOntuStatsLoad() {
-  const monthInput = document.getElementById('statsMonth');
-  const statusEl   = document.getElementById('statsStatus');
-  if (!monthInput) return;
-
-  const month = (monthInput.value || '').trim();
-  if (!month) {
-    alert('불러올 조회년월(YYYY-MM)을 먼저 선택해주세요.');
-    return;
-  }
-
-  const store = loadStatsStore();
-  const data = store[month];
-  if (!data) {
-    if (statusEl) {
-      statusEl.textContent = '해당 월에 저장된 데이터가 없습니다.';
-      setTimeout(() => { statusEl.textContent = ''; }, 4000);
-    } else {
-      alert('해당 월에 저장된 데이터가 없습니다.');
-    }
-    return;
-  }
-
-  fillOntuForm(data);
-
-  if (statusEl) {
-    statusEl.textContent = '저장된 데이터를 불러왔습니다.';
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
-  }
-}
-
-function initOntuStatsSection() {
-  // 비율/대출잔액 → 금액 자동 계산
-  const balanceInput = document.getElementById('sum-balance');
-  if (balanceInput) {
-    balanceInput.addEventListener('input', recalcProductAmounts);
-  }
-
-  const ratioInputs = document.querySelectorAll('#productRows .js-ratio');
-  ratioInputs.forEach((input) => {
-    input.addEventListener('input', recalcProductAmounts);
-  });
-
-  const saveBtn = document.getElementById('saveOntuStatsBtn');
+  // 저장 버튼
   if (saveBtn) {
-    saveBtn.addEventListener('
+    saveBtn.addEventListener("click", () => {
+      const stats = collectOntuStatsFromUI();
+      if (!stats.month) {
+        alert("조회년월을 먼저 선택해주세요.");
+        if (monthEl) monthEl.focus();
+        return;
+      }
+
+      const store = loadOntuStore();
+      store.byMonth[stats.month] = stats;
+      store.lastMonth = stats.month;
+      saveOntuStore(store);
+
+      console.log("[admin-beta] ontu-stats 저장:", stats);
+
+      if (statusEl) {
+        statusEl.textContent = `${stats.month} 통계가 브라우저(localStorage)에 저장되었습니다.`;
+        statusEl.style.color = "#16a34a";
+      }
+    });
+  }
+
+  // 해당 월 데이터 불러오기
+  if (loadBtn) {
+    loadBtn.addEventListener("click", () => {
+      const monthKey = monthEl ? (monthEl.value || "").trim() : "";
+      if (!monthKey) {
+        alert("조회년월을 먼저 선택해주세요.");
+        if (monthEl) monthEl.focus();
+        return;
+      }
+      const store = loadOntuStore();
+      const stats = store.byMonth[monthKey];
+      if (!stats) {
+        // 해당 월 데이터가 없으면 UI 초기화
+        const emptyStats = {
+          month: monthKey,
+          summary: {
+            registeredFirms: 0,
+            dataFirms: 0,
+            totalLoan: 0,
+            totalRepaid: 0,
+            balance: 0,
+          },
+          byType: {},
+        };
+        hydrateOntuStatsUI(emptyStats);
+        recalcProductAmounts();
+        if (statusEl) {
+          statusEl.textContent = `${monthKey} 데이터가 없어 초기값으로 설정되었습니다.`;
+          statusEl.style.color = "#6b7280";
+        }
+        return;
+      }
+      hydrateOntuStatsUI(stats);
+      recalcProductAmounts();
+      if (statusEl) {
+        statusEl.textContent = `${monthKey} 저장된 통계를 불러왔습니다.`;
+        statusEl.style.color = "#0f766e";
+      }
+    });
+  }
+
+  // 초기 로딩 시, lastMonth가 있으면 자동 로딩
+  const store = loadOntuStore();
+  if (store.lastMonth && store.byMonth[store.lastMonth]) {
+    const last = store.byMonth[store.lastMonth];
+    if (monthEl) monthEl.value = last.month;
+    hydrateOntuStatsUI(last);
+    recalcProductAmounts();
+    if (statusEl) {
+      statusEl.textContent = `${last.month} 기준 마지막 저장 통계를 불러왔습니다.`;
+      statusEl.style.color = "#6b7280";
+    }
+  }
+}
+
+// ─────────────────────────────────────────
+// DOMContentLoaded
+// ─────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+  // 상단 MENU
+  setupBetaMenu();
+
+  // LTV/금리 설정 테이블 생성 + 데이터 복원 + 저장 버튼
+  buildLoanConfigTable();
+  const loadedLoanConfig = loadLoanConfigFromLocal();
+  if (loadedLoanConfig) {
+    hydrateLoanConfigUI(loadedLoanConfig);
+  }
+  setupLoanConfigSave();
+
+  // 금액 인풋 쉼표 포맷
+  setupMoneyInputs();
+
+  // 온투 통계 섹션 초기화
+  setupOntuStatsSection();
+});
