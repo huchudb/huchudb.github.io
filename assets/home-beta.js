@@ -1,379 +1,316 @@
 // /assets/home-beta.js
-// 베타 홈: 온투업 통계(대출현황 + 상품유형별 도넛) + 금일 이용자수 + MENU 토글
 
-import { formatKoreanCurrency } from './shared.js';
+// 숫자만 추출
+const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
+const toNumber = (s) => Number(onlyDigits(s)) || 0;
 
-const API_BASE = 'https://huchudb-github-io.vercel.app';
-const ONTU_STATS_API = `${API_BASE}/api/ontu-stats`;
-const DAILY_API      = `${API_BASE}/api/daily-users`;
+// '조/억/만원' 포맷
+function formatKoreanCurrencyJo(num) {
+  const n = Math.max(0, Math.floor(num));
 
-/* -----------------------------
- * FALLBACK 통계 (관리자 입력 전 임시)
- * ----------------------------- */
-const FALLBACK_STATS = {
-  baseMonth: '2025-10',
-  lastUpdated: '2025-11-16T00:00:00.000Z',
-  summary: {
-    firmCount: 49,
-    cumulativeLoan: 18358007760000,      // 18조 3,580억 776만원
-    cumulativeRepayment: 16924144010000, // 16조 9,241억 4,401만원
-    outstandingBalance: 1433863750000,   // 1조 4,338억 6,375만원
-  },
-  productBreakdown: [
-    { type: '부동산담보',         share: 0.43 },
-    { type: '부동산PF',          share: 0.02 },
-    { type: '어음·매출채권담보', share: 0.09 },
-    { type: '기타담보(주식 등)', share: 0.38 },
-    { type: '개인신용',          share: 0.06 },
-    { type: '법인신용',          share: 0.03 },
-  ],
-};
+  const ONE_MAN = 10_000;
+  const ONE_EOK = 100_000_000;
+  const ONE_JO  = 1_000_000_000_000;
 
-function formatMonthLabel(baseMonth) {
-  if (!baseMonth || typeof baseMonth !== 'string') return '-';
-  const parts = baseMonth.split('-');
-  if (parts.length < 2) return baseMonth;
-  const y = parts[0];
-  const m = parts[1];
+  if (n >= ONE_JO) {
+    const jo = Math.floor(n / ONE_JO);
+    const restAfterJo = n % ONE_JO;
+    const eok = Math.floor(restAfterJo / ONE_EOK);
+    const restAfterEok = restAfterJo % ONE_EOK;
+    const man = Math.floor(restAfterEok / ONE_MAN);
+
+    const parts = [];
+    if (jo > 0)  parts.push(`${jo.toLocaleString('ko-KR')}조`);
+    if (eok > 0) parts.push(`${eok.toLocaleString('ko-KR')}억`);
+    if (man > 0) parts.push(`${man.toLocaleString('ko-KR')}만원`);
+    return parts.join(' ');
+  }
+
+  if (n >= ONE_EOK) {
+    const eok = Math.floor(n / ONE_EOK);
+    const rest = n % ONE_EOK;
+    const man  = Math.floor(rest / ONE_MAN);
+    if (man > 0) return `${eok.toLocaleString('ko-KR')}억 ${man.toLocaleString('ko-KR')}만원`;
+    return `${eok.toLocaleString('ko-KR')}억 원`;
+  }
+
+  if (n >= ONE_MAN) {
+    const man = Math.floor(n / ONE_MAN);
+    return `${man.toLocaleString('ko-KR')}만원`;
+  }
+
+  return `${n.toLocaleString('ko-KR')}원`;
+}
+
+// 'YYYY-MM' → 'YYYY년 M월'
+function formatMonthLabel(ym) {
+  if (!ym || typeof ym !== 'string') return '';
+  const [y, m] = ym.split('-');
+  if (!y || !m) return '';
   return `${y}년 ${Number(m)}월`;
 }
 
-/* -----------------------------
- * 온투업 통계 API
- * ----------------------------- */
+// API 베이스
+const API_BASE       = 'https://huchudb-github-io.vercel.app';
+const ONTU_API       = `${API_BASE}/api/ontu-stats`;
+const DAILY_USERS_API = `${API_BASE}/api/daily-users`;
+
+// ====================== 온투업 통계 ======================
+
 async function fetchOntuStats() {
-  const url = `${ONTU_STATS_API}?t=${Date.now()}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${ONTU_API}?t=${Date.now()}`, {
     method: 'GET',
+    mode: 'cors',
+    credentials: 'omit',
     headers: { 'Accept': 'application/json' },
     cache: 'no-store',
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error('온투업 통계를 불러오지 못했습니다.');
+  const json = await res.json();
+  return json;
 }
 
-/* -----------------------------
- * Chart.js 도넛 퍼센트 라벨 플러그인
- * ----------------------------- */
-let productChart = null;
+function renderLoanStatus(summary, monthStr) {
+  const container = document.getElementById('ontuLoanStatus');
+  const monthEl   = document.getElementById('loanStatusMonth');
+  if (!container) return;
 
-const percentageLabelPlugin = {
-  id: 'percentageLabelPlugin',
-  afterDraw(chart) {
-    const { ctx } = chart;
-    const dataset = chart.data.datasets[0];
-    if (!dataset) return;
+  if (!summary) {
+    container.innerHTML = `
+      <div class="notice error">
+        <p>온투업 통계를 불러오지 못했습니다.</p>
+      </div>
+    `;
+    if (monthEl) monthEl.textContent = '';
+    return;
+  }
 
-    const meta = chart.getDatasetMeta(0);
-    const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0);
-    if (!total) return;
+  if (monthEl) {
+    monthEl.textContent = `최근 기준월: ${formatMonthLabel(monthStr)}`;
+  }
 
-    ctx.save();
-    ctx.font = '11px Arial';
-    ctx.fillStyle = '#e5e7eb';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  const items = [
+    {
+      label: '금융위원회 등록 온투업체수',
+      value: summary.registeredFirms != null ? `${summary.registeredFirms.toLocaleString('ko-KR')}개` : '-'
+    },
+    {
+      label: '데이터 수집 온투업체수',
+      value: summary.dataFirms != null ? `${summary.dataFirms.toLocaleString('ko-KR')}개` : '-'
+    },
+    {
+      label: '누적대출금액',
+      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : '-'
+    },
+    {
+      label: '누적상환금액',
+      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : '-'
+    },
+    {
+      label: '대출잔액',
+      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : '-'
+    },
+  ];
 
-    meta.data.forEach((arc, idx) => {
-      const val = Number(dataset.data[idx]);
-      if (!val || val <= 0) return;
-      const percentage = (val / total) * 100;
-      const label = percentage.toFixed(1) + '%';
-      const p = arc.getCenterPoint();
-      ctx.fillText(label, p.x, p.y);
-    });
+  container.innerHTML = `
+    <div class="beta-loanstatus-grid">
+      ${items.map(it => `
+        <div class="beta-loanstatus-item">
+          <div class="beta-loanstatus-item__label">${it.label}</div>
+          <div class="beta-loanstatus-item__value">${it.value}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
-    ctx.restore();
-  },
-};
+let donutChart = null;
 
-function renderProductDonutAndBoxes(outstandingBalance, breakdown) {
-  const sectionEl = document.getElementById('ontuProductSection');
-  if (!sectionEl) return;
+function renderProductSection(summary, byType) {
+  const section = document.getElementById('ontuProductSection');
+  if (!section) return;
 
-  const valid = (breakdown || []).filter(
-    item => item && typeof item.share === 'number' && item.share > 0
-  );
-  if (!valid.length) {
-    sectionEl.innerHTML = `
-      <div class="notice info">
-        <p>상품유형별 대출잔액 데이터가 없습니다.</p>
+  if (!summary || !byType || !Object.keys(byType).length) {
+    section.innerHTML = `
+      <div class="notice error">
+        <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
     `;
     return;
   }
 
-  // 레이아웃(도넛 + 박스) 렌더
-  sectionEl.innerHTML = `
+  const balance = Number(summary.balance || 0);
+
+  const labels = [];
+  const percents = [];
+  const amounts = [];
+
+  for (const [name, cfg] of Object.entries(byType)) {
+    const ratio = Number(cfg.ratio ?? cfg.share ?? 0);         // 0.43 이런 값
+    const amount = cfg.amount != null
+      ? Number(cfg.amount)
+      : (balance ? Math.round(balance * ratio) : 0);
+
+    labels.push(name);
+    percents.push(Math.round(ratio * 1000) / 10);              // 0.425 → 42.5
+    amounts.push(amount);
+  }
+
+  section.innerHTML = `
     <div class="beta-product-grid">
       <div class="beta-product-donut-wrap">
         <canvas id="productDonut"></canvas>
       </div>
-      <div class="beta-product-boxes" id="productOutstandingBoxes">
-        <!-- 6개 박스 -->
+      <div class="beta-product-boxes">
+        ${labels.map((name, idx) => `
+          <div class="beta-product-box">
+            <div class="beta-product-box__title">
+              ${name} <span style="color:#6b7280;font-weight:500;">${percents[idx].toFixed(1)}%</span>
+            </div>
+            <div class="beta-product-box__amount">
+              ${formatKoreanCurrencyJo(amounts[idx])}
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
   `;
 
-  const labels = valid.map(v => v.type || '-');
-  const shares = valid.map(v => v.share);
-
-  // Chart.js 도넛
   const canvas = document.getElementById('productDonut');
-  if (canvas && typeof Chart !== 'undefined') {
-    const ctx = canvas.getContext('2d');
-    if (productChart) {
-      productChart.destroy();
-      productChart = null;
-    }
-    productChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{
-          data: shares,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (context) => {
-                const label = context.label || '';
-                const v = context.raw;
-                const pct = (Number(v || 0) * 100).toFixed(1);
-                return `${label}: ${pct}%`;
-              },
-            },
-          },
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (donutChart) {
+    donutChart.destroy();
+    donutChart = null;
+  }
+
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: percents,
+        backgroundColor: [
+          '#1d4ed8', '#f97316', '#f43f5e',
+          '#facc15', '#22c55e', '#a855f7'
+        ],
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          display: false
         },
-        cutout: '60%',
-      },
-      plugins: [percentageLabelPlugin],
-    });
-  }
-
-  // 오른쪽 3×2 박스 (부동산담보, PF, 어음·매출채권, 기타담보, 개인신용, 법인신용)
-  const order = [
-    '부동산담보',
-    '부동산PF',
-    '어음·매출채권담보',
-    '기타담보(주식 등)',
-    '개인신용',
-    '법인신용',
-  ];
-  const boxesEl = document.getElementById('productOutstandingBoxes');
-  if (!boxesEl) return;
-
-  const map = {};
-  valid.forEach(v => { map[v.type] = v.share; });
-
-  const html = order.map(type => {
-    const share = map[type] || 0;
-    const amount = (typeof outstandingBalance === 'number' && !Number.isNaN(outstandingBalance))
-      ? Math.round(outstandingBalance * share)
-      : 0;
-    return `
-      <div class="beta-product-box">
-        <div class="beta-product-box__title">${type}</div>
-        <div class="beta-product-box__amount">
-          ${amount ? formatKoreanCurrency(amount) : '-'}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  boxesEl.innerHTML = html;
-}
-
-/* -----------------------------
- * 대출현황 렌더링
- * ----------------------------- */
-function renderLoanStatus(stats) {
-  const wrap = document.getElementById('ontuLoanStatus');
-  const monthMeta = document.getElementById('loanStatusMonth');
-  if (!wrap) return;
-
-  if (!stats || !stats.summary) {
-    wrap.innerHTML = `
-      <div class="notice info">
-        <p>등록된 대출현황 통계가 없습니다. 관리자 페이지에서 온투업 통계를 입력해주세요.</p>
-      </div>
-    `;
-    if (monthMeta) monthMeta.textContent = '';
-    return;
-  }
-
-  const baseMonth = stats.baseMonth || null;
-  const summary = stats.summary || {};
-  const firmCount = summary.firmCount ?? null;
-  const dataFirmCount = summary.dataFirmCount ?? firmCount ?? null;
-  const cumulativeLoan = summary.cumulativeLoan ?? null;
-  const cumulativeRepayment = summary.cumulativeRepayment ?? null;
-  const outstandingBalance = summary.outstandingBalance ?? null;
-
-  if (monthMeta) {
-    monthMeta.textContent = baseMonth ? `최근 기준월: ${formatMonthLabel(baseMonth)}` : '';
-  }
-
-  wrap.innerHTML = `
-    <div class="beta-loanstatus-grid">
-      <div class="beta-loanstatus-item">
-        <div class="beta-loanstatus-item__label">금융위원회 등록 온투업체수</div>
-        <div class="beta-loanstatus-item__value">51개</div>
-      </div>
-      <div class="beta-loanstatus-item">
-        <div class="beta-loanstatus-item__label">데이터 수집 온투업체수</div>
-        <div class="beta-loanstatus-item__value">
-          ${dataFirmCount != null ? dataFirmCount.toLocaleString('ko-KR') + '개' : '-'}
-        </div>
-      </div>
-      <div class="beta-loanstatus-item">
-        <div class="beta-loanstatus-item__label">누적대출금액</div>
-        <div class="beta-loanstatus-item__value">
-          ${cumulativeLoan != null ? formatKoreanCurrency(cumulativeLoan) : '-'}
-        </div>
-      </div>
-      <div class="beta-loanstatus-item">
-        <div class="beta-loanstatus-item__label">누적상환금액</div>
-        <div class="beta-loanstatus-item__value">
-          ${cumulativeRepayment != null ? formatKoreanCurrency(cumulativeRepayment) : '-'}
-        </div>
-      </div>
-      <div class="beta-loanstatus-item">
-        <div class="beta-loanstatus-item__label">대출잔액</div>
-        <div class="beta-loanstatus-item__value">
-          ${outstandingBalance != null ? formatKoreanCurrency(outstandingBalance) : '-'}
-        </div>
-      </div>
-    </div>
-  `;
-
-  // 상품유형별 도넛/박스도 같이 렌더
-  renderProductDonutAndBoxes(outstandingBalance, stats.productBreakdown || []);
-}
-
-/* -----------------------------
- * 온투 통계 로드
- * ----------------------------- */
-async function loadOntuStats() {
-  try {
-    let stats = await fetchOntuStats();
-    // 비거나 필수값 없으면 FALLBACK 사용
-    if (!stats || !stats.summary || stats.summary.outstandingBalance == null) {
-      console.warn('ontu-stats empty or invalid, use fallback');
-      stats = FALLBACK_STATS;
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const label = ctx.label || '';
+              const val   = ctx.raw ?? 0;
+              return `${label}: ${val.toFixed(1)}%`;
+            }
+          }
+        }
+      }
     }
-    renderLoanStatus(stats);
+  });
+}
+
+async function initOntuStats() {
+  try {
+    const data = await fetchOntuStats();
+    const month   = data.month || data.monthKey || '';
+    const summary = data.summary || null;
+    const byType  = data.byType  || {};
+
+    renderLoanStatus(summary, month);
+    renderProductSection(summary, byType);
   } catch (e) {
-    console.error('ontu-stats fetch error, use fallback', e);
-    renderLoanStatus(FALLBACK_STATS);
+    console.error(e);
+    const container = document.getElementById('ontuLoanStatus');
+    const product   = document.getElementById('ontuProductSection');
+    if (container) {
+      container.innerHTML = `
+        <div class="notice error">
+          <p>온투업 통계를 불러오지 못했습니다.</p>
+        </div>
+      `;
+    }
+    if (product) {
+      product.innerHTML = `
+        <div class="notice error">
+          <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
+        </div>
+      `;
+    }
   }
 }
 
-/* -----------------------------
- * 금일 계산기 이용자수 (daily-users)
- * ----------------------------- */
-function animateCount(el, to, duration = 500) {
-  if (!el) return;
-  const from = Number((el.textContent || '').replace(/[^0-9]/g, '')) || 0;
-  const start = performance.now();
-  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-  function frame(now) {
-    const p = Math.min(1, (now - start) / duration);
-    const val = Math.round(from + (to - from) * easeOutCubic(p));
-    el.textContent = val.toLocaleString('ko-KR');
-    if (p < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-}
-async function fetchDailyUsers() {
-  const res = await fetch(`${DAILY_API}?t=${Date.now()}`, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json' },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const j = await res.json();
-  return Number(j.count || 0);
-}
-async function initDailyUsersUI() {
+// ====================== 금일 이용자수 (조회만) ======================
+
+async function initDailyUsers() {
   const el = document.getElementById('todayUsersCount');
   if (!el) return;
+
   try {
-    const count = await fetchDailyUsers();
-    animateCount(el, count);
+    const res = await fetch(`${DAILY_USERS_API}?t=${Date.now()}`, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error('failed');
+    const json = await res.json();
+    const total = Number(json.count || 0);
+    el.textContent = total.toLocaleString('ko-KR');
   } catch (e) {
-    console.error('daily-users fetch error', e);
+    console.error(e);
+    el.textContent = '-';
   }
 }
 
-/* -----------------------------
- * MENU 토글
- * ----------------------------- */
-function initMenuToggle() {
-  const overlay = document.getElementById('betaMenuOverlay');
-  const openBtn = document.querySelector('.beta-menu-toggle');
-  const closeBtn = document.getElementById('betaMenuClose');
+// ====================== 상단 MENU 드롭다운 ======================
 
-  if (!overlay || !openBtn || !closeBtn) return;
+function setupBetaMenu() {
+  const btn   = document.getElementById('betaMenuToggle');
+  const panel = document.getElementById('betaMenuPanel');
+  if (!btn || !panel) return;
 
-  const open = () => {
-    overlay.classList.remove('hide');
-    overlay.setAttribute('aria-hidden', 'false');
-  };
   const close = () => {
-    overlay.classList.add('hide');
-    overlay.setAttribute('aria-hidden', 'true');
+    panel.classList.add('hide');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+  const open = () => {
+    panel.classList.remove('hide');
+    btn.setAttribute('aria-expanded', 'true');
   };
 
-  openBtn.addEventListener('click', open);
-  closeBtn.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) close();
+    else open();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      close();
+    }
   });
 }
 
-/* -----------------------------
- * DOMContentLoaded
- * ----------------------------- */
+// ====================== 기타 초기화 ======================
+
 document.addEventListener('DOMContentLoaded', () => {
-  initMenuToggle();
-  initDailyUsersUI();
-  loadOntuStats();
+  initOntuStats();
+  initDailyUsers();
+  setupBetaMenu();
 
   const y = document.getElementById('copyrightYear');
   if (y) y.textContent = String(new Date().getFullYear());
 });
-  // ===== 베타 상단 MENU 드롭다운 =====
-  (function setupBetaMenu(){
-    const btn = document.getElementById('betaMenuToggle');
-    const panel = document.getElementById('betaMenuPanel');
-    if (!btn || !panel) return;
-
-    const close = () => {
-      panel.classList.add('hide');
-      btn.setAttribute('aria-expanded','false');
-    };
-    const open = () => {
-      panel.classList.remove('hide');
-      btn.setAttribute('aria-expanded','true');
-    };
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      if (expanded) close(); else open();
-    });
-
-    // 바깥 클릭 시 닫기
-    document.addEventListener('click', (e) => {
-      if (!panel.contains(e.target) && !btn.contains(e.target)) {
-        close();
-      }
-    });
-  })();
-
