@@ -81,34 +81,38 @@
             </div>
           </section>
 
-          <!-- 오른쪽: 2×2 기능 카드 -->
-          <section class="beta-hero-cards" aria-label="주요 기능 바로가기">
-            <div class="beta-hero-cards__grid">
-              <a href="/beta/" class="beta-hero-card">
-                <h2>온투업(P2P) 대출 통계</h2>
-                <p>중앙기록관리기관 공시자료 기반 월별 대출현황</p>
-              </a>
-              <a href="/beta/products.html" class="beta-hero-card">
-                <h2>온투업(P2P) 대출 상품 정보</h2>
-                <p>담보·지분·경락잔금 12개 상품 구조 정리</p>
-              </a>
-              <a href="/beta/calculator.html" class="beta-hero-card">
-                <h2>온투업 담보대출 계산기</h2>
-                <p>개인정보 입력 없이 한도·금리 가늠</p>
-              </a>
-              <a href="https://blog.naver.com/" target="_blank" rel="noopener" class="beta-hero-card beta-hero-card--blog">
-                <div class="beta-hero-card__blog-tag">
-                  <span class="naver-n">N</span>
-                  <span>네이버 블로그</span>
-                </div>
-                <h2>후추 공식블로그</h2>
-                <p>온투업 담보대출 사례와 인사이트</p>
-              </a>
-            </div>
-          </section>
+/* 오른쪽 2×2 카드 (이미지 전용) */
+.beta-hero-cards__grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+@media (max-width:480px){
+  .beta-hero-cards__grid{
+    grid-template-columns:1fr;
+  }
+}
+.beta-hero-card{
+  display:block;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid rgba(148,163,184,.4);
+  background:#e5e7eb;
+}
+.beta-hero-card img{
+  width:100%;
+  display:block;
+  object-fit:cover;
+}
+.beta-hero-card:hover{
+  border-color:#6366f1;
+  box-shadow:0 4px 14px rgba(15,23,42,.08);
+}
 
-        </div>
-      </section>
+/* 이미지 전용 카드용 보조 클래스 (여유) */
+.beta-hero-card--image-only{
+  /* 필요시 별도 효과 넣을 수 있음 */
+}
 
       <!-- (C) 서브 인포 바 -->
       <section class="beta-subinfo" aria-label="금일 이용자수 및 안내 배너">
