@@ -1,5 +1,33 @@
 // /assets/home-beta.js
 
+// 도넛 안 % 라벨 플러그인
+const donutInsideLabelsPlugin = {
+  id: "donutInsideLabels",
+  afterDraw(chart) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
+
+    const { ctx } = chart;
+    const data = chart.data;
+
+    ctx.save();
+    ctx.font = "bold 11px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    meta.data.forEach((elem, idx) => {
+      const raw = data.datasets[0].data[idx];
+      if (!raw || raw <= 0) return;
+      const pos = elem.tooltipPosition();
+      const text = `${Number(raw).toFixed(1)}%`;
+      ctx.fillText(text, pos.x, pos.y);
+    });
+
+    ctx.restore();
+  }
+};
+
 // 숫자만 추출
 const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
 const toNumber = (s) => Number(onlyDigits(s)) || 0;
@@ -234,52 +262,64 @@ function renderProductSection(summary, byType) {
     </div>
   `;
 
-  const canvas = document.getElementById('productDonut');
+  const canvas = document.getElementById("productDonut");
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (donutChart) {
     donutChart.destroy();
     donutChart = null;
   }
 
+  // Chart.js 2/3/4 어디서든 동작하도록 처리
+  let extraPlugins = [];
+  if (window.Chart && Chart.register) {
+    // v3 / v4
+    extraPlugins = [donutInsideLabelsPlugin];
+  } else if (window.Chart && Chart.pluginService) {
+    // v2
+    Chart.pluginService.register(donutInsideLabelsPlugin);
+    extraPlugins = []; // 전역 등록이라 개별 플러그인 배열은 비워둠
+  }
+
   donutChart = new Chart(ctx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
       labels,
       datasets: [{
-        data: percents,
+        data: percents,  // 43.0, 2.0 이런 값
         backgroundColor: [
-          '#1d4ed8', '#f97316', '#f43f5e',
-          '#facc15', '#22c55e', '#a855f7'
+          "#1d4ed8",
+          "#f97316",
+          "#f43f5e",
+          "#facc15",
+          "#22c55e",
+          "#a855f7"
         ],
-        borderWidth: 0,
-      }],
+        borderWidth: 0
+      }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,  // 캔버스 높이 기준
-      cutout: '60%',
+      maintainAspectRatio: false,
+      cutout: "60%",
       plugins: {
-        legend: {
-          display: false
-        },
+        legend: { display:false },
         tooltip: {
           callbacks: {
             label: (ctx) => {
-              const label = ctx.label || '';
-              const val   = ctx.raw ?? 0;
-              return `${label}: ${val.toFixed(1)}%`;
+              const label = ctx.label || "";
+              const val = ctx.raw ?? 0;
+              return `${label}: ${Number(val).toFixed(1)}%`;
             }
           }
         }
       },
-      layout: {
-        padding: 4
-      }
-    }
+      layout: { padding: 4 }
+    },
+    plugins: extraPlugins
   });
-}
+
 
 async function initOntuStats() {
   try {
