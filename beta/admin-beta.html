@@ -51,6 +51,7 @@
   <main class="beta-main">
     <div class="beta-inner">
 
+      <!-- 인트로 -->
       <section class="beta-section">
         <div class="beta-section__header">
           <div class="beta-section__title-wrap">
@@ -61,10 +62,10 @@
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
             이 페이지에서 <strong>LTV·금리 설정(loan-config)</strong>과
-            <strong>온투업 대출 통계(ontu-stats)</strong>를 직접 저장할 수 있습니다.
+            <strong>온투업 대출 통계(ontu-stats)</strong>를 관리할 수 있습니다.
           </p>
           <p style="margin:0;font-size:12px;color:#9ca3af;">
-            ※ 현재는 <strong>브라우저(localStorage)에만 저장</strong>되며, 추후 서버 연동 시 이 구조를 그대로 사용할 수 있습니다.
+            ※ 현재는 브라우저 <code>localStorage</code>에만 저장됩니다. (서버 연동 전)
           </p>
         </div>
       </section>
@@ -80,23 +81,26 @@
 
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 10px;font-size:13px;color:#4b5563;">
-            <strong>지역 + 부동산 종류별</strong> <strong>최대 LTV(%)</strong>와 <strong>금리 범위(연 %)</strong>를 입력해주세요.
-            <br />※ 저장 시 내부에는 <code>0.73</code>, <code>0.068</code>처럼 <strong>소수(비율)</strong>로 저장됩니다.
+            부동산 종류별 <strong>최대 LTV(%)</strong>와 <strong>금리 범위(연 %)</strong>를 입력해주세요.
+            <br />※ 내부에는 <code>0.73</code>, <code>0.068</code>처럼 <strong>소수(비율)</strong>로 저장됩니다.
+          </p>
+          <p style="margin:4px 0 10px;font-size:12px;color:#6b7280;">
+            지역은 계산기 1번의 지역 선택과 동일하게 <strong>서울, 경기, 인천, 충청도, 전라도, 강원도, 경상도, 제주도</strong>를 사용합니다.
           </p>
 
           <div style="overflow-x:auto;margin-top:10px;">
-            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:540px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px;">
               <thead>
                 <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb;">
-                  <th style="text-align:left;padding:6px 4px;">지역</th>
                   <th style="text-align:left;padding:6px 4px;">부동산 종류</th>
+                  <th style="text-align:left;padding:6px 4px;">지역</th>
                   <th style="text-align:right;padding:6px 4px;">최대 LTV (%)</th>
                   <th style="text-align:right;padding:6px 4px;">최소 금리 (연 %)</th>
                   <th style="text-align:right;padding:6px 4px;">최대 금리 (연 %)</th>
                 </tr>
               </thead>
               <tbody id="loanConfigBody">
-                <!-- JS에서 행 동적 생성 -->
+                <!-- JS에서 행 동적 생성 (admin-beta.js) -->
               </tbody>
             </table>
           </div>
@@ -131,47 +135,50 @@
               해당 월 데이터 불러오기
             </button>
             <span style="font-size:12px;color:#9ca3af;">
-              (입력 후 저장하면 /beta 메인에 바로 반영될 데이터를 준비하는 용도입니다. 현재는 로컬 전용.)
+              (입력 후 저장하면 /beta 메인에 반영될 예정입니다. 현재는 로컬 저장용)
             </span>
           </div>
 
-          <!-- 대출현황 summary -->
+          <!-- [대출현황] summary -->
           <div style="border-top:1px dashed #e5e7eb;padding-top:10px;margin-top:8px;">
             <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">[대출현황]</h3>
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:13px;">
               <label>
                 금융위 등록 온투업체수
-                <input type="number" id="sum-registeredFirms" min="0"
+                <input type="number" id="summary-registeredFirms" min="0"
                        style="width:100%;margin-top:2px;padding:4px 8px;">
               </label>
               <label>
                 데이터 수집 온투업체수
-                <input type="number" id="sum-dataFirms" min="0"
+                <input type="number" id="summary-dataFirms" min="0"
                        style="width:100%;margin-top:2px;padding:4px 8px;">
               </label>
               <label>
                 누적대출금액 (원)
-                <input type="text" id="sum-totalLoan" data-type="money" inputmode="numeric"
+                <input type="text" id="summary-totalLoan" data-type="money" inputmode="numeric"
                        style="width:100%;margin-top:2px;padding:4px 8px;">
               </label>
               <label>
                 누적상환금액 (원)
-                <input type="text" id="sum-totalRepaid" data-type="money" inputmode="numeric"
+                <input type="text" id="summary-totalRepaid" data-type="money" inputmode="numeric"
                        style="width:100%;margin-top:2px;padding:4px 8px;">
               </label>
               <label>
                 대출잔액 (원)
-                <input type="text" id="sum-balance" data-type="money" inputmode="numeric"
+                <input type="text" id="summary-balance" data-type="money" inputmode="numeric"
                        style="width:100%;margin-top:2px;padding:4px 8px;">
               </label>
             </div>
+            <p style="margin:6px 0 0;font-size:12px;color:#6b7280;">
+              아래 <strong>[상품유형별 대출잔액]</strong>의 금액은 이 <strong>대출잔액</strong>과 비율(%)을 기준으로 자동 계산됩니다.
+            </p>
           </div>
 
-          <!-- 상품유형별 대출잔액 -->
+          <!-- [상품유형별 대출잔액] -->
           <section class="admin-section" style="margin-top:14px;">
             <h2 class="admin-section__title">[상품유형별 대출잔액]</h2>
             <p class="admin-section__desc">
-              비율은 전체 <strong>대출잔액(sum-balance)</strong> 기준 % (0~100), 금액은 원 단위로 자동 계산됩니다.
+              비율은 전체 <strong>대출잔액</strong> 기준 % (0~100), 금액은 원 단위로 자동 계산됩니다.
               (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
             </p>
 
@@ -314,12 +321,15 @@
                 </tbody>
               </table>
 
-              <button id="saveOntuStatsBtn" type="button" class="admin-btn">
-                통계 데이터 저장 (localStorage)
-              </button>
-              <span id="statsStatus" style="margin-left:8px;font-size:12px;color:#6b7280;"></span>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <button id="saveOntuStatsBtn" type="button" class="admin-btn">
+                  통계 데이터 저장
+                </button>
+                <span id="ontuStatsStatus" style="font-size:12px;color:#6b7280;"></span>
+              </div>
             </div>
           </section>
+
         </div>
       </section>
 
