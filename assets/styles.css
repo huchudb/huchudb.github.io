@@ -140,9 +140,10 @@ button:hover{background:#153154}
 }
 /* ===========================
    베타 전용 레이아웃 / 헤더 / 푸터
-   기존 계산기 화면엔 영향 없음 (beta- 접두사 사용)
+   (beta- 접두사, 기존 계산기에는 영향 없음)
    =========================== */
 
+/* 헤더 */
 .beta-header{
   background:#0f172a;
   border-bottom:1px solid #111827;
@@ -251,9 +252,9 @@ button:hover{background:#153154}
   text-decoration:underline;
 }
 
-/* 베타 메인 컨테이너 */
+/* 메인 컨테이너 */
 .beta-main{
-  background:var(--bg); /* 기존 #0b1120 에서 변경 */
+  background:var(--bg); /* 사이트 기본 배경 */
   min-height:100vh;
 }
 .beta-inner{
@@ -262,7 +263,7 @@ button:hover{background:#153154}
   padding:18px 16px 32px;
 }
 
-/* 히어로 영역 */
+/* 히어로 레이아웃 */
 .beta-hero{
   margin-top:8px;
   margin-bottom:16px;
@@ -277,13 +278,18 @@ button:hover{background:#153154}
     grid-template-columns:1fr;
   }
 }
+.beta-hero-right{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
 
 /* 왼쪽 배너 */
 .beta-hero-banner{
   position:relative;
-  border-radius:18px;
+  border-radius:24px;
   overflow:hidden;
-  background:radial-gradient(circle at top left,#f97316,#7c2d12 45%,#020617 80%);
+  background:#000000;
   min-height:220px;
 }
 .beta-hero-banner__slides{
@@ -357,7 +363,7 @@ button:hover{background:#153154}
   border-color:#f97316;
 }
 
-/* 오른쪽 2×2 카드 */
+/* 오른쪽 2×2 이미지 카드 */
 .beta-hero-cards__grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -369,95 +375,62 @@ button:hover{background:#153154}
   }
 }
 .beta-hero-card{
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  padding:12px 12px 10px;
-  border-radius:14px;
-  border:1px solid rgba(148,163,184,.4);
-  background:rgba(15,23,42,.8);
-  color:#e5e7eb;
-  text-decoration:none;
-  min-height:90px;
+  display:block;
+  border-radius:24px;
+  overflow:hidden;
+  border:1px solid rgba(148,163,184,.7);
+  background:#f5f5f5;
 }
-.beta-hero-card h2{
-  margin:0 0 4px;
-  font-size:14px;
-  font-weight:800;
-}
-.beta-hero-card p{
-  margin:0;
-  font-size:12px;
-  color:#9ca3af;
+.beta-hero-card img{
+  width:100%;
+  height:auto;
+  display:block;
+  object-fit:cover;
 }
 .beta-hero-card:hover{
   border-color:#6366f1;
+  box-shadow:0 4px 14px rgba(15,23,42,.08);
 }
-.beta-hero-card--blog{
-  background:linear-gradient(145deg,#020617,#111827);
-}
-.beta-hero-card__blog-tag{
-  display:inline-flex;
-  align-items:center;
-  gap:4px;
-  font-size:11px;
-  margin-bottom:4px;
-}
-.beta-hero-card__blog-tag .naver-n{
-  width:18px;
-  height:18px;
-  border-radius:4px;
-  background:#03c75a;
-  color:#fff;
-  font-weight:900;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
+.beta-hero-card--image-only{
+  /* 필요시 개별 효과 */
 }
 
-/* 서브 인포 바 */
+/* 서브 인포: 금일 이용자수 + 아래 이미지 (오른쪽 컬럼 전용) */
 .beta-subinfo{
-  margin-bottom:18px;
-  padding:0 0 10px;
+  margin-top:4px;
 }
 
-/* 위: 금일 이용자수 작은 칩 형태 */
-.beta-subinfo__top{
+/* 위: 금일 이용자수 pill */
+.beta-subinfo__metric-row{
   display:flex;
   align-items:center;
-  justify-content:flex-start;
+  justify-content:space-between;
   gap:8px;
-  margin-bottom:8px;
-}
-.beta-subinfo__metric{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:4px 10px;
+  padding:6px 12px;
   border-radius:999px;
-  background:#eef2ff;
+  background:#ffffff;
+  border:1px solid #111827;
 }
-.beta-subinfo__metric .label{
+.beta-subinfo__label{
   font-size:12px;
-  color:#4b5563;
+  color:#111827;
 }
-.beta-subinfo__metric .value{
+.beta-subinfo__value{
   font-size:13px;
   font-weight:800;
   color:#111827;
 }
-.beta-subinfo__metric .unit{
+.beta-subinfo__value .unit{
   font-size:12px;
+  margin-left:2px;
   color:#6b7280;
 }
 
-/* 아래: 서브 배너 이미지는 카드 느낌 */
+/* 아래: 관리자 업로드 이미지 (카드형 X, 그냥 이미지) */
 .beta-subinfo__banner{
-  border-radius:12px;
+  margin-top:8px;
+  border-radius:999px;
   overflow:hidden;
-  background:#020617;
-  min-height:80px;
-  border:1px solid #1e293b;
 }
 .beta-subinfo__banner img{
   width:100%;
@@ -484,26 +457,25 @@ button:hover{background:#153154}
   margin:0;
   font-size:15px;
   font-weight:800;
-  color:#e5e7eb;
+  color:#0f172a;
 }
 .beta-section__meta{
   font-size:12px;
-  color:#9ca3af;
+  color:#6b7280;
 }
 
-/* 카드 박스 */
+/* 섹션 카드 (바깥 회색) */
 .beta-card{
   border-radius:16px;
-  background:#f3f4f6;           /* 기존 #020617 → 밝은 회색 */
-  border:1px solid #e5e7eb;     /* 라이트 그레이 */
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
   padding:14px 14px 12px;
 }
 .beta-card--wide{
   padding:14px 14px 16px;
 }
 
-
-/* 대출현황 카드 5개 */
+/* 대출현황 카드 5개 - 안쪽 흰색 박스 */
 .beta-loanstatus-grid{
   display:grid;
   grid-template-columns:repeat(5,minmax(0,1fr));
@@ -521,7 +493,7 @@ button:hover{background:#153154}
 }
 .beta-loanstatus-item{
   border-radius:12px;
-  background:#ffffff;          /* 흰색 */
+  background:#ffffff;
   border:1px solid #e5e7eb;
   padding:10px 10px 9px;
 }
@@ -536,8 +508,7 @@ button:hover{background:#153154}
   color:#111827;
 }
 
-
-/* 상품유형별 대출잔액: 좌 도넛 / 우 3×2 그리드 */
+/* 상품유형별 대출잔액 레이아웃 */
 .beta-product-grid{
   display:grid;
   grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
@@ -567,20 +538,20 @@ button:hover{background:#153154}
 }
 .beta-product-box{
   border-radius:12px;
-  background:#0b1120;
-  border:1px solid #1f2937;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
   padding:9px 10px;
 }
 .beta-product-box__title{
   font-size:12px;
   font-weight:700;
-  color:#e5e7eb;
+  color:#111827;
   margin-bottom:2px;
 }
 .beta-product-box__amount{
   font-size:12px;
   font-weight:800;
-  color:#c7d2fe;
+  color:#1d4ed8;
 }
 
 /* 베타 푸터 */
@@ -642,7 +613,3 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0 0 3px;
 }
-
-
-
-
