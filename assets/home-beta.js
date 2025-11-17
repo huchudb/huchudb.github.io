@@ -1,6 +1,6 @@
-// /assets/home-beta.js (fixed)
+// /assets/home-beta.js
 
-// 1) 도넛 안에 % 라벨 찍는 플러그인 -------------------------
+// ───────── 도넛 안 % 라벨 플러그인 ─────────
 const donutInsideLabelsPlugin = {
   id: "donutInsideLabels",
   afterDraw(chart) {
@@ -28,16 +28,12 @@ const donutInsideLabelsPlugin = {
   }
 };
 
-// Chart.js 등록 (v2 / v3 / v4 호환)
-if (window.Chart) {
-  if (Chart.register) {
-    Chart.register(donutInsideLabelsPlugin);
-  } else if (Chart.plugins && Chart.plugins.register) {
-    Chart.plugins.register(donutInsideLabelsPlugin);
-  }
+// Chart.js v3/v4용 플러그인 등록
+if (window.Chart && Chart.register) {
+  Chart.register(donutInsideLabelsPlugin);
 }
 
-// 2) 숫자 / 금액 유틸 ---------------------------------------
+// ───────── 유틸 ─────────
 const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
 const toNumber   = (s) => Number(onlyDigits(s)) || 0;
 
@@ -50,11 +46,11 @@ function formatKoreanCurrencyJo(num) {
   const ONE_JO  = 1_000_000_000_000;
 
   if (n >= ONE_JO) {
-    const jo  = Math.floor(n / ONE_JO);
-    const remAfterJo = n % ONE_JO;
-    const eok = Math.floor(remAfterJo / ONE_EOK);
-    const remAfterEok = remAfterJo % ONE_EOK;
-    const man = Math.floor(remAfterEok / ONE_MAN);
+    const jo           = Math.floor(n / ONE_JO);
+    const restAfterJo  = n % ONE_JO;
+    const eok          = Math.floor(restAfterJo / ONE_EOK);
+    const restAfterEok = restAfterJo % ONE_EOK;
+    const man          = Math.floor(restAfterEok / ONE_MAN);
 
     const parts = [];
     if (jo  > 0) parts.push(`${jo.toLocaleString("ko-KR")}조`);
@@ -64,9 +60,9 @@ function formatKoreanCurrencyJo(num) {
   }
 
   if (n >= ONE_EOK) {
-    const eok = Math.floor(n / ONE_EOK);
-    const rem = n % ONE_EOK;
-    const man = Math.floor(rem / ONE_MAN);
+    const eok  = Math.floor(n / ONE_EOK);
+    const rest = n % ONE_EOK;
+    const man  = Math.floor(rest / ONE_MAN);
     if (man > 0) return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString("ko-KR")}만원`;
     return `${eok.toLocaleString("ko-KR")}억 원`;
   }
@@ -87,59 +83,60 @@ function formatMonthLabel(ym) {
   return `${y}년 ${Number(m)}월`;
 }
 
-// 3) 기본 샘플 통계 (2025년 10월, 조/억/만원 값 정확히 반영)
+// ───────── 기본 샘플 통계 (2025년 10월) ─────────
 const DEFAULT_ONTU_STATS = {
   month: "2025-10",
   summary: {
     registeredFirms: 51,
     dataFirms: 49,
     // 18조 3,580억 776만원
-    totalLoan:   18_358_007_760_000,
+    totalLoan: 18_358_007_760_000,
     // 16조 9,241억 4,401만원
     totalRepaid: 16_924_144_010_000,
     // 1조 4,338억 6,375만원
-    balance:      1_433_863_750_000,
+    balance: 1_433_867_500_000
   },
   byType: {
+    // 퍼센트는 공시 비율 기준 (합계 ≒ 100%)
     "부동산담보": {
       ratio: 0.43,
-      // 6,165억 6,141만원
-      amount: 616_561_410_000,
+      // 6조 1,650억 6,141만원
+      amount: 6_165_061_410_000
     },
     "부동산PF": {
       ratio: 0.02,
       // 286억 7,727만원
-      amount: 28_677_270_000,
+      amount: 286_077_270_000
     },
     "어음·매출채권담보": {
       ratio: 0.09,
-      // 1,290억 4,773만원
-      amount: 129_047_730_000,
+      // 1조 2,900억 4,773만원
+      amount: 1_290_047_730_000
     },
     "기타담보(주식 등)": {
       ratio: 0.38,
-      // 5,448억 6,822만원
-      amount: 544_868_220_000,
+      // 5조 4,480억 6,822만원
+      amount: 5_448_068_220_000
     },
     "개인신용": {
       ratio: 0.06,
       // 860억 3,182만원
-      amount: 86_031_820_000,
+      amount: 860_031_820_000
     },
     "법인신용": {
       ratio: 0.03,
       // 430억 1,591만원
-      amount: 43_015_910_000,
-    },
-  },
+      amount: 430_015_910_000
+    }
+  }
 };
 
-// 4) API 엔드포인트 -----------------------------------------
+// ───────── API 베이스 ─────────
 const API_BASE        = "https://huchudb-github-io.vercel.app";
 const ONTU_API        = `${API_BASE}/api/ontu-stats`;
 const DAILY_USERS_API = `${API_BASE}/api/daily-users`;
 
-// 5) 온투업 통계 불러오기 ------------------------------------
+// ───────── 온투업 통계 가져오기 ─────────
 async function fetchOntuStats() {
   try {
     const res = await fetch(`${ONTU_API}?t=${Date.now()}`, {
@@ -147,7 +144,7 @@ async function fetchOntuStats() {
       mode: "cors",
       credentials: "omit",
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      cache: "no-store"
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
@@ -158,6 +155,7 @@ async function fetchOntuStats() {
   }
 }
 
+// ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("loanStatusMonth");
@@ -182,47 +180,45 @@ function renderLoanStatus(summary, monthStr) {
       label: "금융위원회 등록 온투업체수",
       value: summary.registeredFirms != null
         ? `${summary.registeredFirms.toLocaleString("ko-KR")}개`
-        : "-",
+        : "-"
     },
     {
       label: "데이터 수집 온투업체수",
       value: summary.dataFirms != null
         ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
-        : "-",
+        : "-"
     },
     {
       label: "누적대출금액",
-      value: summary.totalLoan != null
-        ? formatKoreanCurrencyJo(summary.totalLoan)
-        : "-",
+      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-"
     },
     {
       label: "누적상환금액",
-      value: summary.totalRepaid != null
-        ? formatKoreanCurrencyJo(summary.totalRepaid)
-        : "-",
+      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-"
     },
     {
       label: "대출잔액",
-      value: summary.balance != null
-        ? formatKoreanCurrencyJo(summary.balance)
-        : "-",
-    },
+      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-"
+    }
   ];
 
   container.innerHTML = `
     <div class="beta-loanstatus-grid">
-      ${items.map(it => `
+      ${items
+        .map(
+          (it) => `
         <div class="beta-loanstatus-item">
           <div class="beta-loanstatus-item__label">${it.label}</div>
           <div class="beta-loanstatus-item__value">${it.value}</div>
         </div>
-      `).join("")}
+      `
+        )
+        .join("")}
     </div>
   `;
 }
 
-// 6) 상품유형별 도넛 + 3×2 박스 -------------------------------
+// ───────── 상품유형별 대출잔액 렌더 ─────────
 let donutChart = null;
 
 function renderProductSection(summary, byType) {
@@ -245,16 +241,12 @@ function renderProductSection(summary, byType) {
   const amounts  = [];
 
   for (const [name, cfg] of Object.entries(byType)) {
-    const ratio = Number(cfg.ratio ?? cfg.share ?? 0);
+    const ratio  = Number(cfg.ratio ?? cfg.share ?? 0);
     const amount =
-      cfg.amount != null
-        ? Number(cfg.amount)
-        : balance
-        ? Math.round(balance * ratio)
-        : 0;
+      cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
 
     labels.push(name);
-    percents.push(Math.round(ratio * 1000) / 10); // 0.1 단위
+    percents.push(Math.round(ratio * 1000) / 10); // 0.425 → 42.5
     amounts.push(amount);
   }
 
@@ -264,7 +256,9 @@ function renderProductSection(summary, byType) {
         <canvas id="productDonut"></canvas>
       </div>
       <div class="beta-product-boxes">
-        ${labels.map((name, idx) => `
+        ${labels
+          .map(
+            (name, idx) => `
           <div class="beta-product-box">
             <div class="beta-product-box__title">
               ${name}
@@ -276,13 +270,15 @@ function renderProductSection(summary, byType) {
               ${formatKoreanCurrencyJo(amounts[idx])}
             </div>
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
       </div>
     </div>
   `;
 
   const canvas = document.getElementById("productDonut");
-  if (!canvas) return;
+  if (!canvas || !window.Chart) return;
 
   const ctx = canvas.getContext("2d");
   if (donutChart) {
@@ -294,30 +290,32 @@ function renderProductSection(summary, byType) {
     type: "doughnut",
     data: {
       labels,
-      datasets: [{
-        data: percents,
-        backgroundColor: [
-          "#1d4ed8",
-          "#f97316",
-          "#f43f5e",
-          "#facc15",
-          "#22c55e",
-          "#a855f7"
-        ],
-        borderWidth: 0
-      }]
+      datasets: [
+        {
+          data: percents,
+          backgroundColor: [
+            "#1d4ed8",
+            "#f97316",
+            "#f43f5e",
+            "#facc15",
+            "#22c55e",
+            "#a855f7"
+          ],
+          borderWidth: 0
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       cutout: "60%",
       plugins: {
-        legend: { display:false },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: (ctx) => {
               const label = ctx.label || "";
-              const val = ctx.raw ?? 0;
+              const val   = ctx.raw ?? 0;
               return `${label}: ${Number(val).toFixed(1)}%`;
             }
           }
@@ -328,18 +326,16 @@ function renderProductSection(summary, byType) {
   });
 }
 
-// 7) 초기화 ---------------------------------------------------
+// ───────── 초기화 ─────────
 async function initOntuStats() {
   try {
     let data = await fetchOntuStats();
-
     if (!data || !data.summary || !Object.keys(data.byType || {}).length) {
       data = { ...DEFAULT_ONTU_STATS };
     }
-
     const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
     const summary = data.summary || DEFAULT_ONTU_STATS.summary;
-    const byType  = data.byType  || DEFAULT_ONTU_STATS.byType;
+    const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
 
     renderLoanStatus(summary, month);
     renderProductSection(summary, byType);
@@ -350,7 +346,7 @@ async function initOntuStats() {
   }
 }
 
-// 8) 금일 이용자수 (조회만) -----------------------------------
+// 금일 이용자수 (조회만)
 async function initDailyUsers() {
   const el = document.getElementById("todayUsersCount");
   if (!el) return;
@@ -361,10 +357,10 @@ async function initDailyUsers() {
       mode: "cors",
       credentials: "omit",
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      cache: "no-store"
     });
     if (!res.ok) throw new Error("failed");
-    const json = await res.json();
+    const json  = await res.json();
     const total = Number(json.count || 0);
     el.textContent = total.toLocaleString("ko-KR");
   } catch (e) {
@@ -373,7 +369,7 @@ async function initDailyUsers() {
   }
 }
 
-// 9) 상단 MENU 드롭다운 --------------------------------------
+// 상단 MENU 드롭다운
 function setupBetaMenu() {
   const btn   = document.getElementById("betaMenuToggle");
   const panel = document.getElementById("betaMenuPanel");
@@ -402,7 +398,7 @@ function setupBetaMenu() {
   });
 }
 
-// 10) DOM 로드 후 실행 ---------------------------------------
+// DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initOntuStats();
   initDailyUsers();
