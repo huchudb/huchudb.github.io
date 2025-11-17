@@ -7,7 +7,7 @@ export const toNumber   = (s) => Number(onlyDigits(s)) || 0;
 /**
  * 한국 통화 포맷
  * - 1조 이상: 18조 3,580억 776만원
- * - 1억 이상 1조 미만: 183,580억 776만원 / 2억 원
+ * - 1억 이상 1조 미만: 5,432억 100만원 / 2억 원
  * - 1만 이상 1억 미만: 123만원
  * - 1만 미만: 12,345원
  */
@@ -67,3 +67,4 @@ export function formatKoreanCurrency(num) {
   // 1만 미만
   return n.toLocaleString("ko-KR") + "원";
 }
+
