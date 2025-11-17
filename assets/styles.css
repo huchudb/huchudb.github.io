@@ -446,8 +446,8 @@ button:hover{background:#153154}
   max-width:960px;
   margin:0 auto;
   display:flex;
-  gap:16px;
-  align-items:flex-start;
+  flex-direction:column;   /* 로고 위, 회사 정보 아래로 세로 정렬 */
+  gap:4px;
   font-size:11px;
   line-height:1.6;
 }
@@ -455,7 +455,7 @@ button:hover{background:#153154}
   display:flex;
   align-items:center;
   gap:6px;
-  margin-right:10px;
+  margin-bottom:4px;
 }
 .beta-footer__logo-mark{
   display:inline-flex;
@@ -477,85 +477,103 @@ button:hover{background:#153154}
 .beta-footer__info p{
   margin:0;
 }
-/* MENU 버튼은 calculator용 button 전역 스타일을 덮어쓴다 */
-.beta-menu-toggle{
-  width:auto;              /* 전역 button{width:100%} 무효화 */
-}
-
-/* 베타 푸터: 로고 위, 회사 정보 아래로 세로 정렬 */
-.beta-footer__bottom{
-  max-width:960px;
-  margin:0 auto;
-  display:flex;
-  flex-direction:column;   /* 가로 → 세로 */
-  gap:4px;
-}
-
-.beta-footer__brand{
-  margin-bottom:4px;
-}
-
-.beta-footer__info p{
-  margin:0;
-}
 .beta-footer__info p + p{
   margin-top:2px;
 }
+
 /* ======================= 베타 전용 상단 레이아웃 ======================= */
 
-/* 베타 페이지용 body: 상단 여백 제거 + 상단에 붙이기 */
-.beta-body{
+/* 베타 페이지용 body: 상단 여백 제거 + 전체 폭 헤더 */
+body.beta-body{
   margin:0;
   padding:0;
   background:var(--bg);
 }
 
 /* 혹시 body 바로 아래에 남아있는 옛날 텍스트 링크(파란 밑줄) 강제 숨김 */
-.beta-body > a{
+body.beta-body > a{
   display:none;
 }
 
-/* 베타 헤더: 전체 폭 흰색, sticky 해제, 심플한 상단 바 */
+/* 베타 헤더: 전체 폭 흰색, sticky 해제 */
 .beta-header.huchu-header{
   position:relative;
   top:auto;
   background:#ffffff;
   border-bottom:1px solid var(--line);
+  box-shadow:none;
 }
 
-/* 로고는 왼쪽, MENU 버튼은 오른쪽 끝으로 */
+/* 로고는 왼쪽, MENU 버튼은 오른쪽 끝 + 세로폭 넉넉하게(기존의 약 2배) */
 .beta-header__inner{
   max-width:960px;
   margin:0 auto;
-  padding:12px 20px;
+  padding:24px 24px;          /* 세로 높이 ↑ */
   display:flex;
   align-items:center;
   justify-content:space-between;
 }
 
-/* MENU 버튼 – 예전 네이비 사각형 스타일로 복원 */
+/* 메뉴 래퍼 */
+.beta-menu{
+  position:relative;
+}
+
+/* MENU 버튼 – 검정색 직사각형 + 햄버거 아이콘 */
 .beta-menu-toggle{
   display:inline-flex;
   align-items:center;
-  justify-content:center;
-  padding:8px 18px;
-  border-radius:8px;
+  gap:8px;
+  padding:10px 20px;
+  border-radius:10px;
   border:0;
-  background:#1f3556;      /* 네이비 */
+  background:#000000;         /* 검정 버튼 */
   color:#ffffff;
-  font-size:14px;
-  font-weight:700;
+  font-size:13px;
+  font-weight:800;
   cursor:pointer;
-  box-shadow:0 2px 6px rgba(15,23,42,.25);
-  width:auto;               /* 전역 button{width:100%} 덮어쓰기 */
+  width:auto;                 /* 전역 button{width:100%} 덮어쓰기 */
+  box-shadow:0 4px 10px rgba(15,23,42,.25);
 }
-
-/* 햄버거 아이콘은 숨기고, 글자만 보이게 */
 .beta-menu-toggle__icon{
-  display:none;
+  display:inline-flex;
+  flex-direction:column;
+  gap:3px;
+}
+.beta-menu-toggle__icon span{
+  width:14px;
+  height:2px;
+  border-radius:999px;
+  background:#ffffff;
 }
 .beta-menu-toggle__label{
-  letter-spacing:0;
+  letter-spacing:.08em;
 }
 
+/* 드롭다운 패널: 버튼 아래 작게 뜨는 카드형 메뉴 */
+.beta-menu-panel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  min-width:210px;
+  background:#ffffff;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 12px 30px rgba(15,23,42,.18);
+  padding:6px 0;
+  z-index:200;
+}
 
+/* 드롭다운 안 링크 스타일 */
+.beta-menu-link{
+  display:block;
+  padding:8px 14px;
+  font-size:12px;
+  font-weight:600;
+  color:#111827;
+  text-decoration:none;
+  white-space:nowrap;
+}
+.beta-menu-link:hover{
+  background:#f3f4f6;
+}
