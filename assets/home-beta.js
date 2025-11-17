@@ -50,24 +50,79 @@ function formatMonthLabel(ym) {
   return `${y}년 ${Number(m)}월`;
 }
 
+// ====================== 기본 샘플 통계 (2025년 10월) ======================
+
+const DEFAULT_ONTU_STATS = {
+  month: '2025-10',
+  summary: {
+    registeredFirms: 51,  // 금융위 등록 온투업체 수
+    dataFirms: 49,        // 데이터 수집 온투업체 수 (예: 49개)
+    // 18조 3,580억 776만원
+    totalLoan: 18_000_000_000_000 + 3_580_000_000_000 + 7_760_0000,
+    // 16조 9,241억 4,401만원
+    totalRepaid: 16_000_000_000_000 + 9_241_000_000_000 + 4_401_0000,
+    // 1조 4,338억 6,375만원
+    balance: 1_000_000_000_000 + 4_338_000_000_000 + 6_375_0000,
+  },
+  byType: {
+    // 퍼센트는 공시 비율 기준 (합계 약 100%)
+    '부동산담보': {
+      ratio: 0.43,
+      // 6,165억 6,141만원
+      amount: 6_165_000_000_000 + 6_141_0000,
+    },
+    '부동산PF': {
+      ratio: 0.02,
+      // 286억 7,727만원
+      amount: 286_000_000_000 + 7_727_0000,
+    },
+    '어음·매출채권담보': {
+      ratio: 0.09,
+      // 1,290억 4,773만원
+      amount: 1_290_000_000_000 + 4_773_0000,
+    },
+    '기타담보(주식 등)': {
+      ratio: 0.38,
+      // 5,448억 6,822만원
+      amount: 5_448_000_000_000 + 6_822_0000,
+    },
+    '개인신용': {
+      ratio: 0.06,
+      // 860억 3,182만원
+      amount: 860_000_000_000 + 3_182_0000,
+    },
+    '법인신용': {
+      ratio: 0.03,
+      // 430억 1,591만원
+      amount: 430_000_000_000 + 1_591_0000,
+    },
+  }
+};
+
 // API 베이스
-const API_BASE       = 'https://huchudb-github-io.vercel.app';
-const ONTU_API       = `${API_BASE}/api/ontu-stats`;
-const DAILY_USERS_API = `${API_BASE}/api/daily-users`;
+const API_BASE         = 'https://huchudb-github-io.vercel.app';
+const ONTU_API         = `${API_BASE}/api/ontu-stats`;
+const DAILY_USERS_API  = `${API_BASE}/api/daily-users`;
 
 // ====================== 온투업 통계 ======================
 
 async function fetchOntuStats() {
-  const res = await fetch(`${ONTU_API}?t=${Date.now()}`, {
-    method: 'GET',
-    mode: 'cors',
-    credentials: 'omit',
-    headers: { 'Accept': 'application/json' },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error('온투업 통계를 불러오지 못했습니다.');
-  const json = await res.json();
-  return json;
+  try {
+    const res = await fetch(`${ONTU_API}?t=${Date.now()}`, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json;
+  } catch (e) {
+    console.error('[ontu-stats] API 실패, 기본 샘플 사용:', e);
+    // 실패 시 샘플 반환
+    return { ...DEFAULT_ONTU_STATS };
+  }
 }
 
 function renderLoanStatus(summary, monthStr) {
@@ -141,18 +196,18 @@ function renderProductSection(summary, byType) {
 
   const balance = Number(summary.balance || 0);
 
-  const labels = [];
-  const percents = [];
+  const labels  = [];
+  const percents= [];
   const amounts = [];
 
   for (const [name, cfg] of Object.entries(byType)) {
-    const ratio = Number(cfg.ratio ?? cfg.share ?? 0);         // 0.43 이런 값
+    const ratio = Number(cfg.ratio ?? cfg.share ?? 0);   // 0.43 등
     const amount = cfg.amount != null
       ? Number(cfg.amount)
       : (balance ? Math.round(balance * ratio) : 0);
 
     labels.push(name);
-    percents.push(Math.round(ratio * 1000) / 10);              // 0.425 → 42.5
+    percents.push(Math.round(ratio * 1000) / 10);        // 42.5 등
     amounts.push(amount);
   }
 
@@ -165,7 +220,10 @@ function renderProductSection(summary, byType) {
         ${labels.map((name, idx) => `
           <div class="beta-product-box">
             <div class="beta-product-box__title">
-              ${name} <span style="color:#6b7280;font-weight:500;">${percents[idx].toFixed(1)}%</span>
+              ${name}
+              <span style="color:#6b7280;font-weight:500;">
+                ${percents[idx].toFixed(1)}%
+              </span>
             </div>
             <div class="beta-product-box__amount">
               ${formatKoreanCurrencyJo(amounts[idx])}
@@ -200,7 +258,7 @@ function renderProductSection(summary, byType) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: false,  // 캔버스 높이 기준
       cutout: '60%',
       plugins: {
         legend: {
@@ -215,6 +273,9 @@ function renderProductSection(summary, byType) {
             }
           }
         }
+      },
+      layout: {
+        padding: 4
       }
     }
   });
@@ -222,31 +283,24 @@ function renderProductSection(summary, byType) {
 
 async function initOntuStats() {
   try {
-    const data = await fetchOntuStats();
-    const month   = data.month || data.monthKey || '';
-    const summary = data.summary || null;
-    const byType  = data.byType  || {};
+    let data = await fetchOntuStats();
+
+    // 형식이 비어있거나 summary/byType가 없으면 샘플로 대체
+    if (!data || !data.summary || !Object.keys(data.byType || {}).length) {
+      data = { ...DEFAULT_ONTU_STATS };
+    }
+
+    const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
+    const summary = data.summary || DEFAULT_ONTU_STATS.summary;
+    const byType  = data.byType  || DEFAULT_ONTU_STATS.byType;
 
     renderLoanStatus(summary, month);
     renderProductSection(summary, byType);
   } catch (e) {
-    console.error(e);
-    const container = document.getElementById('ontuLoanStatus');
-    const product   = document.getElementById('ontuProductSection');
-    if (container) {
-      container.innerHTML = `
-        <div class="notice error">
-          <p>온투업 통계를 불러오지 못했습니다.</p>
-        </div>
-      `;
-    }
-    if (product) {
-      product.innerHTML = `
-        <div class="notice error">
-          <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
-        </div>
-      `;
-    }
+    console.error('[initOntuStats] 치명적 오류:', e);
+    // 그래도 샘플로 그려줌
+    renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
+    renderProductSection(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.byType);
   }
 }
 
