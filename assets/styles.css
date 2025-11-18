@@ -940,17 +940,17 @@ body.beta-body > a{display:none;}
   flex-wrap:wrap;
   gap:8px;
   padding:8px 0;
-  background:transparent;           /* 네이비 전체 배경 제거 */
+  background:transparent;
 }
 
-/* 지역 버튼 – 세 글자 기준 고정폭, 가로 1줄 정렬 */
+/* 기본: 흰색 버튼 */
 #adminLoanConfigSection .admin-region-btn{
-  width:auto;                       /* 전역 button{width:100%} 무효화 */
-  min-width:60px;                   /* "충청도" 같은 3글자 기준 */
+  width:auto;
+  min-width:60px;                 /* "충청도" 기준 */
   padding:6px 12px;
   border-radius:999px;
   border:1px solid #d4d4d8;
-  background:#ffffff;
+  background:#ffffff;             /* 기본 흰색 */
   color:#111827;
   font-size:13px;
   font-weight:700;
@@ -959,14 +959,14 @@ body.beta-body > a{display:none;}
   cursor:pointer;
 }
 
-/* 선택된 지역(활성) */
+/* 선택된 지역만 노란색(#FFC001) */
 #adminLoanConfigSection .admin-region-btn.is-active{
-  background:#f59e0b;
-  border-color:#f59e0b;
+  background:#FFC001;             /* 지정색 */
+  border-color:#FFC001;
   color:#111827;
 }
 
-/* 포커스 표시 (접근성) */
+/* 포커스 표시 */
 #adminLoanConfigSection .admin-region-btn:focus{
   outline:2px solid #facc15;
   outline-offset:1px;
@@ -976,5 +976,6 @@ body.beta-body > a{display:none;}
 body.beta-body button{
   width:auto;
 }
+
 
 
