@@ -1200,4 +1200,34 @@ body.beta-body button{
   box-shadow:0 2px 5px rgba(0,0,0,.25);
 }
 
+/* ======================= 상품 허브 버튼 디자인 ======================= */
+.product-card__buttons{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;              /* 버튼 사이 간격 */
+}
+
+/* 개별 버튼 */
+.product-btn{
+  display:inline-flex;  /* 텍스트 길이에 맞게만 가로 폭 사용 */
+  align-items:center;
+  justify-content:center;
+  padding:8px 16px;     /* 이전보다 패딩 줄여서 전체 크기 축소 */
+  border-radius:999px;
+  background:#6b4000;
+  color:#ffffff;
+  font-size:13px;       /* 글자 크기도 살짝 줄임 */
+  font-weight:700;
+  text-decoration:none;
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
+  white-space:nowrap;   /* 줄바꿈 방지 */
+}
+
+/* 호버 효과(살짝 밝게) */
+.product-btn:hover{
+  background:#855012;
+}
+
+
 
