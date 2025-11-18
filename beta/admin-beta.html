@@ -89,39 +89,23 @@
             계산기 1번 <strong>지역 선택(서울, 경기, 인천, 충청도, 전라도, 강원도, 경상도, 제주도)</strong>와 동일한 지역별 설정입니다.
           </p>
 
-          <!-- 지역 선택 -->
-          <div class="admin-ltv-region-box">
-            <div class="admin-ltv-region-label">지역 선택</div>
-            <div class="admin-ltv-region-chips">
-              <button type="button" class="admin-region-chip is-active" data-region="서울">
-                <span class="admin-region-dot"></span>서울
-              </button>
-              <button type="button" class="admin-region-chip" data-region="경기">
-                <span class="admin-region-dot"></span>경기
-              </button>
-              <button type="button" class="admin-region-chip" data-region="인천">
-                <span class="admin-region-dot"></span>인천
-              </button>
-              <button type="button" class="admin-region-chip" data-region="충청도">
-                <span class="admin-region-dot"></span>충청도
-              </button>
-              <button type="button" class="admin-region-chip" data-region="전라도">
-                <span class="admin-region-dot"></span>전라도
-              </button>
-              <button type="button" class="admin-region-chip" data-region="강원도">
-                <span class="admin-region-dot"></span>강원도
-              </button>
-              <button type="button" class="admin-region-chip" data-region="경상도">
-                <span class="admin-region-dot"></span>경상도
-              </button>
-              <button type="button" class="admin-region-chip" data-region="제주도">
-                <span class="admin-region-dot"></span>제주도
-              </button>
-            </div>
-            <p class="admin-ltv-region-help">
-              · 선택한 지역 기준으로 아래 LTV/금리 값을 입력합니다. 다른 지역을 누르면 해당 지역에 저장된 값이 다시 표시됩니다.
-            </p>
-          </div>
+<!-- 지역 선택 -->
+<div style="margin-top:12px;">
+  <label style="font-size:13px;color:#374151;margin-bottom:6px;">지역 선택</label>
+  <div class="admin-region-list" id="loanRegionTabs">
+    <button type="button" class="admin-region-btn is-active" data-region="서울">서울</button>
+    <button type="button" class="admin-region-btn" data-region="경기">경기</button>
+    <button type="button" class="admin-region-btn" data-region="인천">인천</button>
+    <button type="button" class="admin-region-btn" data-region="충청도">충청도</button>
+    <button type="button" class="admin-region-btn" data-region="전라도">전라도</button>
+    <button type="button" class="admin-region-btn" data-region="강원도">강원도</button>
+    <button type="button" class="admin-region-btn" data-region="경상도">경상도</button>
+    <button type="button" class="admin-region-btn" data-region="제주도">제주도</button>
+  </div>
+  <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">
+    선택한 지역 기준으로 아래 LTV/금리 값을 입력합니다. 다른 지역을 누르면 해당 지역에 저장된 값이 다시 표시됩니다.
+  </p>
+</div>
 
           <!-- 물건 종류별 LTV/금리 -->
           <div class="admin-card">
