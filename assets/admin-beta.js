@@ -32,6 +32,12 @@ function setupMoneyInputs() {
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
+function getNumericValueById(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const digits = stripNonDigits(el.value || "");
+  return digits ? Number(digits) : 0;
+}
 
 // ─────────────────────────────
 // 1. 담보대출 LTV / 금리 설정
@@ -188,7 +194,7 @@ function setupLoanRegionTabs() {
     fillLoanFormFromRegion(currentLoanRegion);
   });
 
-  // 초기 정리 (서울만 노란색)
+  // 초기: 서울만 활성
   updateLoanRegionTabActive();
 }
 
@@ -233,7 +239,6 @@ const STATS_PRODUCT_TYPES = [
   "법인신용"
 ];
 const LOCAL_KEY_STATS = "huchu_ontu_stats_beta_v2";
-
 let statsAllMonths = {};
 
 function loadStatsAllFromStorage() {
@@ -321,21 +326,11 @@ function collectStatsFormForCurrentMonth() {
   if (!month) return null;
 
   const summary = {
-    registeredFirms: Number(
-      document.getElementById("sum-registeredFirms")?.value || 0
-    ),
-    dataFirms: Number(
-      document.getElementById("sum-dataFirms")?.value || 0
-    ),
-    totalLoan: Number(
-      document.getElementById("sum-totalLoan")?.value || 0
-    ),
-    totalRepaid: Number(
-      document.getElementById("sum-totalRepaid")?.value || 0
-    ),
-    balance: Number(
-      document.getElementById("sum-balance")?.value || 0
-    )
+    registeredFirms: getNumericValueById("sum-registeredFirms"),
+    dataFirms:       getNumericValueById("sum-dataFirms"),
+    totalLoan:       getNumericValueById("sum-totalLoan"),
+    totalRepaid:     getNumericValueById("sum-totalRepaid"),
+    balance:         getNumericValueById("sum-balance")
   };
 
   const byType = {};
@@ -378,30 +373,46 @@ function setupStatsMonthChange() {
   });
 }
 
+// 비율 → 금액 자동 계산 (대출잔액 기준)
 function setupRatioAutoCalc() {
-  const balanceInput = document.getElementById("sum-balance");
-  if (!balanceInput) return;
-
   const ratioInputs = document.querySelectorAll(".js-ratio");
+  if (!ratioInputs.length) return;
+
+  const getBalance = () => {
+    // 우선 대출현황의 "대출잔액(원)" 사용
+    const b = getNumericValueById("sum-balance");
+    return b;
+  };
+
+  const recalcForOne = (ratioInput) => {
+    const key = ratioInput.dataset.key;
+    const amountInput = document.querySelector(`.js-amount[data-key="${key}"]`);
+    if (!amountInput) return;
+
+    const balance = getBalance();
+    const ratioPct = parseFloat(ratioInput.value);
+
+    if (!balance || isNaN(ratioPct)) {
+      amountInput.value = "";
+      return;
+    }
+
+    const amount = Math.round(balance * (ratioPct / 100));
+    amountInput.value = formatWithCommas(String(amount));
+  };
+
+  // 비율 입력 시 해당 행만 계산
   ratioInputs.forEach((ratioInput) => {
-    ratioInput.addEventListener("input", () => {
-      const key = ratioInput.dataset.key;
-      const amountInput = document.querySelector(
-        `.js-amount[data-key="${key}"]`
-      );
-      if (!amountInput) return;
-
-      const balance = Number(balanceInput.value || 0);
-      const ratioPct = parseFloat(ratioInput.value);
-      if (!balance || isNaN(ratioPct)) {
-        amountInput.value = "";
-        return;
-      }
-
-      const amount = Math.round(balance * (ratioPct / 100));
-      amountInput.value = formatWithCommas(String(amount));
-    });
+    ratioInput.addEventListener("input", () => recalcForOne(ratioInput));
   });
+
+  // 대출잔액이 바뀌면 모든 행 재계산
+  const balanceInput = document.getElementById("sum-balance");
+  if (balanceInput) {
+    balanceInput.addEventListener("input", () => {
+      ratioInputs.forEach((ratioInput) => recalcForOne(ratioInput));
+    });
+  }
 }
 
 function setupSaveStatsButton() {
@@ -429,7 +440,7 @@ function setupSaveStatsButton() {
     console.log("[beta admin] 통계 데이터 저장:", month, statsAllMonths[month]);
     alert(
       "통계 데이터가 브라우저(localStorage)에 저장되었습니다.\n\n" +
-        "실제 서버 연동 시 이 위치에서 API를 호출하면 됩니다."
+      "실제 서버 연동 시 이 위치에서 API를 호출하면 됩니다."
     );
   });
 }
@@ -446,9 +457,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLoanConfigSaveButton();
 
   // 2) 통계
-  setupMoneyInputs();
   statsAllMonths = loadStatsAllFromStorage();
-  setupStatsMonthChange();
-  setupRatioAutoCalc();
-  setupSaveStatsButton();
+  setupMoneyInputs();       // data-type="money" 인풋 쉼표 처리
+  setupStatsMonthChange();  // 월 선택 시 해당 데이터 불러오기
+  setupRatioAutoCalc();     // % 입력 → 대출잔액 기준 자동 계산
+  setupSaveStatsButton();   // 통계 데이터 저장
 });
