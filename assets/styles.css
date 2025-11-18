@@ -976,3 +976,25 @@ body.beta-body > a{display:none;}
 body.beta-body button{
   width:auto;
 }
+
+/* 관리자 공통: 메인 액션 버튼 (LTV/금리 저장, 통계 저장 등) */
+.admin-primary-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:9px 18px;
+  border-radius:999px;
+  border:0;
+  background:#111827;
+  color:#f9fafb;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.02em;
+  box-shadow:0 8px 18px rgba(15,23,42,.35);
+  cursor:pointer;
+  width:auto !important; /* 전역 button{width:100%} 덮어쓰기 */
+}
+.admin-primary-btn:hover{
+  background:#020617;
+}
