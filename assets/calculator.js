@@ -279,8 +279,8 @@ async function onCalculate(){
   const addAvail = Math.max(0, r.maxRequested - requestedLoan);
   const mMin = monthlyPayment(requestedLoan, 0.068);
   const mMax = monthlyPayment(requestedLoan, 0.148);
-  const feeMin = requestedLoan * 0.01;
-  const feeMax = requestedLoan * 0.015;
+  const feeMin = requestedLoan * 0.025;
+  const feeMax = requestedLoan * 0.055;
 
   const kpis = `
     <div class="kpis">
@@ -300,7 +300,7 @@ async function onCalculate(){
         </div>
       </div>
       <div class="card-section compact">
-        <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회)</div>
+        <div class="section-title"><span class="icon-dot dot-gold"></span>플랫폼수수료 (연 1회 발생/ VAT제외)</div>
         <div class="chip-row rate">
           <span class="chip plain"><span class="label rate-min">1%</span><span class="val">${formatKoreanCurrency(feeMin)}</span></span>
           <span class="chip-tilde">~</span>
@@ -315,7 +315,7 @@ async function onCalculate(){
       <div class="rowlist">
         <div class="row"><span class="icon-dot dot-navy"></span><span class="label">대출기간</span><span class="value">평균 1년</span></div>
         <div class="row"><span class="icon-dot dot-green"></span><span class="label">중도상환수수료</span><span class="value">없음</span></div>
-        <div class="row"><span class="icon-dot dot-slate"></span><span class="label">대출연장수수료</span><span class="value">0%~1% (업체별 상이)</span></div>
+        <div class="row"><span class="icon-dot dot-slate"></span><span class="label">대출연장수수료</span><span class="value">1%~4% (업체별 상이)</span></div>
       </div>
     </div>`;
 
@@ -352,3 +352,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const y = document.getElementById('copyrightYear');
   if (y) y.textContent = String(new Date().getFullYear());
 });
+
