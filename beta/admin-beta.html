@@ -92,7 +92,7 @@
 <!-- 지역 선택 -->
 <div style="margin-top:12px;">
   <label style="font-size:13px;color:#374151;margin-bottom:6px;">지역 선택</label>
-  <div class="admin-region-list" id="loanRegionTabs">
+  <div id="loanRegionTabs" class="admin-region-list">
     <button type="button" class="admin-region-btn is-active" data-region="서울">서울</button>
     <button type="button" class="admin-region-btn" data-region="경기">경기</button>
     <button type="button" class="admin-region-btn" data-region="인천">인천</button>
@@ -238,10 +238,11 @@
           </div>
 
           <div class="admin-actions-row">
-            <button type="button" id="loanConfigSaveBtn" class="admin-btn admin-btn-primary">
-              LTV / 금리 설정 저장
-            </button>
-            <span id="loanConfigStatus" class="admin-status-text"></span>
+          <button type="button" id="loanConfigSaveBtn" class="admin-primary-btn">
+           LTV / 금리 설정 저장
+          </button>
+          <span id="loanConfigStatus" style="font-size:12px;color:#6b7280;"></span>
+
           </div>
         </div>
       </section>
