@@ -942,3 +942,8 @@ body.beta-body > a{display:none;}
   text-align:center;
   white-space:nowrap;       /* '충청도' 같은 3글자도 1줄 유지 */
 }
+/* 베타 페이지 기본: 버튼 width 자동 (지역 선택 등에서 꽉 차지 않도록) */
+body.beta-body button{
+  width:auto;
+}
+
