@@ -937,7 +937,7 @@ body.beta-body > a{display:none;}
 /* 베타 관리자: 담보대출 LTV/금리 설정 > 지역 선택 */
 #adminLoanConfigSection .admin-region-list{
   display:flex;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   gap:8px;
   padding:8px 0;
   background:transparent;
@@ -945,13 +945,13 @@ body.beta-body > a{display:none;}
 
 /* 기본: 흰색 버튼 */
 #adminLoanConfigSection .admin-region-btn{
-  width:auto;
+  flex:0 0 auto;
   min-width:60px;                 /* "충청도" 기준 */
   padding:6px 12px;
   border-radius:999px;
   border:1px solid #d4d4d8;
-  background:#ffffff;             /* 기본 흰색 */
-  color:#111827;
+  background:#ffffff !important;  /* 기본 흰색 */
+  color:#111827 !important;
   font-size:13px;
   font-weight:700;
   text-align:center;
@@ -961,9 +961,9 @@ body.beta-body > a{display:none;}
 
 /* 선택된 지역만 노란색(#FFC001) */
 #adminLoanConfigSection .admin-region-btn.is-active{
-  background:#FFC001;             /* 지정색 */
+  background:#FFC001 !important;
   border-color:#FFC001;
-  color:#111827;
+  color:#111827 !important;
 }
 
 /* 포커스 표시 */
@@ -976,6 +976,3 @@ body.beta-body > a{display:none;}
 body.beta-body button{
   width:auto;
 }
-
-
-
