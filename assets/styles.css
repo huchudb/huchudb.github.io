@@ -998,3 +998,146 @@ body.beta-body button{
 .admin-primary-btn:hover{
   background:#020617;
 }
+
+/* ======================= PRODUCTS HUB (베타) ======================= */
+
+.products-main{
+  max-width:960px;
+  margin:0 auto 40px;
+  padding:24px 16px 40px;
+}
+
+.products-hero__title{
+  margin:0 0 8px;
+  font-size:22px;
+  font-weight:800;
+  color:#111827;
+}
+
+.products-hero__desc{
+  margin:0 0 16px;
+  font-size:13px;
+  color:#4b5563;
+  line-height:1.6;
+}
+
+.products-section{
+  margin-top:24px;
+}
+
+.products-section__title{
+  margin:0 0 10px;
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+}
+
+.products-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+@media(max-width:768px){
+  .products-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.product-card{
+  background:#ffffff;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 4px 14px rgba(15,23,42,.06);
+  padding:14px 16px;
+}
+
+.product-card__title{
+  margin:0 0 6px;
+  font-size:15px;
+  font-weight:800;
+  color:#111827;
+}
+
+.product-card__desc{
+  margin:0 0 8px;
+  font-size:13px;
+  color:#4b5563;
+  line-height:1.6;
+}
+
+.product-card__bullets{
+  margin:0 0 8px 18px;
+  padding:0;
+  font-size:12px;
+  color:#4b5563;
+  line-height:1.5;
+}
+
+.product-card__bullets li{
+  margin-bottom:2px;
+}
+
+.product-card__tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-bottom:8px;
+}
+
+.product-card__tags span{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid #e5e7eb;
+  background:#f9fafb;
+  font-size:11px;
+  color:#6b7280;
+}
+
+.product-card__link{
+  display:inline-flex;
+  margin-top:2px;
+  font-size:12px;
+  font-weight:700;
+  color:#1d4ed8;
+  text-decoration:none;
+}
+.product-card__link:hover{
+  text-decoration:underline;
+}
+
+.products-section--info{
+  margin-top:32px;
+}
+
+.products-info-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+@media(max-width:768px){
+  .products-info-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.product-info-card{
+  background:#f9fafb;
+  border-radius:14px;
+  border:1px solid #e5e7eb;
+  padding:12px 14px;
+}
+.product-info-card h3{
+  margin:0 0 6px;
+  font-size:14px;
+  font-weight:800;
+  color:#111827;
+}
+.product-info-card p{
+  margin:0;
+  font-size:12px;
+  color:#4b5563;
+  line-height:1.6;
+}
+
