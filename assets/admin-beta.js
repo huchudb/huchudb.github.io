@@ -6,16 +6,25 @@
 function stripNonDigits(str) {
   return (str || "").replace(/[^\d]/g, "");
 }
+
 function formatWithCommas(str) {
   const digits = stripNonDigits(str);
   if (!digits) return "";
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
 function getMoneyValueFromInput(input) {
   if (!input) return 0;
   const digits = stripNonDigits(input.value);
   return digits ? Number(digits) : 0;
 }
+
+function getMoneyValueById(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  return getMoneyValueFromInput(el);
+}
+
 function setupMoneyInputs() {
   const moneyInputs = document.querySelectorAll('input[data-type="money"]');
   moneyInputs.forEach((input) => {
@@ -29,9 +38,11 @@ function setupMoneyInputs() {
     }
   });
 }
+
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
+
 function getNumericValueById(id) {
   const el = document.getElementById(id);
   if (!el) return 0;
@@ -50,17 +61,17 @@ const LOAN_REGIONS = [
   "전라도",
   "강원도",
   "경상도",
-  "제주도"
+  "제주도",
 ];
 
 const LOAN_PROPERTY_TYPES = ["아파트", "다세대/연립", "단독/다가구", "토지/임야"];
 const LOCAL_KEY_LOAN_CONFIG = "huchu_loan_config_beta";
 
 const DEFAULT_LOAN_BY_TYPE = {
-  "아파트":     { maxLtv: 0.79, rateMin: 0.068, rateMax: 0.159 },
-  "다세대/연립": { maxLtv: 0.73, rateMin: 0.07,  rateMax: 0.159 },
-  "단독/다가구": { maxLtv: 0.73, rateMin: 0.07,  rateMax: 0.159 },
-  "토지/임야":   { maxLtv: 0.73, rateMin: 0.07,  rateMax: 0.159 }
+  "아파트": { maxLtv: 0.79, rateMin: 0.068, rateMax: 0.159 },
+  "다세대/연립": { maxLtv: 0.73, rateMin: 0.07, rateMax: 0.159 },
+  "단독/다가구": { maxLtv: 0.73, rateMin: 0.07, rateMax: 0.159 },
+  "토지/임야": { maxLtv: 0.73, rateMin: 0.07, rateMax: 0.159 },
 };
 
 let loanConfig = null;
@@ -133,19 +144,19 @@ function readLoanFormIntoRegion(region) {
   const regionCfg = loanConfig.byRegion[region];
 
   LOAN_PROPERTY_TYPES.forEach((name, idx) => {
-    const maxEl  = document.getElementById(`loan-maxLtv-${idx}`);
-    const minEl  = document.getElementById(`loan-rateMin-${idx}`);
+    const maxEl = document.getElementById(`loan-maxLtv-${idx}`);
+    const minEl = document.getElementById(`loan-rateMin-${idx}`);
     const maxREl = document.getElementById(`loan-rateMax-${idx}`);
     if (!maxEl || !minEl || !maxREl) return;
 
-    const ltvPct  = parseFloat(maxEl.value);
+    const ltvPct = parseFloat(maxEl.value);
     const rMinPct = parseFloat(minEl.value);
     const rMaxPct = parseFloat(maxREl.value);
 
     regionCfg[name] = {
-      maxLtv:  isNaN(ltvPct)  ? 0 : ltvPct  / 100,
+      maxLtv: isNaN(ltvPct) ? 0 : ltvPct / 100,
       rateMin: isNaN(rMinPct) ? 0 : rMinPct / 100,
-      rateMax: isNaN(rMaxPct) ? 0 : rMaxPct / 100
+      rateMax: isNaN(rMaxPct) ? 0 : rMaxPct / 100,
     };
   });
 }
@@ -157,14 +168,23 @@ function fillLoanFormFromRegion(region) {
 
   LOAN_PROPERTY_TYPES.forEach((name, idx) => {
     const cfg = regionCfg[name] || {};
-    const maxEl  = document.getElementById(`loan-maxLtv-${idx}`);
-    const minEl  = document.getElementById(`loan-rateMin-${idx}`);
+    const maxEl = document.getElementById(`loan-maxLtv-${idx}`);
+    const minEl = document.getElementById(`loan-rateMin-${idx}`);
     const maxREl = document.getElementById(`loan-rateMax-${idx}`);
     if (!maxEl || !minEl || !maxREl) return;
 
-    maxEl.value  = cfg.maxLtv  != null ? (cfg.maxLtv  * 100).toFixed(1).replace(/\.0$/, "") : "";
-    minEl.value  = cfg.rateMin != null ? (cfg.rateMin * 100).toFixed(1).replace(/\.0$/, "") : "";
-    maxREl.value = cfg.rateMax != null ? (cfg.rateMax * 100).toFixed(1).replace(/\.0$/, "") : "";
+    maxEl.value =
+      cfg.maxLtv != null
+        ? (cfg.maxLtv * 100).toFixed(1).replace(/\.0$/, "")
+        : "";
+    minEl.value =
+      cfg.rateMin != null
+        ? (cfg.rateMin * 100).toFixed(1).replace(/\.0$/, "")
+        : "";
+    maxREl.value =
+      cfg.rateMax != null
+        ? (cfg.rateMax * 100).toFixed(1).replace(/\.0$/, "")
+        : "";
   });
 }
 
@@ -194,8 +214,7 @@ function setupLoanRegionTabs() {
     fillLoanFormFromRegion(currentLoanRegion);
   });
 
-  // 초기: 서울만 활성
-  updateLoanRegionTabActive();
+  updateLoanRegionTabActive(); // 초기: 서울만 활설성
 }
 
 function setupLoanConfigSaveButton() {
@@ -206,7 +225,7 @@ function setupLoanConfigSaveButton() {
   btn.addEventListener("click", () => {
     if (!loanConfig) return;
 
-    // 현재 지역 값 반영 후 저장
+    // 현재 지역 값 반영 후 전체 저장
     readLoanFormIntoRegion(currentLoanRegion);
 
     try {
@@ -236,8 +255,9 @@ const STATS_PRODUCT_TYPES = [
   "어음·매출채권담보",
   "기타담보(주식 등)",
   "개인신용",
-  "법인신용"
+  "법인신용",
 ];
+
 const LOCAL_KEY_STATS = "huchu_ontu_stats_beta_v2";
 let statsAllMonths = {};
 
@@ -253,6 +273,7 @@ function loadStatsAllFromStorage() {
   }
   return {};
 }
+
 function saveStatsAllToStorage() {
   try {
     localStorage.setItem(LOCAL_KEY_STATS, JSON.stringify(statsAllMonths));
@@ -262,14 +283,20 @@ function saveStatsAllToStorage() {
 }
 
 function clearStatsForm() {
-  const ids = [
+  const summaryIds = [
     "sum-registeredFirms",
     "sum-dataFirms",
     "sum-totalLoan",
     "sum-totalRepaid",
-    "sum-balance"
+    "sum-balance",
   ];
-  ids.forEach((id) => {
+  summaryIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  const overviewIds = ["statTotalLoan", "statTotalRepaid", "statBalance"];
+  overviewIds.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
@@ -289,17 +316,31 @@ function fillStatsFormFromData(data) {
   }
 
   const s = data.summary || {};
-  const idsMap = {
+  const o = data.overview || {};
+
+  const summaryMap = {
     "sum-registeredFirms": s.registeredFirms,
     "sum-dataFirms": s.dataFirms,
     "sum-totalLoan": s.totalLoan,
     "sum-totalRepaid": s.totalRepaid,
-    "sum-balance": s.balance
+    "sum-balance": s.balance,
   };
-  Object.keys(idsMap).forEach((id) => {
+  Object.keys(summaryMap).forEach((id) => {
     const el = document.getElementById(id);
-    if (el != null && idsMap[id] != null) {
-      el.value = String(idsMap[id]);
+    if (el != null && summaryMap[id] != null) {
+      el.value = String(summaryMap[id]);
+    }
+  });
+
+  const overviewMap = {
+    statTotalLoan: o.totalLoan,
+    statTotalRepaid: o.totalRepaid,
+    statBalance: o.balance,
+  };
+  Object.keys(overviewMap).forEach((id) => {
+    const el = document.getElementById(id);
+    if (el != null && overviewMap[id] != null) {
+      el.value = formatWithCommas(String(overviewMap[id]));
     }
   });
 
@@ -325,14 +366,33 @@ function collectStatsFormForCurrentMonth() {
   const month = monthInput ? (monthInput.value || "").trim() : "";
   if (!month) return null;
 
+  // 대출현황 요약
   const summary = {
     registeredFirms: getNumericValueById("sum-registeredFirms"),
-    dataFirms:       getNumericValueById("sum-dataFirms"),
-    totalLoan:       getNumericValueById("sum-totalLoan"),
-    totalRepaid:     getNumericValueById("sum-totalRepaid"),
-    balance:         getNumericValueById("sum-balance")
+    dataFirms: getNumericValueById("sum-dataFirms"),
+    totalLoan: 0,
+    totalRepaid: 0,
+    balance: 0,
   };
 
+  // 통계 요약(공시용) – money 타입
+  const overview = {
+    totalLoan: getMoneyValueById("statTotalLoan"),
+    totalRepaid: getMoneyValueById("statTotalRepaid"),
+    balance: getMoneyValueById("statBalance"),
+  };
+
+  // totalLoan / totalRepaid / balance 는
+  // 1순위: 통계요약 값, 2순위: 대출현황 값 사용
+  const sumTotalLoan = getNumericValueById("sum-totalLoan");
+  const sumTotalRepaid = getNumericValueById("sum-totalRepaid");
+  const sumBalance = getNumericValueById("sum-balance");
+
+  summary.totalLoan = overview.totalLoan || sumTotalLoan;
+  summary.totalRepaid = overview.totalRepaid || sumTotalRepaid;
+  summary.balance = overview.balance || sumBalance;
+
+  // byType (상품유형별)
   const byType = {};
   STATS_PRODUCT_TYPES.forEach((name) => {
     const ratioInput = document.querySelector(`.js-ratio[data-key="${name}"]`);
@@ -345,14 +405,14 @@ function collectStatsFormForCurrentMonth() {
     byType[name] = { ratio, amount };
   });
 
-  return { month, summary, byType };
+  return { month, summary, overview, byType };
 }
 
 function setupStatsMonthChange() {
   const monthInput = document.getElementById("statsMonth");
   if (!monthInput) return;
 
-  // 초기: 값이 이미 선택돼 있으면 불러오기
+  // 페이지 최초 로딩 시 값이 이미 있다면 바로 로드
   if (monthInput.value) {
     const existing = statsAllMonths[monthInput.value];
     if (existing) fillStatsFormFromData(existing);
@@ -378,10 +438,20 @@ function setupRatioAutoCalc() {
   const ratioInputs = document.querySelectorAll(".js-ratio");
   if (!ratioInputs.length) return;
 
-  const getBalance = () => {
-    // 우선 대출현황의 "대출잔액(원)" 사용
-    const b = getNumericValueById("sum-balance");
-    return b;
+  const getBalanceForCalc = () => {
+    // 1순위: 대출현황 > 대출잔액(원)
+    let b = getNumericValueById("sum-balance");
+    if (b > 0) return b;
+
+    // 2순위: [통계 요약] > 대출잔액(원)
+    b = getMoneyValueById("statBalance");
+    if (b > 0) {
+      // 화면 상에도 동기화 (대출현황 balance)
+      const sumBalEl = document.getElementById("sum-balance");
+      if (sumBalEl) sumBalEl.value = String(b);
+      return b;
+    }
+    return 0;
   };
 
   const recalcForOne = (ratioInput) => {
@@ -389,7 +459,7 @@ function setupRatioAutoCalc() {
     const amountInput = document.querySelector(`.js-amount[data-key="${key}"]`);
     if (!amountInput) return;
 
-    const balance = getBalance();
+    const balance = getBalanceForCalc();
     const ratioPct = parseFloat(ratioInput.value);
 
     if (!balance || isNaN(ratioPct)) {
@@ -401,18 +471,22 @@ function setupRatioAutoCalc() {
     amountInput.value = formatWithCommas(String(amount));
   };
 
-  // 비율 입력 시 해당 행만 계산
+  // 비율 입력 시 해당 행 자동 계산
   ratioInputs.forEach((ratioInput) => {
     ratioInput.addEventListener("input", () => recalcForOne(ratioInput));
   });
 
   // 대출잔액이 바뀌면 모든 행 재계산
-  const balanceInput = document.getElementById("sum-balance");
-  if (balanceInput) {
-    balanceInput.addEventListener("input", () => {
+  const balanceInputs = [
+    document.getElementById("sum-balance"),
+    document.getElementById("statBalance"),
+  ];
+  balanceInputs.forEach((input) => {
+    if (!input) return;
+    input.addEventListener("input", () => {
       ratioInputs.forEach((ratioInput) => recalcForOne(ratioInput));
     });
-  }
+  });
 }
 
 function setupSaveStatsButton() {
@@ -433,14 +507,15 @@ function setupSaveStatsButton() {
 
     statsAllMonths[month] = {
       summary: data.summary,
-      byType: data.byType
+      overview: data.overview,
+      byType: data.byType,
     };
     saveStatsAllToStorage();
 
     console.log("[beta admin] 통계 데이터 저장:", month, statsAllMonths[month]);
     alert(
       "통계 데이터가 브라우저(localStorage)에 저장되었습니다.\n\n" +
-      "실제 서버 연동 시 이 위치에서 API를 호출하면 됩니다."
+        "실제 서버 연동 시 이 위치에서 API를 호출하면 됩니다."
     );
   });
 }
