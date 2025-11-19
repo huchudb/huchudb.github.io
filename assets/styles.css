@@ -999,237 +999,9 @@ body.beta-body button{
   background:#020617;
 }
 
-/* ======================= PRODUCTS HUB (베타) ======================= */
-
-.products-main{
-  max-width:960px;
-  margin:0 auto 40px;
-  padding:24px 16px 40px;
-}
-
-.products-hero__title{
-  margin:0 0 8px;
-  font-size:22px;
-  font-weight:800;
-  color:#111827;
-}
-
-.products-hero__desc{
-  margin:0 0 16px;
-  font-size:13px;
-  color:#4b5563;
-  line-height:1.6;
-}
-
-.products-section{
-  margin-top:24px;
-}
-
-.products-section__title{
-  margin:0 0 10px;
-  font-size:16px;
-  font-weight:800;
-  color:#111827;
-}
-
-.products-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px;
-}
-@media(max-width:768px){
-  .products-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-.product-card{
-  background:#ffffff;
-  border-radius:16px;
-  border:1px solid #e5e7eb;
-  box-shadow:0 4px 14px rgba(15,23,42,.06);
-  padding:14px 16px;
-}
-
-.product-card__title{
-  margin:0 0 6px;
-  font-size:15px;
-  font-weight:800;
-  color:#111827;
-}
-
-.product-card__desc{
-  margin:0 0 8px;
-  font-size:13px;
-  color:#4b5563;
-  line-height:1.6;
-}
-
-.product-card__bullets{
-  margin:0 0 8px 18px;
-  padding:0;
-  font-size:12px;
-  color:#4b5563;
-  line-height:1.5;
-}
-
-.product-card__bullets li{
-  margin-bottom:2px;
-}
-
-.product-card__tags{
-  display:flex;
-  flex-wrap:wrap;
-  gap:4px;
-  margin-bottom:8px;
-}
-
-.product-card__tags span{
-  display:inline-flex;
-  align-items:center;
-  padding:2px 8px;
-  border-radius:999px;
-  border:1px solid #e5e7eb;
-  background:#f9fafb;
-  font-size:11px;
-  color:#6b7280;
-}
-
-.product-card__link{
-  display:inline-flex;
-  margin-top:2px;
-  font-size:12px;
-  font-weight:700;
-  color:#1d4ed8;
-  text-decoration:none;
-}
-.product-card__link:hover{
-  text-decoration:underline;
-}
-
-.products-section--info{
-  margin-top:32px;
-}
-
-.products-info-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-}
-@media(max-width:768px){
-  .products-info-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-.product-info-card{
-  background:#f9fafb;
-  border-radius:14px;
-  border:1px solid #e5e7eb;
-  padding:12px 14px;
-}
-.product-info-card h3{
-  margin:0 0 6px;
-  font-size:14px;
-  font-weight:800;
-  color:#111827;
-}
-.product-info-card p{
-  margin:0;
-  font-size:12px;
-  color:#4b5563;
-  line-height:1.6;
-}
-/* ===== 온투업 대출상품정보 허브용 카드/버튼 ===== */
-
-.product-hub{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:20px;
-}
-@media (max-width:768px){
-  .product-hub{
-    grid-template-columns:1fr;
-  }
-}
-
-.product-card{
-  background:#ffffff;
-  border-radius:18px;
-  border:1px solid #e5e7eb;
-  padding:18px 20px;
-  box-shadow:0 6px 18px rgba(15,23,42,.06);
-}
-.product-card__title{
-  margin:0 0 6px;
-  font-size:16px;
-  font-weight:800;
-  color:#111827;
-}
-.product-card__desc{
-  margin:0 0 14px;
-  font-size:13px;
-  color:#4b5563;
-  line-height:1.5;
-}
-
-.product-card__buttons{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-/* 버튼 디자인 (참고 이미지 스타일) */
-.product-btn{
-  display:block;
-  padding:10px 18px;
-  border-radius:999px;
-  background:#6b4000;           /* 진한 갈색 계열 */
-  color:#ffffff;
-  font-size:14px;
-  font-weight:700;
-  text-align:center;
-  text-decoration:none;
-  box-shadow:0 3px 8px rgba(0,0,0,.25);
-}
-.product-btn:hover{
-  background:#8b5a12;
-}
-.product-btn:active{
-  transform:translateY(1px);
-  box-shadow:0 2px 5px rgba(0,0,0,.25);
-}
-
-/* ======================= 상품 허브 버튼 디자인 ======================= */
-.product-card__buttons{
-  margin-top:10px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;              /* 버튼 사이 간격 */
-}
-
-/* 개별 버튼 */
-.product-btn{
-  display:inline-flex;  /* 텍스트 길이에 맞게만 가로 폭 사용 */
-  align-items:center;
-  justify-content:center;
-  padding:8px 16px;     /* 이전보다 패딩 줄여서 전체 크기 축소 */
-  border-radius:999px;
-  background:#6b4000;
-  color:#ffffff;
-  font-size:13px;       /* 글자 크기도 살짝 줄임 */
-  font-weight:700;
-  text-decoration:none;
-  box-shadow:0 2px 5px rgba(0,0,0,.25);
-  white-space:nowrap;   /* 줄바꿈 방지 */
-}
-
-/* 호버 효과(살짝 밝게) */
-.product-btn:hover{
-  background:#855012;
-}
 /* ======================= 온투업 대출상품정보(베타 허브) ======================= */
 
+/* 전체 레이아웃 */
 .products-main{
   max-width:960px;
   margin:0 auto 40px;
@@ -1253,6 +1025,7 @@ body.beta-body button{
   color:#4b5563;
 }
 
+/* 섹션 타이틀 */
 .products-section{
   margin-bottom:28px;
 }
@@ -1263,14 +1036,14 @@ body.beta-body button{
   color:#111827;
 }
 
-/* 카드 묶음 래퍼 */
+/* 허브 카드 묶음 */
 .product-hub{
   display:flex;
   flex-direction:column;
   gap:18px;
 }
 
-/* 개별 카드 */
+/* 공통 카드 */
 .product-card{
   background:#ffffff;
   border-radius:18px;
@@ -1296,7 +1069,9 @@ body.beta-body button{
   font-size:13px;
   color:#4b5563;
 }
-.product-card__bullets li+li{margin-top:4px;}
+.product-card__bullets li+li{
+  margin-top:4px;
+}
 
 /* 해시태그 */
 .product-card__tags{
@@ -1318,35 +1093,38 @@ body.beta-body button{
   white-space:nowrap;
 }
 
-/* 아파트 카드 전용 버튼 그룹 */
+/* ===== 아파트 카드용 상세보기 버튼 그룹 ===== */
 .product-card__buttons{
+  margin-top:8px;
   display:flex;
-  flex-direction:column;
-  align-items:flex-start;
+  flex-wrap:wrap;      /* 줄 바뀌어도 자연스럽게 */
   gap:8px;
-  margin-top:6px;
+  align-items:flex-start;
 }
 
-/* 갈색 pill 버튼 – 폭을 줄여서 내용에 맞게 */
+/* 개별 버튼 – 내용 길이에 맞게만 폭 사용 */
 .product-card__buttons .product-btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding:8px 18px;
+  padding:8px 16px;     /* 예전보다 작은 패딩 */
   border-radius:999px;
-  background:#6b3b00;
+  background:#6b3b00;   /* 갈색 pill */
   color:#ffffff;
-  font-size:13px;
+  font-size:13px;       /* 글자 크기도 살짝 줄임 */
   font-weight:800;
   text-decoration:none;
-  box-shadow:0 4px 10px rgba(0,0,0,.18);
+  box-shadow:0 3px 8px rgba(0,0,0,.22);
   border:0;
-  width:auto;              /* 100% 강제 제거 */
-  max-width:260px;
-  white-space:nowrap;
+  white-space:nowrap;   /* 두 줄로 안 내려가게 */
+  width:auto;           /* 100% 폭 강제 방지 */
 }
 .product-card__buttons .product-btn:hover{
   background:#5a3200;
+}
+.product-card__buttons .product-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 2px 5px rgba(0,0,0,.22);
 }
 
 /* 다른 카드 하단의 텍스트 링크 */
@@ -1391,7 +1169,3 @@ body.beta-body button{
   line-height:1.6;
   color:#4b5563;
 }
-
-
-
-
