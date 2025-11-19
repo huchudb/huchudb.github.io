@@ -10,7 +10,7 @@
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
 
-  <!-- 이 페이지 전용 작은 보조 스타일 -->
+  <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
   <style>
     /* 히어로 카드 안의 주석 문구 약간 연하게 */
     .hero-summary-note{
@@ -18,6 +18,32 @@
       font-size:11px;
       color:#6b7280;
     }
+
+    /* 카드 전체 타이포 & 여백 살짝 키우기 */
+    .product-info-card{
+      padding:16px 18px 18px;
+      font-size:13px;
+    }
+    .product-info-card p{
+      line-height:1.7;
+      margin:0 0 6px;
+    }
+    .product-info-card ul{
+      margin:4px 0 8px;
+      padding-left:20px;
+    }
+    .product-info-card li{
+      line-height:1.7;
+    }
+    .product-info-card li+li{
+      margin-top:2px;
+    }
+
+    /* FAQ 카드 사이 간격 조금 더 */
+    .products-info-grid{
+      gap:16px;
+    }
+
     /* 하단 뒤로가기 칩 버튼 */
     .back-chip{
       display:inline-flex;
@@ -188,24 +214,34 @@
           <h3>Q. 아파트담보대출 한도는 어떻게 정해지나요?</h3>
           <p>
             기본적으로 <strong>KB시세 × 허용 LTV − 선순위 채권액</strong>으로 한도가 계산됩니다.
+          </p>
+          <p>
             다만, 담보 위치, 신용점수, 소득, 연체 이력 등에 따라
             최종 대출한도는 조정될 수 있습니다.
           </p>
         </article>
+
         <article class="product-info-card">
           <h3>Q. 연체이력, 세금체납 이력이 있어도 대출이 가능한가요?</h3>
           <p>
             네. 가능한 온투업체가 있습니다.
+          </p>
+          <p>
             단, 금리·플랫폼수수료 등 조건이 차등 적용될 수 있습니다.
           </p>
         </article>
+
         <article class="product-info-card">
           <h3>Q. 후추의 담보대출 계산기는 얼마나 정확한가요?</h3>
           <p>
             온투업에서 실제 취급했던 담보대출 정보를 기반으로 계산되기 때문에
-            한도 및 금리는 각 업체별로 상담을 통해 확인 가능하나,
-            <strong>대출 가능·불가능에 대한 결과는 90% 이상</strong> 정확하여
+            한도 및 금리는 각 업체별로 상담을 통해 확인 가능합니다.
+          </p>
+          <p>
+            다만, <strong>대출 가능·불가능에 대한 결과는 90% 이상</strong> 정확하여
             불필요한 상담을 피할 수 있습니다.
+          </p>
+          <p>
             또한 개인정보 입력 없이 간단한 정보만으로도 가능합니다.
           </p>
         </article>
@@ -220,6 +256,8 @@
         <p>
           후추의 <strong>담보대출계산기</strong>를 이용하면
           소유중인 아파트에 대해 간단히 대출 가능 여부를 확인해 볼 수 있습니다.
+        </p>
+        <p>
           실제 온투업체에 상담 전, 대략적인 조건을 이해하는 데 도움이 되며,
           대출이 가능한 경우 49개 온투업체 중 조건에 맞는 온투업체를 확인할 수 있습니다.
         </p>
