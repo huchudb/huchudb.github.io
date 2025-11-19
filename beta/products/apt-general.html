@@ -12,39 +12,6 @@
 
   <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
   <style>
-    /* 히어로 카드 안 제목 */
-    .hero-card__title{
-      margin:0 0 10px;
-      font-size:24px;        /* 기본 h1(22px) 보다 약간 크게 */
-      font-weight:800;
-      color:#111827;
-    }
-
-    /* 히어로 카드 전체 */
-    .hero-card{
-      /* 기존 product-info-card 스타일을 그대로 상속 + 필요시 추가 여백만 조정 가능 */
-    }
-
-    /* 히어로 카드의 첫 문장만 글자 키우기 (약 20% 증가) */
-    .hero-card .hero-intro{
-      font-size:15px;        /* 기본 13px → 15px 정도로 업 */
-      font-weight:500;
-    }
-
-    /* 히어로 하단 주석 두 줄 붙여 보이게 */
-    .hero-summary-note{
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.5;
-      margin:0;              /* 기본은 여백 0 */
-    }
-    .hero-note-main{
-      margin-top:8px;        /* 첫 줄만 위쪽 여백 */
-    }
-    .hero-note-sub{
-      margin-top:0;          /* 둘째 줄은 바로 붙게 */
-    }
-
     /* 카드 전체 타이포 & 여백 살짝 키우기 */
     .product-info-card{
       padding:16px 18px 18px;
@@ -63,6 +30,34 @@
     }
     .product-info-card li+li{
       margin-top:2px;
+    }
+
+    /* 히어로 카드 제목(H1) */
+    .hero-card__title{
+      margin:0 0 10px;
+      font-size:24px;        /* 기본보다 약간 크게 */
+      font-weight:800;
+      color:#111827;
+    }
+
+    /* 히어로 카드의 첫 문장만 글자 20% 정도 키우기 */
+    .hero-card .hero-intro{
+      font-size:15px;        /* 기본 13px → 15px */
+      font-weight:500;
+    }
+
+    /* 히어로 하단 주석 두 줄 — p 기본 마진을 다시 덮어쓰기 */
+    .product-info-card p.hero-summary-note{
+      font-size:11px;
+      color:#6b7280;
+      line-height:1.5;
+      margin:0;              /* 위·아래 여백 모두 0으로 */
+    }
+    .product-info-card p.hero-summary-note.hero-note-main{
+      margin-top:8px;        /* 첫 줄만 위쪽에 살짝 여백 */
+    }
+    .product-info-card p.hero-summary-note.hero-note-sub{
+      margin-top:0;          /* 두 번째 줄은 바로 붙게 */
     }
 
     /* FAQ / “온투업을 찾는 경우” 카드 사이 간격 */
@@ -137,7 +132,6 @@
 
         <p class="hero-intro">
           온라인투자연계금융업 아파트담보대출 상품 중 <strong>‘일반담보대출’ 상품</strong> 관련 정보입니다.
-        </p>
         </p>
         <p><strong>대상고객:</strong> 은행권에서 더이상 한도가 없고, 추가 대출이 필요한 개인</p>
         <p><strong>대출한도:</strong> 1천만원 ~ 70억원</p>
@@ -253,6 +247,8 @@
           </p>
           <p>
             기준시세는 부동산 종류별로 각각 다른 기준이 적용됩니다.
+          </p>
+          <p>
             보통 아파트의 경우는 KB시세, 빌라/연립의 경우 하우스머치가 적용됩니다.
           </p>
           <p>
