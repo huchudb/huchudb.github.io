@@ -9,40 +9,9 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-
-  <!-- 이 페이지 전용 보조 스타일 -->
+  <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
   <style>
-    /* 히어로 카드 내 안내 문구 두 줄 */
-    .hero-summary-note{
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.5;
-      margin:0;
-    }
-    .hero-note-main{
-      margin-top:8px;
-    }
-    .hero-note-sub{
-      margin-top:0;
-    }
-
-    /* 히어로 카드 – 제목 & 본문 간격 */
-    .hero-card{
-      padding:16px 18px 18px;
-    }
-    .hero-card h2{
-      margin:0 0 10px;
-      font-size:18px;
-      font-weight:800;
-      color:#111827;
-    }
-    .hero-card .hero-intro{
-      font-size:15px;
-      font-weight:500;
-      margin-bottom:14px;   /* 제목과 아래 항목 사이 간격 */
-    }
-
-    /* 공통 카드 타이포 & 여백 */
+    /* 카드 전체 타이포 & 여백 살짝 키우기 */
     .product-info-card{
       padding:16px 18px 18px;
       font-size:13px;
@@ -62,7 +31,35 @@
       margin-top:2px;
     }
 
-    /* FAQ / “온투업을 찾는 경우” 카드 간격 */
+    /* 히어로 카드 제목 */
+    .hero-card__title{
+      margin:0 0 10px;
+      font-size:24px;        /* 기존보다 약간 크게 */
+      font-weight:800;
+      color:#111827;
+    }
+
+    /* 히어로 카드의 첫 문장만 글자 20% 정도 키우기 */
+    .hero-card .hero-intro{
+      font-size:15px;        /* 기본 13px → 15px */
+      font-weight:500;
+    }
+
+    /* 히어로 하단 주석 두 줄 — p 기본 마진을 다시 덮어쓰기 */
+    .product-info-card p.hero-summary-note{
+      font-size:11px;
+      color:#6b7280;
+      line-height:1.5;
+      margin:0;              /* 위·아래 여백 모두 0으로 */
+    }
+    .product-info-card p.hero-summary-note.hero-note-main{
+      margin-top:8px;        /* 첫 줄만 위쪽에 살짝 여백 */
+    }
+    .product-info-card p.hero-summary-note.hero-note-sub{
+      margin-top:0;          /* 두 번째 줄은 바로 붙게 */
+    }
+
+    /* FAQ / “온투업을 찾는 경우” 카드 사이 간격 */
     .products-info-grid{
       gap:16px;
     }
@@ -74,18 +71,19 @@
       justify-content:center;
       padding:6px 14px;
       border-radius:999px;
-      background:#111827;
+      background:#111827;      /* 검정에 가까운 진한 색 */
       border:1px solid #111827;
-      color:#ffffff;
+      color:#ffffff;           /* 텍스트 흰색 */
       font-size:12px;
       font-weight:700;
       text-decoration:none;
       line-height:1;
     }
     .back-chip:hover{
-      background:#1f2937;
+      background:#1f2937;      /* 살짝 더 밝은 톤으로 호버 */
     }
   </style>
+ 
 </head>
 <body class="beta-body">
 
