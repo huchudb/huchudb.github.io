@@ -12,34 +12,25 @@
 
   <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
   <style>
-    /* 히어로 카드 내 요약 문구 (두 줄짜리 안내) */
+    /* 히어로 요약 문구 두 줄 */
     .hero-summary-note{
       font-size:11px;
       color:#6b7280;
       line-height:1.5;
     }
-    /* product-info-card 공통 p 스타일보다 특이도를 높여서 margin을 0으로 강제 */
+    /* product-info-card 공통 p보다 특이도 높여서 margin 0으로 고정 */
     .product-info-card p.hero-summary-note{
       margin-top:0;
       margin-bottom:0;
     }
-    /* 첫 번째 문장만 위쪽에 약간 여백 */
     .hero-note-main{
       margin-top:8px;
     }
-    /* 두 번째 문장은 바로 붙게 (위 여백 없음) */
     .hero-note-sub{
       margin-top:0;
     }
 
-    /* 히어로 첫 문단(소개 문장)만 글자 크기 20% 키움 */
-    .hero-intro{
-      font-size:15.6px;   /* 기본 13px 대비 약 20% ↑ */
-      line-height:1.7;
-      margin:0 0 8px;
-    }
-
-    /* 카드 전체 타이포 & 여백 살짝 키우기 */
+    /* 카드 전체 타이포 & 여백 */
     .product-info-card{
       padding:16px 18px 18px;
       font-size:13px;
@@ -59,6 +50,12 @@
       margin-top:2px;
     }
 
+    /* 히어로 첫 문단만 글자 20% 키우기 (공통 p 규칙 뒤에서 덮어씀) */
+    .product-info-card p.hero-intro{
+      font-size:15.6px;   /* 13px 대비 약 20% 증가 */
+      margin:0 0 8px;
+    }
+
     /* FAQ / “온투업을 찾는 경우” 카드 사이 간격 */
     .products-info-grid{
       gap:16px;
@@ -71,16 +68,16 @@
       justify-content:center;
       padding:6px 14px;
       border-radius:999px;
-      background:#111827;      /* 검정에 가까운 진한 색 */
+      background:#111827;
       border:1px solid #111827;
-      color:#ffffff;           /* 텍스트 흰색 */
+      color:#ffffff;
       font-size:12px;
       font-weight:700;
       text-decoration:none;
       line-height:1;
     }
     .back-chip:hover{
-      background:#1f2937;      /* 살짝 더 밝은 톤으로 호버 */
+      background:#1f2937;
     }
   </style>
 </head>
@@ -240,13 +237,18 @@
       <h2 class="products-section__title">3. 자주 묻는 질문 (FAQ)</h2>
       <div class="products-info-grid">
         <article class="product-info-card">
-          <h3>Q. 아파트담보대출 한도는 어떻게 정해지나요?</h3>
+          <h3>Q. 담보대출 한도는 어떻게 정해지나요?</h3>
           <p>
-            기본적으로 <strong>KB시세 × 허용 LTV − 선순위 채권액</strong>으로 한도가 계산됩니다.
+            기본적으로 <strong>기준시세 × 허용 LTV − 선순위 채권액</strong>으로 한도가 계산됩니다.
           </p>
           <p>
-            다만, 담보 위치, 신용점수, 소득, 연체 이력 등에 따라
-            최종 대출한도는 조정될 수 있습니다.
+            기준시세는 부동산 종류별로 각각 다른 기준이 적용됩니다.
+          </p>
+          <p>
+            보통 아파트의 경우는 KB시세, 빌라/연립의 경우 하우스머치가 적용됩니다.
+          </p>
+          <p>
+            그 외의 경우 온투업사 자체 감정을 통해 기준시세를 결정합니다.
           </p>
         </article>
 
