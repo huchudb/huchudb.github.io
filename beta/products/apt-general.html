@@ -12,12 +12,22 @@
 
   <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
   <style>
-    /* 히어로 카드 안의 주석 문구 약간 연하게 */
-    .hero-summary-note{
-      margin-top:8px;
-      font-size:11px;
-      color:#6b7280;
-    }
+   .hero-summary-note{
+  font-size:11px;
+  color:#6b7280;
+  line-height:1.5;
+  margin:0;            /* 기본은 여백 0 */
+}
+
+/* 첫 번째 문장만 위쪽에 약간 여백 */
+.hero-note-main{
+  margin-top:8px;
+}
+
+/* 두 번째 문장은 바로 붙게 */
+.hero-note-sub{
+  margin-top:0;
+}
 
     /* 카드 전체 타이포 & 여백 살짝 키우기 */
     .product-info-card{
