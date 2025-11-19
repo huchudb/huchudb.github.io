@@ -9,9 +9,40 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-  <!-- 이 페이지 전용 보조 스타일: 가독성(줄간격·여백·칩 버튼) 개선 -->
+
+  <!-- 이 페이지 전용 보조 스타일 -->
   <style>
-    /* 카드 전체 타이포 & 여백 살짝 키우기 */
+    /* 히어로 카드 내 안내 문구 두 줄 */
+    .hero-summary-note{
+      font-size:11px;
+      color:#6b7280;
+      line-height:1.5;
+      margin:0 !important;     /* 공백 없애기 */
+    }
+    .hero-note-main{
+      margin-top:8px !important;
+    }
+    .hero-note-sub{
+      margin-top:0 !important;
+    }
+
+    /* 히어로 카드 – 제목 & 본문 간격 */
+    .hero-card{
+      padding:16px 18px 18px;
+    }
+    .hero-card h2{
+      margin:0 0 10px;
+      font-size:18px;
+      font-weight:800;
+      color:#111827;
+    }
+    .hero-card .hero-intro{
+      font-size:15px;
+      font-weight:500;
+      margin-bottom:14px;   /* 제목과 아래 항목 사이 간격 */
+    }
+
+    /* 공통 카드 타이포 & 여백 */
     .product-info-card{
       padding:16px 18px 18px;
       font-size:13px;
@@ -31,35 +62,7 @@
       margin-top:2px;
     }
 
-    /* 히어로 카드 제목 */
-    .hero-card__title{
-      margin:0 0 10px;
-      font-size:24px;        /* 기존보다 약간 크게 */
-      font-weight:800;
-      color:#111827;
-    }
-
-    /* 히어로 카드의 첫 문장만 글자 20% 정도 키우기 */
-    .hero-card .hero-intro{
-      font-size:15px;        /* 기본 13px → 15px */
-      font-weight:500;
-    }
-
-    /* 히어로 하단 주석 두 줄 — p 기본 마진을 다시 덮어쓰기 */
-    .product-info-card p.hero-summary-note{
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.5;
-      margin:0;              /* 위·아래 여백 모두 0으로 */
-    }
-    .product-info-card p.hero-summary-note.hero-note-main{
-      margin-top:8px;        /* 첫 줄만 위쪽에 살짝 여백 */
-    }
-    .product-info-card p.hero-summary-note.hero-note-sub{
-      margin-top:0;          /* 두 번째 줄은 바로 붙게 */
-    }
-
-    /* FAQ / “온투업을 찾는 경우” 카드 사이 간격 */
+    /* FAQ / “온투업을 찾는 경우” 카드 간격 */
     .products-info-grid{
       gap:16px;
     }
@@ -71,19 +74,18 @@
       justify-content:center;
       padding:6px 14px;
       border-radius:999px;
-      background:#111827;      /* 검정에 가까운 진한 색 */
+      background:#111827;
       border:1px solid #111827;
-      color:#ffffff;           /* 텍스트 흰색 */
+      color:#ffffff;
       font-size:12px;
       font-weight:700;
       text-decoration:none;
       line-height:1;
     }
     .back-chip:hover{
-      background:#1f2937;      /* 살짝 더 밝은 톤으로 호버 */
+      background:#1f2937;
     }
   </style>
- 
 </head>
 <body class="beta-body">
 
@@ -133,7 +135,7 @@
           온라인투자연계금융업 아파트담보대출 상품 중 <strong>‘일반담보대출’ 상품</strong> 관련 정보입니다.
         </p>
 
-        <!-- 여기부터 항목 앞에 · 과 Ι 적용 -->
+        <!-- 항목 앞에 · 과 Ι 적용 -->
         <p>· <strong>대상고객</strong> Ι 은행권에서 더이상 한도가 없고, 추가 대출이 필요한 개인</p>
         <p>· <strong>대출한도</strong> Ι 최소 1천만원 ~ 최대 70억원</p>
         <p>· <strong>대출약정</strong> Ι 대면 또는 비대면 (업체별 상이)</p>
@@ -145,6 +147,27 @@
         </p>
         <p class="hero-summary-note hero-note-sub">
           (대출한도 등 관련 문의는 각 온투업사에 문의하세요.)
+        </p>
+      </article>
+    </section>
+
+    <!-- 담보대출계산기 안내: 히어로 바로 아래로 이동 -->
+    <section class="products-section">
+      <h2 class="products-section__title">후추 담보대출계산기로 확인하세요.</h2>
+      <article class="product-info-card">
+        <h3>대출 승인 가능 여부와 한도를 먼저 체크</h3>
+        <p>
+          후추의 <strong>담보대출계산기</strong>를 이용하면
+          소유중인 부동산에 대해 사전에 <strong>대출 승인 가능 여부를 간편하게 확인</strong>해 볼 수 있습니다.
+        </p>
+        <p>
+          실제 온투업체에 상담 전, 대략적인 조건을 이해하는 데 도움이 되며,
+          <strong>대출이 가능한 경우 49개 온투업체 중 조건에 맞는 온투업체를 확인할 수 있습니다.</strong>
+        </p>
+        <p style="margin-top:8px;">
+          👉 <a href="/" style="color:#1d4ed8;font-weight:700;text-decoration:underline;">
+          후추 담보대출계산기 바로가기
+          </a>
         </p>
       </article>
     </section>
@@ -211,8 +234,8 @@
         <article class="product-info-card">
           <h3>생활비 등 가계자금이 필요할때</h3>
           <p>
-            이미 대출이 있는 상황에서 수술비, 자녀결혼비용, 사업운영자금, 세금 납부 등
-            자금이 필요한 경우, 후순위주담대를 통해 자금을 확보하는 경우가 많습니다.
+            기존 대출이 있는 상황에서 수술비, 자녀결혼비용, 사업운영자금, 세금 납부 등
+            자금이 필요할 때, 온투업(P2P대출)을 통해 자금을 확보하는 경우가 많습니다.
           </p>
         </article>
 
@@ -229,8 +252,8 @@
         <article class="product-info-card">
           <h3>은행에서 대출이 안되는 경우</h3>
           <p>
-            경매로 부동산을 낙찰 받은 후 은행의 한도가 부족할 경우
-            신규 임차인을 구하기 전에 기존 임차인 보증금을 반환해줘야 할 경우
+            경매로 부동산을 낙찰 받은 후 은행의 한도가 부족할 경우,
+            신규 임차인을 구하기 전에 기존 임차인 보증금을 반환해줘야 할 경우,
             가족·친척들과 공동소유중인 부동산에 내 지분만으로 대출을 받고 싶은 경우에
             온투업 담보대출을 고려하는 경우가 많습니다.
           </p>
@@ -277,27 +300,6 @@
           </p>
         </article>
       </div>
-    </section>
-
-    <!-- 담보대출계산기 안내 -->
-    <section class="products-section">
-      <h2 class="products-section__title">후추 담보대출계산기로 확인하세요.</h2>
-      <article class="product-info-card">
-        <h3>대출 승인 가능 여부와 한도를 먼저 체크</h3>
-        <p>
-          후추의 <strong>담보대출계산기</strong>를 이용하면
-          소유중인 부동산에 대해 사전에 <strong>대출 승인 가능 여부를 간편하게 확인</strong>해 볼 수 있습니다.
-        </p>
-        <p>
-          실제 온투업체에 상담 전, 대략적인 조건을 이해하는 데 도움이 되며,
-          <strong>대출이 가능한 경우 49개 온투업체 중 조건에 맞는 온투업체를 확인할 수 있습니다.</strong>
-        </p>
-        <p style="margin-top:8px;">
-          👉 <a href="/" style="color:#1d4ed8;font-weight:700;text-decoration:underline;">
-          후추 담보대출계산기 바로가기
-          </a>
-        </p>
-      </article>
     </section>
 
     <!-- 해시태그 -->
