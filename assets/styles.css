@@ -1228,6 +1228,170 @@ body.beta-body button{
 .product-btn:hover{
   background:#855012;
 }
+/* ======================= 온투업 대출상품정보(베타 허브) ======================= */
+
+.products-main{
+  max-width:960px;
+  margin:0 auto 40px;
+  padding:16px;
+}
+
+.products-hero{
+  margin-top:20px;
+  margin-bottom:18px;
+}
+.products-hero__title{
+  margin:0 0 8px;
+  font-size:22px;
+  font-weight:800;
+  color:#111827;
+}
+.products-hero__desc{
+  margin:0;
+  font-size:13px;
+  line-height:1.6;
+  color:#4b5563;
+}
+
+.products-section{
+  margin-bottom:28px;
+}
+.products-section__title{
+  margin:0 0 12px;
+  font-size:18px;
+  font-weight:800;
+  color:#111827;
+}
+
+/* 카드 묶음 래퍼 */
+.product-hub{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+/* 개별 카드 */
+.product-card{
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 6px 16px rgba(15,23,42,.06);
+  padding:16px 18px 18px;
+}
+.product-card__title{
+  margin:0 0 6px;
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+}
+.product-card__desc{
+  margin:0 0 10px;
+  font-size:13px;
+  line-height:1.6;
+  color:#4b5563;
+}
+.product-card__bullets{
+  margin:0 0 10px;
+  padding-left:18px;
+  font-size:13px;
+  color:#4b5563;
+}
+.product-card__bullets li+li{margin-top:4px;}
+
+/* 해시태그 */
+.product-card__tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.product-card__tags span,
+.product-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  font-size:11px;
+  color:#4b5563;
+  white-space:nowrap;
+}
+
+/* 아파트 카드 전용 버튼 그룹 */
+.product-card__buttons{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:8px;
+  margin-top:6px;
+}
+
+/* 갈색 pill 버튼 – 폭을 줄여서 내용에 맞게 */
+.product-card__buttons .product-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 18px;
+  border-radius:999px;
+  background:#6b3b00;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+  box-shadow:0 4px 10px rgba(0,0,0,.18);
+  border:0;
+  width:auto;              /* 100% 강제 제거 */
+  max-width:260px;
+  white-space:nowrap;
+}
+.product-card__buttons .product-btn:hover{
+  background:#5a3200;
+}
+
+/* 다른 카드 하단의 텍스트 링크 */
+.product-card__link{
+  display:inline-flex;
+  margin-top:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#1d4ed8;
+  text-decoration:underline;
+}
+.product-card__link:hover{
+  color:#1e40af;
+}
+
+/* 하단 안내 카드 */
+.products-info-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+@media(max-width:768px){
+  .products-info-grid{
+    grid-template-columns:1fr;
+  }
+}
+.product-info-card{
+  background:#f3f4f6;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+  padding:14px 16px;
+}
+.product-info-card h3{
+  margin:0 0 6px;
+  font-size:14px;
+  font-weight:800;
+  color:#111827;
+}
+.product-info-card p{
+  margin:0;
+  font-size:13px;
+  line-height:1.6;
+  color:#4b5563;
+}
+
 
 
 
