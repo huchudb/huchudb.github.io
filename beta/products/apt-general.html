@@ -26,21 +26,31 @@
       margin-top:0 !important;
     }
 
-    /* 히어로 카드 – 제목 & 본문 간격 */
-    .hero-card{
-      padding:16px 18px 18px;
-    }
-    .hero-card h2{
-      margin:0 0 10px;
-      font-size:18px;
-      font-weight:800;
-      color:#111827;
-    }
-    .hero-card .hero-intro{
-      font-size:15px;
-      font-weight:500;
-      margin-bottom:14px;   /* 제목과 아래 항목 사이 간격 */
-    }
+   .hero-card h2{
+  position:relative;          /* 밑줄 위치 기준 잡기 */
+  display:inline-block;       /* 제목 길이만큼만 밑줄 */
+  margin:0 0 12px;
+  font-size:20px;             /* 20px */
+  font-weight:800;            /* 굵게 */
+  color:#0F172A;              /* 진한 남색 */
+  padding-bottom:6px;         /* 밑줄 들어갈 자리 */
+}
+
+.hero-card h2::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;                 /* 밑줄 두께 2px */
+  background:linear-gradient(
+    90deg,
+    rgba(59,130,246,0),       /* 투명 → */
+    #3B82F6,                  /* 파랑 */
+    #60A5FA,                  /* 연파랑 */
+    rgba(96,165,250,0)        /* → 투명 */
+  );
+}
 
     /* 공통 카드 타이포 & 여백 */
     .product-info-card{
