@@ -1324,7 +1324,7 @@ body.beta-body button{
 /* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
 .calculator-extra-text-row{
   display:flex;
-  align-items:flex-start;
+  align-items:flex-end;
   justify-content:space-between;
   gap:12px;
 }
@@ -1357,6 +1357,7 @@ body.beta-body button{
   align-self:flex-start;
   transform:translateY(16px); /* 필요하면 10~14px 사이에서 미세조정 */
 }
+
 
 
 
