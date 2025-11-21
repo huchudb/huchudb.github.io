@@ -9,103 +9,6 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-
-  <!-- 이 페이지 전용 보조 스타일 -->
-  <style>
-    /* 히어로 카드 내 안내 문구 두 줄 */
-    .hero-summary-note{
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.5;
-      margin:0 !important;     /* 공백 없애기 */
-    }
-    .hero-note-main{
-      margin-top:8px !important;
-    }
-    .hero-note-sub{
-      margin-top:0 !important;
-    }
-
-   .hero-card h2{
-  position:relative;          /* 밑줄 위치 기준 잡기 */
-  display:inline-block;       /* 제목 길이만큼만 밑줄 */
-  margin:0 0 12px;
-  font-size:20px;             /* 20px */
-  font-weight:800;            /* 굵게 */
-  color:#0F172A;              /* 진한 남색 */
-  padding-bottom:6px;         /* 밑줄 들어갈 자리 */
-}
-
-.hero-card h2::after{
-  content:"";
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:0;
-  height:2px;                 /* 밑줄 두께 2px */
-  background:linear-gradient(
-    90deg,
-    rgba(59,130,246,0),       /* 투명 → */
-    #3B82F6,                  /* 파랑 */
-    #60A5FA,                  /* 연파랑 */
-    rgba(96,165,250,0)        /* → 투명 */
-  );
-}
-
-    /* 공통 카드 타이포 & 여백 */
-    .product-info-card{
-      padding:16px 18px 18px;
-      font-size:13px;
-    }
-    .product-info-card p{
-      line-height:1.7;
-      margin:0 0 6px;
-    }
-    .product-info-card ul{
-      margin:4px 0 8px;
-      padding-left:20px;
-    }
-    .product-info-card li{
-      line-height:1.7;
-    }
-    .product-info-card li+li{
-      margin-top:2px;
-    }
-
-    /* FAQ / “온투업을 찾는 경우” 카드 간격 */
-    .products-info-grid{
-      gap:16px;
-    }
-
-    /* 하단 뒤로가기 칩 버튼 */
-    .back-chip{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:6px 14px;
-      border-radius:999px;
-      background:#111827;
-      border:1px solid #111827;
-      color:#ffffff;
-      font-size:12px;
-      font-weight:700;
-      text-decoration:none;
-      line-height:1;
-    }
-    .back-chip:hover{
-      background:#1f2937;
-    }
-    /* 히어로 카드 안 항목(대상고객/대출한도...) 줄 간격 조정 */
-.hero-card p{
-  margin:0 0 3px;   /* 숫자를 줄이면 문장 사이 간격이 더 좁아짐 (예: 3px → 2px) */
-  line-height:1.5;  /* 필요하면 1.4~1.5 정도로 */
-}
-
-/* 인트로 문장은 아래 여백을 따로 유지 */
-.hero-card .hero-intro{
-  margin-bottom:14px;
-}
-  </style>
 </head>
 <body class="beta-body">
 
@@ -171,19 +74,15 @@
       </article>
     </section>
 
-    <!-- 담보대출계산기 안내: 히어로 바로 아래로 이동 -->
+    <!-- 담보대출계산기 안내: 히어로 바로 아래 -->
     <section class="products-section">
       <h2 class="products-section__title">후추 담보대출 계산기로 확인하세요.</h2>
       <article class="product-info-card">
-        <h3>대출 승인 가능성 및 한도 체크</h3>
-        <p>
-        개인정보 입력<strong>NO</strong>
-        신용점수영향<strong>NO</strong>
-        간단한 정보로도<strong>OK</strong>
-        </p>
-        <p>
-         49개 온투업체 중  <strong>맞춤 온투업체</strong> 확인 가능
-        </p>
+        <h3>대출 승인 가능성 및 한도 체크 가능</h3>
+        <p>개인정보 입력 <strong>NO</strong></p>
+        <p>신용점수영향 <strong>NO</strong></p>
+        <p>간단한 정보로도 <strong>OK</strong></p>
+        <p>49개 온투업체 중  <strong>맞춤 온투업체</strong> 확인 가능</p>
         <p style="margin-top:8px;">
           👉 <a href="/" style="color:#1d4ed8;font-weight:700;text-decoration:underline;">
           후추 담보대출 계산기 바로가기
@@ -222,12 +121,12 @@
         <h3>만기연장</h3>
         <ul style="margin-bottom:14px;">
           <li>
-           연장가능<br>
-          <span style="font-size:12px;color:#6b7280;margin-top:0;">
-           *연장 시 담보가치 하락, 신용정보 변동 등에 따라 연장이 어려울 수 있으며,
-           연장 시 금리와 플랫폼 수수료가 변경될 수 있습니다.
-          </span>
-        </li>  
+            연장가능<br>
+            <span class="extend-note">
+              *연장 시 담보가치 하락, 신용정보 변동 등에 따라 연장이 어려울 수 있으며,
+              연장 시 금리와 플랫폼 수수료가 변경될 수 있습니다.
+            </span>
+          </li>
         </ul>
         
         <h3>플랫폼수수료</h3>
@@ -291,11 +190,11 @@
         <article class="product-info-card">
           <h3>Q. 담보대출 한도는 어떻게 정해지나요?</h3>
           <p>
-           대출 한도는 <strong>기준시세 × LTV − 선순위 채권액</strong>으로 계산됩니다.
+            대출 한도는 <strong>기준시세 × LTV − 선순위 채권액</strong>으로 계산됩니다.
           </p>
           <p>
             기준시세는 부동산 종류별로 각각 다른 기준이 적용됩니다.
-            보통 아파트의 경우는 KB시세를 빌라/연립의 경우 하우스머치가 적용됩니다.
+            보통 아파트의 경우는 KB시세를, 빌라/연립의 경우 하우스머치가 적용됩니다.
           </p>
           <p>
             그 외의 경우 각 온투업사의 자체 감정으로 기준시세를 결정합니다.
