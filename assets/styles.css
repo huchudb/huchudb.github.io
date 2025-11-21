@@ -1324,14 +1324,17 @@ body.beta-body button{
 /* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
 .calculator-extra-text-row{
   display:flex;
-  align-items:center;        /* 텍스트와 버튼 세로 중심 맞추기 */
+  align-items:flex-start;         /* 위 기준으로 맞추고 */
   justify-content:space-between;
   gap:12px;
 }
 .calculator-extra-text-row .calculator-extra-text{
   flex:1 1 auto;
 }
+
+/* 블로그 바로가기 버튼만 조금 더 아래로 내려서
+   왼쪽 카드의 버튼 높이와 비슷하게 맞추기 */
 .calculator-extra-text-row .product-card__buttons{
-  margin-top:0;
-  align-self:flex-start;     /* 텍스트 첫 줄과 높이를 비슷하게 */
+  margin-top:18px;                /* 필요하면 16~20 사이에서 미세조정 가능 */
+  align-self:flex-start;
 }
