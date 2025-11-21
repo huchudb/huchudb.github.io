@@ -9,212 +9,6 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-
-  <!-- 이 페이지 전용 보조 스타일 -->
-  <style>
-    /* 히어로 카드 내 안내 문구 두 줄 */
-    .hero-summary-note{
-      font-size:11px;
-      color:#6b7280;
-      line-height:1.5;
-      margin:0 !important;     /* 공백 없애기 */
-    }
-    .hero-note-main{
-      margin-top:8px !important;
-    }
-    .hero-note-sub{
-      margin-top:0 !important;
-    }
-
-    /* 히어로 카드 타이틀 (20px + 그라데이션 밑줄) */
-    .hero-card h2{
-      position:relative;          /* 밑줄 위치 기준 */
-      display:inline-block;       /* 제목 길이만큼만 밑줄 */
-      margin:0 0 12px;
-      font-size:20px;
-      font-weight:800;
-      color:#0F172A;
-      padding-bottom:6px;         /* 밑줄 들어갈 자리 */
-    }
-    .hero-card h2::after{
-      content:"";
-      position:absolute;
-      left:0;
-      right:0;
-      bottom:0;
-      height:2px;
-      background:linear-gradient(
-        90deg,
-        rgba(59,130,246,0),
-        #3B82F6,
-        #60A5FA,
-        rgba(96,165,250,0)
-      );
-    }
-
-    /* 공통 카드 타이포 & 여백 */
-    .product-info-card{
-      padding:16px 18px 18px;
-      font-size:13px;
-      background:#f3f4f6;
-      border-radius:16px;
-      border:1px solid #e5e7eb;
-    }
-    .product-info-card p{
-      line-height:1.7;
-      margin:0 0 6px;
-      color:#4b5563;
-    }
-    .product-info-card h3{
-      margin:0 0 6px;
-      font-size:14px;
-      font-weight:800;
-      color:#111827;
-    }
-    .product-info-card ul{
-      margin:4px 0 8px;
-      padding-left:20px;
-    }
-    .product-info-card li{
-      line-height:1.7;
-      color:#4b5563;
-    }
-    .product-info-card li+li{
-      margin-top:2px;
-    }
-
-    /* FAQ / “온투업을 찾는 경우” 카드 간격 */
-    .products-info-grid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:16px;
-    }
-    @media(max-width:768px){
-      .products-info-grid{
-        grid-template-columns:1fr;
-      }
-    }
-
-    /* 하단 뒤로가기 칩 버튼 */
-    .back-chip{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:6px 14px;
-      border-radius:999px;
-      background:#111827;
-      border:1px solid #111827;
-      color:#ffffff;
-      font-size:12px;
-      font-weight:700;
-      text-decoration:none;
-      line-height:1;
-    }
-    .back-chip:hover{
-      background:#1f2937;
-    }
-
-    /* 히어로 카드 안 항목(대상고객/대출한도...) 줄 간격 조정 */
-    .hero-card{
-      padding:16px 18px 18px;
-    }
-    .hero-card p{
-      margin:0 0 3px;
-      line-height:1.5;
-    }
-    /* 인트로 문장은 아래 여백 따로 */
-    .hero-card .hero-intro{
-      font-size:15px;
-      font-weight:500;
-      margin-bottom:14px;
-    }
-
-    /* ===== 담보대출 계산기 카드 전용 레이아웃 ===== */
-    .products-section--calculator .product-info-card{
-      background:#f9fafb;
-    }
-    .calc-card{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:24px;
-    }
-    @media(max-width:768px){
-      .calc-card{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-    }
-    .calc-card__left{
-      flex:1 1 auto;
-      min-width:0;
-    }
-    .calc-card__title{
-      margin:0 0 10px;
-      font-size:15px;
-      font-weight:800;
-      color:#111827;
-    }
-    .calc-card__list{
-      list-style:none;
-      margin:0 0 10px;
-      padding:0;
-    }
-    .calc-card__list li{
-      display:flex;
-      align-items:baseline;
-      gap:8px;
-      font-size:13px;
-      line-height:1.7;
-      color:#4b5563;
-    }
-    .calc-card__list li::before{
-      content:"•";
-      font-size:14px;
-      line-height:1;
-      color:#3b82f6;
-    }
-    .calc-card__list strong{
-      color:#111827;
-    }
-    .calc-card__cta{
-      display:inline-flex;
-      align-items:center;
-      margin-top:4px;
-      font-size:13px;
-      font-weight:700;
-      color:#1d4ed8;
-      text-decoration:underline;
-    }
-
-    .calc-card__right{
-      flex:0 0 220px;
-      align-self:stretch;
-      border-radius:14px;
-      background:radial-gradient(circle at top left,#eff6ff,#dbeafe);
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:16px 14px;
-      text-align:center;
-    }
-    .calc-tag{
-      padding:4px 10px;
-      border-radius:999px;
-      background:#e0f2fe;
-      color:#1f2937;
-      font-size:11px;
-      font-weight:700;
-      margin-bottom:8px;
-    }
-    .calc-headline{
-      font-size:15px;
-      font-weight:800;
-      color:#1e3a8a;
-      line-height:1.3;
-    }
-  </style>
 </head>
 <body class="beta-body">
 
@@ -281,28 +75,19 @@
     </section>
 
     <!-- 담보대출계산기 안내: 히어로 바로 아래 -->
-    <section class="products-section products-section--calculator">
+    <section class="products-section">
       <h2 class="products-section__title">후추 담보대출 계산기로 확인하세요.</h2>
-      <article class="product-info-card calc-card">
-        <div class="calc-card__left">
-          <h3 class="calc-card__title">대출 승인 가능성 및 한도, 먼저 체크하세요</h3>
-          <ul class="calc-card__list">
-            <li><strong>개인정보 입력</strong> 없이 이용 가능</li>
-            <li><strong>신용점수</strong>에 영향을 주지 않습니다 (사전 시뮬레이션 용도)</li>
-            <li>아파트 정보와 기존 대출 조건만으로 <strong>대략적인 한도·금리</strong>를 가늠할 수 있습니다.</li>
-            <li>대출이 가능한 경우, <strong>49개 온투업사 중 조건이 맞는 온투업사</strong>를 미리 파악할 수 있습니다.</li>
-          </ul>
-          <a href="/" class="calc-card__cta">
-            👉 후추 담보대출 계산기 바로가기
+      <article class="product-info-card">
+        <h3>대출 승인 가능성 및 한도 체크 가능</h3>
+        <p>개인정보 입력 <strong>NO</strong></p>
+        <p>신용점수영향 <strong>NO</strong></p>
+        <p>간단한 정보로도 <strong>OK</strong></p>
+        <p>49개 온투업체 중  <strong>맞춤 온투업체</strong> 확인 가능</p>
+        <p style="margin-top:8px;">
+          👉 <a href="/" style="color:#1d4ed8;font-weight:700;text-decoration:underline;">
+          후추 담보대출 계산기 바로가기
           </a>
-        </div>
-
-        <div class="calc-card__right">
-          <div class="calc-tag">온투업 전용</div>
-          <div class="calc-headline">
-            담보대출<br>계산 시뮬레이터
-          </div>
-        </div>
+        </p>
       </article>
     </section>
 
@@ -337,7 +122,7 @@
         <ul style="margin-bottom:14px;">
           <li>
             연장가능<br>
-            <span style="font-size:12px;color:#6b7280;margin-top:0;display:inline-block;margin-left:26px;">
+            <span class="extend-note">
               *연장 시 담보가치 하락, 신용정보 변동 등에 따라 연장이 어려울 수 있으며,
               연장 시 금리와 플랫폼 수수료가 변경될 수 있습니다.
             </span>
@@ -369,7 +154,7 @@
       <h2 class="products-section__title">2. 온투업(P2P)담보대출을 찾는 경우는?</h2>
       <div class="products-info-grid">
         <article class="product-info-card">
-          <h3>생활비 등 가계자금이 필요할 때</h3>
+          <h3>생활비 등 가계자금이 필요할때</h3>
           <p>
             기존 대출이 있는 상황에서 수술비, 자녀결혼비용, 사업운영자금, 세금 납부 등
             자금이 필요할 때, 온투업(P2P대출)을 통해 자금을 확보하는 경우가 많습니다.
@@ -390,7 +175,7 @@
           <h3>은행에서 대출이 어려운 경우</h3>
           <p>
             경매로 부동산을 낙찰 받은 뒤 한도가 부족할 때,
-            신규 임차인을 구하기 전에 기존 임차인 보증금을 먼저 반환해야 할 때,
+            신규 임차인을 구하기 전에 기존 임차인 보증금을 먼저 반환햐야 할 때,
             가족·친척과 공동소유한 부동산에 내 지분만으로 대출을 받고 싶을 때
             온투업 담보대출을 고려하는 경우가 많습니다.
           </p>
@@ -409,7 +194,7 @@
           </p>
           <p>
             기준시세는 부동산 종류별로 각각 다른 기준이 적용됩니다.
-            보통 아파트의 경우는 KB시세, 빌라/연립의 경우 하우스머치가 적용됩니다.
+            보통 아파트의 경우는 KB시세를, 빌라/연립의 경우 하우스머치가 적용됩니다.
           </p>
           <p>
             그 외의 경우 각 온투업사의 자체 감정으로 기준시세를 결정합니다.
@@ -433,7 +218,7 @@
             불필요한 상담을 피할 수 있습니다.
           </p>
           <p>
-            또한 개인정보를 입력하지 않으므로 유출에 대한 걱정이 없으며, 간단한 정보만으로도 편리하게 이용하실 수 있습니다.
+             또한 개인정보를 입력하지 않으므로 유출에 대한 걱정이 없으며, 간단한 정보만으로도 편리하게 이용하실 수 있습니다.
           </p>
         </article>
       </div>
