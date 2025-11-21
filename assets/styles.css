@@ -1345,7 +1345,8 @@ body.beta-body button{
 }
 /* 실제 대출 사례 카드 – 본문 아래, 우측 정렬 버튼 */
 .calculator-extra-card .product-card__buttons{
-  margin-top:12px;          /* 본문과 버튼 사이 간격 */
+  margin-top:18px;          /* 본문과 버튼 사이 간격 */
   justify-content:flex-end; /* 오른쪽 끝으로 붙이기 */
 }
+
 
