@@ -1355,7 +1355,8 @@ body.beta-body button{
 .calculator-extra-text-row .product-card__buttons{
   margin-top:0 !important;
   align-self:flex-start;
-  transform:translateY(12px); /* 필요하면 10~14px 사이에서 미세조정 */
+  transform:translateY(16px); /* 필요하면 10~14px 사이에서 미세조정 */
 }
+
 
 
