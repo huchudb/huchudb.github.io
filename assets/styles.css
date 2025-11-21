@@ -999,7 +999,7 @@ body.beta-body button{
   background:#020617;
 }
 
-/* ======================= 온투업 대출상품정보(베타 허브) ======================= */
+/* ======================= 온투업 대출상품정보(베타 허브 + 상세) ======================= */
 
 /* 전체 레이아웃 */
 .products-main{
@@ -1008,24 +1008,13 @@ body.beta-body button{
   padding:16px;
 }
 
+/* 히어로(상단) 영역 – 상세페이지용 */
 .products-hero{
   margin-top:20px;
   margin-bottom:18px;
 }
-.products-hero__title{
-  margin:0 0 8px;
-  font-size:22px;
-  font-weight:800;
-  color:#111827;
-}
-.products-hero__desc{
-  margin:0;
-  font-size:13px;
-  line-height:1.6;
-  color:#4b5563;
-}
 
-/* 섹션 타이틀 */
+/* 공통 섹션 타이틀 */
 .products-section{
   margin-bottom:28px;
 }
@@ -1097,27 +1086,25 @@ body.beta-body button{
 .product-card__buttons{
   margin-top:8px;
   display:flex;
-  flex-wrap:wrap;      /* 줄 바뀌어도 자연스럽게 */
+  flex-wrap:wrap;
   gap:8px;
   align-items:flex-start;
 }
-
-/* 개별 버튼 – 내용 길이에 맞게만 폭 사용 */
 .product-card__buttons .product-btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding:8px 16px;     /* 예전보다 작은 패딩 */
+  padding:8px 16px;
   border-radius:999px;
-  background:#6b3b00;   /* 갈색 pill */
+  background:#6b3b00;
   color:#ffffff;
-  font-size:13px;       /* 글자 크기도 살짝 줄임 */
+  font-size:13px;
   font-weight:800;
   text-decoration:none;
   box-shadow:0 3px 8px rgba(0,0,0,.22);
   border:0;
-  white-space:nowrap;   /* 두 줄로 안 내려가게 */
-  width:auto;           /* 100% 폭 강제 방지 */
+  white-space:nowrap;
+  width:auto;
 }
 .product-card__buttons .product-btn:hover{
   background:#5a3200;
@@ -1140,7 +1127,7 @@ body.beta-body button{
   color:#1e40af;
 }
 
-/* 하단 안내 카드 */
+/* 하단 안내 카드 그리드 (FAQ / 온투업을 찾는 경우) */
 .products-info-grid{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -1151,11 +1138,14 @@ body.beta-body button{
     grid-template-columns:1fr;
   }
 }
+
+/* 공통 상세 정보 카드 */
 .product-info-card{
   background:#f3f4f6;
   border-radius:16px;
   border:1px solid #e5e7eb;
-  padding:14px 16px;
+  padding:16px 18px 18px;
+  font-size:13px;
 }
 .product-info-card h3{
   margin:0 0 6px;
@@ -1164,8 +1154,105 @@ body.beta-body button{
   color:#111827;
 }
 .product-info-card p{
-  margin:0;
+  margin:0 0 6px;
   font-size:13px;
-  line-height:1.6;
+  line-height:1.7;
   color:#4b5563;
+}
+.product-info-card ul{
+  margin:4px 0 8px;
+  padding-left:20px;
+}
+.product-info-card li{
+  line-height:1.7;
+}
+.product-info-card li+li{
+  margin-top:2px;
+}
+
+/* ===== 아파트 일반담보대출 상세페이지 전용 스타일 ===== */
+
+/* 히어로 카드 */
+.hero-card{
+  padding:16px 18px 18px;
+}
+
+/* 제목: 20px, 굵게 + 그라디언트 밑줄 */
+.hero-card h2{
+  position:relative;
+  display:inline-block;
+  margin:0 0 12px;
+  font-size:20px;
+  font-weight:800;
+  color:#0F172A;
+  padding-bottom:6px;
+}
+.hero-card h2::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  background:linear-gradient(
+    90deg,
+    rgba(59,130,246,0),
+    #3B82F6,
+    #60A5FA,
+    rgba(96,165,250,0)
+  );
+}
+
+/* 인트로 문장 아래 여백 */
+.hero-card .hero-intro{
+  font-size:15px;
+  font-weight:500;
+  margin-bottom:14px;
+}
+
+/* 히어로 카드 안 항목 줄 간격(대상고객/대출한도 등) */
+.hero-card p{
+  margin:0 0 3px;
+  line-height:1.5;
+}
+
+/* 히어로 카드 하단 주석 두 줄 */
+.hero-summary-note{
+  font-size:11px;
+  color:#6b7280;
+  line-height:1.5;
+  margin:0 !important;
+}
+.hero-note-main{
+  margin-top:8px !important;
+}
+.hero-note-sub{
+  margin-top:0 !important;
+}
+
+/* 만기연장 설명 텍스트: '연장가능' 아래 정렬용 */
+.extend-note{
+  display:inline-block;
+  font-size:12px;
+  color:#6b7280;
+  margin-left:4px;
+}
+
+/* 상세 페이지 하단 뒤로가기 칩 버튼 */
+.back-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 14px;
+  border-radius:999px;
+  background:#111827;
+  border:1px solid #111827;
+  color:#ffffff;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  line-height:1;
+}
+.back-chip:hover{
+  background:#1f2937;
 }
