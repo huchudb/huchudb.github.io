@@ -1339,7 +1339,23 @@ body.beta-body button{
   align-self:flex-start;
   transform:translateY(14px);      /* 여기 값으로 실제 화면 높이 맞추기 */
 }
-.calculator-extra-text-row .product-card__buttons{
-  background:red !important;
+/* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
+.calculator-extra-text-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
 }
+
+.calculator-extra-text-row .calculator-extra-text{
+  flex:1 1 auto;
+}
+
+/* 블로그 바로가기 버튼: 왼쪽 카드 버튼 라인에 맞추도록 아래로 조금 내리기 */
+.calculator-extra-text-row .product-card__buttons{
+  margin-top:0 !important;
+  align-self:flex-start;
+  transform:translateY(12px); /* 필요하면 10~14px 사이에서 미세조정 */
+}
+
 
