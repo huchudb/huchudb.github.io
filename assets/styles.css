@@ -1303,15 +1303,15 @@ body.beta-body button{
   box-shadow:0 3px 8px rgba(15,23,42,.3);
 }
 
-/* 오른쪽 “실제 대출 사례” 카드용 스타일 */
+/* 오른쪽 “실제 대출 사례” 카드 */
 .calculator-extra-subtitle{
-  margin:0 0 10px;       /* 왼쪽 카드 h3 아래 여백과 동일 */
-  font-size:14px;
+  margin:0 0 10px;
+  font-size:14px;      /* 왼쪽 카드 '대출 승인...'과 같은 크기 */
   font-weight:800;
   color:#111827;
 }
 .calculator-extra-text{
-  margin:0;              /* 부제목과 본문 사이 간격은 subtitle의 10px만 사용 */
+  margin:0;
   font-size:13px;
   line-height:1.7;
   color:#4b5563;
@@ -1324,40 +1324,16 @@ body.beta-body button{
 /* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
 .calculator-extra-text-row{
   display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:12px;
-}
-
-.calculator-extra-text-row .calculator-extra-text{
-  flex:1 1 auto;
-}
-
-/* 블로그 바로가기 버튼: 왼쪽 카드 버튼 라인에 맞도록 살짝 아래로 내려주기 */
-.calculator-extra-text-row .product-card__buttons{
-  margin-top:0 !important;         /* 위 여백은 0으로 고정 */
-  align-self:flex-start;
-  transform:translateY(14px);      /* 여기 값으로 실제 화면 높이 맞추기 */
-}
-/* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
-.calculator-extra-text-row{
-  display:flex;
   align-items:flex-start;
   justify-content:space-between;
   gap:12px;
 }
-
 .calculator-extra-text-row .calculator-extra-text{
   flex:1 1 auto;
 }
 
-/* 블로그 바로가기 버튼: 왼쪽 카드 버튼 라인에 맞추도록 아래로 조금 내리기 */
+/* 👉 여기! 블로그 '바로가기' 버튼만 살~짝 아래로 내리기 */
 .calculator-extra-text-row .product-card__buttons{
-  margin-top:0 !important;
-  align-self:flex-start;
-  transform:translateY(16px); /* 필요하면 10~14px 사이에서 미세조정 */
+  margin-top:0;
+  transform:translateY(10px);  /* 8~12px 사이로 취향대로 조절 */
 }
-
-
-
-
