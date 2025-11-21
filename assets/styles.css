@@ -1343,21 +1343,8 @@ body.beta-body button{
   color:#2dbe3c;
   font-weight:700;
 }
-/* 오른쪽 “실제 대출 사례” 카드 – 마지막 문장 + 버튼 한 줄 배치 (A버전) */
-.calculator-last-line{
-  display:flex;
-  align-items:center;          /* 왼쪽 카드와 비슷하게 세로 가운데 정렬 */
-  justify-content:space-between;
-  gap:12px;
-  margin-top:6px;              /* 부제목(h3)과 간격 – 필요하면 숫자만 조절 */
+/* 실제 대출 사례 카드 – 본문 아래, 우측 정렬 버튼 */
+.calculator-extra-card .product-card__buttons{
+  margin-top:10px;          /* 본문과 버튼 사이 간격 */
+  justify-content:flex-end; /* 오른쪽 끝으로 붙이기 */
 }
-
-.calculator-last-line .calculator-extra-text{
-  flex:1 1 auto;
-  margin:0;                    /* 불필요한 위·아래 마진 제거 */
-}
-
-.calculator-last-line .product-card__buttons{
-  margin-top:0;                /* 위쪽 여백 제거해서 같은 줄에 밀착 */
-}
-
