@@ -1353,5 +1353,18 @@ body.beta-body button{
 .calculator-extra-subtitle{
   margin: 0 0 12px !important;  /* 10px이 왼쪽 카드와 동일 값 */
 }
+/* 화면에는 안 보이지만, SEO/스크린리더용 텍스트 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 
 
