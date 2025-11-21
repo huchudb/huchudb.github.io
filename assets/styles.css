@@ -1268,29 +1268,25 @@ body.beta-body button{
   }
 }
 
-/* 두 카드 공통: 버튼을 카드 오른쪽 아래에 고정할 수 있도록 relative */
+/* 두 카드: 기본 카드 패딩으로 돌리기 (position:relative 필요 없음) */
 .calculator-card,
 .calculator-extra-card{
-  position:relative;
-  padding-bottom:70px;  /* 버튼 들어갈 여유 공간 확보 */
+  position:static;
+  padding-bottom:18px;
 }
 
-/* 공통 CTA 버튼 – 카드 오른쪽 아래 absolute 고정 */
-.calculator-card .product-card__buttons,
-.calculator-extra-card .product-card__buttons{
-  position:absolute;
-  right:24px;
-  bottom:20px;
-  margin-top:0;
-}
-
-/* 왼쪽 카드 마지막 li – 다시 기본 블록 레이아웃으로 */
+/* 왼쪽 카드 – 마지막 줄 텍스트 + 버튼 한 줄 배치 */
 .calculator-last-li{
-  display:block;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
 }
 .calculator-last-li span{
-  display:inline;
-  flex:none;
+  flex:1 1 auto;
+}
+.calculator-last-li .product-card__buttons{
+  margin-top:0;  /* li 안에서는 위 여백 제거 */
 }
 
 /* 계산기 "바로가기" 버튼 – 그라데이션 전용 */
@@ -1309,13 +1305,13 @@ body.beta-body button{
 
 /* 오른쪽 “실제 대출 사례” 카드용 스타일 */
 .calculator-extra-subtitle{
-  margin:0 0 10px;       /* 왼쪽 카드의 h3와 동일한 간격 */
+  margin:0 0 10px;       /* 왼쪽 카드 h3 아래 여백과 동일 */
   font-size:14px;
   font-weight:800;
   color:#111827;
 }
 .calculator-extra-text{
-  margin:0;              /* 부제목과의 간격은 subtitle의 10px만 사용 */
+  margin:0;              /* 부제목과 본문 사이 간격은 subtitle의 10px만 사용 */
   font-size:13px;
   line-height:1.7;
   color:#4b5563;
@@ -1325,13 +1321,17 @@ body.beta-body button{
   font-weight:700;
 }
 
-/* 오른쪽 카드 텍스트 래퍼 – 더 이상 flex로 쓸 필요 없으니 블록으로 */
+/* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
 .calculator-extra-text-row{
-  display:block;
+  display:flex;
+  align-items:center;        /* 텍스트와 버튼 세로 중심 맞추기 */
+  justify-content:space-between;
+  gap:12px;
 }
-
-/* 필요 없어진 예전 정렬용 클래스(혹시 남아있어도 영향 최소화) */
-.calculator-extra-action{
-  margin-top:8px;
-  justify-content:flex-end;
+.calculator-extra-text-row .calculator-extra-text{
+  flex:1 1 auto;
+}
+.calculator-extra-text-row .product-card__buttons{
+  margin-top:0;
+  align-self:flex-start;     /* 텍스트 첫 줄과 높이를 비슷하게 */
 }
