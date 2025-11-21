@@ -1349,4 +1349,9 @@ body.beta-body button{
   justify-content:flex-end; /* 오른쪽 끝으로 붙이기 */
 }
 
+/* 오른쪽 카드 부제목 ↔ 본문 사이 간격 조정 */
+.calculator-extra-subtitle{
+  margin: 0 0 12px !important;  /* 10px이 왼쪽 카드와 동일 값 */
+}
+
 
