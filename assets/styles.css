@@ -1256,3 +1256,41 @@ body.beta-body button{
 .back-chip:hover{
   background:#1f2937;
 }
+/* 담보대출 계산기 안내 2컬럼 레이아웃 */
+.calculator-section-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+  gap:14px;
+}
+@media(max-width:768px){
+  .calculator-section-grid{
+    grid-template-columns:1fr;
+  }
+}
+/* 계산기 카드 내부 레이아웃 (텍스트 + 버튼 좌우 배치) */
+.calculator-card__inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+}
+.calculator-card__text{
+  flex:1 1 auto;
+}
+.calculator-card__action{
+  flex:0 0 auto;
+}
+/* 계산기 "바로가기" 버튼 – 그라데이션 전용 */
+.product-card__buttons .product-btn.product-btn--calculator{
+  background:linear-gradient(90deg,#faee21,#6fe600,#00ffff);
+  color:#111827;
+  box-shadow:0 6px 14px rgba(15,23,42,.25);
+}
+.product-card__buttons .product-btn.product-btn--calculator:hover{
+  background:linear-gradient(90deg,#f5e307,#65d400,#06e5ff);
+}
+.product-card__buttons .product-btn.product-btn--calculator:active{
+  transform:translateY(1px);
+  box-shadow:0 3px 8px rgba(15,23,42,.3);
+}
+
