@@ -1339,3 +1339,7 @@ body.beta-body button{
   align-self:flex-start;
   transform:translateY(14px);      /* 여기 값으로 실제 화면 높이 맞추기 */
 }
+.calculator-extra-text-row .product-card__buttons{
+  background:red !important;
+}
+
