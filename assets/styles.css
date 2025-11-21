@@ -1343,20 +1343,21 @@ body.beta-body button{
   color:#2dbe3c;
   font-weight:700;
 }
-
-/* 텍스트+버튼 묶음을 카드 하단으로 밀기 위한 row */
-.calculator-extra-text-row{
-  margin-top:auto;               /* ➜ 이 줄이 핵심: 이 row 전체가 카드 맨 아래로 */
+/* 오른쪽 “실제 대출 사례” 카드 – 마지막 문장 + 버튼 한 줄 배치 (A버전) */
+.calculator-last-line{
   display:flex;
-  align-items:center;
+  align-items:center;          /* 왼쪽 카드와 비슷하게 세로 가운데 정렬 */
   justify-content:space-between;
   gap:12px;
-}
-.calculator-extra-text-row .calculator-extra-text{
-  flex:1 1 auto;
+  margin-top:6px;              /* 부제목(h3)과 간격 – 필요하면 숫자만 조절 */
 }
 
-/* 오른쪽 카드 안의 버튼 그룹: 여백만 정리 */
-.calculator-extra-text-row .product-card__buttons{
-  margin-top:0;
+.calculator-last-line .calculator-extra-text{
+  flex:1 1 auto;
+  margin:0;                    /* 불필요한 위·아래 마진 제거 */
 }
+
+.calculator-last-line .product-card__buttons{
+  margin-top:0;                /* 위쪽 여백 제거해서 같은 줄에 밀착 */
+}
+
