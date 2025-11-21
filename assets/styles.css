@@ -1096,22 +1096,22 @@ body.beta-body button{
   justify-content:center;
   padding:8px 16px;
   border-radius:999px;
-  background:#6b3b00;
+  background:#000000;
   color:#ffffff;
   font-size:13px;
   font-weight:800;
   text-decoration:none;
-  box-shadow:0 3px 8px rgba(0,0,0,.22);
+  box-shadow:0 3px 8px rgba(0,0,0,.25);
   border:0;
   white-space:nowrap;
   width:auto;
 }
 .product-card__buttons .product-btn:hover{
-  background:#5a3200;
+  background:#111827;
 }
 .product-card__buttons .product-btn:active{
   transform:translateY(1px);
-  box-shadow:0 2px 5px rgba(0,0,0,.22);
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
 }
 
 /* 다른 카드 하단의 텍스트 링크 */
