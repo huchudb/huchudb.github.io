@@ -1324,17 +1324,18 @@ body.beta-body button{
 /* 오른쪽 카드 – 본문 + 버튼 한 줄 배치 */
 .calculator-extra-text-row{
   display:flex;
-  align-items:flex-start;         /* 위 기준으로 맞추고 */
+  align-items:flex-start;
   justify-content:space-between;
   gap:12px;
 }
+
 .calculator-extra-text-row .calculator-extra-text{
   flex:1 1 auto;
 }
 
-/* 블로그 바로가기 버튼만 조금 더 아래로 내려서
-   왼쪽 카드의 버튼 높이와 비슷하게 맞추기 */
+/* 블로그 바로가기 버튼: 왼쪽 카드 버튼 라인에 맞도록 살짝 아래로 내려주기 */
 .calculator-extra-text-row .product-card__buttons{
-  margin-top:18px;                /* 필요하면 16~20 사이에서 미세조정 가능 */
+  margin-top:0 !important;         /* 위 여백은 0으로 고정 */
   align-self:flex-start;
+  transform:translateY(14px);      /* 여기 값으로 실제 화면 높이 맞추기 */
 }
