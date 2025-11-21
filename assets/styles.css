@@ -1259,7 +1259,7 @@ body.beta-body button{
 /* 담보대출 계산기 안내 2컬럼 레이아웃 */
 .calculator-section-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+  grid-template-columns:repeat(2,minmax(0,1fr)); /* 5:5 비율 */
   gap:14px;
 }
 @media(max-width:768px){
@@ -1293,4 +1293,39 @@ body.beta-body button{
   transform:translateY(1px);
   box-shadow:0 3px 8px rgba(15,23,42,.3);
 }
+.calculator-last-li{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.calculator-last-li span{
+  flex:1 1 auto;
+}
+.calculator-last-li .product-card__buttons{
+  margin-top:0; /* li 안에서는 위 여백 제거 */
+}
+
+/* 오른쪽 “실제 대출 사례” 카드용 스타일*/
+.calculator-extra-subtitle{
+  margin:0 0 6px;
+  font-size:13px;
+  font-weight:700;
+  color:#4b5563;
+}
+.calculator-extra-text{
+  margin:0 0 10px;
+  font-size:13px;
+  line-height:1.7;
+  color:#4b5563;
+}
+.naver-blog-text{
+  color:#2dbe3c;
+  font-weight:700;
+}
+.calculator-extra-action{
+  margin-top:8px;
+  justify-content:flex-end; /* 오른쪽 정렬 */
+}
+
 
