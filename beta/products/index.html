@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>후추 | 온투업 대출상품정보</title>
-  <meta name="description" content="아파트, 빌라, 단독주택, 토지·임야, 상가 등 담보 유형별 온투업(P2P) 대출 상품 정보 입니다. 유형별 후순위주담대, 지분대출, 경락잔금대출, 대환대출 조건을 한 번에 확인하세요.">
+  <title>후추 | 온투업 대출상품정보 (베타)</title>
+  <meta name="description" content="아파트, 빌라, 단독주택, 토지·임야, 상가 등 담보 유형별 온투업(P2P) 대출상품 정보를 정리한 베타 페이지입니다. 후순위주담대, 지분대출, 경락잔금대출, 대환대출 구조를 한 눈에 확인하세요.">
   <!-- 검색엔진 인덱싱 방지 -->
   <meta name="robots" content="noindex, nofollow" />
 
@@ -37,11 +37,11 @@
 
         <div id="betaMenuPanel" class="beta-menu-panel hide">
           <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
-          <a class="beta-menu-link" href="/products/">온투업 대출상품</a>
+          <a class="beta-menu-link" href="/products/">온투업 대출상품정보(정식)</a>
           <a class="beta-menu-link" href="/">담보대출 계산기</a>
           <a class="beta-menu-link" href="/company.html">회사소개</a>
           <a class="beta-menu-link" href="/contact.html">제휴 및 기타문의</a>
-          <a class="beta-menu-link" href="/beta/admin-beta.html">관리자</a>
+          <a class="beta-menu-link" href="/beta/admin-beta.html">관리자(베타)</a>
         </div>
       </div>
     </div>
@@ -53,10 +53,11 @@
       <h1 class="products-hero__title">온투업 대출상품정보 (베타)</h1>
       <p class="products-hero__desc">
         아파트, 빌라/연립주택, 단독주택/다가구, 토지·임야, 상가/근린생활시설까지
-        담보 유형별 <strong>온투업(P2P) 담보대출</strong> 대출 상품 정보 입니다. 
+        담보 유형별 <strong>온투업(P2P) 담보대출</strong> 구조를 한 곳에 정리한 베타 페이지입니다.
         <br />
-        유형별 후순위주담대, 지분대출, 경락잔금대출, 대환대출 조건을 한 번에 확인하세요.
-       </p>
+        #아파트담보대출 #빌라담보대출 #단독주택담보대출 #토지담보대출 #임야대출
+        #후순위주담대 #지분대출 #경락잔금대출 #대환대출
+      </p>
     </section>
 
     <!-- 상품 카드 섹션 -->
@@ -67,13 +68,13 @@
 
         <!-- 카드 1: 아파트담보대출 -->
         <article class="product-card">
-          <h2 class="product-card__title">아파트</h2>
+          <h2 class="product-card__title">아파트담보대출</h2>
           <p class="product-card__desc">
             아파트를 담보로 한 일반담보대출, 지분담보대출, 경락잔금대출,
-            임대보증금반환대출, 대부업대환대출 상품 정보를 확인해 보세요.
+            임대보증금반환대출, 대부업대환대출 상품 정보를 비교할 수 있습니다.
           </p>
 
-          <!-- 해시태그 영역 -->
+          <!-- 해시태그 영역 (화면에서는 숨김, SEO용) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#아파트대출</span>
             <span class="product-tag">#아파트담보대출</span>
@@ -112,13 +113,13 @@
 
         <!-- 카드 2: 빌라·연립 담보대출 -->
         <article class="product-card">
-          <h3 class="product-card__title">빌라·연립주택</h3>
+          <h3 class="product-card__title">빌라·연립 담보대출</h3>
           <p class="product-card__desc">
             빌라·연립을 담보로 한 일반담보대출, 지분담보대출, 경락잔금대출,
-            임대보증금반환대출, 대부업대환대출 상품 정보를 확인해 보세요.
+            임대보증금반환대출, 대부업대환대출 구조를 실제 온투업 사례 기준으로 정리합니다.
           </p>
 
-          <!-- 해시태그 -->
+          <!-- 해시태그 (숨김) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#빌라대출</span>
             <span class="product-tag">#빌라담보대출</span>
@@ -127,16 +128,44 @@
             <span class="product-tag">#빌라대출금리</span>
             <span class="product-tag">#빌라대출한도</span>
             <span class="product-tag">#연립대출</span>
-            <s택·다가구주택 -->
+            <span class="product-tag">#연립담보대출</span>
+            <span class="product-tag">#연립지분대출</span>
+            <span class="product-tag">#연립주담대</span>
+            <span class="product-tag">#임대보증금반환</span>
+            <span class="product-tag">#전세보증금반환</span>
+            <span class="product-tag">#임차보증금반환</span>
+          </div>
+
+          <!-- 버튼들 -->
+          <div class="product-card__buttons">
+            <a href="/beta/products/villa-general.html" class="product-btn">
+              일반담보대출 &gt;
+            </a>
+            <a href="/beta/products/villa-share.html" class="product-btn">
+              지분담보대출 &gt;
+            </a>
+            <a href="/beta/products/villa-auction.html" class="product-btn">
+              경락잔금대출 &gt;
+            </a>
+            <a href="/beta/products/villa-deposit-return.html" class="product-btn">
+              임대보증금반환대출 &gt;
+            </a>
+            <a href="/beta/products/villa-highrate-refi.html" class="product-btn">
+              대부업대환대출 &gt;
+            </a>
+          </div>
+        </article>
+
+        <!-- 카드 3: 단독·다가구 담보대출 -->
         <article class="product-card">
-          <h3 class="product-card__title">단독주택·다가구주택</h3>
+          <h3 class="product-card__title">단독주택·다가구주택 담보대출</h3>
           <p class="product-card__desc">
             대지와 건물 구조가 복잡한 단독·다가구주택을 담보로 한
             일반담보대출, 지분담보대출, 경락잔금대출, 임대보증금반환대출,
-            대부업대환대출 상품 정보를 확인해 보세요.
+            대부업대환대출 구조를 정리합니다.
           </p>
 
-          <!-- 해시태그 -->
+          <!-- 해시태그 (숨김) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#단독주택대출</span>
             <span class="product-tag">#단독주택담보대출</span>
@@ -169,15 +198,16 @@
           </div>
         </article>
 
-        <!-- 카드 4: 토지·임야 -->
+        <!-- 카드 4: 토지·임야 담보대출 -->
         <article class="product-card">
-          <h3 class="product-card__title">토지담보대출 · 임야</h3>
+          <h3 class="product-card__title">토지담보대출 · 임야담보대출</h3>
           <p class="product-card__desc">
             토지·임야를 담보로 한 일반담보대출, 지분담보대출, 경락잔금대출,
-            대부업대환대출 상품 정보를 확인해 보세요.
+            대부업대환대출 구조와 개발계획, 지목, 용도지역에 따라
+            LTV가 어떻게 달라지는지 정리합니다.
           </p>
 
-          <!-- 해시태그 -->
+          <!-- 해시태그 (숨김) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#토지담보대출</span>
             <span class="product-tag">#토지지분대출</span>
@@ -206,15 +236,15 @@
           </div>
         </article>
 
-        <!-- 카드 5: 상가·근린생활시설 -->
+        <!-- 카드 5: 상가·근생 담보대출 -->
         <article class="product-card">
-          <h3 class="product-card__title">상가·근린생활시설</h3>
+          <h3 class="product-card__title">상가·사무실 담보대출 (근린생활시설)</h3>
           <p class="product-card__desc">
             근린생활시설, 상가, 사무실을 담보로 한 일반담보대출, 지분담보대출,
-            경락잔금대출, 임대보증금반환대출, 대부업대환대출 상품 정보를 확인해 보세요.
+            경락잔금대출, 임대보증금반환대출, 대부업대환대출 구조를 정리합니다.
           </p>
 
-          <!-- 해시태그 -->
+          <!-- 해시태그 (숨김) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#상가담보대출</span>
             <span class="product-tag">#지분대출</span>
@@ -245,7 +275,7 @@
           </div>
         </article>
 
-        <!-- 카드 6: 후순위·경락·대환 (기존 구조 유지, 원하면 나중에 버튼형으로 쪼개자) -->
+        <!-- 카드 6: 후순위·경락·대환 -->
         <article class="product-card">
           <h3 class="product-card__title">
             후순위주담대 · 경락잔금대출 · 대환대출
