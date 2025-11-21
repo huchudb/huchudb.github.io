@@ -1327,6 +1327,21 @@ body.beta-body button{
   margin-top:8px;
   justify-content:flex-end; /* 오른쪽 정렬 */
 }
+/* 오른쪽 실제 대출사례 카드 – 문장 + 버튼 한 줄 정렬 */
+.calculator-extra-text-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.calculator-extra-text-row .calculator-extra-text{
+  margin:0;
+  flex:1 1 auto;
+}
+.calculator-extra-text-row .product-card__buttons{
+  margin-top:0;
+  flex:0 0 auto;
+}
 
 
 
