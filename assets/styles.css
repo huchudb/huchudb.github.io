@@ -1092,14 +1092,14 @@ body.beta-body button{
 .products-hero__desc{
   margin:0;
   line-height:1.6;
-  font-size:14px;
+  font-size:17px;
   color:#4b5563;
 }
 
 /* '정확한 한도 등...' – 위 문장과 같은 크기, 거의 붙어 보이게 */
 .products-hero__note{
   margin:2px 0 32px;   /* 위는 살짝만 띄우고, 아래는 여유 있게 */
-  font-size:14px;      /* 위 문장과 동일 크기 */
+  font-size:17px;      /* 위 문장과 동일 크기 */
   color:#4b5563;
 }
 
@@ -1386,6 +1386,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
