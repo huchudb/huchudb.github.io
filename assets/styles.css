@@ -1081,6 +1081,17 @@ body.beta-body button{
   color:#4b5563;
   white-space:nowrap;
 }
+.products-hero__desc{
+  margin:0;
+  line-height:1.6;
+}
+
+/* 새로 추가 */
+.products-hero__note{
+  margin:8px 0 36px;  /* 위 8px, 아래 36px(기존보다 대략 3배 느낌) */
+  font-size:13px;
+  color:#4b5563;
+}
 
 /* ===== 아파트 카드용 상세보기 버튼 그룹 ===== */
 .product-card__buttons{
@@ -1365,6 +1376,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
