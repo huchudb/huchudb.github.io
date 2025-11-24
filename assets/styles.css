@@ -1117,7 +1117,7 @@ body.beta-body button{
   justify-content:center;
   padding:6px 11px;          /* 8x16 → 6x11 정도로 축소 */
   border-radius:999px;
-  background:#000000;
+  background:#3A3A3A;
   color:#ffffff;
   font-size:11px;            /* 13px → 11px */
   font-weight:800;
@@ -1386,6 +1386,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
