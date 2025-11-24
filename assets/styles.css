@@ -1289,7 +1289,7 @@ body.beta-body button{
   grid-template-columns:repeat(2,minmax(0,1fr)); /* 5:5 비율 */
   gap:14px;
  margin-top:24px;   /* ← 새로 추가 (원하면 28px, 32px로 키워도 돼) */
- margin-bottom:28px;   /* 아래 FAQ랑 간격 (원하면 32px 등으로 조절 가능) */
+ margin-bottom:24px;   /* 아래 FAQ랑 간격 (원하면 32px 등으로 조절 가능) */
 }
 
 /* 담보대출상품 허브(근린생활시설 카드) 아래 계산기/블로그 카드와 간격 */
@@ -1413,6 +1413,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
