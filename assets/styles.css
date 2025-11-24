@@ -1291,6 +1291,11 @@ body.beta-body button{
   margin-bottom:32px;  /* ← 계산기/블로그 카드 아래 여유 공간 추가 */
 }
 
+/* 담보대출상품 허브(근린생활시설 카드) 아래 계산기/블로그 카드와 간격 */
+.product-hub > .calculator-section-grid{
+  margin-top:24px;
+}
+
 @media(max-width:768px){
   .calculator-section-grid{
     grid-template-columns:1fr;
@@ -1407,5 +1412,6 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
