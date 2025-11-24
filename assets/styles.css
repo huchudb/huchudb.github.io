@@ -1277,6 +1277,7 @@ body.beta-body button{
 .back-chip:hover{
   background:#B8860B;
 }
+
 /* 담보대출 계산기 안내 2컬럼 레이아웃 */
 .calculator-section-grid{
   display:grid;
@@ -1287,6 +1288,12 @@ body.beta-body button{
   .calculator-section-grid{
     grid-template-columns:1fr;
   }
+}
+
+/* 허브(product-hub) 안에 들어가는 계산기/FAQ 영역만 위아래 여유 */
+.product-hub > .calculator-section-grid{
+  margin-top:18px;
+  margin-bottom:36px;
 }
 
 /* 두 카드 공통: 카드 전체를 세로 플렉스 레이아웃으로 */
@@ -1374,6 +1381,7 @@ body.beta-body button{
 .calculator-extra-subtitle{
   margin: 0 0 12px !important;  /* 10px이 왼쪽 카드와 동일 값 */
 }
+
 /* 화면에는 안 보이지만, SEO/스크린리더용 텍스트 */
 .visually-hidden {
   position: absolute;
@@ -1386,13 +1394,3 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
-
-
-
-
-
-
-
-
-
-
