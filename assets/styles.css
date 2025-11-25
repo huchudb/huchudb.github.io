@@ -1429,7 +1429,77 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+/* ===== 레이아웃 폭 확장 강제 오버라이드 ===== */
+.huchu-header__inner,
+.beta-header__inner,
+.beta-inner,
+.products-main,
+.beta-footer__top,
+.beta-footer__bottom,
+.top-stats,
+.container {
+  max-width: 1200px;   /* 필요하면 1160, 1240 등으로 조정 가능 */
+}
 
+/* ===== Madang 스타일: 이미지 전용 히어로 배너 ===== */
+
+.beta-hero-banner {
+  display: block;
+  border-radius: 32px;
+  overflow: hidden;
+  padding: 0;              /* 내부 패딩 제거 */
+  background: #020617;     /* 이미지 로딩 전 배경색 */
+}
+
+/* 데스크탑에서는 16:9 비율 유지 */
+@media (min-width: 1024px) {
+  .beta-hero-banner {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* 이미지 꽉 채우기 */
+.beta-hero-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 기존 텍스트 슬라이드용 요소는 더 이상 안 쓰니까 혹시 남아 있어도 안 보이게 */
+.beta-hero-banner__slides,
+.beta-hero-slide,
+.beta-hero-banner__dots {
+  display: none !important;
+}
+
+/* 베타 헤더: 높이 ↓ + 가운데 정렬 느낌 */
+body.beta-body .beta-header__inner{
+  max-width:1200px;      /* 폭은 넉넉히 */
+  padding:14px 24px;     /* 24px → 14px 정도로 줄이기 */
+}
+
+/* 로고 이미지 살짝만 낮추기 (선택) */
+body.beta-body .huchu-logo .logo-img{
+  height:24px;           /* 기존 28px → 24px */
+}
+
+/* 헤더 하단 구분선: 화면 전체 폭(100vw)로 깔기 */
+body.beta-body .beta-header{
+  border-bottom:0;       /* 기존 border-bottom 제거 */
+  position:relative;
+}
+
+body.beta-body .beta-header::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100vw;           /* 뷰포트 전체 폭 */
+  height:1px;
+  background:var(--line);
+}
 /* ===== 베타 헤더: 높이 고정 + 완전 가운데 정렬 ===== */
 
 /* 헤더 전체를 일정 높이로 고정 */
@@ -1473,4 +1543,5 @@ body.beta-body .beta-menu-toggle{
   padding:10px 22px;
   font-size:13px;
 }
+
 
