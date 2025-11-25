@@ -1478,6 +1478,7 @@ body.beta-body .beta-header::after {
   align-items: center;          /* 세로 가운데 */
   justify-content: space-between;
   padding: 20px 24px;           /* 위·아래 12px, 좌·우 24px */
+  min-height: 72px;             /* 최소 높이 확보 */
   box-sizing: border-box;
 }
 
@@ -1528,3 +1529,4 @@ body.beta-body .beta-header::after {
 .beta-menu-toggle__label {
   display: inline-block;
 }
+
