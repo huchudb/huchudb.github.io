@@ -1474,3 +1474,31 @@ body.beta-body button{
   display: none !important;
 }
 
+/* 베타 헤더: 높이 ↓ + 가운데 정렬 느낌 */
+body.beta-body .beta-header__inner{
+  max-width:1200px;      /* 폭은 넉넉히 */
+  padding:14px 24px;     /* 24px → 14px 정도로 줄이기 */
+}
+
+/* 로고 이미지 살짝만 낮추기 (선택) */
+body.beta-body .huchu-logo .logo-img{
+  height:24px;           /* 기존 28px → 24px */
+}
+
+/* 헤더 하단 구분선: 화면 전체 폭(100vw)로 깔기 */
+body.beta-body .beta-header{
+  border-bottom:0;       /* 기존 border-bottom 제거 */
+  position:relative;
+}
+
+body.beta-body .beta-header::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100vw;           /* 뷰포트 전체 폭 */
+  height:1px;
+  background:var(--line);
+}
+
