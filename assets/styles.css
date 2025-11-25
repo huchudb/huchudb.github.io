@@ -9,24 +9,6 @@ html{scroll-behavior:smooth}
 body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:24px}
 @media(max-width:520px){ body{padding:16px} }
 .hide{display:none!important}
-
-/* Header (로고만) */
-.huchu-header{
-  position:sticky;
-  top:0;
-  z-index:100;
-  background:#ffffffcc;
-  backdrop-filter:saturate(120%) blur(6px);
-  border-bottom:1px solid var(--line);
-}
-.huchu-header__inner{
-  max-width:960px;
-  margin:0 auto;
-  padding:10px 16px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  gap:12px;
 }
 .huchu-logo{
   display:inline-flex;
@@ -872,24 +854,6 @@ body.beta-body{
 
 /* 혹시 body 바로 아래에 남아있는 옛날 텍스트 링크(파란 밑줄) 강제 숨김 */
 body.beta-body > a{display:none;}
-
-/* 베타 헤더: 전체 폭 흰색, sticky 해제 */
-.beta-header.huchu-header{
-  position:relative;
-  top:auto;
-  background:#ffffff;
-  border-bottom:1px solid var(--line);
-  box-shadow:none;
-}
-
-/* 로고는 왼쪽, MENU 버튼은 오른쪽 끝 + 세로폭 넉넉하게(기존의 약 2배) */
-.beta-header__inner{
-  max-width:960px;
-  margin:0 auto;
-  padding:24px 24px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
 }
 
 /* 메뉴 래퍼 */
@@ -1473,87 +1437,26 @@ body.beta-body button{
   display: none !important;
 }
 
-/* 베타 헤더: 높이 ↓ + 가운데 정렬 느낌 */
-body.beta-body .beta-header__inner{
-  max-width:1200px;      /* 폭은 넉넉히 */
-  padding:14px 24px;     /* 24px → 14px 정도로 줄이기 */
+/* ======================= 베타 헤더 최종 ======================= */
+
+/* 베타 페이지용 body: 상단 여백 제거 */
+body.beta-body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
 }
 
-/* 로고 이미지 살짝만 낮추기 (선택) */
-body.beta-body .huchu-logo .logo-img{
-  height:24px;           /* 기존 28px → 24px */
+/* 헤더 전체 (공통) */
+.huchu-header {
+  position: relative;        /* 베타에서는 sticky 안 씀 */
+  z-index: 100;
+  background: #ffffff;
 }
 
-/* 헤더 하단 구분선: 화면 전체 폭(100vw)로 깔기 */
-body.beta-body .beta-header{
-  border-bottom:0;       /* 기존 border-bottom 제거 */
-  position:relative;
-}
-
-body.beta-body .beta-header::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:0;
-  width:100vw;           /* 뷰포트 전체 폭 */
-  height:1px;
-  background:var(--line);
-}
-/* ===== 베타 헤더: 높이 고정 + 완전 가운데 정렬 ===== */
-
-/* 헤더 전체를 일정 높이로 고정 */
-body.beta-body .beta-header{
-  position:relative;
-  height:60px;              /* 필요하면 56~64px 사이로 취향대로 조절 */
-  border-bottom:0;          /* 기존 border-bottom 제거 (우리는 ::after로 라인 그림) */
-}
-
-/* 회색 구분선은 화면 전체로 */
-body.beta-body .beta-header::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:0;
-  width:100vw;
-  height:1px;
-  background:var(--line);
-}
-
-/* 헤더 안 실제 컨텐츠(로고 + MENU) 정렬 */
-body.beta-body .beta-header__inner{
-  max-width:1200px;
-  margin:0 auto;
-  width:100%;
-  height:100%;              /* 헤더 높이를 그대로 따라감 */
-  display:flex;
-  align-items:center;       /* 세로 완전 중앙 */
-  justify-content:space-between;
-  padding:0 24px;           /* 좌우 여백만, 위아래는 0 */
-}
-
-/* 로고 크기 원래대로 */
-body.beta-body .huchu-logo .logo-img{
-  height:28px;
-}
-
-/* MENU 버튼 크기도 유지 */
-body.beta-body .beta-menu-toggle{
-  padding:10px 22px;
-  font-size:13px;
-}
-
-/* ===== [최종] 베타 헤더 정리 ===== */
-
-/* 1. 헤더 전체: 높이 자동 + 라인은 화면 전체 */
+/* 베타 헤더: 회색 라인을 화면 전체로 */
 body.beta-body .beta-header {
-  position: relative;
-  height: auto;          /* height:60px 강제 제거 */
-  border-bottom: 0;      /* 원래 선 제거 – 아래 ::after로 그림 */
+  border-bottom: 0;
 }
-
-/* 화면 전체 폭으로 회색 라인 */
 body.beta-body .beta-header::after {
   content: "";
   position: absolute;
@@ -1565,37 +1468,63 @@ body.beta-body .beta-header::after {
   background: var(--line);
 }
 
-/* 2. 내부 컨테이너: 세로 가운데 + 적당한 패딩 */
-body.beta-body .beta-header__inner {
+/* 내부 컨테이너: 폭 + 가운데 정렬 */
+.huchu-header__inner,
+.beta-header__inner {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   display: flex;
-  align-items: center;        /* 세로 가운데 정렬 */
+  align-items: center;          /* 세로 가운데 */
   justify-content: space-between;
-  padding: 12px 24px;         /* 위·아래 12px, 좌·우 24px */
+  padding: 12px 24px;           /* 위·아래 12px, 좌·우 24px */
   box-sizing: border-box;
 }
 
-/* 3. 로고 크기 & 정렬 */
-body.beta-body .huchu-logo {
+/* 로고 */
+.huchu-logo {
   display: inline-flex;
-  align-items: center;        /* 로고 내부도 가운데 정렬 */
+  align-items: center;
   gap: 10px;
+  text-decoration: none;
 }
-
-body.beta-body .huchu-logo .logo-img {
+.huchu-logo .logo-img {
   display: block;
-  height: 28px;               /* 원래 크기 유지 */
+  height: 28px;                 /* 크기 고정 */
 }
 
-/* 4. MENU 버튼 */
-body.beta-body .beta-menu-toggle {
+/* MENU 버튼 */
+.beta-menu-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 10px 22px;
+  border-radius: 10px;
+  border: 0;
+  background: #000000;
+  color: #ffffff;
   font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(15,23,42,.25);
+  letter-spacing: .08em;
 }
 
-
+/* 햄버거 아이콘 (지금 구조에 맞게) */
+.beta-menu-toggle__icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.beta-menu-toggle__icon span {
+  display: block;
+  width: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+.beta-menu-toggle__label {
+  display: inline-block;
+}
