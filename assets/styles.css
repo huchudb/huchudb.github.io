@@ -847,7 +847,7 @@ button:hover{background:#153154}
 
 .hero-note-main::before {
   content: "*";
-  background: linear-gradient(90deg, #faee21, #6fe600, #00ffff);
+  background: linear-gradient(90deg,#ff5757 #8c52ff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -858,7 +858,7 @@ button:hover{background:#153154}
 
 .hero-note-sub::before {
   content: "**";
-  background: linear-gradient(90deg, #faee21, #6fe600, #00ffff);
+  background: linear-gradient(90deg, #ff5757 #8c52ff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1436,6 +1436,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
