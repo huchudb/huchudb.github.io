@@ -1442,33 +1442,34 @@ body.beta-body button{
   max-width: 1200px;   /* 필요하면 1160, 1240 등으로 조정 가능 */
 }
 
-/* 데스크탑에서 Madang 스타일 큰 히어로 카드 */
+/* ===== Madang 스타일: 이미지 전용 히어로 배너 ===== */
+
+.beta-hero-banner {
+  display: block;
+  border-radius: 32px;
+  overflow: hidden;
+  padding: 0;              /* 내부 패딩 제거 */
+  background: #020617;     /* 이미지 로딩 전 배경색 */
+}
+
+/* 데스크탑에서는 16:9 비율 유지 */
 @media (min-width: 1024px) {
-  /* 왼쪽 히어로 카드 크게 */
   .beta-hero-banner {
-    border-radius: 32px;
-    padding: 32px 40px;
-    aspect-ratio: 16 / 9;      /* 가로:세로 16:9 비율 유지 */
-  }
-
-  /* 글자 크기도 Madang 느낌으로 키우기 */
-  .beta-hero-slide__title {
-    font-size: 32px;           /* 기존 18px → 32px */
-    line-height: 1.2;
-  }
-  .beta-hero-slide__desc {
-    font-size: 15px;
-  }
-
-  .beta-hero-slide__btn {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 13px;
+    aspect-ratio: 16 / 9;
   }
 }
-@media (min-width: 1024px) {
-  .beta-hero-grid {
-    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
-    /* 기존 1.4fr / 1fr 보다 왼쪽을 더 넓게 */
-  }
+
+/* 이미지 꽉 채우기 */
+.beta-hero-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 기존 텍스트 슬라이드용 요소는 더 이상 안 쓰니까 혹시 남아 있어도 안 보이게 */
+.beta-hero-banner__slides,
+.beta-hero-slide,
+.beta-hero-banner__dots {
+  display: none !important;
 }
