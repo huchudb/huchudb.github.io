@@ -1477,7 +1477,7 @@ body.beta-body .beta-header::after {
   display: flex;
   align-items: center;          /* 세로 가운데 */
   justify-content: space-between;
-  padding: 12px 24px;           /* 위·아래 12px, 좌·우 24px */
+  padding: 20px 24px;           /* 위·아래 12px, 좌·우 24px */
   box-sizing: border-box;
 }
 
