@@ -1,6 +1,6 @@
 :root{
   --primary:#1a365d; --accent:#d4af37;
-  --bg:#f8f9fa; --card:#fff; --line:#d0d7e2;
+  --bg:#ffffff; --card:#fff; --line:#d0d7e2;
   --muted:#555; --info:#2b6cb0;
   --chip-bg:#f1f5f9; --chip-line:#e2e8f0;
 }
@@ -1473,3 +1473,4 @@ body.beta-body button{
 .beta-hero-banner__dots {
   display: none !important;
 }
+
