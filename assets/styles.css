@@ -662,7 +662,7 @@ button:hover{background:#153154}
 }
 .beta-section__title{
   margin:0;
-  font-size:16px;
+  font-size:30px;
   font-weight:800;
   color:#111827;
 }
@@ -1598,6 +1598,7 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
 
 
 
