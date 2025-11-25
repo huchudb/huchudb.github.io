@@ -411,7 +411,7 @@ const heroPrev = document.querySelector('.hero-nav--prev');
 const heroNext = document.querySelector('.hero-nav--next');
 
 // ★ 자동 넘김 시간(ms) – 여기 숫자만 바꾸면 됨
-const HERO_SLIDE_INTERVAL = 4000; // 4000ms = 4초
+const HERO_SLIDE_INTERVAL = 5000; // 5000ms = 5초
 
 let heroIndex = 0;
 let heroTimer = null;
