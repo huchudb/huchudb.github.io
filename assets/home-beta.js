@@ -217,6 +217,9 @@ function renderLoanStatus(summary, monthStr) {
     </div>
   `;
 }
+
+// ───────── 상품유형별 대출잔액 렌더 ─────────
+
 // 도넛 & 우측 카드 공통 색상 (라벨 순서와 매칭)
 const PRODUCT_COLORS = [
   "#1d4ed8", // 부동산담보
@@ -226,7 +229,6 @@ const PRODUCT_COLORS = [
   "#22c55e", // 개인신용
   "#a855f7"  // 법인신용
 ];
-
 // ───────── 상품유형별 대출잔액 렌더 ─────────
 let donutChart = null;
 
