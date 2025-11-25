@@ -305,15 +305,8 @@ function renderProductSection(summary, byType) {
       datasets: [
         {
           data: percents,
-          backgroundColor: [
-            "#1d4ed8",
-            "#f97316",
-            "#f43f5e",
-            "#facc15",
-            "#22c55e",
-            "#a855f7"
-          ],
-          borderWidth: 0
+         backgroundColor: PRODUCT_COLORS,
+         borderWidth: 0
         }
       ]
     },
