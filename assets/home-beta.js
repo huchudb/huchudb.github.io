@@ -404,3 +404,43 @@ document.addEventListener("DOMContentLoaded", () => {
   initDailyUsers();
   setupBetaMenu();
 });
+
+// ===== 메인 히어로 배너 슬라이드 =====
+const heroSlides = document.querySelectorAll('.beta-hero-banner__slide');
+const heroDots = document.querySelectorAll('.beta-hero-banner__dots .dot');
+let heroIndex = 0;
+
+function showHeroSlide(index) {
+  heroSlides.forEach((slide, i) => {
+    slide.classList.toggle('is-active', i === index);
+  });
+  heroDots.forEach((dot, i) => {
+    dot.classList.toggle('is-active', i === index);
+  });
+  heroIndex = index;
+}
+
+// 자동 슬라이드 (3.5초마다)
+let heroTimer = null;
+function startHeroAutoSlide() {
+  if (heroTimer) clearInterval(heroTimer);
+  heroTimer = setInterval(() => {
+    const next = (heroIndex + 1) % heroSlides.length;
+    showHeroSlide(next);
+  }, 3500);
+}
+
+if (heroSlides.length > 1) {
+  // 점 클릭하면 해당 슬라이드로 이동
+  heroDots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const idx = Number(dot.dataset.index || 0);
+      showHeroSlide(idx);
+      startHeroAutoSlide(); // 클릭 후에도 오토 슬라이드 계속
+    });
+  });
+
+  // 초기 슬라이드 시작
+  showHeroSlide(0);
+  startHeroAutoSlide();
+}
