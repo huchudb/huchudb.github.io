@@ -1531,31 +1531,50 @@ body.beta-body .beta-header::after {
   pointer-events: auto;
 }
 
-/* 점 네비게이션 위치 약간 아래쪽 */
-.beta-hero-banner__dots {
+/* 여러 장 배너 슬라이드 기본 레이아웃(겹쳐놓기) */
+.beta-hero-banner {
+  position: relative;
+}
+
+.beta-hero-banner__slide {
   position: absolute;
-  left: 16px;
-  bottom: 14px;
-  display: flex;
-  gap: 6px;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
-/* 점 스타일 */
-.beta-hero-banner__dots .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
+.beta-hero-banner__slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 좌우 화살표 네비게이션 */
+.hero-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   border: 0;
-  padding: 0;
-  background: rgba(148,163,184,0.7);
+  background: transparent;
+  color: #ffffff;
+  font-size: 32px;         /* 화살표 길게 보이도록 크게 */
+  font-weight: 700;
   cursor: pointer;
+  padding: 8px 12px;
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(0,0,0,0.7); /* 배너 위에서 잘 보이게 */
 }
-.beta-hero-banner__dots .dot.is-active {
-  width: 18px;
-  background: #facc15;
+
+/* 왼쪽/오른쪽 위치 */
+.hero-nav--prev {
+  left: 12px;
 }
 
+.hero-nav--next {
+  right: 12px;
+}
 
-
-
-
+/* 클릭 영역 좀 더 넓게 하고 싶으면 (선택) */
+.hero-nav:focus {
+  outline: none;
+}
