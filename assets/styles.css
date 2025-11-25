@@ -706,11 +706,14 @@ button:hover{background:#153154}
   color:#6b7280;
   margin-bottom:4px;
 }
+/* 대출현황 카드 – 금액 텍스트 우측 정렬 + 크기 키우기 */
 .beta-loanstatus-item__value{
-  font-size:13px;
-  font-weight:800;
-  color:#111827;
+  text-align:right;      /* 오른쪽 정렬 */
+  font-size:16px;        /* 숫자 조금 크게 (원하면 15~18px로 조절) */
+  font-weight:800;       /* 굵기는 그대로 유지 */
+  line-height:1.4;
 }
+
 
 /* 상품유형별 대출잔액: 좌우 2열 */
 .beta-product-grid{
@@ -1578,3 +1581,4 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
