@@ -217,6 +217,15 @@ function renderLoanStatus(summary, monthStr) {
     </div>
   `;
 }
+// 도넛 & 우측 카드 공통 색상 (라벨 순서와 매칭)
+const PRODUCT_COLORS = [
+  "#1d4ed8", // 부동산담보
+  "#f97316", // 부동산PF
+  "#f43f5e", // 어음·매출채권담보
+  "#facc15", // 기타담보(주식 등)
+  "#22c55e", // 개인신용
+  "#a855f7"  // 법인신용
+];
 
 // ───────── 상품유형별 대출잔액 렌더 ─────────
 let donutChart = null;
