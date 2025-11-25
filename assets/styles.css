@@ -724,18 +724,25 @@ button:hover{background:#153154}
 @media(max-width:768px){
   .beta-product-grid{grid-template-columns:1fr;}
 }
+/* 도넛 차트 래퍼: 가운데 배치 */
 .beta-product-donut-wrap{
   background:#ffffff;
   border-radius:16px;
   padding:12px;
   border:1px solid #e5e7eb;
   box-shadow:0 2px 6px rgba(15,23,42,.05);
-  min-height:260px;
+  min-height:260px;        /* 더 줄이고 싶으면 220~240 정도로 */
   display:flex;
+  align-items:center;      /* 세로 가운데 */
+  justify-content:center;  /* 가로 가운데 */
 }
+
+/* 도넛 캔버스 실제 크기 줄이기 */
 .beta-product-donut-wrap canvas{
-  width:100% !important;
-  height:100% !important;
+  width:70%;               /* 래퍼 폭의 70% 정도만 사용 */
+  max-width:320px;         /* 최대 320px */
+  max-height:320px;
+  height:auto;             /* 비율 유지 */
 }
 /* 상품유형 카드 – 항상 가로 1개씩 세로 나열 */
 .beta-product-boxes{
@@ -1591,5 +1598,6 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
 
 
