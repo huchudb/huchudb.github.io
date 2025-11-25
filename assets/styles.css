@@ -854,6 +854,11 @@ button:hover{background:#153154}
   font-weight: 700;
   display: inline-block;
   margin-right: 5px;
+
+   /* 여기부터 정렬용 */
+  line-height: 1;
+  vertical-align: middle;   /* 또는 text-bottom 도 한 번 테스트 */
+}
 }
 
 /* ======================= 베타 전용 상단 레이아웃 ======================= */
@@ -1424,6 +1429,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
