@@ -1512,6 +1512,49 @@ body.beta-body .beta-header::after {
   letter-spacing: .08em;
 }
 
+/* 여러 장 배너 슬라이드 기본 레이아웃 */
+.beta-hero-banner {
+  position: relative;
+}
+
+/* 각 슬라이드는 겹쳐놓고, 하나만 보이게 */
+.beta-hero-banner__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.beta-hero-banner__slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 점 네비게이션 위치 약간 아래쪽 */
+.beta-hero-banner__dots {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  display: flex;
+  gap: 6px;
+}
+
+/* 점 스타일 */
+.beta-hero-banner__dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: rgba(148,163,184,0.7);
+  cursor: pointer;
+}
+.beta-hero-banner__dots .dot.is-active {
+  width: 18px;
+  background: #facc15;
+}
+
 
 
 
