@@ -1432,7 +1432,7 @@ body.beta-body button{
   max-width: 1200px;   /* 필요하면 1160, 1240 등으로 조정 가능 */
 }
 
-/* ===== Madang 스타일: 이미지 전용 히어로 배너 ===== */
+/* =====  이미지 전용 히어로 배너 ===== */
 
 .beta-hero-banner {
   display: block;
@@ -1440,6 +1440,7 @@ body.beta-body button{
   overflow: hidden;
   padding: 0;              /* 내부 패딩 제거 */
   background: #020617;     /* 이미지 로딩 전 배경색 */
+  box-shadow: none;      /* ← 이 줄 추가해서 그림자 제거 */
 }
 
 /* 데스크탑에서는 16:9 비율 유지 */
@@ -1605,6 +1606,7 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
 
 
 
