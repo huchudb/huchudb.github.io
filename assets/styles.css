@@ -1544,4 +1544,58 @@ body.beta-body .beta-menu-toggle{
   font-size:13px;
 }
 
+/* ===== [최종] 베타 헤더 정리 ===== */
+
+/* 1. 헤더 전체: 높이 자동 + 라인은 화면 전체 */
+body.beta-body .beta-header {
+  position: relative;
+  height: auto;          /* height:60px 강제 제거 */
+  border-bottom: 0;      /* 원래 선 제거 – 아래 ::after로 그림 */
+}
+
+/* 화면 전체 폭으로 회색 라인 */
+body.beta-body .beta-header::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100vw;
+  height: 1px;
+  background: var(--line);
+}
+
+/* 2. 내부 컨테이너: 세로 가운데 + 적당한 패딩 */
+body.beta-body .beta-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;        /* 세로 가운데 정렬 */
+  justify-content: space-between;
+  padding: 12px 24px;         /* 위·아래 12px, 좌·우 24px */
+  box-sizing: border-box;
+}
+
+/* 3. 로고 크기 & 정렬 */
+body.beta-body .huchu-logo {
+  display: inline-flex;
+  align-items: center;        /* 로고 내부도 가운데 정렬 */
+  gap: 10px;
+}
+
+body.beta-body .huchu-logo .logo-img {
+  display: block;
+  height: 28px;               /* 원래 크기 유지 */
+}
+
+/* 4. MENU 버튼 */
+body.beta-body .beta-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  font-size: 13px;
+}
+
 
