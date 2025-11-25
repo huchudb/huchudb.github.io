@@ -718,7 +718,7 @@ button:hover{background:#153154}
 /* 상품유형별 대출잔액: 좌우 2열 */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0, 1.1fr) minmax(0, 1.1fr);
+ grid-template-columns:minmax(0, 0.8fr) minmax(0, 1.4fr); /* ← 도넛 카드 좁게, 우측 카드 넓게 */
   gap:16px;
 }
 @media(max-width:768px){
@@ -726,23 +726,23 @@ button:hover{background:#153154}
 }
 /* 도넛 차트 래퍼: 가운데 배치 */
 .beta-product-donut-wrap{
-  background:#ffffff;
+ background:#ffffff;
   border-radius:16px;
   padding:12px;
   border:1px solid #e5e7eb;
   box-shadow:0 2px 6px rgba(15,23,42,.05);
-  min-height:260px;        /* 더 줄이고 싶으면 220~240 정도로 */
+  min-height:220px;             /* 높이 살짝 줄이기 */
   display:flex;
-  align-items:center;      /* 세로 가운데 */
-  justify-content:center;  /* 가로 가운데 */
+  align-items:center;           /* 가운데 정렬 */
+  justify-content:center;
 }
 
 /* 도넛 캔버스 실제 크기 줄이기 */
 .beta-product-donut-wrap canvas{
-  width:70%;               /* 래퍼 폭의 70% 정도만 사용 */
-  max-width:320px;         /* 최대 320px */
+  width:100% !important;
+  height:100% !important;
+  max-width:320px;   /* 도넛 최대 가로/세로 */
   max-height:320px;
-  height:auto;             /* 비율 유지 */
 }
 /* 상품유형 카드 – 항상 가로 1개씩 세로 나열 */
 .beta-product-boxes{
@@ -751,22 +751,29 @@ button:hover{background:#153154}
   gap:10px;
 }
 .beta-product-box{
-  background:#ffffff;
+ background:#ffffff;
   border-radius:12px;
-  padding:10px 12px;
+  padding:12px 18px;                       /* 여유 있게 */
   border:1px solid #e5e7eb;
   box-shadow:0 2px 6px rgba(15,23,42,.05);
+  display:flex;                            /* 한 줄에 정렬 */
+  align-items:center;
+  justify-content:space-between;
 }
 .beta-product-box__title{
-  font-size:11px;
+    font-size:14px;                          /* 항목명 크게 */
   font-weight:700;
   color:#111827;
-  margin-bottom:4px;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  margin-bottom:0;                         /* 아래 여백 제거 */
 }
 .beta-product-box__amount{
-  font-size:13px;
+   font-size:16px;                          /* 금액 크게 */
   font-weight:800;
   color:#0b2a66;
+  white-space:nowrap;
 }
 /* 상품유형별 카드 – 세로 색 막대용 레이아웃 */
 .beta-product-box{
@@ -1598,6 +1605,7 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
 
 
 
