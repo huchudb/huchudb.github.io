@@ -1512,23 +1512,7 @@ body.beta-body .beta-header::after {
   letter-spacing: .08em;
 }
 
-/* 햄버거 아이콘 (지금 구조에 맞게) */
-.beta-menu-toggle__icon {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-}
-.beta-menu-toggle__icon span {
-  display: block;
-  width: 14px;
-  height: 2px;
-  border-radius: 999px;
-  background: #ffffff;
-}
-.beta-menu-toggle__label {
-  display: inline-block;
-}
+
 
 
 
