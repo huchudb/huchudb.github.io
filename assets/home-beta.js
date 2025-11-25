@@ -272,12 +272,9 @@ function renderProductSection(summary, byType) {
           const color = PRODUCT_COLORS[idx] || "#e5e7eb"; // 색 없으면 회색
           return `
             <div class="beta-product-box" style="--product-color:${color};">
-              <div class="beta-product-box__title">
-                ${name}
-                <span style="color:#6b7280;font-weight:500;">
-                  ${percents[idx].toFixed(1)}%
-                </span>
-              </div>
+            <div class="beta-product-box__title">
+               ${name}
+               </div>
               <div class="beta-product-box__amount">
                 ${formatKoreanCurrencyJo(amounts[idx])}
               </div>
