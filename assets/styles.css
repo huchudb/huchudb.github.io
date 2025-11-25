@@ -1430,24 +1430,14 @@ body.beta-body button{
   border: 0;
 }
 
-/* ===== 공통 레이아웃 폭 확장 (메인 · 상품 · 푸터) ===== */
+/* ===== 레이아웃 폭 확장 강제 오버라이드 ===== */
 .huchu-header__inner,
 .beta-header__inner,
 .beta-inner,
 .products-main,
 .beta-footer__top,
-.beta-footer__bottom {
-  max-width: 1160px;   /* 960 → 1160으로 확장, 너무 넓으면 1120, 더 넓게는 1200까지도 가능 */
+.beta-footer__bottom,
+.top-stats,
+.container {
+  max-width: 1200px;   /* 필요하면 1160, 1240 등으로 조정 가능 */
 }
-
-
-
-
-
-
-
-
-
-
-
-
