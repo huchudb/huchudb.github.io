@@ -845,6 +845,29 @@ button:hover{background:#153154}
   width:auto;
 }
 
+.hero-note-main::before {
+  content: "*";
+  background: linear-gradient(90deg, #faee21, #6fe600, #00ffff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.hero-note-sub::before {
+  content: "**";
+  background: linear-gradient(90deg, #faee21, #6fe600, #00ffff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+
 /* ======================= 베타 전용 상단 레이아웃 ======================= */
 
 /* 베타 페이지용 body: 상단 여백 제거 + 전체 폭 헤더 */
@@ -1413,6 +1436,7 @@ body.beta-body button{
   white-space: nowrap;
   border: 0;
 }
+
 
 
 
