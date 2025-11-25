@@ -1502,4 +1502,27 @@ body.beta-body .beta-header::after{
   background:var(--line);
 }
 
+/* ===== 베타 헤더 최종 정리 ===== */
+
+/* 1) 헤더 내부 레이아웃: 가운데 정렬 + 적당한 세로 높이 */
+body.beta-body .beta-header__inner{
+  max-width:1200px;
+  margin:0 auto;
+  padding:12px 24px;              /* 상하 12px 정도로 슬림하게 */
+  display:flex;
+  align-items:center;             /* 세로 가운데 정렬 */
+  justify-content:space-between;  /* 좌: 로고 / 우: 메뉴 */
+}
+
+/* 2) 로고 크기 원래대로 복구 */
+body.beta-body .huchu-logo .logo-img{
+  height:28px;   /* 내가 24px로 줄였던 거 다시 28px로 */
+}
+
+/* 3) MENU 버튼도 크기 유지(혹시 줄어들었을까봐 명시) */
+body.beta-body .beta-menu-toggle{
+  font-size:13px;
+  padding:10px 22px;
+}
+
 
