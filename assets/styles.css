@@ -737,18 +737,11 @@ button:hover{background:#153154}
   width:100% !important;
   height:100% !important;
 }
+/* 상품유형 카드 – 항상 가로 1개씩 세로 나열 */
 .beta-product-boxes{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:1fr; /* 3개 → 1개 */
   gap:10px;
-}
-@media(max-width:768px){
-  .beta-product-boxes{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-}
-@media(max-width:520px){
-  .beta-product-boxes{grid-template-columns:1fr;}
 }
 .beta-product-box{
   background:#ffffff;
@@ -767,6 +760,23 @@ button:hover{background:#153154}
   font-size:13px;
   font-weight:800;
   color:#0b2a66;
+}
+/* 상품유형별 카드 – 세로 색 막대용 레이아웃 */
+.beta-product-box{
+  position:relative;
+  padding:10px 12px 10px 18px;   /* 왼쪽에 bar 자리 조금 확보 */
+}
+
+/* 왼쪽 세로 bar (색상은 CSS 변수로 받아옴) */
+.beta-product-box::before{
+  content:"";
+  position:absolute;
+  left:6px;
+  top:8px;
+  bottom:8px;
+  width:4px;
+  border-radius:999px;
+  background:var(--product-color, #e5e7eb); /* 기본값은 연한 회색 */
 }
 
 /* 베타 푸터 */
@@ -1581,4 +1591,5 @@ body.beta-body .beta-header::after {
 .hero-nav:focus {
   outline: none;
 }
+
 
