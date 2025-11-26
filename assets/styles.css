@@ -1607,6 +1607,35 @@ body.beta-body .beta-header::after {
   outline: none;
 }
 
+/* ===== 모바일 헤더 MENU 버튼 (햄버거만 보이게) ===== */
+@media (max-width: 520px) {
+  /* 버튼 전체 크기 조금 줄이기 */
+  .beta-menu-toggle {
+    padding: 8px 10px;     /* 좌우 여백 축소 */
+    gap: 0;                /* 아이콘-텍스트 간격 제거 */
+    border-radius: 999px;  /* 동글동글 */
+    box-shadow: 0 3px 8px rgba(15,23,42,.25);
+  }
+
+  /* "MENU" 텍스트는 숨기기 */
+  .beta-menu-toggle__label {
+    display: none;
+  }
+}
+.beta-menu-toggle__icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.beta-menu-toggle__icon span {
+  width: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
 
 
 
