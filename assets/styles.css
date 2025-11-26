@@ -1609,15 +1609,14 @@ body.beta-body .beta-header::after {
 
 /* ===== 모바일 헤더 MENU 버튼 (햄버거만 보이게) ===== */
 @media (max-width: 520px) {
-  /* 버튼 전체 크기 조금 줄이기 */
   .beta-menu-toggle {
-    padding: 8px 10px;     /* 좌우 여백 축소 */
-    gap: 0;                /* 아이콘-텍스트 간격 제거 */
-    border-radius: 999px;  /* 동글동글 */
+    padding: 8px 16px;      /* PC보다 살짝만 줄이기 */
+    gap: 0;                 /* PC에서는 8px, 모바일에서는 0으로 */
+    border-radius: 10px;    /* PC랑 같은 모양 유지 (999px → 10px) */
     box-shadow: 0 3px 8px rgba(15,23,42,.25);
   }
 
-  /* "MENU" 텍스트는 숨기기 */
+  /* "MENU" 텍스트 숨기기 → 햄버거만 보이게 */
   .beta-menu-toggle__label {
     display: none;
   }
@@ -1635,6 +1634,7 @@ body.beta-body .beta-header::after {
   border-radius: 999px;
   background: #ffffff;
 }
+
 
 
 
