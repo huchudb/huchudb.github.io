@@ -922,8 +922,8 @@ body.beta-body > a{display:none;}
 /* === 모바일 전용: 햄버거 아이콘만, 정사각형 버튼 === */
 @media (max-width: 640px) {
   body.beta-body .beta-menu-toggle{
-    width:40px;          /* 버튼 가로 */
-    height:40px;         /* 버튼 세로  => 정사각형 */
+    width:34px;          /* 버튼 가로 */
+    height:34px;         /* 버튼 세로  => 정사각형 */
     padding:0;           /* 안쪽 여백 제거 */
     border-radius:8px;   /* 살짝 둥근 네모 */
     gap:0;               /* 아이콘과 텍스트 간격 필요 없음 */
@@ -937,7 +937,7 @@ body.beta-body > a{display:none;}
 
   /* 가운데 3줄 햄버거 아이콘 크기/간격 조정 */
   body.beta-body .beta-menu-toggle::before{
-    width:20px;          /* 선 길이 */
+    width:16px;          /* 선 길이 */
     height:2px;          /* 선 두께 */
     box-shadow:
       0 -6px 0 #ffffff,  /* 위 줄 */
@@ -1660,6 +1660,7 @@ body.beta-body .beta-header::after {
   border-radius: 999px;
   background: #ffffff;
 }
+
 
 
 
