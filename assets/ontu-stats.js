@@ -202,13 +202,13 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
     .map((it) => {
       const currRaw = s[it.key] ?? 0;
       const prevRaw = ps[it.key];
-      const value =
-  let valueHtml;
-  if (it.type === "count") {
-  valueHtml = `${(currRaw || 0).toLocaleString("ko-KR")}개`;
-  } else {
-  valueHtml = formatKoreanCurrencyJoHtml(currRaw);
-}
+
+      let valueHtml;
+      if (it.type === "count") {
+        valueHtml = `${(currRaw || 0).toLocaleString("ko-KR")}개`;
+      } else {
+        valueHtml = formatKoreanCurrencyJoHtml(currRaw);
+      }
 
       const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
 
@@ -216,14 +216,13 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
         <div class="beta-loanstatus-item">
           <div class="beta-loanstatus-item__label">${it.label}</div>
           <div class="beta-loanstatus-item__value">${valueHtml}</div>
-         ${
-  delta.text
-    ? `<div class="beta-loanstatus-item__delta ${delta.className}">
-         ${delta.html || delta.text}
-       </div>`
-    : `<div class="beta-loanstatus-item__delta delta-flat">-</div>`
-}
-
+          ${
+            delta.text
+              ? `<div class="beta-loanstatus-item__delta ${delta.className}">
+                   ${delta.html || delta.text}
+                 </div>`
+              : `<div class="beta-loanstatus-item__delta delta-flat">-</div>`
+          }
         </div>
       `;
     })
