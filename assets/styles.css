@@ -2075,4 +2075,201 @@ body.beta-body .beta-header::after {
   }
 }
 
+/* =======================================================
+   온투업 담보대출 통계 상세(ontu-stats.html) 전용 고급 스타일
+   ======================================================= */
 
+/* 섹션/카드 여백 & 밀도 조정 */
+body.ontu-stats-page .beta-inner {
+  padding-bottom: 32px;
+}
+
+body.ontu-stats-page .beta-section {
+  margin-bottom: 20px; /* 전체적으로 섹션 간격 좁게 */
+}
+
+body.ontu-stats-page .beta-card {
+  padding: 12px 14px;  /* 카드 안쪽 여백 줄이기 */
+  border-radius: 16px;
+}
+
+/* 상단 타이틀 체계 */
+body.ontu-stats-page .beta-stats-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+}
+
+body.ontu-stats-page .beta-stats-subtitle {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+body.ontu-stats-page .beta-section__title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* 기준월 텍스트 */
+body.ontu-stats-page .beta-section__meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ─── 대출현황 KPI 카드 타입 ─── */
+
+body.ontu-stats-page .beta-loanstatus-grid {
+  gap: 8px;
+}
+
+body.ontu-stats-page .beta-loanstatus-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease,
+              border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body.ontu-stats-page .beta-loanstatus-item__label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+body.ontu-stats-page .beta-loanstatus-item__value {
+  text-align: right;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* 전월 대비 텍스트 */
+body.ontu-stats-page .beta-loanstatus-item__delta {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+/* hover 시 살짝 떠오르는 효과 */
+body.ontu-stats-page .beta-loanstatus-item:hover {
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+  border-color: #e0e7ff;
+  background-color: #f9fafb;
+  transform: translateY(-1px);
+}
+
+/* ─── 숫자/단위 분리(조/억/만원) 고급 스타일 ─── */
+
+body.ontu-stats-page .money-number {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+body.ontu-stats-page .money-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+/* ─── 상품유형별 도넛 + 리스트 레이아웃 ─── */
+
+body.ontu-stats-page .beta-product-grid {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 14px;
+}
+
+body.ontu-stats-page .beta-product-donut-wrap {
+  min-height: 260px;
+}
+
+/* 리스트 카드 한 줄 정렬 & 고급 카드 느낌 */
+body.ontu-stats-page .beta-product-boxes {
+  gap: 8px;
+}
+
+body.ontu-stats-page .beta-product-box {
+  padding: 10px 16px 10px 20px;
+  border-radius: 14px;
+  position: relative;
+  transition: box-shadow 0.15s ease, transform 0.15s ease,
+              border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body.ontu-stats-page .beta-product-box__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+body.ontu-stats-page .beta-product-box__amount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0b2a66;
+}
+
+body.ontu-stats-page .beta-product-box__delta {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* hover 효과 */
+body.ontu-stats-page .beta-product-box:hover {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+  border-color: #e0e7ff;
+  background-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* ─── 상승/하락/변동없음 컬러 (프리미엄 톤) ─── */
+
+body.ontu-stats-page .beta-loanstatus-item .beta-loanstatus-item__delta.delta-up,
+body.ontu-stats-page .beta-product-box .beta-product-box__delta.delta-up {
+  color: #dc2626 !important; /* 빨강 */
+}
+
+body.ontu-stats-page .beta-loanstatus-item .beta-loanstatus-item__delta.delta-down,
+body.ontu-stats-page .beta-product-box .beta-product-box__delta.delta-down {
+  color: #1d4ed8 !important; /* 파랑 */
+}
+
+body.ontu-stats-page .beta-loanstatus-item .beta-loanstatus-item__delta.delta-flat,
+body.ontu-stats-page .beta-product-box .beta-product-box__delta.delta-flat {
+  color: #9ca3af !important; /* 변동없음 */
+}
+
+/* ─── 반응형(모바일) 튜닝 ─── */
+
+@media (max-width: 768px) {
+  body.ontu-stats-page .beta-inner {
+    padding: 0 14px 24px;
+  }
+
+  body.ontu-stats-page .beta-section {
+    margin-bottom: 16px;
+  }
+
+  body.ontu-stats-page .beta-card {
+    padding: 12px;
+  }
+
+  body.ontu-stats-page .beta-stats-title {
+    font-size: 20px;
+  }
+
+  body.ontu-stats-page .beta-section__title {
+    font-size: 18px;
+  }
+
+  body.ontu-stats-page .beta-product-donut-wrap {
+    min-height: 200px;
+  }
+
+  body.ontu-stats-page .beta-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.ontu-stats-page .beta-product-box {
+    padding: 10px 14px 10px 18px;
+  }
+}
