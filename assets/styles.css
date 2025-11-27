@@ -1661,6 +1661,111 @@ body.beta-body .beta-header::after {
   background: #ffffff;
 }
 
+/* ===== 온투업 통계 상세 페이지: 상단 헤더 ===== */
+.beta-section--filter{
+  margin-bottom: 10px;
+}
+
+.beta-stats-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.beta-stats-header__left{
+  flex:1 1 auto;
+}
+
+.beta-stats-title{
+  margin:0 0 6px;
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+}
+
+.beta-stats-subtitle{
+  margin:0;
+  font-size:13px;
+  line-height:1.6;
+  color:#4b5563;
+}
+
+.beta-stats-header__right{
+  flex:0 0 auto;
+}
+
+/* 기준월 선택 UI */
+.beta-month-picker{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+  font-size:12px;
+  color:#6b7280;
+}
+
+.beta-month-picker__label{
+  font-weight:600;
+}
+
+.beta-month-picker input[type="month"]{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  font-size:12px;
+  color:#111827;
+  background:#ffffff;
+}
+
+/* 기준월 텍스트 */
+.beta-section__meta{
+  font-size:12px;
+  color:#6b7280;
+}
+
+/* 대출현황 카드 – 전월 대비 텍스트 */
+.beta-loanstatus-item__delta{
+  margin-top:4px;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.beta-loanstatus-item__delta--up{
+  color:#16a34a;
+}
+.beta-loanstatus-item__delta--down{
+  color:#dc2626;
+}
+.beta-loanstatus-item__delta--flat{
+  color:#6b7280;
+}
+.beta-loanstatus-item__delta .delta-arrow{
+  font-size:10px;
+}
+
+/* 상품유형별 박스 – 전월 대비 텍스트 */
+.beta-product-box__delta{
+  margin-top:4px;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.beta-product-box__delta--up{
+  color:#16a34a;
+}
+.beta-product-box__delta--down{
+  color:#dc2626;
+}
+.beta-product-box__delta--flat{
+  color:#6b7280;
+}
+.beta-product-box__delta .delta-arrow{
+  font-size:10px;
+}
+
 
 
 
