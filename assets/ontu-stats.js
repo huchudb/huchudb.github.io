@@ -208,13 +208,14 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
           <div class="beta-loanstatus-item__value">
             ${value}
           </div>
-          ${
-            delta.text
-              ? `<div class="beta-loanstatus-item__delta ${delta.className}">
-                   ${delta.text}
-                 </div>`
-              : `<div class="beta-loanstatus-item__delta delta-flat">-</div>`
-          }
+         ${
+  delta.text
+    ? `<div class="beta-loanstatus-item__delta ${delta.className}">
+         ${delta.html || delta.text}
+       </div>`
+    : `<div class="beta-loanstatus-item__delta delta-flat">-</div>`
+}
+
         </div>
       `;
     })
@@ -324,28 +325,34 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
   }
 
   // 카드 HTML
-  const boxesHtml = labels
-    .map((name, idx) => {
-      const color = PRODUCT_COLORS[idx] || "#e5e7eb";
-      const amt   = amounts[idx];
-      const prev  = prevAmounts[idx];
-      const delta = buildDeltaInfo(amt, prev, { type: "money" });
+const boxesHtml = labels
+  .map((name, idx) => {
+    const color = PRODUCT_COLORS[idx] || "#e5e7eb";
+    const amt   = amounts[idx];
+    const prev  = prevAmounts[idx];
+    const delta = buildDeltaInfo(amt, prev, { type: "money" });
 
-      return `
-        <div class="beta-product-box" style="--product-color:${color};">
+    return `
+      <div class="beta-product-box" style="--product-color:${color};">
+        <div class="beta-product-box__left">
           <div class="beta-product-box__title">${name}</div>
+        </div>
+        <div class="beta-product-box__right">
           <div class="beta-product-box__amount">
-            ${formatKoreanCurrencyJo(amt)}
+            ${formatKoreanCurrencyJoHtml(amt)}
           </div>
           ${
             delta.text
-              ? `<div class="beta-product-box__delta ${delta.className}">${delta.text}</div>`
+              ? `<div class="beta-product-box__delta ${delta.className}">
+                   ${delta.html || delta.text}
+                 </div>`
               : `<div class="beta-product-box__delta delta-flat">-</div>`
           }
         </div>
-      `;
-    })
-    .join("");
+      </div>
+    `;
+  })
+  .join("");
 
   section.innerHTML = `
     <div class="beta-product-grid">
