@@ -237,21 +237,18 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
       datasets: [
         {
           data: cleanData,
-          borderColor: "#2563eb",              // 진한 파란색 라인
-          backgroundColor: "transparent",      // 면적 채우기 X
-          borderWidth: 1.8,                    // 살짝 얇게
-          pointRadius: 0,                      // 기본 점 숨김
-          pointHoverRadius: 3,                 // 호버 시 작은 점
-          tension: 0.25,                       // 너무 꺾이지 않도록 살짝 곡선
-          fill: false,                         // 면적 채우기 안함
+          borderColor: "#1d4ed8",
+          backgroundColor: "rgba(37,99,235,0.08)",
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          tension: 0.35
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      spanGaps: true,                          // 중간에 null 있어도 자연스럽게 이어주기
-      animation: false,                        // 애니메이션 제거(깜빡임 방지)
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -262,7 +259,7 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
               if (!items || !items.length) return "";
               const idx = items[0].dataIndex;
               const key = labels[idx];
-              return formatShortMonthLabel(key);   // '25년 7월'
+              return formatShortMonthLabel(key);
             },
             label(ctx) {
               const v = ctx.parsed.y;
@@ -276,7 +273,9 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
         }
       },
       elements: {
-        point: { hitRadius: 8 }
+        point: {
+          hitRadius: 8
+        }
       },
       scales: {
         x: { display: false },
@@ -287,7 +286,6 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
 
   sparkCharts[canvasId] = chart;
 }
-
 
 // ───────── 대출현황 카드 렌더 (전월 대비 + 스파크라인) ─────────
 
@@ -452,7 +450,7 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     prevAmounts.push(prevAmt);
   }
 
-   // 카드 HTML
+  // 카드 HTML
   const boxesHtml = labels
     .map((name, idx) => {
       const color = PRODUCT_COLORS[idx] || "#e5e7eb";
@@ -462,6 +460,7 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
       const share = percents[idx] != null ? `${percents[idx].toFixed(1)}%` : "";
 
       const subtitle = PRODUCT_SUBTITLES[name] || "";
+
       const safeName = toSafeIdFragment(name);
 
       const deltaHtml = delta.text
@@ -493,12 +492,58 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     })
     .join("");
 
-  // 🔹 도넛 없이, 카드만 풀넓이로 배치
   section.innerHTML = `
-    <div class="beta-product-boxes beta-product-boxes--full">
-      ${boxesHtml}
+    <div class="beta-product-grid">
+      <div class="beta-product-donut-wrap">
+        <canvas id="productDonut"></canvas>
+      </div>
+      <div class="beta-product-boxes">
+        ${boxesHtml}
+      </div>
     </div>
   `;
+
+  // 도넛 차트
+  const canvas = document.getElementById("productDonut");
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext("2d");
+  if (donutChart) {
+    donutChart.destroy();
+    donutChart = null;
+  }
+
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: percents,
+          backgroundColor: PRODUCT_COLORS,
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "60%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const label = ctx.label || "";
+              const val   = ctx.raw ?? 0;
+              return `${label}: ${Number(val).toFixed(1)}%`;
+            }
+          }
+        }
+      },
+      layout: { padding: 4 }
+    }
+  });
 }
 
 // ───────── 6개월 히스토리 불러와서 스파크라인 그리기 ─────────
