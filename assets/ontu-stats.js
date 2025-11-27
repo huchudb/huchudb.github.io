@@ -1,6 +1,13 @@
 // /assets/ontu-stats.js  (대출 통계 상세 페이지 전용)
 
 // ───────── 공통 유틸 ─────────
+function formatKoreanCurrencyJoHtml(num) {
+  const text = formatKoreanCurrencyJo(num);
+  // 12,345조 / 678억 / 910만원 / 123원 이런 패턴에서 숫자와 단위를 분리
+  return text.replace(/(\d[\d,]*)(조|억|만원|원)/g, (match, numPart, unit) => {
+    return `<span class="money-number">${numPart}</span><span class="money-unit">${unit}</span>`;
+  });
+}
 
 // '조/억/만원' 포맷
 function formatKoreanCurrencyJo(num) {
@@ -196,9 +203,12 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
       const currRaw = s[it.key] ?? 0;
       const prevRaw = ps[it.key];
       const value =
-        it.type === "count"
-          ? `${(currRaw || 0).toLocaleString("ko-KR")}개`
-          : formatKoreanCurrencyJo(currRaw);
+  let valueHtml;
+  if (it.type === "count") {
+  valueHtml = `${(currRaw || 0).toLocaleString("ko-KR")}개`;
+  } else {
+  valueHtml = formatKoreanCurrencyJoHtml(currRaw);
+}
 
       const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
 
@@ -206,7 +216,7 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
         <div class="beta-loanstatus-item">
           <div class="beta-loanstatus-item__label">${it.label}</div>
           <div class="beta-loanstatus-item__value">
-            ${value}
+            ${valueHtml}
           </div>
          ${
   delta.text
