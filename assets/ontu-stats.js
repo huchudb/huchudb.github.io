@@ -121,16 +121,28 @@ const ONTU_API = `${API_BASE}/api/ontu-stats`;
 // 한 달 데이터만 가져오기
 async function fetchOntuStats(monthKey) {
   try {
-    const res = await fetch(
-  `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`,
-  {
-    method: "GET",
-    mode: "cors",
-    credentials: "omit",
-    headers: { Accept: "application/json" },
-    cache: "no-store"
-  }
-);
+    // 1) 기본 URL 만들기
+    let url;
+    if (monthKey) {
+      // 특정 기준월 조회
+      url = `${ONTU_API}?month=${encodeURIComponent(monthKey)}`;
+    } else {
+      // 최신월 조회
+      url = `${ONTU_API}`;
+    }
+
+    // 2) 캐시 방지용 t= 타임스탬프 붙이기
+    const sep = url.includes("?") ? "&" : "?";
+    const finalUrl = `${url}${sep}t=${Date.now()}`;
+
+    const res = await fetch(finalUrl, {
+      method: "GET",
+      mode: "cors",
+      credentials: "omit",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     return json;
