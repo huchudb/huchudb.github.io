@@ -237,18 +237,21 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
       datasets: [
         {
           data: cleanData,
-          borderColor: "#1d4ed8",
-          backgroundColor: "rgba(37,99,235,0.08)",
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 3,
-          tension: 0.35
+          borderColor: "#2563eb",              // 진한 파란색 라인
+          backgroundColor: "transparent",      // 면적 채우기 X
+          borderWidth: 1.8,                    // 살짝 얇게
+          pointRadius: 0,                      // 기본 점 숨김
+          pointHoverRadius: 3,                 // 호버 시 작은 점
+          tension: 0.25,                       // 너무 꺾이지 않도록 살짝 곡선
+          fill: false,                         // 면적 채우기 안함
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      spanGaps: true,                          // 중간에 null 있어도 자연스럽게 이어주기
+      animation: false,                        // 애니메이션 제거(깜빡임 방지)
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -259,7 +262,7 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
               if (!items || !items.length) return "";
               const idx = items[0].dataIndex;
               const key = labels[idx];
-              return formatShortMonthLabel(key);
+              return formatShortMonthLabel(key);   // '25년 7월'
             },
             label(ctx) {
               const v = ctx.parsed.y;
@@ -273,9 +276,7 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
         }
       },
       elements: {
-        point: {
-          hitRadius: 8
-        }
+        point: { hitRadius: 8 }
       },
       scales: {
         x: { display: false },
@@ -286,6 +287,7 @@ function createSparklineChart(canvasId, labels, data, opts = {}) {
 
   sparkCharts[canvasId] = chart;
 }
+
 
 // ───────── 대출현황 카드 렌더 (전월 대비 + 스파크라인) ─────────
 
