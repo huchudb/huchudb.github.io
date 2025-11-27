@@ -452,7 +452,7 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     prevAmounts.push(prevAmt);
   }
 
-  // 카드 HTML
+   // 카드 HTML
   const boxesHtml = labels
     .map((name, idx) => {
       const color = PRODUCT_COLORS[idx] || "#e5e7eb";
@@ -462,7 +462,6 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
       const share = percents[idx] != null ? `${percents[idx].toFixed(1)}%` : "";
 
       const subtitle = PRODUCT_SUBTITLES[name] || "";
-
       const safeName = toSafeIdFragment(name);
 
       const deltaHtml = delta.text
@@ -494,58 +493,12 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     })
     .join("");
 
+  // 🔹 도넛 없이, 카드만 풀넓이로 배치
   section.innerHTML = `
-    <div class="beta-product-grid">
-      <div class="beta-product-donut-wrap">
-        <canvas id="productDonut"></canvas>
-      </div>
-      <div class="beta-product-boxes">
-        ${boxesHtml}
-      </div>
+    <div class="beta-product-boxes beta-product-boxes--full">
+      ${boxesHtml}
     </div>
   `;
-
-  // 도넛 차트
-  const canvas = document.getElementById("productDonut");
-  if (!canvas || !window.Chart) return;
-
-  const ctx = canvas.getContext("2d");
-  if (donutChart) {
-    donutChart.destroy();
-    donutChart = null;
-  }
-
-  donutChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [
-        {
-          data: percents,
-          backgroundColor: PRODUCT_COLORS,
-          borderWidth: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "60%",
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const label = ctx.label || "";
-              const val   = ctx.raw ?? 0;
-              return `${label}: ${Number(val).toFixed(1)}%`;
-            }
-          }
-        }
-      },
-      layout: { padding: 4 }
-    }
-  });
 }
 
 // ───────── 6개월 히스토리 불러와서 스파크라인 그리기 ─────────
