@@ -1831,4 +1831,248 @@ body.beta-body .beta-header::after {
   margin-left: 2px;
 }
 
+/* ===================== 온투업 통계 상세 - 고급스러움 오버라이드 ===================== */
+
+/* 1) 전체 레이아웃/여백 조정 */
+.beta-inner {
+  max-width: 1120px;     /* 살짝만 넓게 */
+  padding: 0 20px 32px;
+}
+
+.beta-section {
+  margin-bottom: 24px;   /* 섹션 간 간격 살짝 줄이기 */
+}
+
+.beta-card {
+  padding: 12px 14px;    /* 카드 안쪽 여백 축소 */
+}
+
+/* 상단 필터 섹션 여백 정리 */
+.beta-section--filter {
+  margin-bottom: 12px;
+}
+
+/* 2) 타이포 스케일 통일 */
+.beta-stats-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.beta-section__title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.beta-stats-subtitle {
+  font-size: 13px;
+}
+
+.beta-section__meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 3) 대출현황 카드 – 밀도/정렬/증감 컬러 */
+.beta-loanstatus-grid {
+  gap: 8px;
+}
+
+.beta-loanstatus-item {
+  padding: 9px 11px;
+  border-radius: 11px;
+  box-shadow: 0 1px 4px rgba(15,23,42,.04);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.beta-loanstatus-item__label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.beta-loanstatus-item__value {
+  text-align: right;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* 증감 텍스트 공통 */
+.beta-loanstatus-item__delta {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 상승: 빨강, 하락: 파랑, 변동 없음: 회색 */
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-up {
+  color: #dc2626 !important;
+}
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-down {
+  color: #1d4ed8 !important;
+}
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-flat {
+  color: #9ca3af !important;
+}
+
+/* 호버 시 살짝 떠오르는 느낌 (PC 전용) */
+@media (hover:hover) and (pointer:fine) {
+  .beta-loanstatus-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15,23,42,.10);
+  }
+}
+
+/* 4) 상품유형별 – 도넛/리스트 비율 + 카드 정렬 */
+.beta-product-grid {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  gap: 14px;
+}
+
+.beta-product-donut-wrap {
+  min-height: 210px;
+  padding: 10px;
+}
+
+.beta-product-donut-wrap canvas {
+  max-width: 300px;
+  max-height: 300px;
+}
+
+/* 리스트 카드 */
+.beta-product-boxes {
+  gap: 8px;
+}
+
+.beta-product-box {
+  padding: 9px 14px 9px 18px;
+  border-radius: 11px;
+  box-shadow: 0 1px 4px rgba(15,23,42,.04);
+  transition: box-shadow .15s ease, transform .15s ease, background-color .15s ease;
+}
+
+.beta-product-box__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 퍼센트 라벨 (제목 옆) */
+.beta-product-box__percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* 금액 + 증감 정렬 */
+.beta-product-box__amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0b2a66;
+  white-space: nowrap;
+}
+
+.beta-product-box__delta {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* 상승/하락/변동없음 컬러 – 카드용 */
+.beta-product-box .beta-product-box__delta.delta-up {
+  color: #dc2626 !important;
+}
+.beta-product-box .beta-product-box__delta.delta-down {
+  color: #1d4ed8 !important;
+}
+.beta-product-box .beta-product-box__delta.delta-flat {
+  color: #9ca3af !important;
+}
+
+/* 호버 시 미세 인터랙션 (PC) */
+@media (hover:hover) and (pointer:fine) {
+  .beta-product-box:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,23,42,.10);
+    background:#f9fafb;
+  }
+}
+
+/* 5) 금액 숫자/단위 스타일 + 줄바꿈 방지 */
+.beta-loanstatus-item__value,
+.beta-product-box__amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.money-number {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0b2a66;
+}
+
+.money-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+/* 숫자+단위가 줄에서 끊기지 않도록 */
+.beta-loanstatus-item__value,
+.beta-product-box__amount {
+  white-space: nowrap;
+}
+
+/* 6) 모바일 레이아웃 – 타이틀/기준월 정리 */
+@media (max-width: 640px) {
+  /* 상단 타이틀+필터를 세로 배치 */
+  .beta-stats-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .beta-stats-header__right {
+    width: 100%;
+  }
+
+  .beta-month-picker {
+    align-items: flex-start;
+  }
+
+  .beta-month-picker input[type="month"] {
+    width: 100%;
+  }
+
+  /* 섹션 타이틀 아래에 기준월 텍스트를 붙여서 한 덩어리처럼 보이게 */
+  .beta-section__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .beta-section__title {
+    font-size: 22px;
+  }
+
+  .beta-section__meta {
+    font-size: 11px;
+  }
+
+  /* 모바일에서 도넛 너무 크지 않게 */
+  .beta-product-donut-wrap {
+    min-height: 200px;
+    padding: 8px;
+  }
+  .beta-product-donut-wrap canvas {
+    max-width: 260px;
+    max-height: 260px;
+  }
+
+  /* 리스트 카드 상하 여백 조금 줄이기 */
+  .beta-product-box {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
 
