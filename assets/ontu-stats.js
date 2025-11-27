@@ -215,9 +215,7 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
       return `
         <div class="beta-loanstatus-item">
           <div class="beta-loanstatus-item__label">${it.label}</div>
-          <div class="beta-loanstatus-item__value">
-            ${valueHtml}
-          </div>
+          <div class="beta-loanstatus-item__value">${valueHtml}</div>
          ${
   delta.text
     ? `<div class="beta-loanstatus-item__delta ${delta.className}">
