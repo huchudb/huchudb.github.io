@@ -2348,3 +2348,28 @@ body.ontu-stats-page .beta-product-box .beta-product-box__delta.delta-flat {
   font-size:11px;
   margin-left:2px;
 }
+
+/* ===== 프리미엄 대시보드형 카드 + 스파크라인 ===== */
+
+.loan-card__spark{
+  margin-top:6px;
+  height:36px;   /* 살짝 낮춤 */
+}
+
+.beta-product-box__spark{
+  margin-top:6px;
+  width:100%;
+  height:32px;   /* 상품유형 스파크라인 높이 */
+}
+
+.beta-sparkline{
+  width:100% !important;
+  height:100% !important;
+}
+
+/* 도넛 제거 후 박스 풀넓이 */
+.beta-product-boxes--full{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
