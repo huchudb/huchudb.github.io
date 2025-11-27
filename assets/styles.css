@@ -1774,17 +1774,21 @@ body.beta-body .beta-header::after {
   font-weight: 500;
 }
 
-.beta-loanstatus-item__delta.delta-up,
-.beta-product-box__delta.delta-up {
-  color: #16a34a; /* 연한 초록 */
+/* 상승: 빨강, 하락: 파랑 */
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-up,
+.beta-product-box .beta-product-box__delta.delta-up {
+  color: #dc2626 !important;  /* 빨강 */
 }
 
-.beta-loanstatus-item__delta.delta-down,
-.beta-product-box__delta.delta-down {
-  color: #dc2626; /* 연한 빨강 */
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-down,
+.beta-product-box .beta-product-box__delta.delta-down {
+  color: #1d4ed8 !important;  /* 파랑 */
 }
 
-.beta-loanstatus-item__delta.delta-flat,
-.beta-product-box__delta.delta-flat {
-  color: #9ca3af;
+/* 변동 없음 */
+.beta-loanstatus-item .beta-loanstatus-item__delta.delta-flat,
+.beta-product-box .beta-product-box__delta.delta-flat {
+  color: #9ca3af !important;
 }
+
+
