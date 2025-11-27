@@ -1820,4 +1820,15 @@ body.beta-body .beta-header::after {
   font-size: 11px;
 }
 
+/* 금액 숫자/단위 분리 스타일 */
+.money-number {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.money-unit {
+  font-size: 11px;
+  margin-left: 2px;
+}
+
 
