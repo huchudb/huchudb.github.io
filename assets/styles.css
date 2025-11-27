@@ -1766,12 +1766,25 @@ body.beta-body .beta-header::after {
   font-size:10px;
 }
 
+/* 온투업 통계 상세 - 전월 대비 표시 */
+.beta-loanstatus-item__delta,
+.beta-product-box__delta {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
 
+.beta-loanstatus-item__delta.delta-up,
+.beta-product-box__delta.delta-up {
+  color: #16a34a; /* 연한 초록 */
+}
 
+.beta-loanstatus-item__delta.delta-down,
+.beta-product-box__delta.delta-down {
+  color: #dc2626; /* 연한 빨강 */
+}
 
-
-
-
-
-
-
+.beta-loanstatus-item__delta.delta-flat,
+.beta-product-box__delta.delta-flat {
+  color: #9ca3af;
+}
