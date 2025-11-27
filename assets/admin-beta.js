@@ -372,32 +372,60 @@ function setupStatsInteractions() {
     });
   });
 
-  const saveBtn = document.getElementById("saveOntuStatsBtn");
+    const saveBtn = document.getElementById("saveOntuStatsBtn");
   const statusEl = document.getElementById("statsSaveStatus");
   if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
+    saveBtn.addEventListener("click", async () => {
       const payload = collectStatsFormData();
       if (!payload) {
         alert("먼저 조회년월을 선택해주세요.");
         return;
       }
+
       const { monthKey, summary, products } = payload;
-      statsRoot.byMonth[monthKey] = { summary, products };
-      saveStatsToStorage();
 
-      if (statusEl) {
-        statusEl.textContent = "통계 데이터가 저장되었습니다. (localStorage)";
-        setTimeout(() => {
-          if (statusEl.textContent.includes("저장되었습니다")) {
-            statusEl.textContent = "";
-          }
-        }, 3000);
+      try {
+        // 1) 서버로 저장 (진짜 관리자)
+        const res = await fetch("https://huchudb-github-io.vercel.app/api/ontu-stats", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            monthKey,
+            summary,
+            products,
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
+        }
+
+        const json = await res.json();
+        console.log("ontu-stats saved:", json);
+
+        // 2) (옵션) localStorage에도 같이 저장해두기 – 백업 겸
+        statsRoot.byMonth[monthKey] = { summary, products };
+        saveStatsToStorage();
+
+        if (statusEl) {
+          statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
+          setTimeout(() => {
+            if (statusEl.textContent.includes("저장되었습니다")) {
+              statusEl.textContent = "";
+            }
+          }, 3000);
+        }
+
+        alert(`통계 데이터가 ${monthKey} 기준으로 서버에 저장되었습니다.`);
+      } catch (e) {
+        console.error("saveOntuStats error:", e);
+        alert("통계 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
       }
-
-      alert(`통계 데이터가 ${monthKey} 기준으로 저장되었습니다.\n(브라우저 localStorage 테스트)`);
     });
   }
-}
 
 // ------------------------------------------------------
 // 상단 MENU 드롭다운 (간단)
