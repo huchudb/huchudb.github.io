@@ -121,17 +121,16 @@ const ONTU_API = `${API_BASE}/api/ontu-stats`;
 // 한 달 데이터만 가져오기
 async function fetchOntuStats(monthKey) {
   try {
-    const url = monthKey
-      ? `${ONTU_API}?month=${encodeURIComponent(monthKey)}`
-      : `${ONTU_API}`;
-
-    const res = await fetch(`${url}&t=${Date.now()}`, {
-      method: "GET",
-      mode: "cors",
-      credentials: "omit",
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
+    const res = await fetch(
+  `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`,
+  {
+    method: "GET",
+    mode: "cors",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    cache: "no-store"
+  }
+);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     return json;
