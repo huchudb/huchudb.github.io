@@ -2156,4 +2156,32 @@ body.ontu-stats-page .beta-section {
   margin-bottom: 24px;
 }
 
+/* 1. 그림자 제거 */
+.ontu-stats-card {
+  border-radius: 32px;
+  background: #008b5b;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  height: auto;
+  padding: 40px 48px;
+}
+
+/* 2. 내용 줄바꿈 & 레이아웃 */
+.ontu-stats-card__content {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ontu-stats-card p,
+.ontu-stats-card .stat-line {
+  margin: 0;
+  white-space: normal;
+  word-break: keep-all;
+}
+
 
