@@ -67,27 +67,41 @@ function getPrevMonthKey(monthKey) {
 // 증감 텍스트 & 클래스 계산
 function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
   const { type = "money" } = opts; // 'money' | 'count'
-  if (prevRaw == null || isNaN(prevRaw)) return { text: "", className: "" };
+
+  // 전월 데이터가 아예 없으면 표시 안 함
+  if (prevRaw == null || isNaN(prevRaw)) {
+    return { text: "", html: "", className: "" };
+  }
 
   const diff = (currRaw || 0) - (prevRaw || 0);
-  if (!diff) {
-    // 그대로면 그냥 표시 안 함 (원하면 "변동 없음"으로 바꿔도 됨)
-    return { text: "", className: "" };
+
+  // 값은 있는데 그대로면 → "변동 없음"
+  if (diff === 0) {
+    return {
+      text: "변동 없음",
+      html: "변동 없음",
+      className: "delta-flat"
+    };
   }
 
   const isUp = diff > 0;
   const arrow = isUp ? "▲" : "▼";
   const abs = Math.abs(diff);
 
-  let body;
+  let bodyText;
+  let bodyHtml;
+
   if (type === "count") {
-    body = `${abs.toLocaleString("ko-KR")}개`;
+    bodyText = `${abs.toLocaleString("ko-KR")}개`;
+    bodyHtml = bodyText;
   } else {
-    body = formatKoreanCurrencyJo(abs);
+    bodyText = formatKoreanCurrencyJo(abs);
+    bodyHtml = formatKoreanCurrencyJoHtml(abs);
   }
 
   return {
-    text: `${arrow} ${body}`,
+    text: `${arrow} ${bodyText}`,
+    html: `${arrow} ${bodyHtml}`,
     className: isUp ? "delta-up" : "delta-down"
   };
 }
