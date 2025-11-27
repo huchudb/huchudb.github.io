@@ -1791,4 +1791,33 @@ body.beta-body .beta-header::after {
   color: #9ca3af !important;
 }
 
+/* 상품유형별 잔액: 도넛 옆 리스트 정렬 */
+.beta-product-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.beta-product-box__left {
+  flex: 1 1 auto;
+}
+
+.beta-product-box__right {
+  flex: 0 0 auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.beta-product-box__amount {
+  font-weight: 600;
+}
+
+.beta-product-box__delta {
+  font-size: 11px;
+}
+
 
