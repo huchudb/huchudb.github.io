@@ -147,13 +147,24 @@ async function fetchOntuStats() {
       cache: "no-store"
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const json = await res.json();
-    return json;
+    if (!json || json.ok === false || !json.summary || !json.byType) {
+      throw new Error("invalid ontu-stats payload");
+    }
+
+    // 메인에서 필요한 형태로만 리턴
+    return {
+      month:   json.month,
+      summary: json.summary,
+      byType:  json.byType
+    };
   } catch (e) {
     console.error("[ontu-stats] API 실패, 기본 샘플 사용:", e);
     return { ...DEFAULT_ONTU_STATS };
   }
 }
+
 
 // ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
