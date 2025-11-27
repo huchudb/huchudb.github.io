@@ -55,6 +55,15 @@ function formatMonthLabel(ym) {
   return `${y}년 ${Number(m)}월`;
 }
 
+// 'YYYY-MM' → '25년 7월' 형식
+function formatShortMonthLabel(ym) {
+  if (!ym || typeof ym !== "string") return "";
+  const [y, m] = ym.split("-");
+  if (!y || !m) return "";
+  const yy = String(y).slice(2);
+  return `${yy}년 ${Number(m)}월`;
+}
+
 // 'YYYY-MM' → 이전달 'YYYY-MM'
 function getPrevMonthKey(monthKey) {
   if (!monthKey) return null;
@@ -69,6 +78,26 @@ function getPrevMonthKey(monthKey) {
     m = 12;
   }
   return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+// 끝 월 기준으로 과거 n개월 키 배열 (오래된 순)
+function getMonthRangeTill(endMonthKey, count) {
+  const arr = [];
+  let cur = endMonthKey;
+  for (let i = 0; i < count; i++) {
+    if (!cur) break;
+    arr.unshift(cur);
+    cur = getPrevMonthKey(cur);
+  }
+  return arr;
+}
+
+// id용 안전한 문자열
+function toSafeIdFragment(str) {
+  return String(str || "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^\w\-]/g, "_");
 }
 
 // 증감 텍스트 & 클래스 계산
@@ -121,28 +150,17 @@ const ONTU_API = `${API_BASE}/api/ontu-stats`;
 // 한 달 데이터만 가져오기
 async function fetchOntuStats(monthKey) {
   try {
-    // 1) 기본 URL 만들기
-    let url;
-    if (monthKey) {
-      // 특정 기준월 조회
-      url = `${ONTU_API}?month=${encodeURIComponent(monthKey)}`;
-    } else {
-      // 최신월 조회
-      url = `${ONTU_API}`;
-    }
+    const url = monthKey
+      ? `${ONTU_API}?month=${encodeURIComponent(monthKey)}`
+      : `${ONTU_API}`;
 
-    // 2) 캐시 방지용 t= 타임스탬프 붙이기
-    const sep = url.includes("?") ? "&" : "?";
-    const finalUrl = `${url}${sep}t=${Date.now()}`;
-
-    const res = await fetch(finalUrl, {
+    const res = await fetch(`${url}&t=${Date.now()}`, {
       method: "GET",
       mode: "cors",
       credentials: "omit",
       headers: { Accept: "application/json" },
       cache: "no-store"
     });
-
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     return json;
@@ -152,7 +170,124 @@ async function fetchOntuStats(monthKey) {
   }
 }
 
-// ───────── 대출현황 렌더 (전월 대비 포함) ─────────
+// ───────── Chart.js 설정 (도넛 + 스파크라인 공통) ─────────
+
+let donutChart = null;
+const sparkCharts = {}; // 스파크라인 chart 인스턴스 저장
+
+// 도넛 색
+const PRODUCT_COLORS = [
+  "#1d4ed8", // 부동산담보
+  "#f97316", // 부동산PF
+  "#f43f5e", // 어음·매출채권담보
+  "#facc15", // 기타담보(주식 등)
+  "#22c55e", // 개인신용
+  "#a855f7"  // 법인신용
+];
+
+// 도넛 안 % 라벨 플러그인
+const donutInsideLabelsPlugin = {
+  id: "donutInsideLabels",
+  afterDraw(chart) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
+    const { ctx } = chart;
+    const data = chart.data;
+
+    ctx.save();
+    ctx.font = "bold 11px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    meta.data.forEach((elem, idx) => {
+      const raw = data.datasets[0].data[idx];
+      if (!raw || raw <= 0) return;
+      const pos = elem.tooltipPosition();
+      const text = `${Number(raw).toFixed(1)}%`;
+      ctx.fillText(text, pos.x, pos.y);
+    });
+    ctx.restore();
+  }
+};
+
+if (window.Chart && Chart.register) {
+  Chart.register(donutInsideLabelsPlugin);
+}
+
+// 공통 스파크라인 생성기
+function createSparklineChart(canvasId, labels, data, opts = {}) {
+  if (!window.Chart) return;
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  // 이전 차트 제거
+  if (sparkCharts[canvasId]) {
+    sparkCharts[canvasId].destroy();
+    delete sparkCharts[canvasId];
+  }
+
+  const cleanData = (data || []).map(v => (v == null ? null : Number(v)));
+
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          data: cleanData,
+          borderColor: "#1d4ed8",
+          backgroundColor: "rgba(37,99,235,0.08)",
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          tension: 0.35
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            title(items) {
+              if (!items || !items.length) return "";
+              const idx = items[0].dataIndex;
+              const key = labels[idx];
+              return formatShortMonthLabel(key);
+            },
+            label(ctx) {
+              const v = ctx.parsed.y;
+              if (v == null || isNaN(v)) return "";
+              if (typeof opts.valueFormatter === "function") {
+                return opts.valueFormatter(v);
+              }
+              return v.toLocaleString("ko-KR");
+            }
+          }
+        }
+      },
+      elements: {
+        point: {
+          hitRadius: 8
+        }
+      },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      }
+    }
+  });
+
+  sparkCharts[canvasId] = chart;
+}
+
+// ───────── 대출현황 카드 렌더 (전월 대비 + 스파크라인) ─────────
 
 function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const container = document.getElementById("ontuLoanStatus");
@@ -182,11 +317,6 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const ps = prevSummary || {};
 
   const items = [
-    {
-      key: "registeredFirms",
-      label: "금융위원회 등록 온투업체수",
-      type: "count"
-    },
     {
       key: "dataFirms",
       label: "데이터 수집 온투업체수",
@@ -223,17 +353,22 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
 
       const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
 
+      const deltaHtml = delta.text
+        ? `<div class="beta-loanstatus-item__delta ${delta.className}">
+             ${delta.html || delta.text}
+           </div>`
+        : `<div class="beta-loanstatus-item__delta delta-flat">변동 없음</div>`;
+
       return `
-        <div class="beta-loanstatus-item">
-          <div class="beta-loanstatus-item__label">${it.label}</div>
+        <div class="beta-loanstatus-item loan-card">
+          <div class="loan-card__top">
+            <div class="beta-loanstatus-item__label">${it.label}</div>
+            ${deltaHtml}
+          </div>
           <div class="beta-loanstatus-item__value">${valueHtml}</div>
-          ${
-            delta.text
-              ? `<div class="beta-loanstatus-item__delta ${delta.className}">
-                   ${delta.html || delta.text}
-                 </div>`
-              : `<div class="beta-loanstatus-item__delta delta-flat">-</div>`
-          }
+          <div class="loan-card__spark">
+            <canvas class="beta-sparkline" id="loanSpark_${it.key}"></canvas>
+          </div>
         </div>
       `;
     })
@@ -244,51 +379,21 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
       ${html}
     </div>
   `;
+
+  // 스파크라인은 별도 히스토리 로딩 후 그려짐
 }
 
-// ───────── 상품유형별 대출잔액 도넛 + 카드 (전월 대비 포함) ─────────
+// ───────── 상품유형별 대출잔액 도넛 + 카드 (전월 대비 + 스파크라인) ─────────
 
-let donutChart = null;
-
-// 도넛 색
-const PRODUCT_COLORS = [
-  "#1d4ed8", // 부동산담보
-  "#f97316", // 부동산PF
-  "#f43f5e", // 어음·매출채권담보
-  "#facc15", // 기타담보(주식 등)
-  "#22c55e", // 개인신용
-  "#a855f7"  // 법인신용
-];
-
-// 도넛 안 % 라벨 플러그인 (선택사항)
-const donutInsideLabelsPlugin = {
-  id: "donutInsideLabels",
-  afterDraw(chart) {
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data) return;
-    const { ctx } = chart;
-    const data = chart.data;
-
-    ctx.save();
-    ctx.font = "bold 11px Arial";
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    meta.data.forEach((elem, idx) => {
-      const raw = data.datasets[0].data[idx];
-      if (!raw || raw <= 0) return;
-      const pos = elem.tooltipPosition();
-      const text = `${Number(raw).toFixed(1)}%`;
-      ctx.fillText(text, pos.x, pos.y);
-    });
-    ctx.restore();
-  }
+// 상품유형 설명 텍스트 (필요하면 나중에 수정)
+const PRODUCT_SUBTITLES = {
+  "부동산담보": "아파트·주택·토지 등 부동산 담보 대출",
+  "부동산PF": "부동산 개발·공사비 프로젝트 파이낸싱",
+  "어음·매출채권담보": "기업 어음·매출채권 담보 대출",
+  "기타담보(주식 등)": "주식·지분 등 금융자산 담보 대출",
+  "개인신용": "담보 없이 신용으로 취급된 개인대출",
+  "법인신용": "기업 신용 기반의 운영·투자 자금"
 };
-
-if (window.Chart && Chart.register) {
-  Chart.register(donutInsideLabelsPlugin);
-}
 
 function renderProductSection(currentSummary, currentByType, prevByType, monthKey, prevMonthKey) {
   const section = document.getElementById("ontuProductSection");
@@ -320,7 +425,9 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
   const prevAmounts = [];
 
   for (const [name, cfg] of Object.entries(currentByType)) {
-    const ratio  = Number(cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0));
+    const ratio  = Number(
+      cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
+    );
     const amount =
       cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
 
@@ -329,59 +436,61 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     amounts.push(amount);
 
     // 전월 금액
-    let prevAmt = 0;
+    let prevAmt = null;
     if (prevByType && prevByType[name]) {
       const pCfg   = prevByType[name];
-      const pRatio =
-        Number(pCfg.ratio ?? pCfg.share ?? (pCfg.ratioPercent != null ? pCfg.ratioPercent / 100 : 0));
+      const pRatio = Number(
+        pCfg.ratio ?? pCfg.share ?? (pCfg.ratioPercent != null ? pCfg.ratioPercent / 100 : 0)
+      );
+      const prevBalance = Number((prevByType.summaryBalance ?? 0)) || null;
+      const base = prevBalance || 0;
       prevAmt =
-        pCfg.amount != null ? Number(pCfg.amount) : (prevByType.balance ? Math.round(prevByType.balance * pRatio) : 0);
-    } else {
-      prevAmt = null;
+        pCfg.amount != null ? Number(pCfg.amount) : base ? Math.round(base * pRatio) : 0;
     }
     prevAmounts.push(prevAmt);
   }
 
   // 카드 HTML
-const boxesHtml = labels
-  .map((name, idx) => {
-    const color = PRODUCT_COLORS[idx] || "#e5e7eb";
-    const amt   = amounts[idx];
-    const prev  = prevAmounts[idx];
-    const delta = buildDeltaInfo(amt, prev, { type: "money" });
-    const percentLabel = Number.isFinite(percents[idx])
-      ? `${percents[idx].toFixed(1)}%`
-      : "";
+  const boxesHtml = labels
+    .map((name, idx) => {
+      const color = PRODUCT_COLORS[idx] || "#e5e7eb";
+      const amt   = amounts[idx];
+      const prev  = prevAmounts[idx];
+      const delta = buildDeltaInfo(amt, prev, { type: "money" });
+      const share = percents[idx] != null ? `${percents[idx].toFixed(1)}%` : "";
 
-    return `
-      <div class="beta-product-box" style="--product-color:${color};">
-        <div class="beta-product-box__left">
-          <div class="beta-product-box__title">
-            ${name}
-            ${
-              percentLabel
-                ? `<span class="beta-product-box__percent">${percentLabel}</span>`
-                : ""
-            }
+      const subtitle = PRODUCT_SUBTITLES[name] || "";
+
+      const safeName = toSafeIdFragment(name);
+
+      const deltaHtml = delta.text
+        ? `<div class="beta-product-box__delta ${delta.className}">
+             ${delta.html || delta.text}
+           </div>`
+        : `<div class="beta-product-box__delta delta-flat">변동 없음</div>`;
+
+      return `
+        <div class="beta-product-box" style="--product-color:${color};">
+          <div class="beta-product-box__left">
+            <div class="beta-product-box__title-row">
+              <div class="beta-product-box__title">${name}</div>
+              <div class="beta-product-box__share">${share}</div>
+            </div>
+            <div class="beta-product-box__subtitle">${subtitle}</div>
+          </div>
+          <div class="beta-product-box__right">
+            <div class="beta-product-box__amount">
+              ${formatKoreanCurrencyJoHtml(amt)}
+            </div>
+            ${deltaHtml}
+            <div class="beta-product-box__spark">
+              <canvas class="beta-sparkline" id="typeSpark_${safeName}"></canvas>
+            </div>
           </div>
         </div>
-        <div class="beta-product-box__right">
-          <div class="beta-product-box__amount">
-            ${formatKoreanCurrencyJoHtml(amt)}
-          </div>
-          ${
-            delta.text
-              ? `<div class="beta-product-box__delta ${delta.className}">
-                   ${delta.html || delta.text}
-                 </div>`
-              : `<div class="beta-product-box__delta delta-flat">변동 없음</div>`
-          }
-        </div>
-      </div>
-    `;
-  })
-  .join("");
-
+      `;
+    })
+    .join("");
 
   section.innerHTML = `
     <div class="beta-product-grid">
@@ -394,6 +503,7 @@ const boxesHtml = labels
     </div>
   `;
 
+  // 도넛 차트
   const canvas = document.getElementById("productDonut");
   if (!canvas || !window.Chart) return;
 
@@ -436,7 +546,84 @@ const boxesHtml = labels
   });
 }
 
-// ───────── 초기화: 기준월 + 전월 함께 로딩 ─────────
+// ───────── 6개월 히스토리 불러와서 스파크라인 그리기 ─────────
+
+async function loadHistoryAndRenderSparklines(monthKey) {
+  const HISTORY_MONTHS = 6;
+  const months = getMonthRangeTill(monthKey, HISTORY_MONTHS);
+  if (!months.length) return;
+
+  const results = await Promise.all(months.map(m => fetchOntuStats(m)));
+
+  // 요약 시계열
+  const summarySeries = {
+    dataFirms: [],
+    totalLoan: [],
+    totalRepaid: [],
+    balance: []
+  };
+
+  for (let i = 0; i < months.length; i++) {
+    const data = results[i];
+    const s = data && data.summary;
+    summarySeries.dataFirms.push(s ? Number(s.dataFirms || 0) : null);
+    summarySeries.totalLoan.push(s ? Number(s.totalLoan || 0) : null);
+    summarySeries.totalRepaid.push(s ? Number(s.totalRepaid || 0) : null);
+    summarySeries.balance.push(s ? Number(s.balance || 0) : null);
+  }
+
+  // 대출현황 스파크라인
+  createSparklineChart("loanSpark_dataFirms", months, summarySeries.dataFirms, {
+    valueFormatter: (v) => `${v.toLocaleString("ko-KR")}개`
+  });
+  createSparklineChart("loanSpark_totalLoan", months, summarySeries.totalLoan, {
+    valueFormatter: (v) => formatKoreanCurrencyJo(v)
+  });
+  createSparklineChart("loanSpark_totalRepaid", months, summarySeries.totalRepaid, {
+    valueFormatter: (v) => formatKoreanCurrencyJo(v)
+  });
+  createSparklineChart("loanSpark_balance", months, summarySeries.balance, {
+    valueFormatter: (v) => formatKoreanCurrencyJo(v)
+  });
+
+  // 상품유형별 시계열 (현재월 기준으로 타입 목록 고정)
+  const latest = results[results.length - 1];
+  if (!latest || !latest.byType || !latest.summary) return;
+
+  const typeNames = Object.keys(latest.byType);
+  const byTypeSeries = {};
+  typeNames.forEach((n) => { byTypeSeries[n] = []; });
+
+  for (let i = 0; i < months.length; i++) {
+    const data = results[i];
+    const s = data && data.summary;
+    const balance = s ? Number(s.balance || 0) : 0;
+    const byType = data && data.byType;
+
+    typeNames.forEach((name) => {
+      if (byType && byType[name]) {
+        const cfg = byType[name];
+        const ratio = Number(
+          cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
+        );
+        const amount =
+          cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
+        byTypeSeries[name].push(amount);
+      } else {
+        byTypeSeries[name].push(null);
+      }
+    });
+  }
+
+  typeNames.forEach((name) => {
+    const safe = toSafeIdFragment(name);
+    createSparklineChart(`typeSpark_${safe}`, months, byTypeSeries[name], {
+      valueFormatter: (v) => formatKoreanCurrencyJo(v)
+    });
+  });
+}
+
+// ───────── 초기화: 기준월 + 전월 + 히스토리 함께 로딩 ─────────
 
 async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
   if (!monthKey) return;
@@ -464,6 +651,16 @@ async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
   const prevKey      = prevData ? (prevData.month || prevData.monthKey || prevMonthKey) : null;
 
   renderLoanStatus(current.summary, currMonthKey, prevData && prevData.summary, prevKey);
+
+  // prevByType에서 balance 참조용으로 summaryBalance 넣어두기
+  if (prevData && prevData.byType && prevData.summary) {
+    const sumBal = Number(prevData.summary.balance || 0);
+    Object.keys(prevData.byType).forEach((k) => {
+      if (!prevData.byType[k]) return;
+      prevData.byType[k].summaryBalance = sumBal;
+    });
+  }
+
   renderProductSection(
     current.summary,
     current.byType,
@@ -471,6 +668,9 @@ async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
     currMonthKey,
     prevKey
   );
+
+  // 6개월 히스토리 기반 스파크라인
+  await loadHistoryAndRenderSparklines(currMonthKey);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -485,7 +685,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     monthPicker.value = initialMonth; // 'YYYY-MM'
   }
 
-  // 2) 최신월 + 전월 렌더
+  // 2) 최신월 + 전월 렌더 + 히스토리
   await loadAndRenderForMonth(initialMonth, latest);
 
   // 3) 기준월 변경 시마다 다시 로딩
