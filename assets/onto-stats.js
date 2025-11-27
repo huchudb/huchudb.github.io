@@ -1,15 +1,6 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 상세 페이지 전용 스크립트
-// - 기준월 선택 (input[type="month"])
-// - 현재월 + 전월 데이터 불러와서
-//   · 대출현황 카드 + 전월 대비 증감 ▲ ▼
-//   · 상품유형별 대출잔액 도넛 + 카드 + 전월 대비 증감 표시
 
-// ───────── API 베이스 ─────────
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const ONTU_API = `${API_BASE}/api/ontu-stats`;
-
-// ───────── 유틸 ─────────
+// ───────── 공통 유틸 ─────────
 
 // '조/억/만원' 포맷 (home-beta.js와 동일 로직)
 function formatKoreanCurrencyJo(num) {
@@ -57,101 +48,70 @@ function formatMonthLabel(ym) {
   return `${y}년 ${Number(m)}월`;
 }
 
-// 현재 monthKey에서 전월 key 구하기 ('2025-10' → '2025-09')
-function getPrevMonthKey(monthKey) {
-  if (!monthKey || !/^\d{4}-\d{2}$/.test(monthKey)) return null;
-  const [yStr, mStr] = monthKey.split("-");
-  let y = Number(yStr);
-  let m = Number(mStr);
-  if (!y || !m) return null;
+// 전월 대비 증감 텍스트 구성
+function buildDeltaChip(current, prev) {
+  const cur = Number(current || 0);
+  const pre = Number(prev || 0);
 
-  m -= 1;
-  if (m <= 0) {
-    y -= 1;
-    m = 12;
-  }
-  const mm = String(m).padStart(2, "0");
-  return `${y}-${mm}`;
-}
+  if (!pre || cur === pre) return "";
 
-// 전월 대비 증감 HTML 만들기
-function buildDeltaHtml(curr, prev, options = {}) {
-  const { isMoney = false, unit = "" } = options;
-  if (prev == null || isNaN(prev)) return ""; // 전월 데이터 없으면 표시 X
-
-  const c = Number(curr || 0);
-  const p = Number(prev || 0);
-  const diff = c - p;
-
-  if (!diff) {
-    // 변동 없음이면 굳이 안 보여도 되면 ""로, 보여주고 싶으면 주석 해제
-    // return `<div class="stats-delta" style="font-size:11px;color:#6b7280;">변동 없음</div>`;
-    return "";
-  }
-
-  const isUp = diff > 0;
-  const arrow = isUp ? "▲" : "▼";
-  const color = isUp ? "#16a34a" : "#dc2626";
-  const absVal = Math.abs(diff);
-
-  let valueText;
-  if (isMoney) {
-    valueText = formatKoreanCurrencyJo(absVal);
-  } else {
-    valueText = `${absVal.toLocaleString("ko-KR")}${unit || ""}`;
-  }
+  const diff = cur - pre;
+  const up   = diff > 0;
+  const arrow = up ? "▲" : "▼";
+  const label = up ? "증가" : "감소";
 
   return `
-    <div class="stats-delta" style="margin-top:2px;font-size:11px;color:${color};">
-      ${arrow} ${valueText}
-    </div>
+    <span class="beta-delta beta-delta--${up ? "up" : "down"}">
+      ${arrow} ${formatKoreanCurrencyJo(Math.abs(diff))} ${label}
+    </span>
   `;
 }
 
-// ───────── API 호출 ─────────
+// ───────── API 설정 ─────────
 
-// monthKey가 있으면 ?month=YYYY-MM, 없으면 latest
-async function fetchOntuStatsByMonth(monthKey) {
-  let url = ONTU_API;
-  if (monthKey) {
-    url += `?month=${encodeURIComponent(monthKey)}`;
-  }
-  // 캐시 방지용 t 파라미터 추가
-  const sep = url.includes("?") ? "&" : "?";
-  url += `${sep}t=${Date.now()}`;
+const API_BASE = "https://huchudb-github-io.vercel.app";
+const ONTU_API = `${API_BASE}/api/ontu-stats`;
 
-  const res = await fetch(url, {
+/**
+ * 온투업 통계 조회
+ * @param {string|null} monthKey 'YYYY-MM' 또는 null(최근 기준월)
+ * 기대하는 응답 형태:
+ *  {
+ *    month: "2025-10",
+ *    summary: { ... },
+ *    byType: { "부동산담보": {ratio, amount}, ... },
+ *    prevMonth?: "2025-09",
+ *    prevSummary?: { ... }
+ *  }
+ */
+async function fetchOntuStats(monthKey = null) {
+  const params = monthKey ? `?month=${encodeURIComponent(monthKey)}&t=${Date.now()}` 
+                          : `?t=${Date.now()}`;
+
+  const res = await fetch(`${ONTU_API}${params}`, {
     method: "GET",
     mode: "cors",
     credentials: "omit",
     headers: { Accept: "application/json" },
     cache: "no-store"
   });
-
-  if (res.status === 404) {
-    // 해당 월 데이터 없음
-    return null;
-  }
   if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`ontu-stats GET 실패: HTTP ${res.status} ${txt}`);
+    throw new Error(`ontu-stats GET 실패: HTTP ${res.status}`);
   }
-  const json = await res.json();
-  if (!json || !json.summary) return null;
-  return json; // { month, summary, byType }
+  return await res.json();
 }
 
-// ───────── 렌더링: 대출현황 ─────────
+// ───────── 대출현황 렌더 ─────────
 
-function renderLoanStatus(summaryCurr, summaryPrev, monthKey, prevKey) {
+function renderLoanStatus(summary, monthStr, prevSummary, prevMonthStr) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("loanStatusMonth");
   if (!container) return;
 
-  if (!summaryCurr) {
+  if (!summary) {
     container.innerHTML = `
       <div class="notice error">
-        <p>대출현황 데이터를 불러오지 못했습니다.</p>
+        <p>선택한 기준월의 대출현황 데이터를 찾을 수 없습니다.</p>
       </div>
     `;
     if (monthEl) monthEl.textContent = "";
@@ -159,73 +119,56 @@ function renderLoanStatus(summaryCurr, summaryPrev, monthKey, prevKey) {
   }
 
   if (monthEl) {
-    if (prevKey && summaryPrev) {
-      monthEl.textContent = `기준월: ${formatMonthLabel(monthKey)} (전월: ${formatMonthLabel(prevKey)} 기준 비교)`;
-    } else {
-      monthEl.textContent = `기준월: ${formatMonthLabel(monthKey)}`;
-    }
+    const base = `기준월: ${formatMonthLabel(monthStr)}`;
+    const prevTxt = prevMonthStr ? ` (전월: ${formatMonthLabel(prevMonthStr)})` : "";
+    monthEl.textContent = base + prevTxt;
   }
-
-  const curr = summaryCurr;
-  const prev = summaryPrev || {};
 
   const items = [
     {
-      key: "registeredFirms",
+      key:  "registeredFirms",
       label: "금융위원회 등록 온투업체수",
-      value: curr.registeredFirms != null
-        ? `${Number(curr.registeredFirms).toLocaleString("ko-KR")}개`
+      value: summary.registeredFirms != null
+        ? `${summary.registeredFirms.toLocaleString("ko-KR")}개`
         : "-",
-      rawCurr: curr.registeredFirms,
-      rawPrev: prev.registeredFirms,
-      isMoney: false,
-      unit: "개"
+      prev: prevSummary?.registeredFirms ?? null
     },
     {
-      key: "dataFirms",
+      key:  "dataFirms",
       label: "데이터 수집 온투업체수",
-      value: curr.dataFirms != null
-        ? `${Number(curr.dataFirms).toLocaleString("ko-KR")}개`
+      value: summary.dataFirms != null
+        ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
         : "-",
-      rawCurr: curr.dataFirms,
-      rawPrev: prev.dataFirms,
-      isMoney: false,
-      unit: "개"
+      prev: prevSummary?.dataFirms ?? null
     },
     {
-      key: "totalLoan",
+      key:  "totalLoan",
       label: "누적대출금액",
-      value: curr.totalLoan != null ? formatKoreanCurrencyJo(curr.totalLoan) : "-",
-      rawCurr: curr.totalLoan,
-      rawPrev: prev.totalLoan,
-      isMoney: true
+      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-",
+      prev: prevSummary?.totalLoan ?? null
     },
     {
-      key: "totalRepaid",
+      key:  "totalRepaid",
       label: "누적상환금액",
-      value: curr.totalRepaid != null ? formatKoreanCurrencyJo(curr.totalRepaid) : "-",
-      rawCurr: curr.totalRepaid,
-      rawPrev: prev.totalRepaid,
-      isMoney: true
+      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-",
+      prev: prevSummary?.totalRepaid ?? null
     },
     {
-      key: "balance",
+      key:  "balance",
       label: "대출잔액",
-      value: curr.balance != null ? formatKoreanCurrencyJo(curr.balance) : "-",
-      rawCurr: curr.balance,
-      rawPrev: prev.balance,
-      isMoney: true
+      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-",
+      prev: prevSummary?.balance ?? null
     }
   ];
 
-  const html = `
+  container.innerHTML = `
     <div class="beta-loanstatus-grid">
       ${items
         .map((it) => {
-          const deltaHtml = buildDeltaHtml(it.rawCurr, it.rawPrev, {
-            isMoney: it.isMoney,
-            unit: it.unit
-          });
+          const deltaHtml =
+            it.key === "balance" || it.key === "totalLoan" || it.key === "totalRepaid"
+              ? buildDeltaChip(summary[it.key], it.prev)
+              : "";
           return `
             <div class="beta-loanstatus-item">
               <div class="beta-loanstatus-item__label">${it.label}</div>
@@ -239,13 +182,13 @@ function renderLoanStatus(summaryCurr, summaryPrev, monthKey, prevKey) {
         .join("")}
     </div>
   `;
-
-  container.innerHTML = html;
 }
 
-// ───────── 렌더링: 상품유형별 대출잔액 ─────────
+// ───────── 상품유형별 대출잔액 렌더 ─────────
 
-// 도넛 & 우측 카드 공통 색상 (라벨 순서와 매칭)
+let donutChart = null;
+
+// 도넛 색상 (home-beta.js와 동일 팔레트)
 const PRODUCT_COLORS = [
   "#1d4ed8", // 부동산담보
   "#f97316", // 부동산PF
@@ -255,74 +198,47 @@ const PRODUCT_COLORS = [
   "#a855f7"  // 법인신용
 ];
 
-let donutChart = null;
-
-function renderProductSection(byTypeCurr, byTypePrev, monthKey, prevKey) {
+function renderProductSection(monthStr, byType) {
   const section = document.getElementById("ontuProductSection");
   const monthEl = document.getElementById("productStatusMonth");
   if (!section) return;
 
-  if (!byTypeCurr || !Object.keys(byTypeCurr).length) {
-    section.innerHTML = `
-      <div class="notice error">
-        <p>상품유형별 대출잔액 데이터를 불러오지 못했습니다.</p>
-      </div>
-    `;
-    if (monthEl) monthEl.textContent = "";
-    return;
+  if (monthEl) {
+    monthEl.textContent = monthStr ? `기준월: ${formatMonthLabel(monthStr)}` : "";
   }
 
-  if (monthEl) {
-    if (prevKey && byTypePrev && Object.keys(byTypePrev).length) {
-      monthEl.textContent = `기준월: ${formatMonthLabel(monthKey)} (전월: ${formatMonthLabel(prevKey)} 기준 비교)`;
-    } else {
-      monthEl.textContent = `기준월: ${formatMonthLabel(monthKey)}`;
-    }
+  if (!byType || !Object.keys(byType).length) {
+    section.innerHTML = `
+      <div class="notice error">
+        <p>선택한 기준월의 상품유형별 대출잔액 데이터를 찾을 수 없습니다.</p>
+      </div>
+    `;
+    return;
   }
 
   const labels   = [];
   const percents = [];
   const amounts  = [];
-  const prevAmounts = [];
 
-  const entries = Object.entries(byTypeCurr);
+  for (const [name, cfg] of Object.entries(byType)) {
+    // 서버에서 ratio(0.43) 또는 ratioPercent(43) 중 하나 제공한다고 가정
+    let ratio = null;
+    if (cfg.ratio != null) {
+      ratio = Number(cfg.ratio);
+    } else if (cfg.ratioPercent != null) {
+      ratio = Number(cfg.ratioPercent) / 100;
+    } else if (cfg.share != null) {
+      ratio = Number(cfg.share);
+    } else {
+      ratio = 0;
+    }
 
-  entries.forEach(([name, cfg], idx) => {
-    const ratio  = Number(cfg.ratio ?? 0);
-    const amount = Number(cfg.amount ?? 0);
+    const amount = Number(cfg.amount || 0);
 
     labels.push(name);
     percents.push(Math.round(ratio * 1000) / 10); // 0.425 → 42.5
     amounts.push(amount);
-
-    const prevCfg = byTypePrev && byTypePrev[name] ? byTypePrev[name] : null;
-    prevAmounts.push(prevCfg ? Number(prevCfg.amount ?? 0) : null);
-  });
-
-  // HTML 구성 (도넛 + 우측 카드들)
-  const boxesHtml = labels
-    .map((name, idx) => {
-      const color  = PRODUCT_COLORS[idx] || "#e5e7eb";
-      const amount = amounts[idx];
-      const prev   = prevAmounts[idx];
-
-      const deltaHtml = buildDeltaHtml(amount, prev, {
-        isMoney: true
-      });
-
-      return `
-        <div class="beta-product-box" style="--product-color:${color};">
-          <div class="beta-product-box__title">
-            ${name}
-          </div>
-          <div class="beta-product-box__amount">
-            ${formatKoreanCurrencyJo(amount)}
-            ${deltaHtml}
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+  }
 
   section.innerHTML = `
     <div class="beta-product-grid">
@@ -330,12 +246,23 @@ function renderProductSection(byTypeCurr, byTypePrev, monthKey, prevKey) {
         <canvas id="productDonut"></canvas>
       </div>
       <div class="beta-product-boxes">
-        ${boxesHtml}
+        ${labels
+          .map((name, idx) => {
+            const color = PRODUCT_COLORS[idx] || "#e5e7eb";
+            return `
+              <div class="beta-product-box" style="--product-color:${color};">
+                <div class="beta-product-box__title">${name}</div>
+                <div class="beta-product-box__amount">
+                  ${formatKoreanCurrencyJo(amounts[idx])}
+                </div>
+              </div>
+            `;
+          })
+          .join("")}
       </div>
     </div>
   `;
 
-  // 도넛 차트 렌더
   const canvas = document.getElementById("productDonut");
   if (!canvas || !window.Chart) return;
 
@@ -378,51 +305,56 @@ function renderProductSection(byTypeCurr, byTypePrev, monthKey, prevKey) {
   });
 }
 
-// ───────── 메인 로직: 기준월 선택 + 렌더 ─────────
+// ───────── 월 선택 & 초기화 ─────────
 
-async function loadAndRenderStats(monthKeyOrNull) {
+async function loadAndRenderStats(monthKey = null) {
   const monthInput = document.getElementById("statsMonthPicker");
+  const loanContainer = document.getElementById("ontuLoanStatus");
+
+  if (loanContainer) {
+    loanContainer.innerHTML = `<p style="padding:16px;font-size:13px;color:#6b7280;">통계 데이터를 불러오는 중입니다...</p>`;
+  }
 
   try {
-    // 1) 현재월 데이터
-    const current = await fetchOntuStatsByMonth(monthKeyOrNull || null);
-    if (!current || !current.summary) {
-      alert("해당 기준월 통계 데이터를 찾을 수 없습니다.");
-      return;
+    const data = await fetchOntuStats(monthKey);
+
+    const month       = data.month || monthKey || "";
+    const summary     = data.summary || null;
+    const byType      = data.byType || data.products || {};
+    const prevMonth   = data.prevMonth || null;
+    const prevSummary = data.prevSummary || null;
+
+    // 월 선택값 자동 세팅 (최초 로드 시)
+    if (monthInput && !monthInput.value && month) {
+      monthInput.value = month;
     }
 
-    const currMonthKey = current.month;
-    if (monthInput && currMonthKey) {
-      monthInput.value = currMonthKey; // 선택값 동기화
-    }
-
-    // 2) 전월 데이터
-    const prevKey = getPrevMonthKey(currMonthKey);
-    let prev = null;
-    if (prevKey) {
-      try {
-        prev = await fetchOntuStatsByMonth(prevKey);
-      } catch (e) {
-        console.warn("전월 데이터 조회 오류 (무시 가능):", e);
-      }
-    }
-
-    // 3) 렌더
-    renderLoanStatus(current.summary, prev ? prev.summary : null, currMonthKey, prevKey);
-    renderProductSection(
-      current.byType || {},
-      prev ? prev.byType || {} : null,
-      currMonthKey,
-      prevKey
-    );
+    renderLoanStatus(summary, month, prevSummary, prevMonth);
+    renderProductSection(month, byType);
   } catch (e) {
-    console.error("loadAndRenderStats error:", e);
-    alert("통계 데이터를 불러오는 중 오류가 발생했습니다.");
+    console.error("[ontu-stats] load error:", e);
+    if (loanContainer) {
+      loanContainer.innerHTML = `
+        <div class="notice error">
+          <p>통계 API 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</p>
+        </div>
+      `;
+    }
   }
 }
 
-// ───────── 상단 MENU 토글 (ontu-stats.html 전용) ─────────
-function setupBetaMenu() {
+function setupMonthPicker() {
+  const monthInput = document.getElementById("statsMonthPicker");
+  if (!monthInput) return;
+
+  monthInput.addEventListener("change", () => {
+    const v = (monthInput.value || "").trim();
+    if (!v) return;
+    loadAndRenderStats(v);
+  });
+}
+
+function setupBetaMenuSimple() {
   const toggle = document.getElementById("betaMenuToggle");
   const panel  = document.getElementById("betaMenuPanel");
   if (!toggle || !panel) return;
@@ -449,20 +381,12 @@ function setupBetaMenu() {
   });
 }
 
-// ───────── 초기화 ─────────
+// ───────── 초기 실행 ─────────
+
 document.addEventListener("DOMContentLoaded", () => {
-  setupBetaMenu();
-
-  const monthInput = document.getElementById("statsMonthPicker");
-  if (monthInput) {
-    // 월 선택 변경 시
-    monthInput.addEventListener("change", () => {
-      const val = (monthInput.value || "").trim();
-      if (!val) return;
-      loadAndRenderStats(val);
-    });
-  }
-
-  // 최초 진입 시: latest 기준월 자동 로딩
+  console.log("✅ ontu-stats.js loaded");
+  setupBetaMenuSimple();
+  setupMonthPicker();
+  // 최초 로드는 서버에서 "최근 기준월"을 반환한다고 가정
   loadAndRenderStats(null);
 });
