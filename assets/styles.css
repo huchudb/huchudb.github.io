@@ -2189,7 +2189,7 @@ body.ontu-stats-page .beta-section {
   background: #059669;                 /* 초록 배경 */
   border-radius: 20px;
   padding: 18px 22px 20px;
-  box-shadow: 0 10px 26px rgba(4, 120, 87, 0.32);
+  box-shadow: none;
 }
 
 /* 그리드: 데스크탑 4열, 모바일 1열 */
@@ -2457,6 +2457,7 @@ body.ontu-stats-page .beta-section {
 .stats-card__delta-percent.delta-flat{
   color:#6b7280;   /* 변동 없음: 회색 (0.0%) */
 }
+
 
 
 
