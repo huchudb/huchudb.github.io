@@ -2458,6 +2458,12 @@ body.ontu-stats-page .beta-section {
   color:#6b7280;   /* 변동 없음: 회색 (0.0%) */
 }
 
+/* 온투업 통계 상세 페이지 – 상단 여백만 살짝 추가 */
+body.ontu-stats-page .beta-inner{
+  padding-top:24px;   /* 필요하면 20~32px 사이로 조절 */
+}
+
+
 
 
 
