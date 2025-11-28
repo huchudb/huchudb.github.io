@@ -1588,7 +1588,7 @@ body.beta-body .beta-header::after {
 
 .beta-stats-header{
   display:flex;
-  align-items:flex-end;
+  align-items:flex-start;
   justify-content:space-between;
   gap:16px;
 }
@@ -2238,14 +2238,21 @@ body.ontu-stats-page .beta-section {
 
 /* 공통 카드 */
 .stats-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px 14px 14px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-height: 150px;
+  background:#ffffff;
+  border-radius:16px;
+  padding:16px 14px 14px;
+  box-shadow:0 4px 12px rgba(15,23,42,0.16);
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;   /* flex-start → stretch : 안쪽 내용을 100% 폭으로 */
+  min-height:150px;
+}
+
+/* 카드 제목, 메인 숫자 중앙 정렬 */
+.stats-card__label,
+.stats-card__value--main{
+  width:100%;
+  text-align:center;
 }
 
 .stats-card--product {
@@ -2419,6 +2426,37 @@ body.ontu-stats-page .beta-section {
   margin: 0 0 4px;
 }
 
+/* 대출현황/상품유형별 패널 우측의 기준월·전월 텍스트 숨김 */
+.stats-panel__meta{
+  display:none;
+}
+
+/* 전월대비 + (±0.0%) 한 줄 레이아웃 */
+.stats-card__delta-header{
+  margin-top:6px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* 왼쪽: 전월대비 / 오른쪽: 0.0% */
+  font-size:11px;
+}
+
+/* 0.0% 텍스트 스타일 */
+.stats-card__delta-percent{
+  font-size:11px;
+  font-weight:600;
+}
+
+/* 퍼센트 색상은 아래 증감 색과 동일하게 사용 */
+.stats-card__delta-percent.delta-up{
+  color:#dc2626;   /* 상승: 빨강 (+ 6.5%) */
+}
+.stats-card__delta-percent.delta-down{
+  color:#1d4ed8;   /* 하락: 파랑 (- 3.2%) */
+}
+.stats-card__delta-percent.delta-flat{
+  color:#6b7280;   /* 변동 없음: 회색 (0.0%) */
+}
 
 
 
