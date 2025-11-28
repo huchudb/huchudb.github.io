@@ -2707,6 +2707,35 @@ body.ontu-stats-page .stats-card__delta-rate {
 
 /* 위/아래/보합 색은 기존 설정 그대로 사용 (이미 선언돼 있으면 그대로 유지됨) */
 
+/* 메인 숫자와 단위(개, 조/억/만원)를 1줄+2줄로 분리 */
+body.ontu-stats-page .stats-panel .money-number,
+body.ontu-stats-page .stats-card__number {
+  line-height: 1.05;
+}
 
+body.ontu-stats-page .stats-panel .money-unit,
+body.ontu-stats-page .stats-card__unit {
+  display: block;        /* 무조건 2번째 줄로 내려가게 */
+  margin-top: 4px;       /* 숫자와 살짝 간격 */
+  font-size: 11px;       /* 지금보다 한 단계 작게 */
+}
+
+/* 카드 상단 타이틀(라벨) 폰트 크게 */
+body.ontu-stats-page .stats-card__label {
+  font-size: 16px;   /* 기존 ~8px 수준에서 2배 느낌으로 */
+  font-weight: 700;
+}
+
+/* 전월대비 금액 텍스트만 작게 */
+body.ontu-stats-page .stats-card__delta {
+  font-size: 8px;   /* 기존 ~12px 기준 40% 감소 느낌 */
+}
+
+/* 라벨(전월대비) + 퍼센트(+0.0%)는 크게 */
+body.ontu-stats-page .stats-card__delta-label,
+body.ontu-stats-page .stats-card__delta-rate {
+  font-size: 14px;   /* 기존 7px대 느낌에서 2배 정도 */
+  font-weight: 600;
+}
 
 
