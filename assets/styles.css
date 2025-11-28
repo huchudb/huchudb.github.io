@@ -2559,5 +2559,91 @@ body.ontu-stats-page .beta-month-picker {
   align-items: center;
 }
 
+/* ===========================================
+   온투업 대출 통계(ontu-stats) 최종 오버라이드
+   =========================================== */
+
+/* 상단 타이틀 + 캘린더 정렬 */
+body.ontu-stats-page .beta-stats-header {
+  display: flex;
+  align-items: center;          /* 타이틀와 캘린더 세로 정렬 */
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 왼쪽 타이틀/부제목은 항상 좌측 정렬 */
+body.ontu-stats-page .beta-stats-header__left {
+  flex: 1 1 auto;
+}
+
+body.ontu-stats-page .beta-stats-title,
+body.ontu-stats-page .beta-stats-subtitle {
+  text-align: left;
+}
+
+/* 캘린더는 타이틀 오른쪽에서 세로 가운데 */
+body.ontu-stats-page .beta-month-picker {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row;   /* 혹시 column 되어 있으면 덮어쓰기 */
+  gap: 6px;
+}
+
+/* '기준월' 글자는 완전히 숨김(혹시 남아있을 경우 대비) */
+body.ontu-stats-page .beta-month-picker__label {
+  display: none !important;
+}
+
+/* ===========================================
+   통계 카드(대출현황 / 상품유형별 대출잔액) 공통
+   =========================================== */
+
+/* 하얀 카드 세로 길이 늘리기 */
+body.ontu-stats-page .stats-card {
+  min-height: 260px;            /* 대략 기존의 2배 수준 */
+  padding: 22px 18px 18px;
+}
+
+body.ontu-stats-page .stats-card--product {
+  min-height: 260px;
+}
+
+/* 카드 제목(라벨) */
+body.ontu-stats-page .stats-card__label {
+  font-size: 13px;
+}
+
+/* 메인 숫자 (49개 / 18조 3,580억 …) */
+body.ontu-stats-page .stats-panel .money-number,
+body.ontu-stats-page .stats-card__number {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* 메인 숫자 단위(개, 조·억·만원) */
+body.ontu-stats-page .stats-panel .money-unit,
+body.ontu-stats-page .stats-card__unit {
+  font-size: 13px;
+}
+
+/* 하단 점유비 텍스트 */
+body.ontu-stats-page .stats-card__share {
+  font-size: 12px;
+}
+
+/* 전월대비 블록(라벨 / (+0.0%) / ▲ 금액) 글자 크기 통일 */
+body.ontu-stats-page .stats-card__delta-label,
+body.ontu-stats-page .stats-card__delta-rate,
+body.ontu-stats-page .stats-card__delta {
+  font-size: 11px;
+}
+
+/* 0.0%는 항상 회색, 위치는 전월대비 아래 한 줄 */
+body.ontu-stats-page .stats-card__delta-rate {
+  color: #9ca3af;   /* (+ 6.5%) / (- 3.2%) / (0.0%) 모두 회색 */
+}
+
+/* 위/아래/보합 색은 기존 설정 그대로 사용 (이미 선언돼 있으면 그대로 유지됨) */
+
 
 
