@@ -2345,4 +2345,59 @@ body.ontu-stats-page .beta-section {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
 }
 
+/* ===== 상품유형별 카드 슬라이더 ===== */
+
+.stats-panel__slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stats-panel__viewport {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.stats-panel__track {
+  display: flex;
+  gap: 14px;                 /* 카드 사이 간격 */
+  transition: transform 0.3s ease;
+}
+
+/* 한 “화면”에 4장 보이도록 – 데스크탑 */
+.stats-panel__track .stats-card--product {
+  flex: 0 0 calc((100% - 3 * 14px) / 4);  /* 4장 + 3개 gap 기준 */
+}
+
+/* 모바일에서는 1장씩 보이게 */
+@media (max-width: 768px) {
+  .stats-panel__track .stats-card--product {
+    flex: 0 0 100%;
+  }
+}
+
+/* 좌우 버튼 스타일 */
+.stats-panel__nav {
+  flex: 0 0 auto;
+  border: 0;
+  background: rgba(255,255,255,0.9);
+  color: #059669;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+  cursor: pointer;
+}
+
+.stats-panel__nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+}
+
 
