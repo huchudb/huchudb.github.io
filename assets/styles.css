@@ -2400,4 +2400,24 @@ body.ontu-stats-page .beta-section {
   box-shadow: none;
 }
 
+/* 카드 안쪽 기본 폰트/정렬 통일 */
+.ontu-stats-card {
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* 카드 안의 제목(대출 현황, 상품유형별 대출잔액 등) */
+.ontu-stats-card h2,
+.ontu-stats-card h3 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* 일반 문장 */
+.ontu-stats-card p {
+  margin: 0 0 4px;
+}
+
 
