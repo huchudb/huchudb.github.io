@@ -172,6 +172,11 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const s  = currentSummary;
   const ps = prevSummary || {};
 
+  // 예시: 상품유형 데이터 렌더 함수 끝 부분
+renderProductCards(data.products);
+initProductSlider();
+}
+
   // ▶ 등록 온투업체 카드는 제거, 데이터 수집 업체 + 3개 금액 카드
   const items = [
     {
