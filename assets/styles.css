@@ -2183,15 +2183,6 @@ body.ontu-stats-page .beta-section {
   word-break: keep-all;
 }
 
-/* 전월대비 라벨 + 퍼센트 한 줄 정렬 */
-.stats-card__delta-label-row {
-  margin-top: 6px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;   /* 왼쪽: 전월대비, 오른쪽: (+ 0.0%) */
-}
-
 /* 퍼센트 텍스트 (괄호 포함) */
 .stats-card__delta-rate {
   font-size: 11px;
@@ -2338,7 +2329,7 @@ body.ontu-stats-page .beta-section {
 .stats-card__delta.delta-down { color: #1d4ed8; }  /* ▼ 파랑 */
 .stats-card__delta.delta-flat { color: #6b7280; }  /* – 회색 */
 
-/* 카드 하단(점유비 + 전월대비 금액) */
+/* 카드 하단(점유비 + 전월대비 블록) */
 .stats-card__bottom-row {
   margin-top: auto;
   width: 100%;
@@ -2354,9 +2345,43 @@ body.ontu-stats-page .beta-section {
   color: #0f172a;
 }
 
+/* 전월대비 블록: 세 줄 모두 우측 정렬 */
 .stats-card__delta-wrap {
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
+
+/* 1줄: 전월대비 라벨 */
+.stats-card__delta-label {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 2줄: (+ 6.5%) / (- 3.2%) / (0.0%) */
+.stats-card__delta-rate {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;   /* 항상 회색 */
+}
+
+/* 3줄: ▲ 금액 */
+.stats-card__delta {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 상승/하락/보합 색 */
+.stats-card__delta.delta-up   { color: #dc2626; }  /* 빨강 */
+.stats-card__delta.delta-down { color: #1d4ed8; }  /* 파랑 */
+.stats-card__delta.delta-flat { color: #6b7280; }  /* 회색 */
 
 /* 살짝 떠오르는 인터랙션 */
 .stats-card {
@@ -2514,23 +2539,25 @@ body.ontu-stats-page .beta-month-picker input[type="month"]{
 
 /* 온투업 통계 상세 – 상단 타이틀 + 캘린더 정렬 */
 body.ontu-stats-page .beta-stats-header {
-  align-items: center;            /* 좌측 타이틀 그룹 ↔ 우측 캘린더 세로 가운데 */
+  display: flex;
+  align-items: center;          /* 타이틀 그룹 ↔ 캘린더 세로 가운데 */
+  justify-content: space-between;
+  gap: 16px;
 }
 
+body.ontu-stats-page .beta-stats-header__left {
+  flex: 1 1 auto;
+}
+
+/* "기준월" 텍스트 숨김 */
 body.ontu-stats-page .beta-month-picker__label {
-  display: none;                  /* "기준월" 텍스트 숨김 */
+  display: none;
 }
 
+/* 캘린더 자체도 세로 가운데 */
 body.ontu-stats-page .beta-month-picker {
-  align-items: center;            /* label 안에서 input 자체도 가운데 정렬 */
+  align-items: center;
 }
-
-/* 타이틀 아래 여백 줄여서 전체 높이 자연스럽게 */
-body.ontu-stats-page .beta-stats-title {
-  margin: 0 0 4px;
-}
-
-
 
 
 
