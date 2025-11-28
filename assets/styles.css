@@ -2738,4 +2738,14 @@ body.ontu-stats-page .stats-card__delta-rate {
   font-weight: 600;
 }
 
+/* 상품유형별 대출잔액 카드에서 좌측 하단 X.X% 점유비 숨기기 */
+body.ontu-stats-page .stats-panel--products .stats-card__share {
+  display: none;
+}
+
+/* 점유비가 없어졌으니, 하단 행은 오른쪽 블록만 정렬 */
+body.ontu-stats-page .stats-panel--products .stats-card__bottom-row {
+  justify-content: flex-end;
+}
+
 
