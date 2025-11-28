@@ -329,6 +329,38 @@ function initProductSlider() {
     productSliderInitialized = true;
   }
 
+  /* 전월대비 라벨 + 퍼센트 한 줄 정렬 */
+.stats-card__delta-label-row{
+  margin-top:6px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.stats-card__delta-label{
+  font-size:11px;
+  color:#9ca3af;
+}
+
+/* 퍼센트는 방향과 상관없이 회색 고정 */
+.stats-card__delta-rate{
+  font-size:11px;
+  font-weight:600;
+  color:#9ca3af;
+}
+
+/* 아래 금액 부분(▲ 3,057억 등)은 기존 색상 규칙 유지 */
+.stats-card__delta{
+  margin-top:2px;
+  font-size:12px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+
   // 카드가 다시 그려질 때마다 한 번 재계산
   update();
 }
