@@ -2394,14 +2394,14 @@ body.ontu-stats-page .beta-section {
 
 /* ===== 상품유형별 카드 슬라이더 ===== */
 
+/* 기본: 데스크탑 기준 – 카드 폭 100%, 아래 얇은 회색 바 + 플로팅 버튼 */
 .stats-panel__slider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  position: relative;
+  padding-bottom: 26px; /* 아래 바+버튼 들어갈 공간 조금 확보 */
 }
 
+/* 공통: 트랙/뷰포트 */
 .stats-panel__viewport {
-  flex: 1 1 auto;
   overflow: hidden;
 }
 
@@ -2411,40 +2411,102 @@ body.ontu-stats-page .beta-section {
   transition: transform 0.3s ease;
 }
 
-/* 한 “화면”에 4장 보이도록 – 데스크탑 */
+/* 한 “화면”에 4장 보이도록 – 데스크탑 기준 */
 .stats-panel__track .stats-card--product {
   flex: 0 0 calc((100% - 3 * 14px) / 4);  /* 4장 + 3개 gap 기준 */
 }
 
-/* 모바일에서는 1장씩 보이게 */
-@media (max-width: 768px) {
-  .stats-panel__track .stats-card--product {
-    flex: 0 0 100%;
+/* 데스크탑: 아래 얇은 회색 바 + 가운데에 좌우 버튼 */
+@media (min-width: 769px) {
+
+  /* 카드 아래 연한 회색 긴 막대 */
+  .stats-panel__slider::after {
+    content: "";
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 6px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.35);  /* 아주 연한 회색 */
+  }
+
+  /* 좌우 버튼은 막대 위에 떠 있는 둥근 버튼으로 */
+  .stats-panel__nav {
+    position: absolute;
+    bottom: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.95);
+    color: #059669;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+  }
+
+  .stats-panel__nav--prev {
+    left: 50%;
+    transform: translateX(-80%);
+  }
+
+  .stats-panel__nav--next {
+    left: 50%;
+    transform: translateX(20%);
+  }
+
+  .stats-panel__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
   }
 }
 
-/* 좌우 버튼 스타일 */
-.stats-panel__nav {
-  flex: 0 0 auto;
-  border: 0;
-  background: rgba(255,255,255,0.9);
-  color: #059669;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-  cursor: pointer;
-}
+/* 모바일: 기존 구조 유지 (양옆 버튼 + 한 장씩 슬라이드) */
+@media (max-width: 768px) {
 
-.stats-panel__nav:disabled {
-  opacity: 0.35;
-  cursor: default;
-  box-shadow: none;
+  .stats-panel__slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 0;   /* 아래 바/버튼 안 쓰니까 여유 공간 제거 */
+  }
+
+  .stats-panel__viewport {
+    flex: 1 1 auto;
+  }
+
+  .stats-panel__track .stats-card--product {
+    flex: 0 0 100%;
+  }
+
+  .stats-panel__nav {
+    flex: 0 0 auto;
+    border: 0;
+    background: rgba(255, 255, 255, 0.9);
+    color: #059669;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+  }
+
+  .stats-panel__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
+  }
 }
 
 /* 카드 안쪽 기본 폰트/정렬 통일 */
@@ -2644,6 +2706,7 @@ body.ontu-stats-page .stats-card__delta-rate {
 }
 
 /* 위/아래/보합 색은 기존 설정 그대로 사용 (이미 선언돼 있으면 그대로 유지됨) */
+
 
 
 
