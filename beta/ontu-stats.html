@@ -71,35 +71,33 @@
         </div>
       </section>
 
-           <!-- 대출현황 섹션 -->
-      <section class="beta-section">
-        <div class="loan-panel loan-panel--status">
-          <div class="loan-panel__header">
-            <h2 class="loan-panel__title">대출 현황</h2>
-            <div id="loanStatusMonth" class="loan-panel__meta"></div>
-          </div>
+<!-- 대출현황 섹션 -->
+<section class="beta-section">
+  <div class="stats-panel stats-panel--loan">
+    <div class="stats-panel__header">
+      <h2 class="stats-panel__title">대출 현황</h2>
+      <div id="loanStatusMonth" class="stats-panel__meta"></div>
+    </div>
 
-          <div class="loan-panel__body">
-            <!-- JS에서 카드 그리드로 렌더링 (beta-loanstatus-grid) -->
-            <div id="ontuLoanStatus"></div>
-          </div>
-        </div>
-      </section>
+    <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
+      <!-- JS에서 .stats-card 렌더 -->
+    </div>
+  </div>
+</section>
 
-      <!-- 상품유형별 대출잔액 섹션 -->
-      <section class="beta-section">
-        <div class="loan-panel loan-panel--product">
-          <div class="loan-panel__header">
-            <h2 class="loan-panel__title">상품유형별 대출잔액</h2>
-            <div id="productStatusMonth" class="loan-panel__meta"></div>
-          </div>
+<!-- 상품유형별 대출잔액 섹션 -->
+<section class="beta-section">
+  <div class="stats-panel stats-panel--products">
+    <div class="stats-panel__header">
+      <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+      <div id="productStatusMonth" class="stats-panel__meta"></div>
+    </div>
 
-          <div class="loan-panel__body">
-            <!-- JS에서 상품유형 카드 리스트 렌더링 -->
-            <div id="ontuProductSection"></div>
-          </div>
-        </div>
-      </section>
+    <div class="stats-panel__slider">
+      <!-- 이 안은 1번에서 다시 설명 -->
+    </div>
+  </div>
+</section>
 
     </div>
   </main>
