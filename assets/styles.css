@@ -2463,6 +2463,39 @@ body.ontu-stats-page .beta-inner{
   padding-top:24px;   /* 필요하면 20~32px 사이로 조절 */
 }
 
+/* 온투 대출통계 – 타이틀 옆에 캘린더 붙이기 */
+body.ontu-stats-page .beta-stats-header{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+body.ontu-stats-page .beta-stats-header__top-row{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:12px;
+}
+
+/* month-picker는 오른쪽으로만 붙도록 */
+body.ontu-stats-page .beta-stats-header__top-row .beta-month-picker{
+  flex:0 0 auto;
+}
+
+/* 혹시 남아 있을지 모르는 '기준월' 라벨 강제 숨김 (예방용) */
+body.ontu-stats-page .beta-month-picker__label{
+  display:none !important;
+}
+
+/* month 인풋 높이/폰트 살짝 정리 */
+body.ontu-stats-page .beta-month-picker input[type="month"]{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  font-size:12px;
+  color:#111827;
+}
+
 
 
 
