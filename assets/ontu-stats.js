@@ -377,4 +377,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadAndRenderForMonth(val);
     });
   }
+
+  function initProductSlider() {
+  const track = document.getElementById('ontuProductSection');
+  if (!track) return;
+
+  const cards = Array.from(track.querySelectorAll('.stats-card--product'));
+  if (cards.length === 0) return;
+
+  const prevBtn = document.querySelector('.stats-panel__nav--prev');
+  const nextBtn = document.querySelector('.stats-panel__nav--next');
+  if (!prevBtn || !nextBtn) return;
+
+  let index = 0;
+
+  function getVisibleCount() {
+    // 모바일에서는 1장, 데스크탑에서는 4장
+    return window.innerWidth <= 768 ? 1 : 4;
+  }
+
+  function update() {
+    const visible = getVisibleCount();
+    const gap = 14; // CSS에서 설정한 gap과 맞추기
+    const cardWidth = cards[0].getBoundingClientRect().width + gap;
+    const maxIndex = Math.max(0, cards.length - visible);
+
+    if (index > maxIndex) index = maxIndex;
+
+    track.style.transform = `translateX(${-index * cardWidth}px)`;
+
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === maxIndex;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    index = Math.max(0, index - 1);
+    update();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    index = index + 1;
+    update();
+  });
+
+  window.addEventListener('resize', update);
+
+  // 첫 렌더링 후 한 번 호출
+  update();
+}
 });
