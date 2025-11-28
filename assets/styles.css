@@ -479,8 +479,7 @@ button:hover{background:#153154}
 
 /* ======================= 베타 홈 레이아웃 ======================= */
 
-.beta-main{
-  margin-top:24px;  /* 8px → 24px 정도로 여유 있게 */
+{margin-top:24px;} /* 8px → 24px 정도로 여유 있게 */
 .beta-inner{
   max-width:960px;
   margin:0 auto 40px;
@@ -2419,6 +2418,7 @@ body.ontu-stats-page .beta-section {
 .ontu-stats-card p {
   margin: 0 0 4px;
 }
+
 
 
 
