@@ -213,18 +213,32 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
 
       const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
 
+      const percentHtml = delta.percentText
+        ? `<span class="stats-card__delta-percent ${delta.percentClassName || ""}">
+             ${delta.percentText}
+           </span>`
+        : "";
+
       return `
         <article class="stats-card">
           <div class="stats-card__label">${it.label}</div>
           <div class="stats-card__value stats-card__value--main">
             ${valueHtml}
           </div>
-          <div class="stats-card__delta-label">전월대비</div>
+
+          <!-- 전월대비 헤더: 왼쪽 텍스트 / 오른쪽 0.0% -->
+          <div class="stats-card__delta-header">
+            <span class="stats-card__delta-label">전월대비</span>
+            ${percentHtml}
+          </div>
+
+          <!-- 아래 줄에 ▲ xx억 표기 -->
           <div class="stats-card__delta ${delta.className || "delta-flat"}">
             ${delta.html || delta.text || "변동 없음"}
           </div>
         </article>
       `;
+
     })
     .join("");
 
