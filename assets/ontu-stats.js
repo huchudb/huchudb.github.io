@@ -181,7 +181,6 @@ async function fetchOntuStats(monthKey) {
 }
 
 // ───────── 대출현황 카드 렌더 ─────────
-
 function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("loanStatusMonth");
@@ -203,72 +202,55 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const ps = prevSummary || {};
 
   const items = [
-    {
-      key: "dataFirms",
-      label: "데이터 수집 온투업체수",
-      type: "count"
-    },
-    {
-      key: "totalLoan",
-      label: "누적 대출금액",
-      type: "money"
-    },
-    {
-      key: "totalRepaid",
-      label: "누적 상환금액",
-      type: "money"
-    },
-    {
-      key: "balance",
-      label: "대출잔액",
-      type: "money"
-    }
+    { key: "dataFirms",   label: "데이터 수집 온투업체수", type: "count" },
+    { key: "totalLoan",   label: "누적 대출금액",          type: "money" },
+    { key: "totalRepaid", label: "누적 상환금액",          type: "money" },
+    { key: "balance",     label: "대출잔액",              type: "money" }
   ];
 
-  const cardsHtml = items
-    .map((it) => {
-      const currRaw = s[it.key] ?? 0;
-      const prevRaw = ps[it.key];
+  const cardsHtml = items.map((it) => {
+    const currRaw = s[it.key] ?? 0;
+    const prevRaw = ps[it.key];
 
-      let valueHtml;
-      if (it.type === "count") {
-        valueHtml = `
-          <span class="stats-card__number">${(currRaw || 0).toLocaleString("ko-KR")}</span>
-          <span class="stats-card__unit">개</span>
-        `;
-      } else {
-        valueHtml = formatKoreanCurrencyJoHtml(currRaw);
-      }
-
-      const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
-
-      return `
-        <article class="stats-card">
-          <div class="stats-card__label">${it.label}</div>
-          <div class="stats-card__value stats-card__value--main">
-            ${valueHtml}
-          </div>
-
-          <div class="stats-card__delta-label-row">
-            <span class="stats-card__delta-label">전월대비</span>
-            <span class="stats-card__delta-rate">
-              ${delta.pctDisplay || "(0.0%)"}
-            </span>
-          </div>
-
-          <div class="stats-card__delta ${delta.className || "delta-flat"}">
-            ${delta.html || delta.text || "변동 없음"}
-          </div>
-        </article>
+    let valueHtml;
+    if (it.type === "count") {
+      valueHtml = `
+        <span class="stats-card__number">${(currRaw || 0).toLocaleString("ko-KR")}</span>
+        <span class="stats-card__unit">개</span>
       `;
-    })
-    .join("");
+    } else {
+      valueHtml = formatKoreanCurrencyJoHtml(currRaw);
+    }
+
+    const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
+
+    return `
+      <article class="stats-card">
+        <div class="stats-card__label">${it.label}</div>
+        <div class="stats-card__value stats-card__value--main">
+          ${valueHtml}
+        </div>
+
+        <div class="stats-card__bottom-row stats-card__bottom-row--no-share">
+          <span class="stats-card__share"></span>
+          <div class="stats-card__delta-wrap">
+            <div class="stats-card__delta-label">전월대비</div>
+            <div class="stats-card__delta-rate">
+              ${delta.pctDisplay || "(0.0%)"}
+            </div>
+            <div class="stats-card__delta ${delta.className || "delta-flat"}">
+              ${delta.html || delta.text || "변동 없음"}
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
 
   container.innerHTML = cardsHtml;
 }
 
 // ───────── 상품유형별 대출잔액 카드 렌더 ─────────
-
 function renderProductSection(currentSummary, currentByType, prevByType, monthKey, prevMonthKey) {
   const track  = document.getElementById("ontuProductSection");
   const monthEl = document.getElementById("productStatusMonth");
@@ -288,51 +270,51 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
 
   const balance = Number(currentSummary.balance || 0);
 
-  const cardsHtml = Object.entries(currentByType)
-    .map(([name, cfg]) => {
-      const ratio =
-        Number(cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0));
-      const amount =
-        cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
+  const cardsHtml = Object.entries(currentByType).map(([name, cfg]) => {
+    const ratio =
+      Number(cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0));
+    const amount =
+      cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
 
-      // 전월 금액
-      let prevAmt = null;
-      if (prevByType && prevByType[name]) {
-        const pCfg = prevByType[name];
-        const pRatio =
-          Number(
-            pCfg.ratio ?? pCfg.share ?? (pCfg.ratioPercent != null ? pCfg.ratioPercent / 100 : 0)
-          );
-        prevAmt =
-          pCfg.amount != null
-            ? Number(pCfg.amount)
-            : prevByType.balance
-            ? Math.round(prevByType.balance * pRatio)
-            : 0;
-      }
+    // 전월 금액 계산
+    let prevAmt = null;
+    if (prevByType && prevByType[name]) {
+      const pCfg = prevByType[name];
+      const pRatio =
+        Number(pCfg.ratio ?? pCfg.share ?? (pCfg.ratioPercent != null ? pCfg.ratioPercent / 100 : 0));
+      prevAmt =
+        pCfg.amount != null
+          ? Number(pCfg.amount)
+          : prevByType.balance
+          ? Math.round(prevByType.balance * pRatio)
+          : 0;
+    }
 
-      const delta = buildDeltaInfo(amount, prevAmt, { type: "money" });
-      const shareText = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : "-";
+    const delta = buildDeltaInfo(amount, prevAmt, { type: "money" });
+    const shareText = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : "-";
 
-      return `
-        <article class="stats-card stats-card--product">
-          <div class="stats-card__label">${name}</div>
-          <div class="stats-card__value stats-card__value--main">
-            ${formatKoreanCurrencyJoHtml(amount)}
-          </div>
-          <div class="stats-card__bottom-row">
-            <span class="stats-card__share">${shareText}</span>
-            <div class="stats-card__delta-wrap">
-              <div class="stats-card__delta-label">전월대비</div>
-              <div class="stats-card__delta ${delta.className || "delta-flat"}">
-                ${delta.html || delta.text || "변동 없음"}
-              </div>
+    return `
+      <article class="stats-card stats-card--product">
+        <div class="stats-card__label">${name}</div>
+        <div class="stats-card__value stats-card__value--main">
+          ${formatKoreanCurrencyJoHtml(amount)}
+        </div>
+
+        <div class="stats-card__bottom-row">
+          <span class="stats-card__share">${shareText}</span>
+          <div class="stats-card__delta-wrap">
+            <div class="stats-card__delta-label">전월대비</div>
+            <div class="stats-card__delta-rate">
+              ${delta.pctDisplay || "(0.0%)"}
+            </div>
+            <div class="stats-card__delta ${delta.className || "delta-flat"}">
+              ${delta.html || delta.text || "변동 없음"}
             </div>
           </div>
-        </article>
-      `;
-    })
-    .join("");
+        </div>
+      </article>
+    `;
+  }).join("");
 
   track.innerHTML = cardsHtml;
 
