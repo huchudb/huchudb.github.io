@@ -74,27 +74,38 @@ function getPrevMonthKey(monthKey) {
 
 // 증감 텍스트 & 클래스 계산
 // type: 'money' | 'count'
+// 증감 텍스트 & 클래스 계산
+// type: 'money' | 'count'
 function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
   const { type = "money" } = opts;
 
   // 전월 데이터가 없으면 표시 X
   if (prevRaw == null || isNaN(prevRaw)) {
-    return { text: "", html: "", className: "delta-flat" };
-  }
-
-  const diff = (currRaw || 0) - (prevRaw || 0);
-
-  // 값은 있는데 그대로면 → "변동 없음"
-  if (diff === 0) {
     return {
-      text: "변동 없음",
-      html: "변동 없음",
-      className: "delta-flat"
+      text: "",
+      html: "",
+      className: "",
+      pctValue: null,
+      pctText: "",
+      pctHtml: "",
+      pctDisplay: ""
     };
   }
 
+  const curr = Number(currRaw || 0);
+  const prev = Number(prevRaw || 0);
+  const diff = curr - prev;
+
+  // 퍼센트(전월 대비) 계산
+  let pctValue = null;
+  if (prev !== 0) {
+    pctValue = (diff / prev) * 100;
+  }
+
   const isUp = diff > 0;
-  const arrow = isUp ? "▲" : "▼";
+  const isDown = diff < 0;
+
+  const arrow = isUp ? "▲" : isDown ? "▼" : "";
   const abs = Math.abs(diff);
 
   let bodyText;
@@ -108,10 +119,38 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
     bodyHtml = formatKoreanCurrencyJoHtml(abs);
   }
 
+  // 금액 증감 문자열
+  const baseText =
+    diff === 0
+      ? "변동 없음"
+      : `${arrow} ${bodyText}`;
+  const baseHtml =
+    diff === 0
+      ? "변동 없음"
+      : `${arrow} ${bodyHtml}`;
+
+  // 퍼센트 문자열: (+ 6.5%) / (- 2.3%) / (0.0%)
+  let pctText = "";
+  let pctHtml = "";
+  if (pctValue !== null) {
+    const sign = isUp ? "+" : isDown ? "-" : "";
+    const pctCore = `${Math.abs(pctValue).toFixed(1)}%`;
+    pctText = `(${sign ? sign + " " : ""}${pctCore})`;
+    pctHtml = pctText;
+  }
+
+  // 화면에 쓸 기본값: 값 없으면 (0.0%)
+  const pctDisplay = pctText || "(0.0%)";
+
   return {
-    text: `${arrow} ${bodyText}`,
-    html: `${arrow} ${bodyHtml}`,
-    className: isUp ? "delta-up" : "delta-down"
+    text: baseText,
+    html: baseHtml,
+    className:
+      diff === 0 ? "delta-flat" : isUp ? "delta-up" : "delta-down",
+    pctValue,
+    pctText,
+    pctHtml,
+    pctDisplay
   };
 }
 
@@ -145,10 +184,15 @@ async function fetchOntuStats(monthKey) {
 
 // ───────── 대출현황 카드 렌더 ─────────
 
+// ───────── 대출현황 카드 렌더 ─────────
+
 function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("loanStatusMonth");
   if (!container) return;
+
+  // 기준월/전월 텍스트는 이 페이지에서는 사용 안 함 (완전 삭제)
+  if (monthEl) monthEl.textContent = "";
 
   if (!currentSummary) {
     container.innerHTML = `
@@ -156,23 +200,13 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
         <p>온투업 통계를 불러오지 못했습니다.</p>
       </div>
     `;
-    if (monthEl) monthEl.textContent = "";
     return;
-  }
-
-  // 상단 "기준월 / 전월" 표시
-  if (monthEl) {
-    let txt = `기준월: ${formatMonthLabel(monthKey)}`;
-    if (prevMonthKey) {
-      txt += ` · 전월: ${formatMonthLabel(prevMonthKey)}`;
-    }
-    monthEl.textContent = txt;
   }
 
   const s  = currentSummary;
   const ps = prevSummary || {};
 
-  // ▶ 데이터 수집 업체수 + 3개 금액 카드
+  // 등록 온투업체 카드는 제거, 데이터 수집 업체 + 3개 금액 카드
   const items = [
     {
       key: "dataFirms",
@@ -213,12 +247,6 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
 
       const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
 
-      const percentHtml = delta.percentText
-        ? `<span class="stats-card__delta-percent ${delta.percentClassName || ""}">
-             ${delta.percentText}
-           </span>`
-        : "";
-
       return `
         <article class="stats-card">
           <div class="stats-card__label">${it.label}</div>
@@ -226,21 +254,26 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
             ${valueHtml}
           </div>
 
-          <!-- 전월대비 헤더: 왼쪽 텍스트 / 오른쪽 0.0% -->
-          <div class="stats-card__delta-header">
+          <!-- 전월대비 라벨 + 퍼센트 (우측 정렬) -->
+          <div class="stats-card__delta-label-row">
             <span class="stats-card__delta-label">전월대비</span>
-            ${percentHtml}
+            <span class="stats-card__delta-rate">
+              ${delta.pctDisplay || "(0.0%)"}
+            </span>
           </div>
 
-          <!-- 아래 줄에 ▲ xx억 표기 -->
+          <!-- 전월대비 금액(▲ 3,057억 등) -->
           <div class="stats-card__delta ${delta.className || "delta-flat"}">
             ${delta.html || delta.text || "변동 없음"}
           </div>
         </article>
       `;
-
     })
     .join("");
+
+  container.innerHTML = cardsHtml;
+}
+
 
   // ontuLoanStatus는 이미 .stats-panel__grid 이므로 카드만 채워넣기
   container.innerHTML = cardsHtml;
@@ -313,14 +346,6 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     `;
     if (monthEl) monthEl.textContent = "";
     return;
-  }
-
-  if (monthEl) {
-    let txt = `기준월: ${formatMonthLabel(monthKey)}`;
-    if (prevMonthKey) {
-      txt += ` · 전월: ${formatMonthLabel(prevMonthKey)}`;
-    }
-    monthEl.textContent = txt;
   }
 
   const balance = Number(currentSummary.balance || 0);
