@@ -121,32 +121,33 @@
 
       <!-- 대출현황 섹션 -->
       <section class="beta-section">
-        <div class="beta-section__header">
-          <div class="beta-section__title-wrap">
-            <h2 class="beta-section__title">대출현황</h2>
+        <div class="stats-panel stats-panel--loan">
+          <div class="stats-panel__header">
+            <h2 class="stats-panel__title">대출 현황</h2>
+            <div id="loanStatusMonth" class="stats-panel__meta"></div>
           </div>
-          <div id="loanStatusMonth" class="beta-section__meta"></div>
-        </div>
 
-        <div class="beta-card beta-card--wide" id="ontuLoanStatus">
-          <!-- JS에서 그리드로 렌더링 -->
+          <!-- 여기 그리드 안에 JS가 카드(.stats-card)를 여러 개 넣어줌 -->
+          <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
+            <!-- ontu-stats.js에서 .stats-card들을 렌더링 -->
+          </div>
         </div>
       </section>
 
       <!-- 상품유형별 대출잔액 섹션 -->
       <section class="beta-section">
-        <div class="beta-section__header">
-          <div class="beta-section__title-wrap">
-           <h2 class="beta-section__title">상품유형별 대출잔액</h2>
+        <div class="stats-panel stats-panel--products">
+          <div class="stats-panel__header">
+            <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+            <div id="productStatusMonth" class="stats-panel__meta"></div>
+          </div>
+
+          <!-- 여기도 그리드 컨테이너 -->
+          <div id="ontuProductSection" class="stats-panel__grid stats-panel__grid--products">
+            <!-- ontu-stats.js에서 .stats-card들을 렌더링 -->
           </div>
         </div>
-
-        <div class="beta-card beta-card--wide" id="ontuProductSection">
-          <!-- JS에서 도넛 + 3×2 카드로 렌더링 -->
-        </div>
       </section>
-
-    </div>
   </main>
 
   <!-- 푸터 -->
