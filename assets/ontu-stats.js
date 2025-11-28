@@ -74,8 +74,6 @@ function getPrevMonthKey(monthKey) {
 
 // 증감 텍스트 & 클래스 계산
 // type: 'money' | 'count'
-// 증감 텍스트 & 클래스 계산
-// type: 'money' | 'count'
 function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
   const { type = "money" } = opts;
 
@@ -184,14 +182,12 @@ async function fetchOntuStats(monthKey) {
 
 // ───────── 대출현황 카드 렌더 ─────────
 
-// ───────── 대출현황 카드 렌더 ─────────
-
 function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("loanStatusMonth");
   if (!container) return;
 
-  // 기준월/전월 텍스트는 이 페이지에서는 사용 안 함 (완전 삭제)
+  // 기준월/전월 텍스트는 사용 안 함
   if (monthEl) monthEl.textContent = "";
 
   if (!currentSummary) {
@@ -206,7 +202,6 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const s  = currentSummary;
   const ps = prevSummary || {};
 
-  // 등록 온투업체 카드는 제거, 데이터 수집 업체 + 3개 금액 카드
   const items = [
     {
       key: "dataFirms",
@@ -254,7 +249,6 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
             ${valueHtml}
           </div>
 
-          <!-- 전월대비 라벨 + 퍼센트 (우측 정렬) -->
           <div class="stats-card__delta-label-row">
             <span class="stats-card__delta-label">전월대비</span>
             <span class="stats-card__delta-rate">
@@ -262,7 +256,6 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
             </span>
           </div>
 
-          <!-- 전월대비 금액(▲ 3,057억 등) -->
           <div class="stats-card__delta ${delta.className || "delta-flat"}">
             ${delta.html || delta.text || "변동 없음"}
           </div>
@@ -274,101 +267,15 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   container.innerHTML = cardsHtml;
 }
 
-
-  // ontuLoanStatus는 이미 .stats-panel__grid 이므로 카드만 채워넣기
-  container.innerHTML = cardsHtml;
-}
-
 // ───────── 상품유형별 대출잔액 카드 렌더 ─────────
-
-let productSliderInitialized = false;
-
-function initProductSlider() {
-  const track = document.getElementById("ontuProductSection");
-  if (!track) return;
-
-  const cards = Array.from(track.querySelectorAll(".stats-card--product"));
-  if (cards.length === 0) return;
-
-  const prevBtn = document.querySelector(".stats-panel__nav--prev");
-  const nextBtn = document.querySelector(".stats-panel__nav--next");
-  if (!prevBtn || !nextBtn) return;
-
-  let index = 0;
-
-  function getVisibleCount() {
-    return window.innerWidth <= 768 ? 1 : 4; // 모바일 1장, 데스크탑 4장
-  }
-
-  function update() {
-    const visible = getVisibleCount();
-    const gap = 14; // CSS gap과 동일
-    const cardWidth = cards[0].getBoundingClientRect().width + gap;
-    const maxIndex = Math.max(0, cards.length - visible);
-
-    if (index > maxIndex) index = maxIndex;
-
-    track.style.transform = `translateX(${-index * cardWidth}px)`;
-
-    prevBtn.disabled = index === 0;
-    nextBtn.disabled = index === maxIndex;
-  }
-
-  if (!productSliderInitialized) {
-    prevBtn.addEventListener("click", () => {
-      index = Math.max(0, index - 1);
-      update();
-    });
-
-    nextBtn.addEventListener("click", () => {
-      index = index + 1;
-      update();
-    });
-
-    window.addEventListener("resize", update);
-    productSliderInitialized = true;
-  }
-
-  /* 전월대비 라벨 + 퍼센트 한 줄 정렬 */
-.stats-card__delta-label-row{
-  margin-top:6px;
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-}
-
-.stats-card__delta-label{
-  font-size:11px;
-  color:#9ca3af;
-}
-
-/* 퍼센트는 방향과 상관없이 회색 고정 */
-.stats-card__delta-rate{
-  font-size:11px;
-  font-weight:600;
-  color:#9ca3af;
-}
-
-/* 아래 금액 부분(▲ 3,057억 등)은 기존 색상 규칙 유지 */
-.stats-card__delta{
-  margin-top:2px;
-  font-size:12px;
-  font-weight:600;
-  display:flex;
-  align-items:center;
-  gap:4px;
-}
-
-
-  // 카드가 다시 그려질 때마다 한 번 재계산
-  update();
-}
 
 function renderProductSection(currentSummary, currentByType, prevByType, monthKey, prevMonthKey) {
   const track  = document.getElementById("ontuProductSection");
   const monthEl = document.getElementById("productStatusMonth");
   if (!track) return;
+
+  // 기준월/전월 텍스트 사용 안 함
+  if (monthEl) monthEl.textContent = "";
 
   if (!currentSummary || !currentByType || !Object.keys(currentByType).length) {
     track.innerHTML = `
@@ -376,7 +283,6 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
     `;
-    if (monthEl) monthEl.textContent = "";
     return;
   }
 
@@ -428,11 +334,58 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     })
     .join("");
 
-  // ontuProductSection 은 이미 .stats-panel__track 이므로 카드만 채워넣기
   track.innerHTML = cardsHtml;
 
-  // 카드가 준비된 뒤 슬라이더 초기화/업데이트
+  // 카드 렌더 후 슬라이더 초기화
   initProductSlider();
+}
+
+// ───────── 상품유형 슬라이더 ─────────
+
+function initProductSlider() {
+  const track = document.getElementById("ontuProductSection");
+  if (!track) return;
+
+  const cards = Array.from(track.querySelectorAll(".stats-card--product"));
+  if (cards.length === 0) return;
+
+  const prevBtn = document.querySelector(".stats-panel__nav--prev");
+  const nextBtn = document.querySelector(".stats-panel__nav--next");
+  if (!prevBtn || !nextBtn) return;
+
+  let index = 0;
+
+  function getVisibleCount() {
+    return window.innerWidth <= 768 ? 1 : 4;
+  }
+
+  function update() {
+    const visible = getVisibleCount();
+    const gap = 14;
+    const cardWidth = cards[0].getBoundingClientRect().width + gap;
+    const maxIndex = Math.max(0, cards.length - visible);
+
+    if (index > maxIndex) index = maxIndex;
+
+    track.style.transform = `translateX(${-index * cardWidth}px)`;
+
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === maxIndex;
+  }
+
+  prevBtn.onclick = () => {
+    index = Math.max(0, index - 1);
+    update();
+  };
+
+  nextBtn.onclick = () => {
+    index = index + 1;
+    update();
+  };
+
+  window.addEventListener("resize", update);
+
+  update();
 }
 
 // ───────── 초기화: 기준월 + 전월 함께 로딩 ─────────
@@ -473,19 +426,17 @@ async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
 document.addEventListener("DOMContentLoaded", async () => {
   const monthPicker = document.getElementById("statsMonthPicker");
 
-  // 1) 최신월 한 번 가져오기
+  // 최신월 한 번 가져오기
   const latest = await fetchOntuStats(null);
   const initialMonth =
     (latest && (latest.month || latest.monthKey)) || "2025-10";
 
   if (monthPicker) {
-    monthPicker.value = initialMonth; // 'YYYY-MM'
+    monthPicker.value = initialMonth;
   }
 
-  // 2) 최신월 + 전월 렌더
   await loadAndRenderForMonth(initialMonth, latest);
 
-  // 3) 기준월 변경 시마다 다시 로딩
   if (monthPicker) {
     monthPicker.addEventListener("change", async () => {
       const val = monthPicker.value;
