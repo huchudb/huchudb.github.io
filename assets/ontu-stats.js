@@ -566,5 +566,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     autoplayMs: 3000,
     mobileBreakpoint: 768,
   });
+    
 });
-}
