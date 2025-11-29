@@ -366,16 +366,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     monthPicker.value = initialMonth;
   }
 
-  // 최초 렌더
   await loadAndRenderForMonth(initialMonth, latest);
 
-  // ---------------- 공통 슬라이더 함수 ----------------
+  if (monthPicker) {
+    monthPicker.addEventListener("change", async () => {
+      const val = monthPicker.value;
+      if (!val) return;
+      await loadAndRenderForMonth(val);
+    });
+  }
+
+  // ───────── 슬라이더 공통 함수 ─────────
   function setupAutoSlider({
     trackSelector,
     cardSelector,
     prevSelector,
     nextSelector,
-    thumbSelector,
     autoplayMs = 3000,
     mobileBreakpoint = 768,
   }) {
@@ -387,34 +393,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const prevBtn = document.querySelector(prevSelector);
     const nextBtn = document.querySelector(nextSelector);
-    const thumb   = thumbSelector ? document.querySelector(thumbSelector) : null;
-
-    // 이전에 설정된 타이머가 있으면 정리
-    if (track._autoTimer) {
-      clearInterval(track._autoTimer);
-      track._autoTimer = null;
-    }
 
     let index = 0;
     let timer = null;
 
-    function updatePosition() {
-      const first = cards[0];
-      const cardWidth = first.getBoundingClientRect().width;
-      track.style.transform = `translateX(${-index * cardWidth}px)`;
+    const isMobile = () => window.innerWidth <= mobileBreakpoint;
 
-      if (thumb) {
-        const step = 100 / cards.length;
-        thumb.style.transform = `translateX(${index * step}%)`;
-        thumb.style.width = `${step}%`;
+    function updatePosition() {
+      // PC에서는 슬라이드 효과 없도록 항상 0
+      if (!isMobile()) {
+        track.style.transform = "translateX(0)";
+        return;
       }
+
+      const cardWidth = cards[0].getBoundingClientRect().width;
+      track.style.transform = `translateX(${-index * cardWidth}px)`;
     }
 
     function goTo(nextIndex) {
-      const mobile = window.innerWidth <= mobileBreakpoint;
-
-      // PC에서는 항상 첫 페이지 고정(4장씩 보기)
-      if (!mobile) {
+      if (!isMobile()) {
         index = 0;
         updatePosition();
         return;
@@ -430,17 +427,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       updatePosition();
     }
 
-    function stopAuto() {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-        track._autoTimer = null;
-      }
-    }
-
     function startAuto() {
-      const mobile = window.innerWidth <= mobileBreakpoint;
-      if (!mobile) {
+      if (!isMobile()) {
         stopAuto();
         index = 0;
         updatePosition();
@@ -450,27 +438,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       timer = setInterval(() => {
         goTo(index + 1);
       }, autoplayMs);
-      track._autoTimer = timer;
     }
 
-    // 버튼 이벤트 (다시 setup할 때 이전 핸들러 덮어쓰기 위해 onclick 사용)
-    if (prevBtn) {
-      prevBtn.onclick = () => {
-        stopAuto();
-        goTo(index - 1);
-        startAuto();
-      };
+    function stopAuto() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
     }
 
-    if (nextBtn) {
-      nextBtn.onclick = () => {
-        stopAuto();
-        goTo(index + 1);
-        startAuto();
-      };
-    }
+    prevBtn && prevBtn.addEventListener("click", () => {
+      stopAuto();
+      goTo(index - 1);
+      startAuto();
+    });
 
-    // 반응형 대응
+    nextBtn && nextBtn.addEventListener("click", () => {
+      stopAuto();
+      goTo(index + 1);
+      startAuto();
+    });
+
     window.addEventListener("resize", () => {
       stopAuto();
       index = 0;
@@ -480,62 +468,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
 
-    // 초기 위치 + 자동 슬라이드 시작
+    // 초기 위치 + 자동 슬라이드
     updatePosition();
     startAuto();
   }
 
-  // -------- 최초 렌더 후 슬라이더 세팅 --------
-  // 1) 대출현황 – 모바일에서 1장씩, 3초 자동
+  // ───────── 슬라이더 등록 ─────────
+  // 1) 대출 현황: PC에서는 고정, 모바일에서만 1장씩 자동 슬라이드
   setupAutoSlider({
-    trackSelector: "#loanStatsTrack",     // 실제 트랙 ID에 맞게 사용
-    cardSelector: ".stats-card",          // 대출현황 카드 공통 클래스
+    trackSelector: "#ontuLoanStatus",      // 대출현황 카드들이 들어 있는 컨테이너
+    cardSelector: ".stats-card",
     prevSelector: "#loanSliderPrev",
     nextSelector: "#loanSliderNext",
-    thumbSelector: "#loanSliderThumb",
     autoplayMs: 3000,
     mobileBreakpoint: 768,
   });
 
-  // 2) 상품유형별 대출잔액 – 모바일에서 1장씩, 3초 자동
+  // 2) 상품유형별 대출잔액
   setupAutoSlider({
-    trackSelector: "#productStatsTrack",
+    trackSelector: "#ontuProductSection",  // 상품유형 카드 컨테이너
     cardSelector: ".stats-card--product",
     prevSelector: "#productSliderPrev",
     nextSelector: "#productSliderNext",
-    thumbSelector: "#productSliderThumb",
     autoplayMs: 3000,
     mobileBreakpoint: 768,
   });
-
-  // -------- 기준월 변경 시에도 다시 세팅 --------
-  if (monthPicker) {
-    monthPicker.addEventListener("change", async () => {
-      const val = monthPicker.value;
-      if (!val) return;
-
-      await loadAndRenderForMonth(val);
-
-      // 월 바뀌면 카드 다시 그려지니까 슬라이더도 다시 세팅
-      setupAutoSlider({
-        trackSelector: "#loanStatsTrack",
-        cardSelector: ".stats-card",
-        prevSelector: "#loanSliderPrev",
-        nextSelector: "#loanSliderNext",
-        thumbSelector: "#loanSliderThumb",
-        autoplayMs: 3000,
-        mobileBreakpoint: 768,
-      });
-
-      setupAutoSlider({
-        trackSelector: "#productStatsTrack",
-        cardSelector: ".stats-card--product",
-        prevSelector: "#productSliderPrev",
-        nextSelector: "#productSliderNext",
-        thumbSelector: "#productSliderThumb",
-        autoplayMs: 3000,
-        mobileBreakpoint: 768,
-      });
-    });
+});
   }
 });
