@@ -2748,4 +2748,23 @@ body.ontu-stats-page .stats-panel--products .stats-card__bottom-row {
   justify-content: flex-end;
 }
 
+/* 대출현황 슬라이더: 카드 폭 설정 */
+.stats-panel__track--loan .stats-card {
+  flex: 0 0 calc((100% - 3 * 14px) / 4);  /* PC: 4장 보이도록 */
+}
+
+/* 모바일(<=768px): 한 장씩 보이도록 */
+@media (max-width: 768px) {
+  .stats-panel__track--loan .stats-card {
+    flex: 0 0 100%;
+  }
+
+  /* 모바일에서는 좌우 버튼이 카드 옆에 너무 붙지 않게 */
+  .stats-panel__slider--loan .stats-panel__nav {
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+  }
+}
+
 
