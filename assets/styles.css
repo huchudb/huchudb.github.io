@@ -2765,6 +2765,20 @@ body.ontu-stats-page .stats-panel--products .stats-card__bottom-row {
     height: 30px;
     font-size: 18px;
   }
+
+/* 슬라이더 하단 회색 막대 완전 숨김 */
+.stats-panel__rail {
+  display: none !important;
+}
+
+  /* 대출현황/상품유형 카드의 메인 금액은 한 줄로 고정 */
+.stats-card__value--main {
+  white-space: nowrap;
+}
+
+.stats-card__value--main .money-number,
+.stats-card__value--main .money-unit {
+  white-space: nowrap;
 }
 
 
