@@ -74,14 +74,39 @@
   <div class="stats-panel stats-panel--loan">
     <div class="stats-panel__header">
       <h2 class="stats-panel__title">대출 현황</h2>
-      <div id="loanStatusMonth" class="stats-panel__meta"></div>
     </div>
 
-    <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
-      <!-- JS에서 .stats-card 렌더 -->
+    <!-- 슬라이더 레이아웃 -->
+    <div class="stats-panel__slider stats-panel__slider--loan">
+      <!-- 좌/우 버튼 (PC·모바일 공통) -->
+      <button class="stats-panel__nav stats-panel__nav--prev" id="loanSliderPrev">
+        ‹
+      </button>
+
+      <!-- 뷰포트 + 트랙 -->
+      <div class="stats-panel__viewport">
+        <div class="stats-panel__track stats-panel__track--loan" id="loanStatsTrack">
+          <!-- 기존 loan 카드 4개(.stats-card) 를 전부 이 안으로 옮겨 넣기 -->
+          <!-- 예시:
+          <article class="stats-card stats-card--loan">...</article>
+          -->
+        </div>
+      </div>
+
+      <button class="stats-panel__nav stats-panel__nav--next" id="loanSliderNext">
+        ›
+      </button>
+    </div>
+
+    <!-- PC에서만 보이는 슬라이더 진행 막대 (모바일은 그냥 있어도 크게 부담 X) -->
+    <div class="stats-panel__progress stats-panel__progress--loan">
+      <div class="stats-panel__progress-bar">
+        <div class="stats-panel__progress-thumb" id="loanSliderThumb"></div>
+      </div>
     </div>
   </div>
 </section>
+
 
 <!-- 상품유형별 대출잔액 섹션 -->
 <section class="beta-section">
