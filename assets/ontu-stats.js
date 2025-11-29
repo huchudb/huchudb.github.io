@@ -567,3 +567,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     mobileBreakpoint: 768,
   });
 });
+}
