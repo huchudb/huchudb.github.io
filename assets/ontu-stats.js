@@ -426,4 +426,144 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadAndRenderForMonth(val);
     });
   }
+  document.addEventListener('DOMContentLoaded', () => {
+  // …(기존 통계 데이터 렌더링 코드들)…
+
+  // 공통 슬라이더 세팅 함수
+  function setupAutoSlider({
+    trackSelector,
+    cardSelector,
+    prevSelector,
+    nextSelector,
+    thumbSelector,
+    autoplayMs = 3000,
+    mobileBreakpoint = 768,
+  }) {
+    const track = document.querySelector(trackSelector);
+    if (!track) return;
+
+    const cards = Array.from(track.querySelectorAll(cardSelector));
+    if (cards.length === 0) return;
+
+    const prevBtn = document.querySelector(prevSelector);
+    const nextBtn = document.querySelector(nextSelector);
+    const thumb = thumbSelector ? document.querySelector(thumbSelector) : null;
+
+    let index = 0;
+    let timer = null;
+
+    // 현재 화면에서 실제로 몇 장이 보이는지(PC 4장, 모바일 1장) 계산
+    function getVisibleCount() {
+      const first = cards[0];
+      const trackWidth = track.getBoundingClientRect().width;
+      const cardWidth = first.getBoundingClientRect().width;
+      if (!cardWidth) return 1;
+      const count = Math.round(trackWidth / cardWidth);
+      return Math.max(1, count);
+    }
+
+    function updatePosition() {
+      const cardWidth = cards[0].getBoundingClientRect().width;
+      track.style.transform = `translateX(${-index * cardWidth}px)`;
+
+      if (thumb) {
+        const step = 100 / cards.length;
+        thumb.style.transform = `translateX(${index * step}%)`;
+        thumb.style.width = `${step}%`;
+      }
+    }
+
+    function goTo(nextIndex) {
+      const mobile = window.innerWidth <= mobileBreakpoint;
+
+      // PC에서는 사실상 첫 페이지 고정(원하면 여기서도 슬라이드 가능)
+      if (!mobile) {
+        index = 0;
+        updatePosition();
+        return;
+      }
+
+      if (nextIndex < 0) {
+        index = cards.length - 1;
+      } else if (nextIndex >= cards.length) {
+        index = 0;
+      } else {
+        index = nextIndex;
+      }
+      updatePosition();
+    }
+
+    function startAuto() {
+      const mobile = window.innerWidth <= mobileBreakpoint;
+      if (!mobile) {
+        stopAuto();
+        index = 0;
+        updatePosition();
+        return;
+      }
+      if (timer) return;
+      timer = setInterval(() => {
+        goTo(index + 1);
+      }, autoplayMs);
+    }
+
+    function stopAuto() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    // 버튼 이벤트
+    prevBtn && prevBtn.addEventListener('click', () => {
+      stopAuto();
+      goTo(index - 1);
+      startAuto();
+    });
+
+    nextBtn && nextBtn.addEventListener('click', () => {
+      stopAuto();
+      goTo(index + 1);
+      startAuto();
+    });
+
+    // 반응형 대응
+    window.addEventListener('resize', () => {
+      stopAuto();
+      index = 0;
+      // 카드 폭이 바뀌었을 수 있으니 다시 위치 계산
+      requestAnimationFrame(() => {
+        updatePosition();
+        startAuto();
+      });
+    });
+
+    // 초기 위치 + 자동 슬라이드 시작
+    updatePosition();
+    startAuto();
+
+    // 사용자가 스크롤해서 화면을 떠났을 때 멈추고 싶으면 IntersectionObserver로 확장 가능
+  }
+
+  // 1) 대출 현황 슬라이더 – 모바일에서 1장씩 + 3초 자동
+  setupAutoSlider({
+    trackSelector: '#loanStatsTrack',
+    cardSelector: '.stats-card',
+    prevSelector: '#loanSliderPrev',
+    nextSelector: '#loanSliderNext',
+    thumbSelector: '#loanSliderThumb',
+    autoplayMs: 3000,
+    mobileBreakpoint: 768,
+  });
+
+  // 2) (선택) 상품유형별 대출잔액도 같은 방식으로 자동 넘기고 싶으면 아래도 활성화
+  setupAutoSlider({
+    trackSelector: '#productStatsTrack',      // 실제 product 트랙 ID로 교체
+    cardSelector: '.stats-card--product',
+    prevSelector: '#productSliderPrev',       // 상품유형 prev 버튼 ID
+    nextSelector: '#productSliderNext',       // 상품유형 next 버튼 ID
+    thumbSelector: '#productSliderThumb',     // 상품유형 진행막대 thumb ID
+    autoplayMs: 3000,
+    mobileBreakpoint: 768,
+  });
 });
