@@ -77,20 +77,23 @@
     </div>
 
     <!-- 슬라이더 레이아웃 -->
-    <div class="stats-panel__slider stats-panel__slider--loan">
-      <!-- 좌/우 버튼 (PC·모바일 공통) -->
-      <button class="stats-panel__nav stats-panel__nav--prev" id="loanSliderPrev">
-        ‹
-      </button>
-
-      <!-- 뷰포트 + 트랙 -->
-      <div class="stats-panel__viewport">
-        <div class="stats-panel__track stats-panel__track--loan" id="ontuLoanStatus">
-          <!-- 기존 loan 카드 4개(.stats-card) 를 전부 이 안으로 옮겨 넣기 -->
-          <!-- 예시:
-          <article class="stats-card stats-card--loan">...</article>
-          -->
-        </div>
+   <div class="stats-panel__slider">
+    <button
+      class="stats-panel__nav stats-panel__nav--prev"
+      id="productSliderPrev"
+      type="button">‹</button>
+  
+    <div class="stats-panel__viewport">
+      <div id="ontuProductSection" class="stats-panel__track">
+        ...
+      </div>
+    </div>
+  
+    <button
+      class="stats-panel__nav stats-panel__nav--next"
+      id="productSliderNext"
+      type="button">›</button>
+  </div>
       </div>
 
       <button class="stats-panel__nav stats-panel__nav--next" id="loanSliderNext">
