@@ -556,14 +556,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     mobileBreakpoint: 768,
   });
 
-  // 2) (선택) 상품유형별 대출잔액도 같은 방식으로 자동 넘기고 싶으면 아래도 활성화
-  setupAutoSlider({
-    trackSelector: '#productStatsTrack',      // 실제 product 트랙 ID로 교체
-    cardSelector: '.stats-card--product',
-    prevSelector: '#productSliderPrev',       // 상품유형 prev 버튼 ID
-    nextSelector: '#productSliderNext',       // 상품유형 next 버튼 ID
-    thumbSelector: '#productSliderThumb',     // 상품유형 진행막대 thumb ID
-    autoplayMs: 3000,
-    mobileBreakpoint: 768,
-  });
 });
