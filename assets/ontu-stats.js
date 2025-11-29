@@ -554,7 +554,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     thumbSelector: '#loanSliderThumb',
     autoplayMs: 3000,
     mobileBreakpoint: 768,
-  }
+  });
 
   // 2) (선택) 상품유형별 대출잔액도 같은 방식으로 자동 넘기고 싶으면 아래도 활성화
   setupAutoSlider({
