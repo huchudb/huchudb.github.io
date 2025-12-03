@@ -474,3 +474,115 @@
 
   document.addEventListener('DOMContentLoaded', loadInitial);
 })();
+
+/* ======================
+ * 온투 통계 슬라이더 유틸
+ * ====================== */
+
+(function () {
+  /**
+   * 슬라이더 세팅
+   * @param {string} panelSelector - .stats-panel--loan .stats-panel--products 같은 선택자
+   */
+  function setupOntuSlider(panelSelector) {
+    const panel = document.querySelector(panelSelector);
+    if (!panel) return;
+
+    const slider = panel.querySelector(".stats-panel__slider");
+    const viewport = slider?.querySelector(".stats-panel__viewport");
+    const track = slider?.querySelector(".stats-panel__track");
+    if (!viewport || !track) return;
+
+    const cards = Array.from(track.querySelectorAll(".stats-card"));
+    if (!cards.length) return;
+
+    let currentIndex = 0;
+    let autoTimer = null;
+    let isHover = false;
+
+    // --- 자동 슬라이드 ---
+    function scrollToIndex(index) {
+      const clamped = (index + cards.length) % cards.length;
+      currentIndex = clamped;
+      const card = cards[clamped];
+      const cardRect = card.getBoundingClientRect();
+      const vpRect = viewport.getBoundingClientRect();
+
+      // 카드가 뷰포트 가운데쯤 오도록 스크롤
+      const offset =
+        card.offsetLeft - (vpRect.width - cardRect.width) / 2;
+
+      viewport.scrollTo({
+        left: offset,
+        behavior: "smooth",
+      });
+    }
+
+    function startAuto() {
+      if (autoTimer) return;
+      autoTimer = setInterval(() => {
+        if (isHover) return;
+        scrollToIndex(currentIndex + 1);
+      }, 3000);
+    }
+
+    function stopAuto() {
+      if (!autoTimer) return;
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+
+    // hover 시 자동 슬라이드 일시정지 (PC 에서만 의미 있음)
+    slider.addEventListener("mouseenter", () => {
+      isHover = true;
+    });
+    slider.addEventListener("mouseleave", () => {
+      isHover = false;
+    });
+
+    // --- 드래그로 슬라이드 (마우스) ---
+    let isDown = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    viewport.addEventListener("mousedown", (e) => {
+      isDown = true;
+      startX = e.clientX;
+      startScrollLeft = viewport.scrollLeft;
+      viewport.classList.add("is-dragging");
+      // 자동 슬라이드 잠깐 멈춤
+      stopAuto();
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDown) return;
+      isDown = false;
+      viewport.classList.remove("is-dragging");
+      // 다시 자동 슬라이드 시작
+      startAuto();
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      const dx = e.clientX - startX;
+      viewport.scrollLeft = startScrollLeft - dx;
+    });
+
+    // 터치(모바일)는 기본 스크롤만 사용 → 별도 코드는 필요 없음
+
+    // 초기 카드 위치 세팅 + 자동 슬라이드 시작
+    scrollToIndex(0);
+    startAuto();
+  }
+
+  // 페이지 로드 후 슬라이더 세팅
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      setupOntuSlider(".stats-panel--loan");
+      setupOntuSlider(".stats-panel--products");
+    } catch (e) {
+      console.error("[ontu-stats] slider error:", e);
+    }
+  });
+})();
+
