@@ -10,7 +10,7 @@
 </head>
 <body class="beta-body ontu-stats-page">
 
-  <!-- 상단 헤더: 베타와 동일 구조 -->
+  <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
       <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
@@ -21,22 +21,22 @@
         </span>
       </a>
 
-     <!-- MENU + 드롭다운 -->
-<button id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
-      
-          <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출 통계</a>
-          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품 정보</a>
-          <a class="beta-menu-link" href="/">담보대출 계산기</a>
-          <a class="beta-menu-link" href="/company.html">회사소개</a>
-          <a class="beta-menu-link" href="/contact.html">광고문의</a>
-          <a class="beta-menu-link" href="/beta/admin-beta.html">관리자</a>
+      <!-- MENU + 드롭다운 -->
+      <button id="betaMenuToggle"
+              class="beta-menu-toggle"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
+
+      <div id="betaMenuPanel" class="beta-menu-panel hide">
+        <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출 통계</a>
+        <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품 정보</a>
+        <a class="beta-menu-link" href="/">담보대출 계산기</a>
+        <a class="beta-menu-link" href="/company.html">회사소개</a>
+        <a class="beta-menu-link" href="/contact.html">광고문의</a>
+        <a class="beta-menu-link" href="/beta/admin-beta.html">관리자</a>
       </div>
     </div>
   </header>
@@ -46,21 +46,20 @@
     <section class="beta-section beta-section--filter">
       <div class="beta-stats-header">
         <div class="beta-stats-header__left">
-          <h1 class="beta-stats-title">대출 통계</h1>
+          <div class="beta-stats-header__top-row">
+            <h1 class="beta-stats-title">대출 통계</h1>
+            <div class="beta-month-picker">
+              <input
+                type="month"
+                id="ontuMonthInput"
+                name="ontuMonthInput"
+                aria-label="기준월 선택"
+              />
+            </div>
+          </div>
           <p class="beta-stats-subtitle">
             전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
           </p>
-        </div>
-        <div class="beta-stats-header__right">
-          <div class="beta-month-picker">
-            <span class="beta-month-picker__label">기준월</span>
-            <input
-              type="month"
-              id="ontuMonthInput"
-              name="ontuMonthInput"
-              aria-label="기준월 선택"
-            />
-          </div>
         </div>
       </div>
     </section>
@@ -79,7 +78,6 @@
               <!-- JS에서 카드 삽입 -->
             </div>
           </div>
-          <!-- 하단 인디케이터/버튼은 CSS로 숨김 (슬라이드 기능만 유지, 자동 슬라이드 JS로 처리) -->
         </div>
       </div>
     </section>
@@ -103,7 +101,7 @@
     </section>
   </main>
 
-  <!-- 공통 푸터 (다른 페이지와 동일 구조) -->
+  <!-- 공통 푸터 -->
   <footer class="beta-footer" role="contentinfo">
     <div class="beta-footer__top">
       <a href="/company.html">회사소개</a>
