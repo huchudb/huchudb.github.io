@@ -9,7 +9,7 @@
   --text-muted: #4b5563;
 }
 
-/* 기본 리셋 아주 살짝 */
+/* 기본 리셋 */
 *,
 *::before,
 *::after {
@@ -23,7 +23,8 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+    sans-serif;
   background: var(--bg);
   color: #111827;
 }
@@ -299,30 +300,32 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 160px;
+  min-height: 170px;
   transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
 }
 
-.stats-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+.stats-card--product {
+  min-height: 190px;
 }
 
+/* 카드 상단 라벨 */
 .stats-card__label {
-  font-size: 13px;
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
   font-weight: 700;
   color: #4b5563;
   margin-bottom: 8px;
-  text-align: center;
 }
 
+/* 메인 값(숫자) */
 .stats-card__value--main {
-  margin-bottom: 8px;
+  width: 100%;
   text-align: center;
-  white-space: nowrap; /* 숫자+단위 한 줄 고정 */
+  margin-bottom: 10px;
 }
 
-/* 금액 숫자/단위 */
+/* 숫자/단위 공통 스타일 */
 .money-number {
   font-size: 22px;
   font-weight: 800;
@@ -332,11 +335,12 @@ body {
 
 .money-unit {
   font-size: 13px;
+  font-weight: 600;
   color: #6b7280;
   margin-left: 2px;
 }
 
-/* 개수형 카드 */
+/* 개수형 카드 숫자 */
 .stats-card__number {
   font-size: 22px;
   font-weight: 800;
@@ -350,7 +354,7 @@ body {
   margin-left: 3px;
 }
 
-/* 하단 영역 */
+/* 하단 영역(점유비 + 전월대비) */
 .stats-card__bottom-row {
   margin-top: auto;
   width: 100%;
@@ -364,13 +368,14 @@ body {
   justify-content: flex-end;
 }
 
+/* 점유비 */
 .stats-card__share {
   font-size: 12px;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* 전월대비 */
+/* 전월대비 블록 */
 .stats-card__delta-wrap {
   text-align: right;
   display: flex;
@@ -379,7 +384,6 @@ body {
 }
 
 .stats-card__delta-label {
-  margin-top: 4px;
   font-size: 11px;
   color: #9ca3af;
 }
@@ -388,7 +392,7 @@ body {
   margin-top: 2px;
   font-size: 11px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #9ca3af; /* (+6.5%) / (-3.2%) / (0.0%) 모두 회색 */
 }
 
 .stats-card__delta {
@@ -400,7 +404,7 @@ body {
   gap: 4px;
 }
 
-/* 상승/하락/보합 색 */
+/* 상승/하락/보합 색상 */
 .stats-card__delta.delta-up {
   color: #dc2626;
 }
@@ -411,18 +415,31 @@ body {
   color: #6b7280;
 }
 
-/* 상품유형 카드: 약간 높이 늘리기 */
-.stats-card--product {
-  min-height: 180px;
+/* 호버 효과 (PC에서만) */
+@media (hover: hover) and (pointer: fine) {
+  .stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+  }
 }
+
+/* 상품유형 카드에서는 좌측 점유비를 숨기고 싶으면 아래 활성화
+.stats-panel--products .stats-card__share {
+  display: none;
+}
+.stats-panel--products .stats-card__bottom-row {
+  justify-content: flex-end;
+}
+*/
 
 /* ================= 상품유형 슬라이더 ================= */
 
+/* 공통 래퍼 */
 .stats-panel__slider {
-  position: relative;
+  margin-top: 4px;
 }
 
-/* 뷰포트/트랙 */
+/* 뷰포트/트랙 기본 */
 .stats-panel__viewport {
   overflow: hidden;
 }
@@ -433,19 +450,38 @@ body {
   transition: transform 0.3s ease;
 }
 
-/* 모바일: 한 장씩 */
+/* PC: 슬라이더 기능 X, 4장 그리드처럼 */
+@media (min-width: 769px) {
+  .stats-panel__viewport {
+    overflow: visible;
+  }
+
+  .stats-panel__track {
+    flex-wrap: wrap;
+  }
+
+  .stats-panel__track .stats-card--product {
+    flex: 0 0 calc((100% - 3 * 14px) / 4);
+  }
+
+  .stats-panel__nav {
+    display: none;
+  }
+}
+
+/* 모바일: 한 장씩 슬라이드 */
 @media (max-width: 768px) {
-  .stats-panel__slider--products {
+  .stats-panel__slider {
     display: flex;
     align-items: center;
     gap: 10px;
   }
 
-  .stats-panel__slider--products .stats-panel__viewport {
+  .stats-panel__viewport {
     flex: 1 1 auto;
   }
 
-  .stats-panel__track--products .stats-card--product {
+  .stats-panel__track .stats-card--product {
     flex: 0 0 100%;
   }
 
@@ -465,35 +501,23 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
     cursor: pointer;
   }
-}
 
-/* PC: 슬라이더 버튼 숨기고 4열 그리드로만 표시 */
-@media (min-width: 769px) {
-  .stats-panel__slider--products .stats-panel__nav {
-    display: none;
-  }
-
-  .stats-panel__slider--products .stats-panel__viewport {
-    overflow: visible;
-  }
-
-  .stats-panel__track--products {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    transform: none !important;
+  .stats-panel__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
   }
 }
 
-/* ================= 안내 박스 (에러 메시지 등) ================= */
+/* ================= notice 박스 ================= */
 
 .notice {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
   background: #ffffff;
   font-size: 13px;
-  color: #1f2933;
+  color: var(--text-muted);
 }
 
 .notice.error {
@@ -507,7 +531,7 @@ body {
   margin-top: 40px;
   background: #020617;
   color: #9ca3af;
-  padding: 18px 20px 26px;
+  padding: 18px 16px 26px;
 }
 
 .beta-footer__top {
