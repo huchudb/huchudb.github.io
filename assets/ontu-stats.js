@@ -1,12 +1,36 @@
 // /assets/ontu-stats.js
 // 온투업 담보대출 통계 상세 페이지 전용 JS
-// - /api/ontu-stats (month 단건 조회)에 맞춘 버전
-// - 대출현황 카드 렌더
-// - 상품유형별 대출잔액 카드 렌더 (+ 모바일 슬라이더 기본 지원)
 
-// ───────── 공통 유틸 ─────────
+const API_BASE = "https://huchudb-github-io.vercel.app";
+const ONTU_API = `${API_BASE}/api/ontu-stats`;
 
-// 금액 → '12조 3,580억 7,760만원' 포맷
+// ========== 공통 유틸 ==========
+
+// 'YYYY-MM' → 'YYYY년 M월'
+function formatMonthLabel(ym) {
+  if (!ym || typeof ym !== "string") return "";
+  const [y, m] = ym.split("-");
+  if (!y || !m) return "";
+  return `${y}년 ${Number(m)}월`;
+}
+
+// 'YYYY-MM' → 이전달 'YYYY-MM'
+function getPrevMonthKey(monthKey) {
+  if (!monthKey) return null;
+  const [yStr, mStr] = monthKey.split("-");
+  let y = Number(yStr);
+  let m = Number(mStr);
+  if (!y || !m) return null;
+
+  m -= 1;
+  if (m === 0) {
+    y -= 1;
+    m = 12;
+  }
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+
+// 금액 → '12조 3,580억 7,760만원' 텍스트
 function formatKoreanCurrencyJo(num) {
   const n = Math.max(0, Math.floor(num || 0));
 
@@ -33,9 +57,11 @@ function formatKoreanCurrencyJo(num) {
     const rest = n % ONE_EOK;
     const man = Math.floor(rest / ONE_MAN);
     if (man > 0) {
-      return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString("ko-KR")}만원`;
+      return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString(
+        "ko-KR"
+      )}만원`;
     }
-    return `${eok.toLocaleString("ko-KR")}억 원`;
+    return `${eok.toLocaleString("ko-KR")}억`;
   }
 
   if (n >= ONE_MAN) {
@@ -54,44 +80,13 @@ function formatKoreanCurrencyJoHtml(num) {
   });
 }
 
-// 'YYYY-MM' → 'YYYY년 M월'
-function formatMonthLabel(ym) {
-  if (!ym || typeof ym !== "string") return "";
-  const [y, m] = ym.split("-");
-  if (!y || !m) return "";
-  return `${y}년 ${Number(m)}월`;
-}
-
-// 'YYYY-MM' → 이전달 'YYYY-MM'
-function getPrevMonthKey(monthKey) {
-  if (!monthKey) return null;
-  const [yStr, mStr] = monthKey.split("-");
-  let y = Number(yStr);
-  let m = Number(mStr);
-  if (!y || !m) return null;
-
-  m -= 1;
-  if (m === 0) {
-    y -= 1;
-    m = 12;
-  }
-  return `${y}-${String(m).padStart(2, "0")}`;
-}
-
-// 증감 텍스트 & 클래스 계산
-// type: 'money' | 'count'
-function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
-  const { type = "money" } = opts;
-
+// 증감 정보 계산
+function buildDelta(currRaw, prevRaw) {
   if (prevRaw == null || isNaN(prevRaw)) {
     return {
-      text: "",
-      html: "",
-      className: "",
-      pctValue: null,
-      pctText: "",
-      pctHtml: "",
-      pctDisplay: ""
+      dir: "flat",
+      pct: "0.0%",
+      absText: "변동 없음",
     };
   }
 
@@ -99,64 +94,32 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
   const prev = Number(prevRaw || 0);
   const diff = curr - prev;
 
-  let pctValue = null;
-  if (prev !== 0) {
-    pctValue = (diff / prev) * 100;
+  if (prev === 0) {
+    return {
+      dir: diff > 0 ? "up" : diff < 0 ? "down" : "flat",
+      pct: "0.0%",
+      absText: formatKoreanCurrencyJo(diff === 0 ? 0 : Math.abs(diff)),
+    };
   }
 
-  const isUp = diff > 0;
-  const isDown = diff < 0;
-  const arrow = isUp ? "▲" : isDown ? "▼" : "";
-  const abs = Math.abs(diff);
+  const pctValue = (diff / prev) * 100;
+  const pctStr = `${Math.abs(pctValue).toFixed(2)}%`;
 
-  let bodyText;
-  let bodyHtml;
+  const dir = diff > 0 ? "up" : diff < 0 ? "down" : "flat";
+  const absText = diff === 0
+    ? "변동 없음"
+    : formatKoreanCurrencyJo(Math.abs(diff));
 
-  if (type === "count") {
-    bodyText = `${abs.toLocaleString("ko-KR")}개`;
-    bodyHtml = bodyText;
-  } else {
-    bodyText = formatKoreanCurrencyJo(abs);
-    bodyHtml = formatKoreanCurrencyJoHtml(abs);
-  }
-
-  const baseText = diff === 0 ? "변동 없음" : `${arrow} ${bodyText}`;
-  const baseHtml = diff === 0 ? "변동 없음" : `${arrow} ${bodyHtml}`;
-
-  let pctText = "";
-  let pctHtml = "";
-  if (pctValue !== null) {
-    const sign = isUp ? "+" : isDown ? "-" : "";
-    const pctCore = `${Math.abs(pctValue).toFixed(1)}%`;
-    pctText = `(${sign ? sign + " " : ""}${pctCore})`;
-    pctHtml = pctText;
-  }
-  const pctDisplay = pctText || "(0.0%)";
-
-  return {
-    text: baseText,
-    html: baseHtml,
-    className: diff === 0 ? "delta-flat" : isUp ? "delta-up" : "delta-down",
-    pctValue,
-    pctText,
-    pctHtml,
-    pctDisplay
-  };
+  return { dir, pct: pctStr, absText };
 }
 
-// ───────── API 설정 ─────────
+// ========== API 호출 ==========
 
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const ONTU_API = `${API_BASE}/api/ontu-stats`;
-
-// 한 달 데이터만 가져오기 (백엔드 구조에 그대로 맞춤)
-// GET /api/ontu-stats?month=YYYY-MM  → { month, summary, byType }
-// GET /api/ontu-stats               → latest { month, summary, byType }
 async function fetchOntuStats(monthKey) {
   try {
     const url = monthKey
       ? `${ONTU_API}?month=${encodeURIComponent(monthKey)}`
-      : `${ONTU_API}`;
+      : ONTU_API;
 
     const sep = url.includes("?") ? "&" : "?";
 
@@ -165,91 +128,92 @@ async function fetchOntuStats(monthKey) {
       mode: "cors",
       credentials: "omit",
       headers: { Accept: "application/json" },
-      cache: "no-store"
+      cache: "no-store",
     });
 
     if (!res.ok) {
-      // 404면 null 리턴해서 "해당 월 데이터 없음" 처리
-      console.error("[ontu-stats] fetch error:", res.status, await res.text());
-      return null;
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        `${res.status} ${err && err.error ? err.error : "API error"}`
+      );
     }
-
-    const json = await res.json();
-    console.log("[ontu-stats] API response:", json);
-    return json;
+    return await res.json();
   } catch (e) {
-    console.error("[ontu-stats] fetch exception:", e);
-    return null;
+    console.error("[ontu-stats] fetch error:", e);
+    throw e;
   }
 }
 
-// ───────── 대출현황 카드 렌더 ─────────
+// ========== 렌더링: 대출 현황 ==========
 
-function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
-  const container = document.getElementById("ontuLoanStatus");
-  const monthEl = document.getElementById("loanStatusMonth");
-  if (!container) return;
+function renderLoanStatus(currentSummary, monthKey, prevSummary) {
+  const track = document.getElementById("ontuLoanStatus");
+  const monthLabel = document.getElementById("loanStatusMonthLabel");
+  if (!track) return;
 
-  if (monthEl) {
-    monthEl.textContent = monthKey ? formatMonthLabel(monthKey) : "";
-  }
+  track.innerHTML = "";
+  monthLabel.textContent = monthKey ? `${formatMonthLabel(monthKey)} 기준` : "";
 
   if (!currentSummary) {
-    container.innerHTML = `
-      <div class="notice error">
-        <p>온투업 통계를 불러오지 못했습니다.</p>
-      </div>
-    `;
+    track.innerHTML = "";
+    showNotice("대출 현황 데이터를 불러오지 못했습니다.");
     return;
   }
 
-  const s = currentSummary;
   const ps = prevSummary || {};
 
   const items = [
-    { key: "dataFirms", label: "데이터 수집 온투업체수", type: "count" },
+    { key: "dataFirms", label: "데이터수집 온투업체수", type: "count" },
     { key: "totalLoan", label: "누적 대출금액", type: "money" },
     { key: "totalRepaid", label: "누적 상환금액", type: "money" },
-    { key: "balance", label: "대출잔액", type: "money" }
+    { key: "balance", label: "대출잔액", type: "money" },
   ];
 
   const cardsHtml = items
     .map((it) => {
-      const currRaw = s[it.key] ?? 0;
+      const currRaw = currentSummary[it.key] ?? 0;
       const prevRaw = ps[it.key];
 
-      let valueHtml;
+      let mainHtml;
       if (it.type === "count") {
-        valueHtml = `
+        mainHtml = `
           <span class="stats-card__number">${(currRaw || 0).toLocaleString(
             "ko-KR"
           )}</span>
           <span class="stats-card__unit">개</span>
         `;
       } else {
-        valueHtml = formatKoreanCurrencyJoHtml(currRaw);
+        mainHtml = formatKoreanCurrencyJoHtml(currRaw);
       }
 
-      const delta = buildDeltaInfo(currRaw, prevRaw, { type: it.type });
+      const delta = buildDelta(currRaw, prevRaw);
+      const deltaClass =
+        delta.dir === "up"
+          ? "delta-up"
+          : delta.dir === "down"
+          ? "delta-down"
+          : "delta-flat";
 
+      // 카드 구조는 디자인 이미지에 맞춰 구성
       return `
         <article class="stats-card">
           <div class="stats-card__label">${it.label}</div>
+
           <div class="stats-card__value stats-card__value--main">
-            ${valueHtml}
+            ${mainHtml}
           </div>
 
           <div class="stats-card__bottom-row stats-card__bottom-row--no-share">
             <span class="stats-card__share"></span>
             <div class="stats-card__delta-wrap">
               <div class="stats-card__delta-label">전월대비</div>
-              <div class="stats-card__delta-rate">
-                ${delta.pctDisplay || "(0.0%)"}
-              </div>
-              <div class="stats-card__delta ${
-                delta.className || "delta-flat"
-              }">
-                ${delta.html || delta.text || "변동 없음"}
+              <div class="stats-card__delta-rate">${delta.pct}</div>
+              <div class="stats-card__delta ${deltaClass}">
+                ${
+                  delta.dir === "flat"
+                    ? "변동 없음"
+                    : `${delta.dir === "up" ? "▲" : "▼"} ${delta.absText}`
+                }
               </div>
             </div>
           </div>
@@ -258,38 +222,27 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
     })
     .join("");
 
-  container.innerHTML = cardsHtml;
+  track.innerHTML = cardsHtml;
 }
 
-// ───────── 상품유형별 대출잔액 카드 렌더 ─────────
+// ========== 렌더링: 상품유형별 대출잔액 ==========
 
-function renderProductSection(
-  currentSummary,
-  currentByType,
-  prevByType,
-  monthKey,
-  prevMonthKey
-) {
-  const track = document.getElementById("ontuProductSection");
-  const monthEl = document.getElementById("productStatusMonth");
+function renderProductSection(currentSummary, byType, prevByType, monthKey) {
+  const track = document.getElementById("ontuProductTrack");
+  const monthLabel = document.getElementById("productStatusMonthLabel");
   if (!track) return;
 
-  if (monthEl) {
-    monthEl.textContent = monthKey ? formatMonthLabel(monthKey) : "";
-  }
+  track.innerHTML = "";
+  monthLabel.textContent = monthKey ? `${formatMonthLabel(monthKey)} 기준` : "";
 
-  if (!currentSummary || !currentByType || !Object.keys(currentByType).length) {
-    track.innerHTML = `
-      <div class="notice error">
-        <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
-      </div>
-    `;
+  if (!currentSummary || !byType || !Object.keys(byType).length) {
+    showNotice("상품유형별 대출잔액 데이터를 불러오지 못했습니다.");
     return;
   }
 
   const balance = Number(currentSummary.balance || 0);
 
-  const cardsHtml = Object.entries(currentByType)
+  const cardsHtml = Object.entries(byType)
     .map(([name, cfg]) => {
       const ratio =
         Number(
@@ -305,7 +258,6 @@ function renderProductSection(
           ? Math.round(balance * ratio)
           : 0;
 
-      // 전월 금액
       let prevAmt = null;
       if (prevByType && prevByType[name]) {
         const pCfg = prevByType[name];
@@ -320,15 +272,23 @@ function renderProductSection(
             ? Number(pCfg.amount)
             : balance && pRatio
             ? Math.round(balance * pRatio)
-            : 0;
+            : null;
       }
 
-      const delta = buildDeltaInfo(amount, prevAmt, { type: "money" });
-      const shareText = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : "-";
+      const delta = buildDelta(amount, prevAmt);
+      const deltaClass =
+        delta.dir === "up"
+          ? "delta-up"
+          : delta.dir === "down"
+          ? "delta-down"
+          : "delta-flat";
+
+      const shareText = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : "";
 
       return `
         <article class="stats-card stats-card--product">
           <div class="stats-card__label">${name}</div>
+
           <div class="stats-card__value stats-card__value--main">
             ${formatKoreanCurrencyJoHtml(amount)}
           </div>
@@ -337,13 +297,13 @@ function renderProductSection(
             <span class="stats-card__share">${shareText}</span>
             <div class="stats-card__delta-wrap">
               <div class="stats-card__delta-label">전월대비</div>
-              <div class="stats-card__delta-rate">
-                ${delta.pctDisplay || "(0.0%)"}
-              </div>
-              <div class="stats-card__delta ${
-                delta.className || "delta-flat"
-              }">
-                ${delta.html || delta.text || "변동 없음"}
+              <div class="stats-card__delta-rate">${delta.pct}</div>
+              <div class="stats-card__delta ${deltaClass}">
+                ${
+                  delta.dir === "flat"
+                    ? "변동 없음"
+                    : `${delta.dir === "up" ? "▲" : "▼"} ${delta.absText}`
+                }
               </div>
             </div>
           </div>
@@ -355,131 +315,154 @@ function renderProductSection(
   track.innerHTML = cardsHtml;
 }
 
-// ───────── 상품유형 슬라이더 (모바일 전용) ─────────
+// ========== 슬라이더 초기화 (PC 4장 / 모바일 1장) ==========
 
-let productSliderInitialized = false;
+function initSlider(options) {
+  const {
+    trackId,
+    prevBtnId,
+    nextBtnId,
+  } = options;
 
-function initProductSlider() {
-  if (productSliderInitialized) return;
-  productSliderInitialized = true;
+  const track = document.getElementById(trackId);
+  const prevBtn = document.getElementById(prevBtnId);
+  const nextBtn = document.getElementById(nextBtnId);
+  if (!track || !prevBtn || !nextBtn) return;
 
-  const viewport = document.querySelector(
-    ".stats-panel--products .stats-panel__viewport"
-  );
-  const track = document.getElementById("ontuProductSection");
-  const prevBtn = document.getElementById("productPrevBtn");
-  const nextBtn = document.getElementById("productNextBtn");
+  const viewport = track.parentElement;
+  let index = 0;
 
-  if (!viewport || !track || !prevBtn || !nextBtn) return;
+  function getVisibleCount() {
+    return window.innerWidth >= 900 ? 4 : 1;
+  }
 
-  let currentIndex = 0;
+  function updateButtons() {
+    const cards = track.children.length;
+    const visible = getVisibleCount();
+    const maxIndex = Math.max(0, Math.ceil(cards / visible) - 1);
 
-  function scrollToIndex(idx) {
-    const cards = track.querySelectorAll(".stats-card");
-    if (!cards.length) return;
-    const first = cards[0];
-    const cardWidth = first.offsetWidth;
-    const gap =
-      parseFloat(getComputedStyle(track).columnGap || 0) ||
-      parseFloat(getComputedStyle(track).gap || 0) ||
-      0;
+    prevBtn.disabled = index <= 0;
+    nextBtn.disabled = index >= maxIndex;
+  }
 
-    const maxIndex = Math.max(0, cards.length - 1);
-    currentIndex = Math.min(Math.max(0, idx), maxIndex);
-
-    const offset = (cardWidth + gap) * currentIndex;
-    viewport.scrollTo({ left: offset, behavior: "smooth" });
+  function applyTransform() {
+    const viewportWidth = viewport.clientWidth;
+    track.style.transform = `translateX(-${index * viewportWidth}px)`;
   }
 
   prevBtn.addEventListener("click", () => {
-    scrollToIndex(currentIndex - 1);
+    if (index <= 0) return;
+    index -= 1;
+    applyTransform();
+    updateButtons();
   });
 
   nextBtn.addEventListener("click", () => {
-    scrollToIndex(currentIndex + 1);
+    const cards = track.children.length;
+    const visible = getVisibleCount();
+    const maxIndex = Math.max(0, Math.ceil(cards / visible) - 1);
+    if (index >= maxIndex) return;
+    index += 1;
+    applyTransform();
+    updateButtons();
   });
 
-  // 리사이즈 시 인덱스에 맞춰 다시 정렬
   window.addEventListener("resize", () => {
-    scrollToIndex(currentIndex);
+    // 화면 크기 바뀌면 맨 처음 페이지로
+    index = 0;
+    track.style.transform = "translateX(0)";
+    updateButtons();
   });
+
+  // 첫 초기화
+  updateButtons();
 }
 
-// ───────── 월 선택 / 초기화 ─────────
+// ========== 에러/안내 박스 ==========
 
-// monthSelect: <select id="ontuStatsMonthSelect"> (있으면 사용, 없으면 latest만)
-async function loadAndRender(monthKey) {
-  const root = document.documentElement;
-  root.classList.add("ontu-loading");
-
-  // 1) 현재월 데이터
-  const current = await fetchOntuStats(monthKey);
-  if (!current || !current.summary) {
-    console.warn("[ontu-stats] no current data");
-    renderLoanStatus(null, monthKey || (current && current.month) || null, null, null);
-    renderProductSection(null, null, null, monthKey || (current && current.month) || null, null);
-    root.classList.remove("ontu-loading");
-    return;
-  }
-
-  const currentMonthKey = current.month;
-  const prevMonthKey = getPrevMonthKey(currentMonthKey);
-
-  // 페이지 상단(공통) 월 라벨이 따로 있다면 업데이트
-  const globalMonthLabelEl = document.querySelector(
-    "[data-role='ontu-stats-month-label']"
-  );
-  if (globalMonthLabelEl) {
-    globalMonthLabelEl.textContent = formatMonthLabel(currentMonthKey);
-  }
-
-  // 2) 전월 데이터 (있으면 사용, 없으면 null)
-  let prev = null;
-  if (prevMonthKey) {
-    prev = await fetchOntuStats(prevMonthKey);
-  }
-
-  renderLoanStatus(
-    current.summary,
-    currentMonthKey,
-    prev && prev.summary ? prev.summary : null,
-    prev && prev.month ? prev.month : prevMonthKey
-  );
-
-  renderProductSection(
-    current.summary,
-    current.byType || {},
-    prev && prev.byType ? prev.byType : null,
-    currentMonthKey,
-    prev && prev.month ? prev.month : prevMonthKey
-  );
-
-  initProductSlider();
-
-  // 드롭다운(select) 값 동기화
-  const monthSelect = document.getElementById("ontuStatsMonthSelect");
-  if (monthSelect) {
-    const option = Array.from(monthSelect.options).find(
-      (o) => o.value === currentMonthKey
-    );
-    if (option) monthSelect.value = currentMonthKey;
-  }
-
-  root.classList.remove("ontu-loading");
+function showNotice(message) {
+  const section = document.getElementById("ontuStatsNoticeSection");
+  const box = document.getElementById("ontuStatsNotice");
+  if (!section || !box) return;
+  box.textContent = message;
+  section.style.display = "block";
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // 초기 로딩: latest 월
-  loadAndRender(null);
+function hideNotice() {
+  const section = document.getElementById("ontuStatsNoticeSection");
+  if (!section) return;
+  section.style.display = "none";
+}
 
-  // 월 변경 드롭다운 핸들러 (있을 때만)
-  const monthSelect = document.getElementById("ontuStatsMonthSelect");
-  if (monthSelect) {
-    monthSelect.addEventListener("change", (e) => {
-      const v = e.target.value || "";
-      if (v) {
-        loadAndRender(v);
+// ========== 메인 흐름 ==========
+
+async function loadMonthAndRender(explicitMonthKey) {
+  hideNotice();
+
+  try {
+    // 1) 현재월 데이터 (monthKey가 없으면 API가 latest를 줌)
+    const current = await fetchOntuStats(explicitMonthKey || undefined);
+    if (!current || !current.month || !current.summary) {
+      showNotice("통계 데이터가 없습니다. 관리자에서 먼저 저장해주세요.");
+      return;
+    }
+
+    const monthKey = current.month;
+    const input = document.getElementById("ontuMonthPicker");
+    if (input && !explicitMonthKey) {
+      // 초기 로딩 시 input 값 세팅
+      input.value = monthKey;
+    }
+
+    // 2) 전월 데이터 (없어도 에러 아님)
+    const prevKey = getPrevMonthKey(monthKey);
+    let prevSummary = null;
+    let prevByType = null;
+    if (prevKey) {
+      try {
+        const prev = await fetchOntuStats(prevKey);
+        if (prev && prev.summary) {
+          prevSummary = prev.summary;
+          prevByType = prev.byType || null;
+        }
+      } catch (e) {
+        // 전월 데이터가 없어도 무시
+        console.info("[ontu-stats] no previous month data:", e.message);
       }
+    }
+
+    // 3) 렌더링
+    renderLoanStatus(current.summary, monthKey, prevSummary);
+    renderProductSection(current.summary, current.byType, prevByType, monthKey);
+
+    // 4) 슬라이더 재초기화
+    initSlider({
+      trackId: "ontuLoanStatus",
+      prevBtnId: "loanSliderPrev",
+      nextBtnId: "loanSliderNext",
+    });
+    initSlider({
+      trackId: "ontuProductTrack",
+      prevBtnId: "productSliderPrev",
+      nextBtnId: "productSliderNext",
+    });
+  } catch (e) {
+    console.error(e);
+    showNotice("온투업 통계를 불러오는 중 오류가 발생했습니다.");
+  }
+}
+
+// DOM 로드 후 초기화
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("ontuMonthPicker");
+  if (input) {
+    input.addEventListener("change", () => {
+      const val = input.value || "";
+      if (!val) return;
+      loadMonthAndRender(val);
     });
   }
+
+  // 최초 1회: latest 기준으로 로딩
+  loadMonthAndRender(null);
 });
