@@ -1,167 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <style>
-    /* === 온투 통계 페이지 전용 강제 오버라이드 === */
-
-    /* 1. 타이틀/부제목은 좌측 정렬, 캘린더는 타이틀 오른쪽 밀착 */
-    body.ontu-stats-page .beta-stats-header {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-    }
-
-    body.ontu-stats-page .beta-stats-header__top-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    body.ontu-stats-page .beta-stats-title,
-    body.ontu-stats-page .beta-stats-subtitle {
-      text-align: left;
-    }
-
-    body.ontu-stats-page .beta-month-picker {
-      display: inline-flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 6px;
-    }
-
-    body.ontu-stats-page .beta-month-picker__label {
-      display: none !important;
-    }
-
-    /* 모바일에서 두 줄 깨지지 않게 */
-    @media (max-width: 640px) {
-      body.ontu-stats-page .beta-stats-header {
-        align-items: flex-start;
-      }
-      body.ontu-stats-page .beta-stats-header__top-row {
-        width: 100%;
-        justify-content: space-between;
-      }
-      body.ontu-stats-page .beta-month-picker input[type="month"] {
-        max-width: 150px;
-      }
-    }
-
-    /* 2. 대출현황/상품유형 카드 하단 회색 막대 완전 제거 */
-    body.ontu-stats-page .stats-panel__slider::after,
-    body.ontu-stats-page .stats-panel__rail,
-    body.ontu-stats-page .stats-panel__nav {
-      display: none !important;
-      content: none !important;
-    }
-
-    /* 3. 패널 제목(대출 현황 / 상품유형별 대출잔액) 30% 업 */
-    body.ontu-stats-page .stats-panel__title {
-      font-size: 24px !important;
-      font-weight: 800;
-    }
-
-    /* 4. 카드 라벨/본문 30% 업 */
-    body.ontu-stats-page .stats-card__label {
-      font-size: 16px !important;
-      font-weight: 700;
-    }
-    body.ontu-stats-page .stats-card__share {
-      font-size: 12px !important;
-    }
-
-    /* 5. 금액/개수 메인 숫자 2배, 단위는 50% */
-    body.ontu-stats-page .stats-card__value--main {
-      display: inline-flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 4px;
-      white-space: nowrap; /* 숫자+단위 한 줄 유지 */
-    }
-
-    body.ontu-stats-page .stats-panel .money-number,
-    body.ontu-stats-page .stats-card__number {
-      font-size: clamp(30px, 3.4vw, 42px);
-      font-weight: 800;
-      line-height: 1.1;
-    }
-
-    body.ontu-stats-page .stats-panel .money-unit,
-    body.ontu-stats-page .stats-card__unit {
-      font-size: clamp(14px, 1.4vw, 18px);
-      font-weight: 600;
-      color: #6b7280;
-      margin-left: 4px;
-    }
-
-    @media (max-width: 640px) {
-      body.ontu-stats-page .stats-panel .money-number,
-      body.ontu-stats-page .stats-card__number {
-        font-size: 24px;
-      }
-      body.ontu-stats-page .stats-panel .money-unit,
-      body.ontu-stats-page .stats-card__unit {
-        font-size: 12px;
-      }
-    }
-
-    /* 6. 첫 번째 카드(데이터수집 온투업체수) 숫자/단위 3배 수준 */
-    body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__number {
-      font-size: clamp(42px, 4vw, 56px);
-      font-weight: 800;
-    }
-    body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__unit {
-      font-size: clamp(20px, 2vw, 24px);
-      font-weight: 700;
-    }
-
-    /* 7. 전월대비 블럭 텍스트 크기 조정 */
-    body.ontu-stats-page .stats-card__delta-label {
-      font-size: 14px;
-      font-weight: 700;
-    }
-    body.ontu-stats-page .stats-card__delta-rate {
-      font-size: 18px;
-      font-weight: 800;
-    }
-    body.ontu-stats-page .stats-card__delta {
-      font-size: 20px;
-    }
-
-    @media (max-width: 900px) {
-      body.ontu-stats-page .stats-card__delta-label {
-        font-size: 11px;
-      }
-      body.ontu-stats-page .stats-card__delta-rate {
-        font-size: 13px;
-      }
-      body.ontu-stats-page .stats-card__delta {
-        font-size: 14px;
-      }
-    }
-
-    /* 8. 상품유형별 카드 슬라이더 – 가로 스크롤만, 드래그시 커서 변경 */
-    body.ontu-stats-page .stats-panel__viewport {
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      scroll-snap-type: x mandatory;
-    }
-    body.ontu-stats-page .stats-panel__viewport::-webkit-scrollbar {
-      display: none;
-    }
-    body.ontu-stats-page .stats-panel__track {
-      display: flex;
-      gap: 14px;
-    }
-    body.ontu-stats-page .stats-card {
-      scroll-snap-align: center;
-    }
-    body.ontu-stats-page .stats-panel__viewport.is-dragging {
-      cursor: grabbing;
-      cursor: -webkit-grabbing;
-    }
-  </style>
 
 <head>
   <meta charset="UTF-8" />
@@ -288,5 +126,193 @@
   </footer>
 
   <script src="/assets/ontu-stats.js?v=20251203-auto"></script>
+
+  <!-- 온투 통계: 금액/단위 래핑 + 자동 슬라이드/드래그 후처리 -->
+  <script>
+    (function () {
+      // 메인 금액 텍스트를 숫자/단위로 쪼개서 span으로 감싸기
+      function decorateMoneySpans() {
+        const selectors =
+          '.stats-panel--loan .stats-card__value--main, ' +
+          '.stats-panel--products .stats-card__value--main';
+
+        const nodes = document.querySelectorAll(selectors);
+        if (!nodes.length) return;
+
+        nodes.forEach((node) => {
+          // 첫 카드(데이터수집 온투업체수)는 지금 잘 나오니 건너뜀
+          const isLoanPanel = node.closest('.stats-panel--loan');
+          const card = node.closest('.stats-card');
+          if (isLoanPanel && card && card === card.parentElement.firstElementChild) {
+            return;
+          }
+
+          // 이미 래핑돼 있으면 패스
+          if (node.querySelector('.money-number') || node.querySelector('.money-unit')) {
+            return;
+          }
+
+          const raw = node.textContent.trim();
+          if (!raw) return;
+
+          // "18조 3,580억 234만원" → ["18조", "3,580억", "234만원"]
+          const tokens = raw.split(/\s+/);
+          const htmlTokens = tokens.map((tok) => {
+            // "18조" / "3,580억" / "234만원" / "49개" 등 처리
+            const m = tok.match(/^([\d,]+)([^\d,]+)$/);
+            if (!m) {
+              // 숫자+단위 패턴이 아니면 그냥 둠
+              return tok;
+            }
+            const num = m[1];
+            const unit = m[2];
+            return (
+              '<span class="money-number">' +
+              num +
+              '</span><span class="money-unit">' +
+              unit +
+              '</span>'
+            );
+          });
+
+          node.innerHTML = htmlTokens.join(' ');
+        });
+      }
+
+      // 공통: 자동 슬라이드 + hover 시 일시정지 + 드래그 스크롤
+      function setupAutoSlider(trackSelector, viewportSelector, intervalMs) {
+        const track = document.querySelector(trackSelector);
+        const viewport = document.querySelector(viewportSelector);
+        if (!track || !viewport) return;
+
+        let index = 0;
+        let timer = null;
+
+        function slideOnce() {
+          const cards = track.children;
+          if (!cards.length) return;
+          index = (index + 1) % cards.length;
+          const target = cards[index];
+          const offset = target.offsetLeft;
+          viewport.scrollTo({ left: offset, behavior: 'smooth' });
+        }
+
+        function start() {
+          if (timer) return;
+          timer = setInterval(slideOnce, intervalMs);
+        }
+
+        function stop() {
+          if (!timer) return;
+          clearInterval(timer);
+          timer = null;
+        }
+
+        // PC: 마우스 올리면 정지, 나가면 다시 재생
+        viewport.addEventListener('mouseenter', stop);
+        viewport.addEventListener('mouseleave', start);
+
+        // 마우스 드래그로 좌우 이동 (특히 상품유형 패널 요구사항)
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        viewport.addEventListener('mousedown', (e) => {
+          isDown = true;
+          viewport.classList.add('is-dragging');
+          startX = e.pageX - viewport.getBoundingClientRect().left;
+          scrollLeft = viewport.scrollLeft;
+          stop();
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (!isDown) return;
+          isDown = false;
+          viewport.classList.remove('is-dragging');
+          start(); // 드래그 끝나면 다시 자동 슬라이드
+        });
+
+        viewport.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - viewport.getBoundingClientRect().left;
+          const walk = startX - x;
+          viewport.scrollLeft = scrollLeft + walk;
+        });
+
+        // 모바일 터치 드래그
+        let tStartX = 0;
+        let tScrollLeft = 0;
+        viewport.addEventListener(
+          'touchstart',
+          (e) => {
+            const touch = e.touches[0];
+            tStartX = touch.pageX - viewport.getBoundingClientRect().left;
+            tScrollLeft = viewport.scrollLeft;
+            stop();
+          },
+          { passive: true }
+        );
+
+        viewport.addEventListener(
+          'touchmove',
+          (e) => {
+            const touch = e.touches[0];
+            const x = touch.pageX - viewport.getBoundingClientRect().left;
+            const walk = tStartX - x;
+            viewport.scrollLeft = tScrollLeft + walk;
+          },
+          { passive: false }
+        );
+
+        viewport.addEventListener(
+          'touchend',
+          () => {
+            start();
+          },
+          { passive: true }
+        );
+
+        // 초기 자동 슬라이드 시작
+        start();
+      }
+
+      function initEnhance() {
+        decorateMoneySpans();
+
+        // 대출현황 패널 자동 슬라이드
+        setupAutoSlider(
+          '#ontuLoanTrack',
+          '.stats-panel__slider--loan .stats-panel__viewport',
+          3000
+        );
+
+        // 상품유형별 대출잔액 패널 자동 슬라이드 + 드래그
+        setupAutoSlider(
+          '#ontuProductTrack',
+          '.stats-panel__slider--products .stats-panel__viewport',
+          3000
+        );
+      }
+
+      // ontu-stats.js가 카드 DOM을 만든 뒤에 실행되도록 감시
+      document.addEventListener('DOMContentLoaded', function () {
+        const loanTrack = document.getElementById('ontuLoanTrack');
+        const productTrack = document.getElementById('ontuProductTrack');
+        if (!loanTrack || !productTrack) return;
+
+        const observer = new MutationObserver(() => {
+          if (loanTrack.children.length || productTrack.children.length) {
+            observer.disconnect();
+            initEnhance();
+          }
+        });
+
+        observer.observe(loanTrack, { childList: true });
+        observer.observe(productTrack, { childList: true });
+      });
+    })();
+  </script>
 </body>
 </html>
+
