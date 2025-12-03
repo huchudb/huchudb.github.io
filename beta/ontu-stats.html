@@ -8,26 +8,35 @@
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="/assets/styles.css?v=20251203-ontu-stats" />
 </head>
-<body class="beta-body ontu-stats-page">
-  <!-- 공통 헤더 -->
-  <header class="huchu-header beta-header">
-    <div class="beta-header__inner huchu-header__inner">
-      <a href="/" class="huchu-logo">
-        <img src="/assets/logo/huchu-logo.png" alt="후추 로고" class="logo-img" />
-        <span class="logo-text">HUCHU</span>
+<body class="beta-body">
+
+  <!-- 상단 헤더: 베타와 동일 구조 -->
+  <header class="huchu-header beta-header" role="banner">
+    <div class="huchu-header__inner beta-header__inner">
+      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
+        </span>
       </a>
-      <div class="beta-menu">
-        <button type="button" class="beta-menu-toggle" aria-label="메뉴 열기">
-          <span class="beta-menu-toggle__icon">
-            <span></span><span></span><span></span>
-          </span>
-          <span class="beta-menu-toggle__label">MENU</span>
-        </button>
-        <div class="beta-menu-panel hide" id="betaMenuPanel">
-          <a href="/" class="beta-menu-link">홈</a>
-          <a href="/calculator.html" class="beta-menu-link">담보대출 한도 계산기</a>
-          <a href="/products/index.html" class="beta-menu-link">담보대출 상품 안내</a>
-          <a href="/blog.html" class="beta-menu-link">블로그</a>
+
+     <!-- MENU + 드롭다운 -->
+<button id="betaMenuToggle"
+        class="beta-menu-toggle"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false">
+  <span class="beta-menu-toggle__label">MENU</span>
+</button>
+      
+          <div id="betaMenuPanel" class="beta-menu-panel hide">
+          <a class="beta-menu-link" href="/beta/">온투업 대출 통계</a>
+          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품 정보</a>
+          <a class="beta-menu-link" href="/">담보대출 계산기</a>
+          <a class="beta-menu-link" href="/company.html">회사소개</a>
+          <a class="beta-menu-link" href="/contact.html">광고문의</a>
+          <a class="beta-menu-link" href="/beta/admin-beta.html">관리자(베타)</a>
         </div>
       </div>
     </div>
@@ -96,15 +105,17 @@
   </main>
 
   <!-- 공통 푸터 (다른 페이지와 동일 구조) -->
-  <footer class="beta-footer">
+  <footer class="beta-footer" role="contentinfo">
     <div class="beta-footer__top">
-      <a href="/about.html">회사소개</a>
+      <a href="/company.html">회사소개</a>
       <a href="/terms.html">서비스이용약관</a>
       <a href="/privacy.html">개인정보 취급방침</a>
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <span class="beta-footer__logo-mark">후</span>
+        <img src="/assets/logo/huchu-logo-white.png"
+             alt="HUCHU 로고"
+             class="beta-footer__logo-img" />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
