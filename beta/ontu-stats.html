@@ -8,7 +8,7 @@
   <!-- 검색엔진 인덱싱 방지(베타) -->
   <meta name="robots" content="noindex, nofollow" />
 
-  <!-- 이 페이지 전용 CSS (공용 styles.css는 건들지 않기) -->
+  <!-- 이 페이지 전용 CSS -->
   <link rel="stylesheet" href="/assets/ontu-stats.css?v=20251202" />
 
   <!-- 이 페이지 전용 JS -->
@@ -28,11 +28,13 @@
       </a>
 
       <!-- MENU 버튼 -->
-      <button id="betaMenuToggle"
-              class="beta-menu-toggle"
-              type="button"
-              aria-haspopup="true"
-              aria-expanded="false">
+      <button
+        id="betaMenuToggle"
+        class="beta-menu-toggle"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
         <span class="beta-menu-toggle__label">MENU</span>
       </button>
 
@@ -63,14 +65,13 @@
             </p>
           </div>
           <label class="beta-month-picker">
-            <!-- '기준월' 텍스트는 CSS에서 숨김 -->
             <span class="beta-month-picker__label">기준월</span>
             <input type="month" id="statsMonthPicker" />
           </label>
         </div>
       </section>
 
-      <!-- 대출현황 섹션 (PC: 4장 그리드 / 모바일: 1장씩 세로) -->
+      <!-- 대출현황 섹션 -->
       <section class="beta-section">
         <div class="stats-panel stats-panel--loan">
           <div class="stats-panel__header">
@@ -78,9 +79,11 @@
             <div id="loanStatusMonth" class="stats-panel__meta"></div>
           </div>
 
-          <!-- 대출현황은 PC에서 슬라이더 사용 안 함(모바일에서도 그냥 세로 카드) -->
           <div class="stats-panel__body">
-            <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
+            <div
+              id="ontuLoanStatus"
+              class="stats-panel__grid stats-panel__grid--loan"
+            >
               <!-- JS 렌더링 -->
             </div>
           </div>
@@ -96,19 +99,22 @@
           </div>
 
           <div class="stats-panel__slider stats-panel__slider--products">
-            <!-- 좌/우 버튼 (모바일에서만 보이게 CSS 처리) -->
+            <!-- 모바일에서만 보이게 CSS 처리 -->
             <button
               class="stats-panel__nav stats-panel__nav--prev"
               id="productSliderPrev"
               type="button"
-              aria-label="이전">
+              aria-label="이전"
+            >
               ‹
             </button>
 
             <div class="stats-panel__viewport">
-              <div id="ontuProductSection"
-                   class="stats-panel__track stats-panel__track--products">
-                <!-- 상품유형 카드들이 JS로 렌더 -->
+              <div
+                id="ontuProductSection"
+                class="stats-panel__track stats-panel__track--products"
+              >
+                <!-- 상품유형 카드들 JS 렌더 -->
               </div>
             </div>
 
@@ -116,7 +122,8 @@
               class="stats-panel__nav stats-panel__nav--next"
               id="productSliderNext"
               type="button"
-              aria-label="다음">
+              aria-label="다음"
+            >
               ›
             </button>
           </div>
@@ -135,9 +142,11 @@
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img src="/assets/logo/huchu-logo-white.png"
-             alt="HUCHU 로고"
-             class="beta-footer__logo-img" />
+        <img
+          src="/assets/logo/huchu-logo-white.png"
+          alt="HUCHU 로고"
+          class="beta-footer__logo-img"
+        />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
@@ -151,21 +160,21 @@
 
   <!-- 이 페이지용 MENU 토글 스크립트 -->
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const toggle = document.getElementById('betaMenuToggle');
-      const panel  = document.getElementById('betaMenuPanel');
+    document.addEventListener("DOMContentLoaded", function () {
+      const toggle = document.getElementById("betaMenuToggle");
+      const panel = document.getElementById("betaMenuPanel");
       if (!toggle || !panel) return;
 
-      toggle.addEventListener('click', () => {
-        const isHidden = panel.classList.contains('hide');
-        panel.classList.toggle('hide', !isHidden);
-        toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      toggle.addEventListener("click", () => {
+        const isHidden = panel.classList.contains("hide");
+        panel.classList.toggle("hide", !isHidden);
+        toggle.setAttribute("aria-expanded", isHidden ? "true" : "false");
       });
 
-      document.addEventListener('click', (e) => {
+      document.addEventListener("click", (e) => {
         if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-          panel.classList.add('hide');
-          toggle.setAttribute('aria-expanded', 'false');
+          panel.classList.add("hide");
+          toggle.setAttribute("aria-expanded", "false");
         }
       });
     });
