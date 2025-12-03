@@ -2,189 +2,148 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <title>대출 통계 | 온투업 담보대출 통계 상세</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>후추 | 온투업 담보대출 통계 상세</title>
-  <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 현황과 상품유형별 잔액을 월별로 비교할 수 있는 상세 통계 페이지입니다.">
-  <!-- 검색엔진 인덱싱 방지(베타) -->
   <meta name="robots" content="noindex, nofollow" />
 
-  <!-- 이 페이지 전용 CSS -->
-  <link rel="stylesheet" href="/assets/ontu-stats.css?v=20251202" />
-
-  <!-- 이 페이지 전용 JS -->
-  <script type="module" src="/assets/ontu-stats.js?v=20251202"></script>
+  <!-- 공통 스타일 -->
+  <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body class="beta-body ontu-stats-page">
 
- <!-- 상단 헤더: 로고 + MENU 버튼 -->
-  <header class="huchu-header beta-header" role="banner">
-  <div class="huchu-header__inner beta-header__inner">
-    <!-- 로고 -->
-    <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
-      <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-      <span class="logo-fallback">
-        <span class="logo-mark">%</span>
-        <span class="logo-text">후추 Huchu</span>
-      </span>
-    </a>
+  <!-- 공통 헤더 (다른 β페이지와 동일 패턴) -->
+  <header class="huchu-header beta-header">
+    <div class="beta-header__inner">
+      <a href="/" class="huchu-logo">
+        <img src="/assets/logo/huchu-logo.png" alt="후추" class="logo-img" />
+      </a>
 
-    <!-- MENU -->
-<button id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
-
-      <!-- 드롭다운 패널 -->
-      <div id="betaMenuPanel" class="beta-menu-panel hide">
-        <a class="beta-menu-link" href="/beta/">온투업 대출 통계(요약)</a>
-        <a class="beta-menu-link" href="/beta/ontu-stats.html">대출통계</a>
-        <a class="beta-menu-link" href="/beta/products/index.html">대출상품</a>
-        <a class="beta-menu-link" href="/">담보대출 계산기</a>
-        <a class="beta-menu-link" href="/company.html">회사소개</a>
-        <a class="beta-menu-link" href="/contact.html">광고문의</a>
-        <a class="beta-menu-link" href="/beta/admin-beta.html">관리자(베타)</a>
+      <div class="beta-menu">
+        <button type="button" class="beta-menu-toggle" id="betaMenuToggle">
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
+        <div class="beta-menu-panel hide" id="betaMenuPanel">
+          <a href="/" class="beta-menu-link">홈</a>
+          <a href="/calculator.html" class="beta-menu-link">대출 계산기</a>
+          <a href="/products/index.html" class="beta-menu-link">대출상품</a>
+          <a href="/beta/ontu-stats.html" class="beta-menu-link">온투업 통계</a>
+        </div>
       </div>
     </div>
   </header>
 
-<main class="ontu-stats-page">
-  <!-- 상단 제목 + 기준월 선택 -->
-  <header class="ontu-stats-header">
-    <h1 class="ontu-stats-title">대출 통계</h1>
+  <main class="beta-inner">
 
-    <div class="ontu-stats-filter">
-      <label class="ontu-period-label" for="ontu-period-select">
-        <!-- 필요하면 '기준월' 텍스트 추가 -->
-      </label>
-    <select id="ontuMonthSelect" class="stats-month-select">
-  <!-- 옵션은 JS가 채워 넣음 -->
-</select>
-    </div>
-  </header>
+    <!-- 상단 타이틀 + 월 선택 -->
+    <section class="beta-section beta-section--filter">
+      <div class="beta-stats-header">
+        <div class="beta-stats-header__left">
+          <h1 class="beta-stats-title">대출 통계</h1>
+          <p class="beta-stats-subtitle">
+            전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
+          </p>
+        </div>
 
-  <p class="ontu-stats-subtext">
-    전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
-  </p>
+        <div class="beta-stats-header__right">
+          <div class="beta-month-picker">
+            <span class="beta-month-picker__label">기준월</span>
+            <input type="month" id="ontuMonthPicker" />
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <section class="stats-panel stats-panel--loan">
-  <header class="stats-panel__header">
-    <h2 class="stats-panel__title">
-      대출 현황
-      <span id="loanStatusMonth" class="stats-panel__month"></span>
-    </h2>
-  </header>
+    <!-- 대출 현황 패널 -->
+    <section class="beta-section">
+      <div class="stats-panel stats-panel--loan">
+        <div class="stats-panel__header">
+          <h2 class="stats-panel__title">대출 현황</h2>
+          <div class="stats-panel__meta" id="loanStatusMonthLabel"></div>
+        </div>
 
-  <div class="stats-panel__body">
-    <button
-      type="button"
-      class="stats-panel__nav stats-panel__nav--prev"
-      data-card-prev="loan"
-    >
-      <span class="sr-only">이전</span>
-    </button>
+        <!-- 데스크탑: 슬라이더 (PC 4장 / 모바일 1장) -->
+        <div class="stats-panel__slider stats-panel__slider--loan">
+          <button type="button"
+                  class="stats-panel__nav stats-panel__nav--prev"
+                  id="loanSliderPrev">
+            ‹
+          </button>
 
-    <div class="stats-panel__viewport">
-      <!-- 이 안에 JS가 카드들을 채워 넣음 -->
-      <div
-        id="ontuLoanStatus"
-        class="stats-panel__track"
-        data-card-track="loan"
-      ></div>
-    </div>
+          <div class="stats-panel__viewport">
+            <div class="stats-panel__track stats-panel__track--loan"
+                 id="ontuLoanStatus">
+              <!-- JS에서 카드 렌더링 -->
+            </div>
+          </div>
 
-    <button
-      type="button"
-      class="stats-panel__nav stats-panel__nav--next"
-      data-card-next="loan"
-    >
-      <span class="sr-only">다음</span>
-    </button>
-  </div>
-</section>
+          <button type="button"
+                  class="stats-panel__nav stats-panel__nav--next"
+                  id="loanSliderNext">
+            ›
+          </button>
+        </div>
+      </div>
+    </section>
 
-<section class="stats-panel stats-panel--products">
-  <header class="stats-panel__header">
-    <h2 class="stats-panel__title">
-      상품유형별 대출잔액
-      <span id="productStatusMonth" class="stats-panel__month"></span>
-    </h2>
-  </header>
+    <!-- 상품유형별 대출잔액 패널 -->
+    <section class="beta-section">
+      <div class="stats-panel stats-panel--products">
+        <div class="stats-panel__header">
+          <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+          <div class="stats-panel__meta" id="productStatusMonthLabel"></div>
+        </div>
 
-  <div class="stats-panel__body">
-    <button
-      type="button"
-      class="stats-panel__nav stats-panel__nav--prev"
-      data-card-prev="product"
-    >
-      <span class="sr-only">이전</span>
-    </button>
+        <!-- 상품유형 카드 슬라이더 -->
+        <div class="stats-panel__slider stats-panel__slider--products">
+          <button type="button"
+                  class="stats-panel__nav stats-panel__nav--prev"
+                  id="productSliderPrev">
+            ‹
+          </button>
 
-    <div class="stats-panel__viewport">
-      <!-- 여기에도 JS가 카드들 렌더 -->
-      <div
-        id="ontuProductSection"
-        class="stats-panel__track"
-        data-card-track="product"
-      ></div>
-    </div>
+          <div class="stats-panel__viewport">
+            <div class="stats-panel__track stats-panel__track--products"
+                 id="ontuProductTrack">
+              <!-- JS에서 상품유형 카드 렌더링 -->
+            </div>
+          </div>
 
-    <button
-      type="button"
-      class="stats-panel__nav stats-panel__nav--next"
-      data-card-next="product"
-    >
-      <span class="sr-only">다음</span>
-    </button>
-  </div>
-</section>
-</main>
+          <button type="button"
+                  class="stats-panel__nav stats-panel__nav--next"
+                  id="productSliderNext">
+            ›
+          </button>
+        </div>
+      </div>
+    </section>
 
-  <!-- 푸터 -->
-  <footer class="beta-footer" role="contentinfo">
+    <!-- 에러/안내 메시지 영역 -->
+    <section class="beta-section" id="ontuStatsNoticeSection" style="display:none;">
+      <div class="notice error" id="ontuStatsNotice"></div>
+    </section>
+
+  </main>
+
+  <!-- 공통 푸터 (다른 β페이지와 동일 패턴) -->
+  <footer class="beta-footer">
     <div class="beta-footer__top">
-      <a href="/company.html">회사소개</a>
-      <a href="/terms.html">서비스이용약관</a>
-      <a href="/privacy.html">개인정보 취급방침</a>
+      <div><a href="/products/index.html">온투업 담보대출 상품 안내</a></div>
+      <div><a href="/calculator.html">담보대출 한도 계산기</a></div>
+      <div><a href="https://blog.naver.com" target="_blank" rel="noopener">블로그</a></div>
     </div>
     <div class="beta-footer__bottom">
-     <div class="beta-footer__brand">
-  <img src="/assets/logo/huchu-logo-white.png"
-       alt="HUCHU 로고"
-       class="beta-footer__logo-img" />
-  <span class="beta-footer__logo-text">HUCHU</span>
-</div>
+      <div class="beta-footer__brand">
+        <span class="beta-footer__logo-mark">후</span>
+        <span class="beta-footer__logo-text">HUCHU LAB</span>
+      </div>
       <div class="beta-footer__info">
-        <p>상호: (예시) 후추랩 | 대표: 장현성</p>
-        <p>주소: (예시) 경기도 고양시 일산동구 00로 00</p>
-        <p>E-MAIL: huchudb01@gmail.com | 사업자번호: 000-00-00000</p>
-        <p>2025 © HUCHU. ALL RIGHTS RESERVED.</p>
+        <p>ⓒ Huchu Lab. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
-  <!-- 이 페이지용 MENU 토글 스크립트 -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const toggle = document.getElementById("betaMenuToggle");
-      const panel = document.getElementById("betaMenuPanel");
-      if (!toggle || !panel) return;
-
-      toggle.addEventListener("click", () => {
-        const isHidden = panel.classList.contains("hide");
-        panel.classList.toggle("hide", !isHidden);
-        toggle.setAttribute("aria-expanded", isHidden ? "true" : "false");
-      });
-
-      document.addEventListener("click", (e) => {
-        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-          panel.classList.add("hide");
-          toggle.setAttribute("aria-expanded", "false");
-        }
-      });
-    });
-  </script>
+  <!-- 공통 스크립트 + 온투 통계 전용 스크립트 -->
+  <script type="module" src="/assets/shared.js"></script>
+  <script type="module" src="/assets/ontu-stats.js"></script>
 </body>
 </html>
