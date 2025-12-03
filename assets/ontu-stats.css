@@ -1,0 +1,565 @@
+/* /assets/ontu-stats.css */
+/* 온투업 담보대출 통계 상세 페이지 전용 스타일 */
+
+:root {
+  --primary: #111827;
+  --accent: #059669;
+  --bg: #ffffff;
+  --line: #e5e7eb;
+  --text-muted: #4b5563;
+}
+
+/* 기본 리셋 아주 살짝 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: #111827;
+}
+
+.hide {
+  display: none !important;
+}
+
+/* ================= 헤더 ================= */
+
+.huchu-header {
+  background: #ffffff;
+  position: relative;
+  z-index: 100;
+}
+
+.beta-header::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100vw;
+  height: 1px;
+  background: var(--line);
+}
+
+.huchu-header__inner,
+.beta-header__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 로고 */
+.huchu-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.huchu-logo .logo-img {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+.logo-fallback {
+  display: none;
+}
+
+/* MENU 버튼 */
+.beta-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 0;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+
+.beta-menu-toggle:hover {
+  background: #111827;
+}
+
+/* 모바일: 햄버거만 보이게 */
+@media (max-width: 640px) {
+  .beta-menu-toggle__label {
+    display: none;
+  }
+
+  .beta-menu-toggle {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    justify-content: center;
+  }
+
+  .beta-menu-toggle::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 2px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 -6px 0 #ffffff, 0 6px 0 #ffffff;
+  }
+}
+
+/* 드롭다운 메뉴 */
+.beta-menu-panel {
+  position: absolute;
+  right: 20px;
+  top: calc(100% + 8px);
+  min-width: 210px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  padding: 6px 0;
+  z-index: 200;
+}
+
+.beta-menu-link {
+  display: block;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.beta-menu-link:hover {
+  background: #f3f4f6;
+}
+
+/* ================= 메인 레이아웃 ================= */
+
+.beta-main {
+  padding-top: 8px;
+}
+
+.beta-inner {
+  max-width: 1120px;
+  margin: 0 auto 40px;
+  padding: 0 20px 40px;
+}
+
+.beta-section {
+  margin-bottom: 24px;
+}
+
+/* 상단 타이틀 + 기준월 선택 */
+.beta-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.beta-stats-header__left {
+  flex: 1 1 auto;
+}
+
+.beta-stats-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.beta-stats-subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* month picker */
+.beta-month-picker {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.beta-month-picker__label {
+  display: none; /* 텍스트는 숨김 */
+}
+
+.beta-month-picker input[type="month"] {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  color: #111827;
+  background: #ffffff;
+}
+
+/* 모바일: 타이틀/필터 세로 배치 */
+@media (max-width: 640px) {
+  .beta-stats-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .beta-month-picker {
+    align-items: flex-start;
+  }
+}
+
+/* ================= 초록 패널 공통 ================= */
+
+.stats-panel {
+  background: #059669;
+  border-radius: 24px;
+  padding: 20px 22px 22px;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+/* 패널 상단 헤더 */
+.stats-panel__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.stats-panel__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.stats-panel__meta {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 내부 body/그리드 */
+.stats-panel__body {
+  background: transparent;
+}
+
+.stats-panel__grid {
+  display: grid;
+  gap: 14px;
+}
+
+/* PC: 4열, 모바일: 1열 */
+@media (min-width: 900px) {
+  .stats-panel__grid--loan,
+  .stats-panel__grid--products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  .stats-panel__grid--loan,
+  .stats-panel__grid--products {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= 카드 공통 ================= */
+
+.stats-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 16px 16px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 160px;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+}
+
+.stats-card__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.stats-card__value--main {
+  margin-bottom: 8px;
+  text-align: center;
+  white-space: nowrap; /* 숫자+단위 한 줄 고정 */
+}
+
+/* 금액 숫자/단위 */
+.money-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.money-unit {
+  font-size: 13px;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+/* 개수형 카드 */
+.stats-card__number {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.stats-card__unit {
+  font-size: 13px;
+  color: #6b7280;
+  margin-left: 3px;
+}
+
+/* 하단 영역 */
+.stats-card__bottom-row {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stats-card__bottom-row--no-share {
+  justify-content: flex-end;
+}
+
+.stats-card__share {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* 전월대비 */
+.stats-card__delta-wrap {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stats-card__delta-label {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.stats-card__delta-rate {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.stats-card__delta {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 상승/하락/보합 색 */
+.stats-card__delta.delta-up {
+  color: #dc2626;
+}
+.stats-card__delta.delta-down {
+  color: #1d4ed8;
+}
+.stats-card__delta.delta-flat {
+  color: #6b7280;
+}
+
+/* 상품유형 카드: 약간 높이 늘리기 */
+.stats-card--product {
+  min-height: 180px;
+}
+
+/* ================= 상품유형 슬라이더 ================= */
+
+.stats-panel__slider {
+  position: relative;
+}
+
+/* 뷰포트/트랙 */
+.stats-panel__viewport {
+  overflow: hidden;
+}
+
+.stats-panel__track {
+  display: flex;
+  gap: 14px;
+  transition: transform 0.3s ease;
+}
+
+/* 모바일: 한 장씩 */
+@media (max-width: 768px) {
+  .stats-panel__slider--products {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stats-panel__slider--products .stats-panel__viewport {
+    flex: 1 1 auto;
+  }
+
+  .stats-panel__track--products .stats-card--product {
+    flex: 0 0 100%;
+  }
+
+  .stats-panel__nav {
+    flex: 0 0 auto;
+    border: 0;
+    background: rgba(255, 255, 255, 0.9);
+    color: #059669;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+  }
+}
+
+/* PC: 슬라이더 버튼 숨기고 4열 그리드로만 표시 */
+@media (min-width: 769px) {
+  .stats-panel__slider--products .stats-panel__nav {
+    display: none;
+  }
+
+  .stats-panel__slider--products .stats-panel__viewport {
+    overflow: visible;
+  }
+
+  .stats-panel__track--products {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    transform: none !important;
+  }
+}
+
+/* ================= 안내 박스 (에러 메시지 등) ================= */
+
+.notice {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1f2933;
+}
+
+.notice.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* ================= 푸터 ================= */
+
+.beta-footer {
+  margin-top: 40px;
+  background: #020617;
+  color: #9ca3af;
+  padding: 18px 20px 26px;
+}
+
+.beta-footer__top {
+  max-width: 1120px;
+  margin: 0 auto 10px;
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.beta-footer__top a {
+  color: #e5e7eb;
+  text-decoration: none;
+}
+
+.beta-footer__top a:hover {
+  text-decoration: underline;
+}
+
+.beta-footer__bottom {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.beta-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.beta-footer__logo-img {
+  display: block;
+  height: 18px;
+  width: auto;
+}
+
+.beta-footer__logo-text {
+  font-weight: 800;
+  color: #e5e7eb;
+  letter-spacing: 0.06em;
+}
+
+.beta-footer__info p {
+  margin: 0;
+}
+
+.beta-footer__info p + p {
+  margin-top: 2px;
+}
