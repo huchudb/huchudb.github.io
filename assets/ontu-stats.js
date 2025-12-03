@@ -41,37 +41,37 @@
     return `${y}-${String(m).padStart(2, "0")}`;
   }
 
-  // 금액(만원 단위라고 가정) -> "18조 3,580억" 같은 텍스트로 변환
-  function splitJoEok(amountWan) {
-    const n = Number(amountWan || 0);
-    if (!isFinite(n) || n <= 0) {
-      return { numberText: "0", unitText: "원" };
-    }
-
-    // 1조 = 100,000,000만원, 1억 = 10,000만원
-    const JO_UNIT = 100000000;
-    const EOK_UNIT = 10000;
-
-    let jo = Math.floor(n / JO_UNIT);
-    let rest = n % JO_UNIT;
-    let eok = Math.round(rest / EOK_UNIT);
-
-    // 혹시 반올림으로 10,000억 이상 되면 조로 반영
-    if (eok >= 10000) {
-      jo += Math.floor(eok / 10000);
-      eok = eok % 10000;
-    }
-
-    const joPart = jo > 0 ? `${formatKo(jo)}조` : "";
-    const eokPart = eok > 0 ? `${formatKo(eok)}억` : "";
-
-    const joined = [joPart, eokPart].filter(Boolean).join(" ");
-    return {
-      // 숫자+단위를 한 줄로 유지하기 위해 numberText에 전부 넣고 unit은 빈 값으로 둔다
-      numberText: joined || "0",
-      unitText: "",
-    };
+  // 금액(만원 단위) -> "18조 3,580억 7,530만원" 형태로 변환
+function splitJoEok(amountWan) {
+  const n = Number(amountWan || 0);
+  if (!isFinite(n) || n <= 0) {
+    return { numberText: "0만원", unitText: "" };
   }
+
+  // 1조 = 100,000,000만원, 1억 = 10,000만원
+  const JO_UNIT = 100000000;
+  const EOK_UNIT = 10000;
+
+  let jo = Math.floor(n / JO_UNIT);
+  let rest = n % JO_UNIT;
+  let eok = Math.floor(rest / EOK_UNIT);
+  let man = rest % EOK_UNIT; // 남은 만원 단위
+
+  // 혹시라도 반올림을 나중에 쓰게 되면 여기에서 보정하면 됨
+
+  const parts = [];
+  if (jo > 0) parts.push(`${formatKo(jo)}조`);
+  if (eok > 0) parts.push(`${formatKo(eok)}억`);
+  if (man > 0) parts.push(`${formatKo(man)}만원`);
+
+  const joined = parts.length ? parts.join(" ") : "0만원";
+
+  return {
+    // 숫자+단위를 한 줄로 붙여 쓰기 위해 numberText에 다 넣고 unitText는 비워둔다
+    numberText: joined,
+    unitText: "",
+  };
+}
 
   // 전월대비 계산
   // current / prev => { rateText, amountText, cls, arrow }
