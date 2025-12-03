@@ -3035,4 +3035,11 @@ body.ontu-stats-page .stats-card__delta .delta-arrow {
   }
 }
 
+/* 온투 통계: 하단 회색 막대/점 완전 숨김 */
+.stats-panel__slider::after,
+.stats-panel__nav,
+.stats-panel__rail {
+  display: none !important;
+}
+
 
