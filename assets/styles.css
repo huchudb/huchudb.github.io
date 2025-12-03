@@ -3245,4 +3245,139 @@ body.ontu-stats-page .stats-panel__viewport.is-dragging {
   cursor: -webkit-grabbing;
 }
 
+/* =========================
+   온투 통계 페이지 최종 오버라이드
+   (styles.css 맨 아래에 위치 필수)
+   ========================= */
+
+body.ontu-stats-page .beta-inner {
+  max-width: 1120px;
+  padding: 24px 20px 32px;
+}
+
+/* 1) 상단 제목: 좌측 정렬 + 캘린더는 바로 오른쪽 */
+body.ontu-stats-page .beta-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+body.ontu-stats-page .beta-stats-header__left {
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+body.ontu-stats-page .beta-stats-title,
+body.ontu-stats-page .beta-stats-subtitle {
+  text-align: left;
+}
+
+body.ontu-stats-page .beta-stats-title {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+body.ontu-stats-page .beta-stats-subtitle {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+body.ontu-stats-page .beta-stats-header__right {
+  flex: 0 0 auto;
+}
+
+body.ontu-stats-page .beta-month-picker {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* "기준월" 라벨은 숨김 */
+body.ontu-stats-page .beta-month-picker__label {
+  display: none !important;
+}
+
+/* 2) 패널 제목 & 카드 텍스트 30% 확대 */
+body.ontu-stats-page .stats-panel__title {
+  font-size: 18px;          /* 기존보다 30% 정도 업 */
+  font-weight: 800;
+}
+
+/* 카드 안 기본 텍스트 전체 30% 업(라벨/하단 텍스트) */
+body.ontu-stats-page .stats-card__label,
+body.ontu-stats-page .stats-card__share,
+body.ontu-stats-page .stats-card__delta-label,
+body.ontu-stats-page .stats-card__delta-rate,
+body.ontu-stats-page .stats-card__delta {
+  font-size: 1.3em;
+}
+
+/* 3) "데이터수집 온투업체수" 49개 – 숫자/단위 3배 + 한 줄 */
+body.ontu-stats-page #ontuLoanTrack .stats-card:first-child .stats-card__value--main {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+body.ontu-stats-page #ontuLoanTrack .stats-card:first-child .stats-card__number {
+  font-size: clamp(32px, 3.6vw, 40px) !important;  /* 숫자 49 */
+  font-weight: 800;
+}
+
+body.ontu-stats-page #ontuLoanTrack .stats-card:first-child .stats-card__unit {
+  font-size: clamp(20px, 2.2vw, 24px) !important;  /* "개" */
+  font-weight: 700;
+}
+
+/* 4) 금액(조/억/만원) – 숫자는 크게, 단위는 50% 작게 + 한 줄 유지 */
+body.ontu-stats-page .stats-card__value--main {
+  width: 100%;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;     /* 숫자+단위를 무조건 한 줄 */
+}
+
+body.ontu-stats-page .stats-card__value--main .money-number {
+  font-size: clamp(22px, 2.5vw, 30px) !important;  /* 숫자 */
+  font-weight: 800;
+}
+
+body.ontu-stats-page .stats-card__value--main .money-unit {
+  font-size: calc(0.5 * clamp(22px, 2.5vw, 30px)) !important; /* 숫자의 50% */
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* 모바일에서도 줄바꿈 방지 – 대신 조금 더 줄이기 */
+@media (max-width: 640px) {
+  body.ontu-stats-page .stats-card__value--main .money-number {
+    font-size: 22px !important;
+  }
+  body.ontu-stats-page .stats-card__value--main .money-unit {
+    font-size: 11px !important;
+  }
+}
+
+/* 5) 하단 회색 막대/네비게이션 완전 제거 */
+body.ontu-stats-page .stats-panel__slider::after,
+body.ontu-stats-page .stats-panel__nav,
+body.ontu-stats-page .stats-panel__rail {
+  display: none !important;
+}
+
+/* 6) 상품유형별 카드 – 호버 시 자동 슬라이드 멈춤을 위한 커서 표시만 */
+body.ontu-stats-page .stats-panel__track--products .stats-card--product {
+  cursor: grab;
+}
+body.ontu-stats-page .stats-panel__track--products:active .stats-card--product {
+  cursor: grabbing;
+}
+
 
