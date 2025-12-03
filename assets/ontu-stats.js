@@ -1,4 +1,7 @@
-// /assets/ontu-stats.js  (대출 통계 상세 페이지 전용, 카드 레이아웃 버전)
+// /assets/ontu-stats.js
+// 온투업 담보대출 통계 상세 페이지 전용 JS
+// - 대출현황 카드 렌더
+// - 상품유형별 대출잔액 카드 렌더 + 모바일 슬라이더
 
 // ───────── 공통 유틸 ─────────
 
@@ -117,7 +120,6 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
     bodyHtml = formatKoreanCurrencyJoHtml(abs);
   }
 
-  // 금액 증감 문자열
   const baseText =
     diff === 0
       ? "변동 없음"
@@ -127,7 +129,6 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
       ? "변동 없음"
       : `${arrow} ${bodyHtml}`;
 
-  // 퍼센트 문자열: (+ 6.5%) / (- 2.3%) / (0.0%)
   let pctText = "";
   let pctHtml = "";
   if (pctValue !== null) {
@@ -137,7 +138,6 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
     pctHtml = pctText;
   }
 
-  // 화면에 쓸 기본값: 값 없으면 (0.0%)
   const pctDisplay = pctText || "(0.0%)";
 
   return {
@@ -164,7 +164,9 @@ async function fetchOntuStats(monthKey) {
       ? `${ONTU_API}?month=${encodeURIComponent(monthKey)}`
       : `${ONTU_API}`;
 
-    const res = await fetch(`${url}&t=${Date.now()}`, {
+    const sep = url.includes("?") ? "&" : "?";
+
+    const res = await fetch(`${url}${sep}t=${Date.now()}`, {
       method: "GET",
       mode: "cors",
       credentials: "omit",
@@ -186,8 +188,9 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
   const monthEl   = document.getElementById("loanStatusMonth");
   if (!container) return;
 
-  // 기준월/전월 텍스트는 사용 안 함
-  if (monthEl) monthEl.textContent = "";
+  if (monthEl) {
+    monthEl.textContent = monthKey ? formatMonthLabel(monthKey) : "";
+  }
 
   if (!currentSummary) {
     container.innerHTML = `
@@ -252,12 +255,13 @@ function renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey) {
 
 // ───────── 상품유형별 대출잔액 카드 렌더 ─────────
 function renderProductSection(currentSummary, currentByType, prevByType, monthKey, prevMonthKey) {
-  const track  = document.getElementById("ontuProductSection");
+  const track   = document.getElementById("ontuProductSection");
   const monthEl = document.getElementById("productStatusMonth");
   if (!track) return;
 
-  // 기준월/전월 텍스트 사용 안 함
-  if (monthEl) monthEl.textContent = "";
+  if (monthEl) {
+    monthEl.textContent = monthKey ? formatMonthLabel(monthKey) : "";
+  }
 
   if (!currentSummary || !currentByType || !Object.keys(currentByType).length) {
     track.innerHTML = `
@@ -276,7 +280,7 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
     const amount =
       cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
 
-    // 전월 금액 계산
+    // 전월 금액
     let prevAmt = null;
     if (prevByType && prevByType[name]) {
       const pCfg = prevByType[name];
@@ -319,8 +323,78 @@ function renderProductSection(currentSummary, currentByType, prevByType, monthKe
   track.innerHTML = cardsHtml;
 }
 
-// ───────── 초기화: 기준월 + 전월 함께 로딩 ─────────
+// ───────── 상품유형 슬라이더 (모바일 전용) ─────────
+function initProductSlider() {
+  const viewport = document.querySelector(".stats-panel--products .stats-panel__viewport");
+  const track    = document.getElementById("ontuProductSection");
+  const prevBtn  = document.getElementById("productSliderPrev");
+  const nextBtn  = document.getElementById("productSliderNext");
 
+  if (!viewport || !track || !prevBtn || !nextBtn) return;
+
+  const isMobile = () => window.innerWidth <= 768;
+
+  // 모바일이 아니면 슬라이더 동작 안 함 (버튼도 숨김은 CSS에서)
+  if (!isMobile()) {
+    track.style.transform = "translateX(0)";
+    return;
+  }
+
+  const cards = Array.from(track.querySelectorAll(".stats-card--product"));
+  if (cards.length === 0) return;
+
+  let index = 0;
+
+  function getStepWidth() {
+    const first = cards[0];
+    const rect = first.getBoundingClientRect();
+    // gap 14px 기준
+    return rect.width + 14;
+  }
+
+  function updatePosition() {
+    const step = getStepWidth();
+    track.style.transform = `translateX(${-index * step}px)`;
+  }
+
+  function goTo(nextIndex) {
+    if (!isMobile()) return;
+
+    const maxIndex = Math.max(0, cards.length - 1);
+    if (nextIndex < 0) index = maxIndex;
+    else if (nextIndex > maxIndex) index = 0;
+    else index = nextIndex;
+    updatePosition();
+  }
+
+  // 기존 이벤트 리스너 제거 위해 버튼 노드 교체
+  const prevClone = prevBtn.cloneNode(true);
+  const nextClone = nextBtn.cloneNode(true);
+  prevBtn.parentNode.replaceChild(prevClone, prevBtn);
+  nextBtn.parentNode.replaceChild(nextClone, nextBtn);
+
+  prevClone.addEventListener("click", () => {
+    goTo(index - 1);
+  });
+
+  nextClone.addEventListener("click", () => {
+    goTo(index + 1);
+  });
+
+  window.addEventListener("resize", () => {
+    if (!isMobile()) {
+      track.style.transform = "translateX(0)";
+      return;
+    }
+    index = 0;
+    updatePosition();
+  });
+
+  // 초기 위치
+  updatePosition();
+}
+
+// ───────── 초기화: 기준월 + 전월 함께 로딩 ─────────
 async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
   if (!monthKey) return;
 
@@ -352,8 +426,12 @@ async function loadAndRenderForMonth(monthKey, preFetchedCurrent) {
     currMonthKey,
     prevKey
   );
+
+  // 상품유형 슬라이더 재초기화
+  initProductSlider();
 }
 
+// ───────── DOMContentLoaded ─────────
 document.addEventListener("DOMContentLoaded", async () => {
   const monthPicker = document.getElementById("statsMonthPicker");
 
@@ -374,125 +452,5 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!val) return;
       await loadAndRenderForMonth(val);
     });
-  }
-
-  // ───────── 슬라이더 공통 함수 ─────────
-  function setupAutoSlider({
-    trackSelector,
-    cardSelector,
-    prevSelector,
-    nextSelector,
-    autoplayMs = 3000,
-    mobileBreakpoint = 768,
-  }) {
-    const track = document.querySelector(trackSelector);
-    if (!track) return;
-
-    const cards = Array.from(track.querySelectorAll(cardSelector));
-    if (cards.length === 0) return;
-
-    const prevBtn = document.querySelector(prevSelector);
-    const nextBtn = document.querySelector(nextSelector);
-
-    let index = 0;
-    let timer = null;
-
-    const isMobile = () => window.innerWidth <= mobileBreakpoint;
-
-    function updatePosition() {
-      // PC에서는 슬라이드 효과 없도록 항상 0
-      if (!isMobile()) {
-        track.style.transform = "translateX(0)";
-        return;
-      }
-
-      const cardWidth = cards[0].getBoundingClientRect().width;
-      track.style.transform = `translateX(${-index * cardWidth}px)`;
-    }
-
-    function goTo(nextIndex) {
-      if (!isMobile()) {
-        index = 0;
-        updatePosition();
-        return;
-      }
-
-      if (nextIndex < 0) {
-        index = cards.length - 1;
-      } else if (nextIndex >= cards.length) {
-        index = 0;
-      } else {
-        index = nextIndex;
-      }
-      updatePosition();
-    }
-
-    function startAuto() {
-      if (!isMobile()) {
-        stopAuto();
-        index = 0;
-        updatePosition();
-        return;
-      }
-      if (timer) return;
-      timer = setInterval(() => {
-        goTo(index + 1);
-      }, autoplayMs);
-    }
-
-    function stopAuto() {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    }
-
-    prevBtn && prevBtn.addEventListener("click", () => {
-      stopAuto();
-      goTo(index - 1);
-      startAuto();
-    });
-
-    nextBtn && nextBtn.addEventListener("click", () => {
-      stopAuto();
-      goTo(index + 1);
-      startAuto();
-    });
-
-    window.addEventListener("resize", () => {
-      stopAuto();
-      index = 0;
-      requestAnimationFrame(() => {
-        updatePosition();
-        startAuto();
-      });
-    });
-
-    // 초기 위치 + 자동 슬라이드
-    updatePosition();
-    startAuto();
-  }
-
-  // ───────── 슬라이더 등록 ─────────
-  // 1) 대출 현황: PC에서는 고정, 모바일에서만 1장씩 자동 슬라이드
-  setupAutoSlider({
-    trackSelector: "#ontuLoanStatus",      // 대출현황 카드들이 들어 있는 컨테이너
-    cardSelector: ".stats-card",
-    prevSelector: "#loanSliderPrev",
-    nextSelector: "#loanSliderNext",
-    autoplayMs: 3000,
-    mobileBreakpoint: 768,
-  });
-
-  // 2) 상품유형별 대출잔액
-  setupAutoSlider({
-    trackSelector: "#ontuProductSection",  // 상품유형 카드 컨테이너
-    cardSelector: ".stats-card--product",
-    prevSelector: "#productSliderPrev",
-    nextSelector: "#productSliderNext",
-    autoplayMs: 3000,
-    mobileBreakpoint: 768,
-  });
-});
   }
 });
