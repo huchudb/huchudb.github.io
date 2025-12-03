@@ -3042,4 +3042,207 @@ body.ontu-stats-page .stats-card__delta .delta-arrow {
   display: none !important;
 }
 
+/* ===========================================
+   온투업 통계(ontu-stats) 추가 오버라이드
+   (styles.css 맨 아래에 그대로 붙여줘)
+   =========================================== */
+
+/* 1) 상단 타이틀 + 캘린더 레이아웃 (PC & 모바일 공통) */
+body.ontu-stats-page .beta-stats-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+body.ontu-stats-page .beta-stats-header__left {
+  flex: 1 1 auto;
+}
+
+body.ontu-stats-page .beta-stats-header__top-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.ontu-stats-page .beta-stats-title,
+body.ontu-stats-page .beta-stats-subtitle {
+  text-align: left;
+}
+
+body.ontu-stats-page .beta-month-picker {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+body.ontu-stats-page .beta-month-picker__label {
+  display: none !important; /* '기준월' 텍스트 숨김 유지 */
+}
+
+body.ontu-stats-page .beta-month-picker input[type="month"] {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  color: #111827;
+}
+
+/* 모바일에서는 타이틀/캘린더/부제목을 세로로 정리 */
+@media (max-width: 640px) {
+  body.ontu-stats-page .beta-stats-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  body.ontu-stats-page .beta-stats-header__top-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  body.ontu-stats-page .beta-month-picker input[type="month"] {
+    max-width: 150px;
+  }
+}
+
+/* 2) 초록 패널 제목 30% 확대 */
+body.ontu-stats-page .stats-panel__title {
+  font-size: 24px; /* 기존 18px 기준 약 +30% 이상 */
+}
+
+/* 3) 하단 회색 막대/점 완전 제거 (loan / products 공동) */
+body.ontu-stats-page .stats-panel__slider::after,
+body.ontu-stats-page .stats-panel__rail,
+body.ontu-stats-page .stats-panel__nav {
+  display: none !important;
+  content: none !important;
+}
+
+/* 4) 카드 기본 폰트 사이즈 30% 업 (패널 내부 텍스트) */
+body.ontu-stats-page .stats-card__label {
+  font-size: 16px; /* 라벨 */
+}
+
+body.ontu-stats-page .stats-card__share {
+  font-size: 12px;
+}
+
+/* 5) 메인 숫자(금액/개수) – 1줄 유지 + 크게 */
+body.ontu-stats-page .stats-card__value--main {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap; /* 숫자 + 단위 한 줄 유지 */
+}
+
+/* 금액/개수 숫자 2배 느낌 (PC 기준) */
+body.ontu-stats-page .stats-panel .money-number,
+body.ontu-stats-page .stats-card__number {
+  font-size: clamp(30px, 3.4vw, 42px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* 단위(조, 억, 만원 / 개)는 숫자의 50% 수준으로 작게 */
+body.ontu-stats-page .stats-panel .money-unit,
+body.ontu-stats-page .stats-card__unit {
+  font-size: clamp(14px, 1.4vw, 18px);
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* 모바일에서는 자동으로 조금 더 줄여서 끊김 방지 */
+@media (max-width: 640px) {
+  body.ontu-stats-page .stats-panel .money-number,
+  body.ontu-stats-page .stats-card__number {
+    font-size: 24px;
+  }
+  body.ontu-stats-page .stats-panel .money-unit,
+  body.ontu-stats-page .stats-card__unit {
+    font-size: 12px;
+  }
+}
+
+/* 6) "데이터수집 온투업체수" 카드 전용 (숫자/단위 3배) */
+/* 이 카드는 JS에서 stats-card--count 클래스를 붙여줬다고 가정 */
+
+body.ontu-stats-page .stats-card--count .stats-card__value--main {
+  justify-content: center;
+}
+
+body.ontu-stats-page .stats-card--count .stats-card__number {
+  font-size: clamp(42px, 4vw, 56px); /* 대략 기존의 3배 느낌 */
+  font-weight: 800;
+}
+
+body.ontu-stats-page .stats-card--count .stats-card__unit {
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 700;
+}
+
+/* 7) 전월대비 블록 – 라벨/퍼센트/금액 크기 조정 */
+/* 라벨: 전월대비 (2배) */
+body.ontu-stats-page .stats-card__delta-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 퍼센트: (+x.xx%) – 2배 */
+body.ontu-stats-page .stats-card__delta-rate {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* 금액 텍스트: 4배 느낌 (PC) */
+body.ontu-stats-page .stats-card__delta {
+  font-size: 20px;
+}
+
+@media (max-width: 900px) {
+  /* 모바일에서는 과하지 않게 자동 축소 */
+  body.ontu-stats-page .stats-card__delta-label {
+    font-size: 11px;
+  }
+  body.ontu-stats-page .stats-card__delta-rate {
+    font-size: 13px;
+  }
+  body.ontu-stats-page .stats-card__delta {
+    font-size: 14px;
+  }
+}
+
+/* 8) 상품유형별 슬라이더: 가로 스크롤만 사용, 회색 막대/버튼 없음 */
+body.ontu-stats-page .stats-panel__slider {
+  position: relative;
+  padding-bottom: 0;
+}
+
+body.ontu-stats-page .stats-panel__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+body.ontu-stats-page .stats-panel__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+body.ontu-stats-page .stats-panel__track {
+  display: flex;
+  gap: 14px;
+}
+
+body.ontu-stats-page .stats-card {
+  scroll-snap-align: center;
+}
+
+/* 드래그 중일 때 커서 모양만 살짝 바꿔주기 (JS에서 class 추가) */
+body.ontu-stats-page .stats-panel__viewport.is-dragging {
+  cursor: grabbing;
+  cursor: -webkit-grabbing;
+}
+
 
