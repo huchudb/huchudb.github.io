@@ -1,8 +1,8 @@
 // /assets/ontu-stats.js
 // 온투업 담보대출 통계 상세 페이지 전용 JS
+// - /api/ontu-stats (month 단건 조회)에 맞춘 버전
 // - 대출현황 카드 렌더
-// - 상품유형별 대출잔액 카드 렌더
-// - 모바일에서 카드 한 장씩 좌우 슬라이더
+// - 상품유형별 대출잔액 카드 렌더 (+ 모바일 슬라이더 기본 지원)
 
 // ───────── 공통 유틸 ─────────
 
@@ -149,7 +149,9 @@ function buildDeltaInfo(currRaw, prevRaw, opts = {}) {
 const API_BASE = "https://huchudb-github-io.vercel.app";
 const ONTU_API = `${API_BASE}/api/ontu-stats`;
 
-// 한 달 데이터만 가져오기
+// 한 달 데이터만 가져오기 (백엔드 구조에 그대로 맞춤)
+// GET /api/ontu-stats?month=YYYY-MM  → { month, summary, byType }
+// GET /api/ontu-stats               → latest { month, summary, byType }
 async function fetchOntuStats(monthKey) {
   try {
     const url = monthKey
@@ -166,12 +168,17 @@ async function fetchOntuStats(monthKey) {
       cache: "no-store"
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // 404면 null 리턴해서 "해당 월 데이터 없음" 처리
+      console.error("[ontu-stats] fetch error:", res.status, await res.text());
+      return null;
+    }
+
     const json = await res.json();
     console.log("[ontu-stats] API response:", json);
     return json;
   } catch (e) {
-    console.error("[ontu-stats] fetch error:", e);
+    console.error("[ontu-stats] fetch exception:", e);
     return null;
   }
 }
@@ -290,6 +297,7 @@ function renderProductSection(
             cfg.share ??
             (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
         ) || 0;
+
       const amount =
         cfg.amount != null
           ? Number(cfg.amount)
@@ -310,8 +318,8 @@ function renderProductSection(
         prevAmt =
           pCfg.amount != null
             ? Number(pCfg.amount)
-            : amount && pRatio
-            ? Math.round(amount * (pRatio / ratio || 0))
+            : balance && pRatio
+            ? Math.round(balance * pRatio)
             : 0;
       }
 
@@ -347,191 +355,131 @@ function renderProductSection(
   track.innerHTML = cardsHtml;
 }
 
-// ───────── 공통 카드 슬라이더 (모바일 한 장씩) ─────────
+// ───────── 상품유형 슬라이더 (모바일 전용) ─────────
 
-function initCardSlider() {
-  const SLIDE_GAP = 16; // 카드 사이 여백(px)
+let productSliderInitialized = false;
 
-  document
-    .querySelectorAll("[data-card-track]")
-    .forEach((track) => {
-      if (track.dataset.sliderInitialized === "true") return;
-      track.dataset.sliderInitialized = "true";
+function initProductSlider() {
+  if (productSliderInitialized) return;
+  productSliderInitialized = true;
 
-      const sliderName = track.getAttribute("data-card-track");
-      const prevBtn = document.querySelector(
-        `[data-card-prev="${sliderName}"]`
-      );
-      const nextBtn = document.querySelector(
-        `[data-card-next="${sliderName}"]`
-      );
+  const viewport = document.querySelector(
+    ".stats-panel--products .stats-panel__viewport"
+  );
+  const track = document.getElementById("ontuProductSection");
+  const prevBtn = document.getElementById("productPrevBtn");
+  const nextBtn = document.getElementById("productNextBtn");
 
-      if (!prevBtn || !nextBtn) return;
+  if (!viewport || !track || !prevBtn || !nextBtn) return;
 
-      const cards = track.querySelectorAll(".stats-card");
-      if (!cards.length) return;
+  let currentIndex = 0;
 
-      function getStep() {
-        const card = cards[0];
-        const cardWidth = card.getBoundingClientRect().width;
-        return cardWidth + SLIDE_GAP;
-      }
+  function scrollToIndex(idx) {
+    const cards = track.querySelectorAll(".stats-card");
+    if (!cards.length) return;
+    const first = cards[0];
+    const cardWidth = first.offsetWidth;
+    const gap =
+      parseFloat(getComputedStyle(track).columnGap || 0) ||
+      parseFloat(getComputedStyle(track).gap || 0) ||
+      0;
 
-      prevBtn.addEventListener("click", () => {
-        track.scrollBy({
-          left: -getStep(),
-          behavior: "smooth"
-        });
-      });
+    const maxIndex = Math.max(0, cards.length - 1);
+    currentIndex = Math.min(Math.max(0, idx), maxIndex);
 
-      nextBtn.addEventListener("click", () => {
-        track.scrollBy({
-          left: getStep(),
-          behavior: "smooth"
-        });
-      });
+    const offset = (cardWidth + gap) * currentIndex;
+    viewport.scrollTo({ left: offset, behavior: "smooth" });
+  }
 
-      function handleResize() {
-        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+  prevBtn.addEventListener("click", () => {
+    scrollToIndex(currentIndex - 1);
+  });
 
-        if (isMobile) {
-          track.style.overflowX = "auto";
-          track.style.scrollSnapType = "x mandatory";
-        } else {
-          track.style.overflowX = "visible";
-          track.style.scrollSnapType = "none";
-          track.scrollTo({ left: 0 });
-        }
-      }
+  nextBtn.addEventListener("click", () => {
+    scrollToIndex(currentIndex + 1);
+  });
 
-      handleResize();
-      window.addEventListener("resize", handleResize);
-    });
+  // 리사이즈 시 인덱스에 맞춰 다시 정렬
+  window.addEventListener("resize", () => {
+    scrollToIndex(currentIndex);
+  });
 }
 
-// ───────── 월 선택 셀렉트 세팅 ─────────
+// ───────── 월 선택 / 초기화 ─────────
 
-function setupMonthSelect(selectEl, data) {
-  if (!selectEl || !data) return;
+// monthSelect: <select id="ontuStatsMonthSelect"> (있으면 사용, 없으면 latest만)
+async function loadAndRender(monthKey) {
+  const root = document.documentElement;
+  root.classList.add("ontu-loading");
 
-  const months =
-    data.availableMonths ||
-    data.monthOptions ||
-    data.months ||
-    [];
-
-  const currentMonth =
-    data.monthKey || data.currentMonthKey || data.month || "";
-
-  if (!months.length) {
-    if (currentMonth) {
-      selectEl.innerHTML = `<option value="${currentMonth}">${formatMonthLabel(
-        currentMonth
-      )}</option>`;
-    }
+  // 1) 현재월 데이터
+  const current = await fetchOntuStats(monthKey);
+  if (!current || !current.summary) {
+    console.warn("[ontu-stats] no current data");
+    renderLoanStatus(null, monthKey || (current && current.month) || null, null, null);
+    renderProductSection(null, null, null, monthKey || (current && current.month) || null, null);
+    root.classList.remove("ontu-loading");
     return;
   }
 
-  const optionsHtml = months
-    .map((m) => {
-      const selected = m === currentMonth ? "selected" : "";
-      return `<option value="${m}" ${selected}>${formatMonthLabel(m)}</option>`;
-    })
-    .join("");
+  const currentMonthKey = current.month;
+  const prevMonthKey = getPrevMonthKey(currentMonthKey);
 
-  selectEl.innerHTML = optionsHtml;
-}
+  // 페이지 상단(공통) 월 라벨이 따로 있다면 업데이트
+  const globalMonthLabelEl = document.querySelector(
+    "[data-role='ontu-stats-month-label']"
+  );
+  if (globalMonthLabelEl) {
+    globalMonthLabelEl.textContent = formatMonthLabel(currentMonthKey);
+  }
 
-// ───────── API 데이터 → 화면 적용 ─────────
+  // 2) 전월 데이터 (있으면 사용, 없으면 null)
+  let prev = null;
+  if (prevMonthKey) {
+    prev = await fetchOntuStats(prevMonthKey);
+  }
 
-function applyOntuData(raw) {
-  if (!raw) return;
-
-  // 서버 응답이 { success, data: {...} } / { ok, payload: {...} } / {...} 등
-  // 여러 형태일 수 있으니 한 번 더 풀어서 core만 사용
-  const data =
-    raw.data ||
-    raw.payload ||
-    raw.result ||
-    raw; // 가장 안쪽 객체
-
-  console.log("[ontu-stats] applyOntuData input:", data);
-
-  if (!data) return;
-
-  const monthKey =
-    data.monthKey || data.currentMonthKey || data.month || "";
-  const prevMonthKey =
-    data.prevMonthKey ||
-    data.previousMonthKey ||
-    getPrevMonthKey(monthKey);
-
-  const currentSummary =
-    data.summary ||
-    data.currentSummary ||
-    data.loanSummary ||
-    null;
-  const prevSummary =
-    data.prevSummary ||
-    data.previousSummary ||
-    data.prevLoanSummary ||
-    null;
-
-  const currentByType =
-    data.byType ||
-    data.productByType ||
-    data.productSummary ||
-    data.balanceByType ||
-    {};
-  const prevByType =
-    data.prevByType ||
-    data.previousByType ||
-    data.prevProductByType ||
-    {};
-
-  renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey);
-  renderProductSection(
-    currentSummary,
-    currentByType,
-    prevByType,
-    monthKey,
-    prevMonthKey
+  renderLoanStatus(
+    current.summary,
+    currentMonthKey,
+    prev && prev.summary ? prev.summary : null,
+    prev && prev.month ? prev.month : prevMonthKey
   );
 
-  initCardSlider();
-}
+  renderProductSection(
+    current.summary,
+    current.byType || {},
+    prev && prev.byType ? prev.byType : null,
+    currentMonthKey,
+    prev && prev.month ? prev.month : prevMonthKey
+  );
 
-// ───────── 초기 진입 ─────────
+  initProductSlider();
 
-async function initOntuStatsPage() {
-  const monthSelect = document.getElementById("ontuMonthSelect");
-  const initialMonthKey =
-    monthSelect && monthSelect.value ? monthSelect.value : undefined;
-
-  const firstRaw = await fetchOntuStats(initialMonthKey);
-  if (!firstRaw) {
-    console.error("[ontu-stats] 초기 데이터 로드 실패");
-    return;
-  }
-
-  const firstData =
-    firstRaw.data || firstRaw.payload || firstRaw.result || firstRaw;
-
-  // 셀렉트 박스 세팅
+  // 드롭다운(select) 값 동기화
+  const monthSelect = document.getElementById("ontuStatsMonthSelect");
   if (monthSelect) {
-    setupMonthSelect(monthSelect, firstData);
-
-    monthSelect.addEventListener("change", async (e) => {
-      const mk = e.target.value || "";
-      const raw = await fetchOntuStats(mk || undefined);
-      applyOntuData(raw);
-    });
+    const option = Array.from(monthSelect.options).find(
+      (o) => o.value === currentMonthKey
+    );
+    if (option) monthSelect.value = currentMonthKey;
   }
 
-  // 초기 화면 렌더
-  applyOntuData(firstRaw);
+  root.classList.remove("ontu-loading");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  initOntuStatsPage();
+  // 초기 로딩: latest 월
+  loadAndRender(null);
+
+  // 월 변경 드롭다운 핸들러 (있을 때만)
+  const monthSelect = document.getElementById("ontuStatsMonthSelect");
+  if (monthSelect) {
+    monthSelect.addEventListener("change", (e) => {
+      const v = e.target.value || "";
+      if (v) {
+        loadAndRender(v);
+      }
+    });
+  }
 });
