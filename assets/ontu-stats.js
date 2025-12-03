@@ -1,468 +1,434 @@
 // /assets/ontu-stats.js
 // 온투업 담보대출 통계 상세 페이지 전용 JS
+// - /api/ontu-stats 에서 최신 또는 특정 월 데이터 조회
+// - 상단 month input 변경 시 다시 로딩
+// - "대출 현황" / "상품유형별 대출잔액" 카드 렌더링
+// - 슬라이더는 가로 스크롤 + 자동 슬라이드 (3초 간격, 스와이프/스크롤 시 5초간 일시정지)
 
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const ONTU_API = `${API_BASE}/api/ontu-stats`;
+(function () {
+  const API_BASE = "https://huchudb-github-io.vercel.app";
 
-// ========== 공통 유틸 ==========
-
-// 'YYYY-MM' → 'YYYY년 M월'
-function formatMonthLabel(ym) {
-  if (!ym || typeof ym !== "string") return "";
-  const [y, m] = ym.split("-");
-  if (!y || !m) return "";
-  return `${y}년 ${Number(m)}월`;
-}
-
-// 'YYYY-MM' → 이전달 'YYYY-MM'
-function getPrevMonthKey(monthKey) {
-  if (!monthKey) return null;
-  const [yStr, mStr] = monthKey.split("-");
-  let y = Number(yStr);
-  let m = Number(mStr);
-  if (!y || !m) return null;
-
-  m -= 1;
-  if (m === 0) {
-    y -= 1;
-    m = 12;
-  }
-  return `${y}-${String(m).padStart(2, "0")}`;
-}
-
-// 금액 → '12조 3,580억 7,760만원' 텍스트
-function formatKoreanCurrencyJo(num) {
-  const n = Math.max(0, Math.floor(num || 0));
-
-  const ONE_MAN = 10_000;
-  const ONE_EOK = 100_000_000;
-  const ONE_JO = 1_000_000_000_000;
-
-  if (n >= ONE_JO) {
-    const jo = Math.floor(n / ONE_JO);
-    const restAfterJo = n % ONE_JO;
-    const eok = Math.floor(restAfterJo / ONE_EOK);
-    const restAfterEok = restAfterJo % ONE_EOK;
-    const man = Math.floor(restAfterEok / ONE_MAN);
-
-    const parts = [];
-    if (jo > 0) parts.push(`${jo.toLocaleString("ko-KR")}조`);
-    if (eok > 0) parts.push(`${eok.toLocaleString("ko-KR")}억`);
-    if (man > 0) parts.push(`${man.toLocaleString("ko-KR")}만원`);
-    return parts.join(" ");
-  }
-
-  if (n >= ONE_EOK) {
-    const eok = Math.floor(n / ONE_EOK);
-    const rest = n % ONE_EOK;
-    const man = Math.floor(rest / ONE_MAN);
-    if (man > 0) {
-      return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString(
-        "ko-KR"
-      )}만원`;
+  // 유틸: 숫자 → "18조 3,580억" 형태 (단위는 '억' 기준으로 가정)
+  function formatKrwEok(eokValue) {
+    if (eokValue == null || isNaN(eokValue)) {
+      return { text: "-", number: "-", unit: "" };
     }
-    return `${eok.toLocaleString("ko-KR")}억`;
-  }
 
-  if (n >= ONE_MAN) {
-    const man = Math.floor(n / ONE_MAN);
-    return `${man.toLocaleString("ko-KR")}만원`;
-  }
+    const eok = Number(eokValue);
+    const jo = Math.floor(eok / 10000);
+    const rest = eok % 10000;
 
-  return `${n.toLocaleString("ko-KR")}원`;
-}
+    let text = "";
+    if (jo > 0) text += jo.toLocaleString("ko-KR") + "조 ";
+    text += rest.toLocaleString("ko-KR") + "억";
 
-// 금액 → HTML (숫자/단위 분리)
-function formatKoreanCurrencyJoHtml(num) {
-  const text = formatKoreanCurrencyJo(num);
-  return text.replace(/(\d[\d,]*)(조|억|만원|원)/g, (match, numPart, unit) => {
-    return `<span class="money-number">${numPart}</span><span class="money-unit">${unit}</span>`;
-  });
-}
-
-// 증감 정보 계산
-function buildDelta(currRaw, prevRaw) {
-  if (prevRaw == null || isNaN(prevRaw)) {
     return {
-      dir: "flat",
-      pct: "0.0%",
-      absText: "변동 없음",
+      text,
+      number: jo > 0
+        ? `${jo.toLocaleString("ko-KR")}조 ${rest.toLocaleString("ko-KR")}억`
+        : `${rest.toLocaleString("ko-KR")}억`,
+      unit: "" // 이미 포함되어 있으니 별도 단위 문자열은 비움
     };
   }
 
-  const curr = Number(currRaw || 0);
-  const prev = Number(prevRaw || 0);
-  const diff = curr - prev;
-
-  if (prev === 0) {
+  // 유틸: "개" 카운트
+  function formatCount(n) {
+    const num = Number(n || 0);
     return {
-      dir: diff > 0 ? "up" : diff < 0 ? "down" : "flat",
-      pct: "0.0%",
-      absText: formatKoreanCurrencyJo(diff === 0 ? 0 : Math.abs(diff)),
+      number: num.toLocaleString("ko-KR"),
+      unit: "개"
     };
   }
 
-  const pctValue = (diff / prev) * 100;
-  const pctStr = `${Math.abs(pctValue).toFixed(2)}%`;
+  // 유틸: 전월대비 영역 데이터 가공
+  // deltaRateKey / deltaAmountKey 없거나 값이 없으면 "0.00%, 변동 없음"으로 표시
+  function buildDelta(summaryOrType, deltaRateKey, deltaAmountKey) {
+    const rateRaw =
+      (deltaRateKey && summaryOrType && summaryOrType[deltaRateKey]) ?? null;
+    const amountRaw =
+      (deltaAmountKey && summaryOrType && summaryOrType[deltaAmountKey]) ?? null;
 
-  const dir = diff > 0 ? "up" : diff < 0 ? "down" : "flat";
-  const absText = diff === 0
-    ? "변동 없음"
-    : formatKoreanCurrencyJo(Math.abs(diff));
+    let rate = null;
+    if (rateRaw != null && !isNaN(Number(rateRaw))) {
+      rate = Number(rateRaw);
+    }
 
-  return { dir, pct: pctStr, absText };
-}
+    let amount = null;
+    if (amountRaw != null && !isNaN(Number(amountRaw))) {
+      amount = Number(amountRaw); // 억 단위로 가정
+    }
 
-// ========== API 호출 ==========
+    // 기본값
+    if (rate === null && amount === null) {
+      return {
+        rateText: "+ 0.00%",
+        amountText: "변동 없음",
+        cls: "delta-flat",
+        arrow: "–"
+      };
+    }
 
-async function fetchOntuStats(monthKey) {
-  try {
-    const url = monthKey
-      ? `${ONTU_API}?month=${encodeURIComponent(monthKey)}`
-      : ONTU_API;
+    // 기호/색상
+    let sign = "";
+    let cls = "delta-flat";
+    let arrow = "–";
 
-    const sep = url.includes("?") ? "&" : "?";
+    const effectiveRate = rate || 0;
+    if (effectiveRate > 0) {
+      sign = "+ ";
+      cls = "delta-up";
+      arrow = "▲";
+    } else if (effectiveRate < 0) {
+      sign = "- ";
+      cls = "delta-down";
+      arrow = "▼";
+    } else {
+      sign = "+ ";
+      cls = "delta-flat";
+      arrow = "–";
+    }
 
-    const res = await fetch(`${url}${sep}t=${Date.now()}`, {
-      method: "GET",
-      mode: "cors",
-      credentials: "omit",
-      headers: { Accept: "application/json" },
-      cache: "no-store",
+    const absRate = Math.abs(effectiveRate).toFixed(2);
+    const rateText = `${sign}${absRate}%`;
+
+    let amountText = "변동 없음";
+    if (amount !== null) {
+      const absAmount = Math.abs(amount);
+      const jo = Math.floor(absAmount / 10000);
+      const rest = absAmount % 10000;
+
+      let txt = "";
+      if (jo > 0) txt += jo.toLocaleString("ko-KR") + "조 ";
+      txt += rest.toLocaleString("ko-KR") + "억";
+
+      amountText = `${txt}`;
+    }
+
+    return { rateText, amountText, cls, arrow };
+  }
+
+  // DOM 헬퍼
+  function qs(sel) {
+    return document.querySelector(sel);
+  }
+
+  function qsa(sel) {
+    return Array.from(document.querySelectorAll(sel));
+  }
+
+  // 상단 기준월 텍스트 렌더링
+  function renderMonthMeta(month) {
+    const text =
+      month && typeof month === "string"
+        ? `${month.slice(0, 4)}년 ${month.slice(5, 7)}월 기준`
+        : "기준월 정보 없음";
+
+    qsa("[data-ontu-month-text]").forEach((el) => {
+      el.textContent = text;
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(
-        `${res.status} ${err && err.error ? err.error : "API error"}`
-      );
+    const monthInput = qs("#ontuMonthInput");
+    if (month && monthInput && !monthInput.value) {
+      // 처음 로딩시에만 기본값 세팅
+      monthInput.value = month;
     }
-    return await res.json();
-  } catch (e) {
-    console.error("[ontu-stats] fetch error:", e);
-    throw e;
-  }
-}
-
-// ========== 렌더링: 대출 현황 ==========
-
-function renderLoanStatus(currentSummary, monthKey, prevSummary) {
-  const track = document.getElementById("ontuLoanStatus");
-  const monthLabel = document.getElementById("loanStatusMonthLabel");
-  if (!track) return;
-
-  track.innerHTML = "";
-  monthLabel.textContent = monthKey ? `${formatMonthLabel(monthKey)} 기준` : "";
-
-  if (!currentSummary) {
-    track.innerHTML = "";
-    showNotice("대출 현황 데이터를 불러오지 못했습니다.");
-    return;
   }
 
-  const ps = prevSummary || {};
+  // 대출 현황 패널 렌더링
+  function renderLoanPanel(data) {
+    const track = qs("#ontuLoanTrack");
+    if (!track) return;
 
-  const items = [
-    { key: "dataFirms", label: "데이터수집 온투업체수", type: "count" },
-    { key: "totalLoan", label: "누적 대출금액", type: "money" },
-    { key: "totalRepaid", label: "누적 상환금액", type: "money" },
-    { key: "balance", label: "대출잔액", type: "money" },
-  ];
+    const summary = data && data.summary ? data.summary : {};
 
-  const cardsHtml = items
-    .map((it) => {
-      const currRaw = currentSummary[it.key] ?? 0;
-      const prevRaw = ps[it.key];
+    const cardsConfig = [
+      {
+        id: "dataFirms",
+        label: "데이터수집 온투업체수",
+        type: "count",
+        unit: "개"
+      },
+      {
+        id: "totalLoan",
+        label: "누적 대출금액",
+        type: "money",
+        deltaRateKey: "totalLoanDeltaRate",
+        deltaAmountKey: "totalLoanDeltaAmount"
+      },
+      {
+        id: "totalRepaid",
+        label: "누적 상환금액",
+        type: "money",
+        deltaRateKey: "totalRepaidDeltaRate",
+        deltaAmountKey: "totalRepaidDeltaAmount"
+      },
+      {
+        id: "balance",
+        label: "대출잔액",
+        type: "money",
+        deltaRateKey: "balanceDeltaRate",
+        deltaAmountKey: "balanceDeltaAmount"
+      }
+    ];
 
-      let mainHtml;
-      if (it.type === "count") {
-        mainHtml = `
-          <span class="stats-card__number">${(currRaw || 0).toLocaleString(
-            "ko-KR"
-          )}</span>
-          <span class="stats-card__unit">개</span>
+    const html = cardsConfig
+      .map((cfg) => {
+        const raw = summary[cfg.id] ?? 0;
+
+        let mainNumber = "-";
+        let mainUnit = "";
+        if (cfg.type === "count") {
+          const f = formatCount(raw);
+          mainNumber = f.number;
+          mainUnit = f.unit;
+        } else {
+          const f = formatKrwEok(raw);
+          mainNumber = f.number;
+          mainUnit = ""; // "조/억"까지 한 줄에 포함되어 있음
+        }
+
+        const delta = buildDelta(summary, cfg.deltaRateKey, cfg.deltaAmountKey);
+
+        return `
+          <article class="stats-card">
+            <div class="stats-card__label">${cfg.label}</div>
+
+            <div class="stats-card__value--main">
+              <span class="money-number">${mainNumber}</span>
+              ${
+                mainUnit
+                  ? `<span class="money-unit">${mainUnit}</span>`
+                  : ""
+              }
+            </div>
+
+            <div class="stats-card__bottom-row">
+              <div class="stats-card__share">
+                <!-- 대출 현황 카드에서는 점유비 텍스트 사용하지 않음 -->
+              </div>
+              <div class="stats-card__delta-wrap">
+                <div class="stats-card__delta-label">전월대비</div>
+                <div class="stats-card__delta-rate">${delta.rateText}</div>
+                <div class="stats-card__delta ${delta.cls}">
+                  <span class="delta-arrow">${delta.arrow}</span>
+                  <span class="delta-amount">${delta.amountText}</span>
+                </div>
+              </div>
+            </div>
+          </article>
         `;
-      } else {
-        mainHtml = formatKoreanCurrencyJoHtml(currRaw);
-      }
+      })
+      .join("");
 
-      const delta = buildDelta(currRaw, prevRaw);
-      const deltaClass =
-        delta.dir === "up"
-          ? "delta-up"
-          : delta.dir === "down"
-          ? "delta-down"
-          : "delta-flat";
-
-      // 카드 구조는 디자인 이미지에 맞춰 구성
-      return `
-        <article class="stats-card">
-          <div class="stats-card__label">${it.label}</div>
-
-          <div class="stats-card__value stats-card__value--main">
-            ${mainHtml}
-          </div>
-
-          <div class="stats-card__bottom-row stats-card__bottom-row--no-share">
-            <span class="stats-card__share"></span>
-            <div class="stats-card__delta-wrap">
-              <div class="stats-card__delta-label">전월대비</div>
-              <div class="stats-card__delta-rate">${delta.pct}</div>
-              <div class="stats-card__delta ${deltaClass}">
-                ${
-                  delta.dir === "flat"
-                    ? "변동 없음"
-                    : `${delta.dir === "up" ? "▲" : "▼"} ${delta.absText}`
-                }
-              </div>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-
-  track.innerHTML = cardsHtml;
-}
-
-// ========== 렌더링: 상품유형별 대출잔액 ==========
-
-function renderProductSection(currentSummary, byType, prevByType, monthKey) {
-  const track = document.getElementById("ontuProductTrack");
-  const monthLabel = document.getElementById("productStatusMonthLabel");
-  if (!track) return;
-
-  track.innerHTML = "";
-  monthLabel.textContent = monthKey ? `${formatMonthLabel(monthKey)} 기준` : "";
-
-  if (!currentSummary || !byType || !Object.keys(byType).length) {
-    showNotice("상품유형별 대출잔액 데이터를 불러오지 못했습니다.");
-    return;
+    track.innerHTML = html;
   }
 
-  const balance = Number(currentSummary.balance || 0);
+  // 상품유형별 대출잔액 패널 렌더링
+  function renderProductPanel(data) {
+    const track = qs("#ontuProductTrack");
+    if (!track) return;
 
-  const cardsHtml = Object.entries(byType)
-    .map(([name, cfg]) => {
-      const ratio =
-        Number(
-          cfg.ratio ??
-            cfg.share ??
-            (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
-        ) || 0;
+    const byType = (data && data.byType) || {};
 
-      const amount =
-        cfg.amount != null
-          ? Number(cfg.amount)
-          : balance
-          ? Math.round(balance * ratio)
-          : 0;
-
-      let prevAmt = null;
-      if (prevByType && prevByType[name]) {
-        const pCfg = prevByType[name];
-        const pRatio =
-          Number(
-            pCfg.ratio ??
-              pCfg.share ??
-              (pCfg.ratioPercent != null ? pCfg.ratioPercent / 100 : 0)
-          ) || 0;
-        prevAmt =
-          pCfg.amount != null
-            ? Number(pCfg.amount)
-            : balance && pRatio
-            ? Math.round(balance * pRatio)
-            : null;
-      }
-
-      const delta = buildDelta(amount, prevAmt);
-      const deltaClass =
-        delta.dir === "up"
-          ? "delta-up"
-          : delta.dir === "down"
-          ? "delta-down"
-          : "delta-flat";
-
-      const shareText = ratio > 0 ? `${(ratio * 100).toFixed(1)}%` : "";
-
-      return `
-        <article class="stats-card stats-card--product">
-          <div class="stats-card__label">${name}</div>
-
-          <div class="stats-card__value stats-card__value--main">
-            ${formatKoreanCurrencyJoHtml(amount)}
-          </div>
-
-          <div class="stats-card__bottom-row">
-            <span class="stats-card__share">${shareText}</span>
-            <div class="stats-card__delta-wrap">
-              <div class="stats-card__delta-label">전월대비</div>
-              <div class="stats-card__delta-rate">${delta.pct}</div>
-              <div class="stats-card__delta ${deltaClass}">
-                ${
-                  delta.dir === "flat"
-                    ? "변동 없음"
-                    : `${delta.dir === "up" ? "▲" : "▼"} ${delta.absText}`
-                }
-              </div>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-
-  track.innerHTML = cardsHtml;
-}
-
-// ========== 슬라이더 초기화 (PC 4장 / 모바일 1장) ==========
-
-function initSlider(options) {
-  const {
-    trackId,
-    prevBtnId,
-    nextBtnId,
-  } = options;
-
-  const track = document.getElementById(trackId);
-  const prevBtn = document.getElementById(prevBtnId);
-  const nextBtn = document.getElementById(nextBtnId);
-  if (!track || !prevBtn || !nextBtn) return;
-
-  const viewport = track.parentElement;
-  let index = 0;
-
-  function getVisibleCount() {
-    return window.innerWidth >= 900 ? 4 : 1;
-  }
-
-  function updateButtons() {
-    const cards = track.children.length;
-    const visible = getVisibleCount();
-    const maxIndex = Math.max(0, Math.ceil(cards / visible) - 1);
-
-    prevBtn.disabled = index <= 0;
-    nextBtn.disabled = index >= maxIndex;
-  }
-
-  function applyTransform() {
-    const viewportWidth = viewport.clientWidth;
-    track.style.transform = `translateX(-${index * viewportWidth}px)`;
-  }
-
-  prevBtn.addEventListener("click", () => {
-    if (index <= 0) return;
-    index -= 1;
-    applyTransform();
-    updateButtons();
-  });
-
-  nextBtn.addEventListener("click", () => {
-    const cards = track.children.length;
-    const visible = getVisibleCount();
-    const maxIndex = Math.max(0, Math.ceil(cards / visible) - 1);
-    if (index >= maxIndex) return;
-    index += 1;
-    applyTransform();
-    updateButtons();
-  });
-
-  window.addEventListener("resize", () => {
-    // 화면 크기 바뀌면 맨 처음 페이지로
-    index = 0;
-    track.style.transform = "translateX(0)";
-    updateButtons();
-  });
-
-  // 첫 초기화
-  updateButtons();
-}
-
-// ========== 에러/안내 박스 ==========
-
-function showNotice(message) {
-  const section = document.getElementById("ontuStatsNoticeSection");
-  const box = document.getElementById("ontuStatsNotice");
-  if (!section || !box) return;
-  box.textContent = message;
-  section.style.display = "block";
-}
-
-function hideNotice() {
-  const section = document.getElementById("ontuStatsNoticeSection");
-  if (!section) return;
-  section.style.display = "none";
-}
-
-// ========== 메인 흐름 ==========
-
-async function loadMonthAndRender(explicitMonthKey) {
-  hideNotice();
-
-  try {
-    // 1) 현재월 데이터 (monthKey가 없으면 API가 latest를 줌)
-    const current = await fetchOntuStats(explicitMonthKey || undefined);
-    if (!current || !current.month || !current.summary) {
-      showNotice("통계 데이터가 없습니다. 관리자에서 먼저 저장해주세요.");
+    const entries = Object.entries(byType);
+    if (!entries.length) {
+      track.innerHTML =
+        '<p style="color:#fff;padding:8px 0;">상품유형별 데이터가 없습니다.</p>';
       return;
     }
 
-    const monthKey = current.month;
-    const input = document.getElementById("ontuMonthPicker");
-    if (input && !explicitMonthKey) {
-      // 초기 로딩 시 input 값 세팅
-      input.value = monthKey;
-    }
+    const html = entries
+      .map(([name, info]) => {
+        const amountEok = info && info.amount ? Number(info.amount) : 0;
+        const ratio = info && info.ratio ? Number(info.ratio) : 0;
 
-    // 2) 전월 데이터 (없어도 에러 아님)
-    const prevKey = getPrevMonthKey(monthKey);
-    let prevSummary = null;
-    let prevByType = null;
-    if (prevKey) {
-      try {
-        const prev = await fetchOntuStats(prevKey);
-        if (prev && prev.summary) {
-          prevSummary = prev.summary;
-          prevByType = prev.byType || null;
-        }
-      } catch (e) {
-        // 전월 데이터가 없어도 무시
-        console.info("[ontu-stats] no previous month data:", e.message);
+        const f = formatKrwEok(amountEok);
+        const shareText = ratio
+          ? `점유비 ${ (ratio * 100).toFixed(1) }%`
+          : "";
+
+        const delta = buildDelta(
+          info,
+          "deltaRate", // 타입별 deltaRate / deltaAmount 를 이런 이름으로 쓴다면 자동 반영
+          "deltaAmount"
+        );
+
+        return `
+          <article class="stats-card stats-card--product">
+            <div class="stats-card__label">${name}</div>
+
+            <div class="stats-card__value--main">
+              <span class="money-number">${f.number}</span>
+            </div>
+
+            <div class="stats-card__bottom-row">
+              <div class="stats-card__share">
+                ${shareText}
+              </div>
+              <div class="stats-card__delta-wrap">
+                <div class="stats-card__delta-label">전월대비</div>
+                <div class="stats-card__delta-rate">${delta.rateText}</div>
+                <div class="stats-card__delta ${delta.cls}">
+                  <span class="delta-arrow">${delta.arrow}</span>
+                  <span class="delta-amount">${delta.amountText}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    track.innerHTML = html;
+  }
+
+  // 슬라이더: 가로 스크롤 기반 + 자동 슬라이드
+  function setupAutoSlider(panelEl) {
+    if (!panelEl) return;
+
+    const viewport = panelEl.querySelector(".stats-panel__viewport");
+    const cards = Array.from(panelEl.querySelectorAll(".stats-card"));
+
+    if (!viewport || cards.length <= 1) return;
+
+    let currentIndex = 0;
+    let autoTimer = null;
+    let resumeTimer = null;
+
+    const scrollToIndex = (idx) => {
+      const target = cards[idx];
+      if (!target) return;
+      const left = target.offsetLeft;
+      viewport.scrollTo({
+        left,
+        behavior: "smooth"
+      });
+    };
+
+    const startAuto = () => {
+      if (autoTimer) return;
+      autoTimer = setInterval(() => {
+        currentIndex = (currentIndex + 1) % cards.length;
+        scrollToIndex(currentIndex);
+      }, 3000); // 3초마다 자동 이동
+    };
+
+    const stopAuto = () => {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
       }
+    };
+
+    const pauseAndResume = () => {
+      stopAuto();
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        startAuto();
+      }, 5000); // 사용자 터치/스크롤 후 5초 뒤 다시 자동 슬라이드
+    };
+
+    // 사용자 입력(터치, 드래그, 스크롤) 시 일시 정지
+    ["pointerdown", "touchstart", "wheel"].forEach((ev) => {
+      viewport.addEventListener(ev, pauseAndResume, { passive: true });
+    });
+
+    // 사용자가 직접 좌우로 움직였을 때, 가장 가까운 카드 index 계산
+    let scrollDebounce = null;
+    viewport.addEventListener(
+      "scroll",
+      () => {
+        if (scrollDebounce) clearTimeout(scrollDebounce);
+        scrollDebounce = setTimeout(() => {
+          let closestIdx = 0;
+          let minDist = Infinity;
+          const baseLeft = viewport.scrollLeft;
+
+          cards.forEach((card, idx) => {
+            const dist = Math.abs(card.offsetLeft - baseLeft);
+            if (dist < minDist) {
+              minDist = dist;
+              closestIdx = idx;
+            }
+          });
+
+          currentIndex = closestIdx;
+        }, 150);
+      },
+      { passive: true }
+    );
+
+    // 초기 시작
+    startAuto();
+  }
+
+  function setupAllSliders() {
+    const loanPanel = document.querySelector(".stats-panel--loan");
+    const productPanel = document.querySelector(".stats-panel--products");
+    setupAutoSlider(loanPanel);
+    setupAutoSlider(productPanel);
+  }
+
+  // 데이터 로딩
+  async function loadStats(selectedMonth) {
+    try {
+      let url = `${API_BASE}/api/ontu-stats`;
+      if (selectedMonth) {
+        url += `?month=${encodeURIComponent(selectedMonth)}`;
+      }
+
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        console.error("[ontu-stats] fetch error:", res.status, await res.text());
+        // 404 등일 때는 빈 상태로
+        return;
+      }
+
+      const data = await res.json();
+      console.log("[ontu-stats] API response:", data);
+
+      renderMonthMeta(data.month);
+      renderLoanPanel(data);
+      renderProductPanel(data);
+
+      // 카드 렌더 후 슬라이더 세팅
+      setupAllSliders();
+    } catch (err) {
+      console.error("[ontu-stats] fetch exception:", err);
+    }
+  }
+
+  // 메뉴 토글 (공통)
+  function setupMenu() {
+    const btn = qs(".beta-menu-toggle");
+    const panel = qs("#betaMenuPanel");
+    if (!btn || !panel) return;
+
+    btn.addEventListener("click", () => {
+      panel.classList.toggle("hide");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!panel.classList.contains("hide")) {
+        if (!panel.contains(e.target) && !btn.contains(e.target)) {
+          panel.classList.add("hide");
+        }
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setupMenu();
+
+    const monthInput = qs("#ontuMonthInput");
+    if (monthInput) {
+      monthInput.addEventListener("change", () => {
+        const val = monthInput.value || "";
+        loadStats(val || undefined);
+      });
     }
 
-    // 3) 렌더링
-    renderLoanStatus(current.summary, monthKey, prevSummary);
-    renderProductSection(current.summary, current.byType, prevByType, monthKey);
-
-    // 4) 슬라이더 재초기화
-    initSlider({
-      trackId: "ontuLoanStatus",
-      prevBtnId: "loanSliderPrev",
-      nextBtnId: "loanSliderNext",
-    });
-    initSlider({
-      trackId: "ontuProductTrack",
-      prevBtnId: "productSliderPrev",
-      nextBtnId: "productSliderNext",
-    });
-  } catch (e) {
-    console.error(e);
-    showNotice("온투업 통계를 불러오는 중 오류가 발생했습니다.");
-  }
-}
-
-// DOM 로드 후 초기화
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("ontuMonthPicker");
-  if (input) {
-    input.addEventListener("change", () => {
-      const val = input.value || "";
-      if (!val) return;
-      loadMonthAndRender(val);
-    });
-  }
-
-  // 최초 1회: latest 기준으로 로딩
-  loadMonthAndRender(null);
-});
+    // 최초 로딩: month 파라미터 없으면 latest 사용
+    loadStats();
+  });
+})();
