@@ -1,7 +1,8 @@
 // /assets/ontu-stats.js
 // 온투업 담보대출 통계 상세 페이지 전용 JS
 // - 대출현황 카드 렌더
-// - 상품유형별 대출잔액 카드 렌더 + 모바일 슬라이더
+// - 상품유형별 대출잔액 카드 렌더
+// - 모바일에서 카드 한 장씩 좌우 슬라이더
 
 // ───────── 공통 유틸 ─────────
 
@@ -284,7 +285,9 @@ function renderProductSection(
     .map(([name, cfg]) => {
       const ratio =
         Number(
-          cfg.ratio ?? cfg.share ?? (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
+          cfg.ratio ??
+            cfg.share ??
+            (cfg.ratioPercent != null ? cfg.ratioPercent / 100 : 0)
         ) || 0;
       const amount =
         cfg.amount != null
@@ -343,10 +346,183 @@ function renderProductSection(
   track.innerHTML = cardsHtml;
 }
 
-// ───────── 상품유형 슬라이더 (모바일 전용) ─────────
+// ───────── 공통 카드 슬라이더 (모바일 한 장씩) ─────────
+//
+// HTML 구조 예시:
+//
+// <div class="stats-row-wrapper">
+//   <button type="button" data-card-prev="loan-status">‹</button>
+//   <div class="stats-row" data-card-track="loan-status">
+//     <!-- .stats-card ... -->
+//   </div>
+//   <button type="button" data-card-next="loan-status">›</button>
+// </div>
+//
+// 위에서 "loan-status" / "product-balance" 처럼
+// 같은 이름으로 prev/next/track 묶어주면 됨.
 
-function initProductSlider() {
-  const viewport = document.querySelector(
-    ".stats-panel--products .stats-panel__viewport"
+function initCardSlider() {
+  const SLIDE_GAP = 16; // 카드 사이 여백(px)
+
+  document
+    .querySelectorAll("[data-card-track]")
+    .forEach((track) => {
+      // 이미 슬라이더 세팅된 row면 스킵
+      if (track.dataset.sliderInitialized === "true") return;
+      track.dataset.sliderInitialized = "true";
+
+      const sliderName = track.getAttribute("data-card-track");
+      const prevBtn = document.querySelector(
+        `[data-card-prev="${sliderName}"]`
+      );
+      const nextBtn = document.querySelector(
+        `[data-card-next="${sliderName}"]`
+      );
+
+      if (!prevBtn || !nextBtn) return;
+
+      const cards = track.querySelectorAll(".stats-card");
+      if (!cards.length) return;
+
+      function getStep() {
+        const card = cards[0];
+        const cardWidth = card.getBoundingClientRect().width;
+        return cardWidth + SLIDE_GAP;
+      }
+
+      prevBtn.addEventListener("click", () => {
+        track.scrollBy({
+          left: -getStep(),
+          behavior: "smooth"
+        });
+      });
+
+      nextBtn.addEventListener("click", () => {
+        track.scrollBy({
+          left: getStep(),
+          behavior: "smooth"
+        });
+      });
+
+      function handleResize() {
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+        if (isMobile) {
+          track.style.overflowX = "auto";
+          track.style.scrollSnapType = "x mandatory";
+        } else {
+          track.style.overflowX = "visible";
+          track.style.scrollSnapType = "none";
+          track.scrollTo({ left: 0 });
+        }
+      }
+
+      handleResize();
+      window.addEventListener("resize", handleResize);
+    });
+}
+
+// ───────── 월 선택 셀렉트 세팅 ─────────
+
+function setupMonthSelect(selectEl, data) {
+  if (!selectEl || !data) return;
+
+  const months =
+    data.availableMonths ||
+    data.monthOptions ||
+    data.months ||
+    [];
+
+  const currentMonth =
+    data.monthKey || data.currentMonthKey || data.month || "";
+
+  if (!months.length) {
+    // 서버에서 리스트 안주면 그냥 현재 월만 표시
+    if (currentMonth) {
+      selectEl.innerHTML = `<option value="${currentMonth}">${formatMonthLabel(
+        currentMonth
+      )}</option>`;
+    }
+    return;
+  }
+
+  const optionsHtml = months
+    .map((m) => {
+      const selected = m === currentMonth ? "selected" : "";
+      return `<option value="${m}" ${selected}>${formatMonthLabel(m)}</option>`;
+    })
+    .join("");
+
+  selectEl.innerHTML = optionsHtml;
+}
+
+// ───────── API 데이터 → 화면 적용 ─────────
+
+function applyOntuData(data) {
+  if (!data) return;
+
+  const monthKey =
+    data.monthKey || data.currentMonthKey || data.month || "";
+  const prevMonthKey =
+    data.prevMonthKey || data.previousMonthKey || getPrevMonthKey(monthKey);
+
+  const currentSummary =
+    data.summary || data.currentSummary || data.loanSummary || null;
+  const prevSummary =
+    data.prevSummary || data.previousSummary || data.prevLoanSummary || null;
+
+  const currentByType =
+    data.byType ||
+    data.productByType ||
+    data.productSummary ||
+    data.balanceByType ||
+    {};
+  const prevByType =
+    data.prevByType ||
+    data.previousByType ||
+    data.prevProductByType ||
+    {};
+
+  renderLoanStatus(currentSummary, monthKey, prevSummary, prevMonthKey);
+  renderProductSection(
+    currentSummary,
+    currentByType,
+    prevByType,
+    monthKey,
+    prevMonthKey
   );
-  const track = document.getElementById("ontuProductSec
+
+  // 카드 렌더 후 슬라이더 초기화
+  initCardSlider();
+}
+
+// ───────── 초기 진입 ─────────
+
+async function initOntuStatsPage() {
+  const monthSelect = document.getElementById("ontuMonthSelect");
+  const initialMonthKey = monthSelect && monthSelect.value ? monthSelect.value : undefined;
+
+  const firstData = await fetchOntuStats(initialMonthKey);
+  if (!firstData) {
+    console.error("[ontu-stats] 초기 데이터 로드 실패");
+    return;
+  }
+
+  // 셀렉트 박스 세팅
+  if (monthSelect) {
+    setupMonthSelect(monthSelect, firstData);
+
+    monthSelect.addEventListener("change", async (e) => {
+      const mk = e.target.value || "";
+      const data = await fetchOntuStats(mk || undefined);
+      applyOntuData(data);
+    });
+  }
+
+  // 초기 화면 렌더
+  applyOntuData(firstData);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initOntuStatsPage();
+});
