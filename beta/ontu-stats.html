@@ -51,87 +51,70 @@
     </div>
   </header>
 
-  <!-- 메인 -->
-  <main class="beta-main">
-    <div class="beta-inner">
+<main class="ontu-stats-page">
+  <!-- 상단 제목 + 기준월 선택 -->
+  <header class="ontu-stats-header">
+    <h1 class="ontu-stats-title">대출 통계</h1>
 
-      <!-- 상단: 페이지 타이틀 + 기준월 선택 -->
-      <section class="beta-section beta-section--filter">
-        <div class="beta-stats-header">
-          <div class="beta-stats-header__left">
-            <h1 class="beta-stats-title">대출 통계</h1>
-            <p class="beta-stats-subtitle">
-              전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
-            </p>
-          </div>
-          <label class="beta-month-picker">
-            <span class="beta-month-picker__label">기준월</span>
-            <input type="month" id="statsMonthPicker" />
-          </label>
-        </div>
-      </section>
-
-      <!-- 대출현황 섹션 -->
-      <section class="beta-section">
-        <div class="stats-panel stats-panel--loan">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">대출 현황</h2>
-            <div id="loanStatusMonth" class="stats-panel__meta"></div>
-          </div>
-
-          <div class="stats-panel__body">
-            <div
-              id="ontuLoanStatus"
-              class="stats-panel__grid stats-panel__grid--loan"
-            >
-              <!-- JS 렌더링 -->
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 상품유형별 대출잔액 섹션 (모바일만 슬라이더) -->
-      <section class="beta-section">
-        <div class="stats-panel stats-panel--products">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-            <div id="productStatusMonth" class="stats-panel__meta"></div>
-          </div>
-
-          <div class="stats-panel__slider stats-panel__slider--products">
-            <!-- 모바일에서만 보이게 CSS 처리 -->
-            <button
-              class="stats-panel__nav stats-panel__nav--prev"
-              id="productSliderPrev"
-              type="button"
-              aria-label="이전"
-            >
-              ‹
-            </button>
-
-            <div class="stats-panel__viewport">
-              <div
-                id="ontuProductSection"
-                class="stats-panel__track stats-panel__track--products"
-              >
-                <!-- 상품유형 카드들 JS 렌더 -->
-              </div>
-            </div>
-
-            <button
-              class="stats-panel__nav stats-panel__nav--next"
-              id="productSliderNext"
-              type="button"
-              aria-label="다음"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      </section>
-
+    <div class="ontu-stats-filter">
+      <label class="ontu-period-label" for="ontu-period-select">
+        <!-- 필요하면 '기준월' 텍스트 추가 -->
+      </label>
+      <select id="ontu-period-select" class="ontu-period-select">
+        <!-- JS에서 옵션 채워 넣을 예정 / 일단 하드코딩 예시 -->
+        <option value="2025-10">2025년 10월</option>
+        <option value="2025-09">2025년 9월</option>
+        <option value="2025-08">2025년 8월</option>
+      </select>
     </div>
-  </main>
+  </header>
+
+  <p class="ontu-stats-subtext">
+    전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
+  </p>
+
+  <!-- 섹션 1 : 대출 현황 -->
+  <section class="ontu-section">
+    <div class="ontu-section-inner">
+      <h2 class="ontu-section-title">대출 현황</h2>
+
+      <div class="ontu-slider" data-section="loan">
+        <button class="ontu-slider-arrow ontu-slider-arrow--prev" type="button" aria-label="이전 카드">
+          ‹
+        </button>
+
+        <div id="loan-status-cards" class="ontu-card-track">
+          <!-- JS가 카드 생성해서 넣음 -->
+        </div>
+
+        <button class="ontu-slider-arrow ontu-slider-arrow--next" type="button" aria-label="다음 카드">
+          ›
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 섹션 2 : 상품유형별 대출잔액 -->
+  <section class="ontu-section">
+    <div class="ontu-section-inner">
+      <h2 class="ontu-section-title">상품유형별 대출잔액</h2>
+
+      <div class="ontu-slider" data-section="product">
+        <button class="ontu-slider-arrow ontu-slider-arrow--prev" type="button" aria-label="이전 카드">
+          ‹
+        </button>
+
+        <div id="product-balance-cards" class="ontu-card-track">
+          <!-- JS가 카드 생성해서 넣음 -->
+        </div>
+
+        <button class="ontu-slider-arrow ontu-slider-arrow--next" type="button" aria-label="다음 카드">
+          ›
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
 
   <!-- 푸터 -->
   <footer class="beta-footer" role="contentinfo">
