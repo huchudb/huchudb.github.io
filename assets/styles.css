@@ -1954,3 +1954,17 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
   }
 }
 
+/* ====== 온투 통계: 헤더에서 제목 옆에 캘린더 붙이기 ====== */
+
+body.ontu-stats-page .beta-stats-header__top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;         /* 제목과 캘린더 사이 간격 */
+  flex-wrap: wrap;   /* 화면 좁아지면 자동 줄바꿈 */
+}
+
+/* 혹시 예전 스타일에서 margin-top 줬다면 없애기 */
+body.ontu-stats-page .beta-month-picker {
+  margin-top: 0;
+}
+
