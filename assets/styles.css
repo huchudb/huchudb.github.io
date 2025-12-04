@@ -1974,7 +1974,7 @@ body.ontu-stats-page #ontuMonthInput {
 
 /* 온투 통계 페이지: 마지막 패널 아래 여백 50%로 줄이기 */
 body.ontu-stats-page .beta-section:last-of-type {
-  margin-bottom: -2rem;
+  margin-bottom: 0rem;
 }
 
 /* 대출 통계 타이틀 옆 캘린더 수평 정렬 미세 조정 */
@@ -2003,6 +2003,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
