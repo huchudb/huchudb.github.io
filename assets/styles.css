@@ -1608,7 +1608,7 @@ body.ontu-stats-page .beta-stats-header__left {
 body.ontu-stats-page .beta-stats-title {
   margin: 0 0 4px;
   text-align: left;
-  font-size: 1.2rem;       /* ← 타이틀 텍스트 크기 */
+  font-size: 1.5rem;       /* ← 타이틀 텍스트 크기 */
   font-weight: 700;
    margin-bottom: 1rem;     /* ← 타이틀 아래 여백 */
   color: #111827;
@@ -1618,7 +1618,7 @@ body.ontu-stats-page .beta-stats-subtitle {
   font-size: 1.0rem;     /* ← 원하는 크기로 조절 */
   line-height: 1.5;     
   margin-top: 0.4rem;    /* 위쪽 간격 */
-  margin-bottom: 2rem;   /* 아래쪽 간격 조절 */
+  margin-bottom: 1rem;   /* 아래쪽 간격 조절 */
   color: #4b5563;
 }
 
@@ -1969,6 +1969,7 @@ body.ontu-stats-page .beta-stats-header__top-row {
 body.ontu-stats-page .beta-month-picker {
   margin-top: 0;
 }
+
 
 
 
