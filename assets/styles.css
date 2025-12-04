@@ -1751,17 +1751,17 @@ body.ontu-stats-page .stats-card__label {
   color: #4b5563;
 }
 
-/* 숫자 / 단위 공통 (PC 기본) */
+/* 기본(PC 기준) 숫자 크기 살짝 다운 */
 body.ontu-stats-page .stats-card__number,
 body.ontu-stats-page .stats-panel .money-number {
-  font-size: clamp(24px, 3vw, 30px);
+  font-size: clamp(22px, 2.2vw, 26px);
   font-weight: 800;
   color: #111827;
 }
 
 body.ontu-stats-page .stats-card__unit,
 body.ontu-stats-page .stats-panel .money-unit {
-  font-size: clamp(12px, 1.5vw, 15px);
+  font-size: clamp(11px, 1.3vw, 14px);
   font-weight: 600;
   color: #6b7280;
 }
@@ -2002,6 +2002,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 220px;     /* 180 → 220px 로 확장 */
   }
 }
+
 
 
 
