@@ -1608,16 +1608,17 @@ body.ontu-stats-page .beta-stats-header__left {
 body.ontu-stats-page .beta-stats-title {
   margin: 0 0 4px;
   text-align: left;
-  font-size: clamp(22px, 2.3vw, 28px);
-  font-weight: 800;
+  font-size: 2.6rem;       /* ← 타이틀 텍스트 크기 */
+  font-weight: 700;
+   margin-bottom: 1rem;     /* ← 타이틀 아래 여백 */
   color: #111827;
 }
 
 body.ontu-stats-page .beta-stats-subtitle {
-  margin: 0;
-  text-align: left;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 1.4rem;     /* ← 원하는 크기로 조절 */
+  line-height: 1.5;     
+  margin-top: 0.4rem;    /* 위쪽 간격 */
+  margin-bottom: 2rem;   /* 아래쪽 간격 조절 */
   color: #4b5563;
 }
 
@@ -1915,9 +1916,10 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
   margin-top: 4rem; /* 2rem ~ 4rem 사이로 조절해봐 */
 }
 
-/* 개수 카드 숫자 (49 등) */
-.stats-card__number {
-  font-size: 5.0rem;   /* 기존 값이 1.4rem 이었다면 정확히 2배 */
+/* 온투업 통계: '데이터수집 온투업체수' 카드 숫자(49) 크게 */
+body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__number {
+  font-size: 5rem;      /* 필요하면 4rem, 3.6rem 등으로 조절 */
+  line-height: 1.1;
   font-weight: 700;
 }
 
@@ -1967,4 +1969,5 @@ body.ontu-stats-page .beta-stats-header__top-row {
 body.ontu-stats-page .beta-month-picker {
   margin-top: 0;
 }
+
 
