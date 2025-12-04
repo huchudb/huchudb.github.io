@@ -1917,7 +1917,7 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
 
 /* 개수 카드 숫자 (49 등) */
 .stats-card__number {
-  font-size: 2.8rem;   /* 기존 값이 1.4rem 이었다면 정확히 2배 */
+  font-size: 5.0rem;   /* 기존 값이 1.4rem 이었다면 정확히 2배 */
   font-weight: 700;
 }
 
@@ -1953,3 +1953,4 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
     font-size: 1.2rem;
   }
 }
+
