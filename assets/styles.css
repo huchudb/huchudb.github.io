@@ -1989,19 +1989,20 @@ body.ontu-stats-page .stats-card__value--main {
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
-  gap: 6px;
-  width: 180px;       /* 모바일 기준 폭 */
+  gap: 4px;          /* 6px → 4px (조/억/만원 사이 간격도 조금 줄이기) */
+  width: 180px;
   max-width: 100%;
   white-space: nowrap;
   text-align: center;
 }
 
-/* PC(가로 900px 이상)에서는 폭 조금 더 넓게 */
+/* PC(가로 900px 이상)에서는 폭을 더 넓게 */
 @media (min-width: 900px) {
   body.ontu-stats-page .stats-card__value--main {
-    width: 220px;     /* 180 → 220px 로 확장 */
+    width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
