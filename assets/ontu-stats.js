@@ -1,5 +1,5 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 전용 스크립트 (2025-12-03 수정본)
+// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본)
 
 (function () {
   const API_BASE = 'https://huchudb-github-io.vercel.app';
@@ -70,9 +70,9 @@
 
     const abs = Math.floor(Math.abs(amountWon));
 
-    const JO_UNIT = 10 ** 12;  // 1조 원
-    const EOK_UNIT = 10 ** 8;  // 1억 원
-    const MAN_UNIT = 10 ** 4;  // 1만원
+    const JO_UNIT = 10 ** 12; // 1조 원
+    const EOK_UNIT = 10 ** 8; // 1억 원
+    const MAN_UNIT = 10 ** 4; // 1만원
 
     const jo = Math.floor(abs / JO_UNIT);
     const rem1 = abs % JO_UNIT;
@@ -120,7 +120,9 @@
   /* ---------------- API 호출 ---------------- */
 
   async function fetchMonthData(monthKey) {
-    const url = monthKey ? `${API_URL}?month=${encodeURIComponent(monthKey)}` : API_URL;
+    const url = monthKey
+      ? `${API_URL}?month=${encodeURIComponent(monthKey)}`
+      : API_URL;
     const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) throw new Error(`API ${res.status}`);
     const json = await res.json();
@@ -194,7 +196,9 @@
       if (!cur) return;
 
       const curAmount = Number(cur.amount ?? 0);
-      const prevAmount = prevByType[key] ? Number(prevByType[key].amount ?? 0) : null;
+      const prevAmount = prevByType[key]
+        ? Number(prevByType[key].amount ?? 0)
+        : null;
       const ratio = Number(cur.ratio ?? 0); // 0~1 또는 %
 
       cards.push(createProductCard(key, curAmount, prevAmount, ratio));
@@ -236,7 +240,11 @@
           <div class="stats-card__delta ${deltaClass}">
             <span class="stats-card__delta-arrow">${arrow}</span>
             <span class="stats-card__delta-amount">
-              ${diff === 0 ? '변동 없음' : `${Math.abs(diff).toLocaleString()}개`}
+              ${
+                diff === 0
+                  ? '변동 없음'
+                  : `${Math.abs(diff).toLocaleString()}개`
+              }
             </span>
           </div>
         </div>
@@ -377,54 +385,10 @@
     const productCards = createProductCards(current, prev);
     productCards.forEach((c) => productTrack.appendChild(c));
 
-    setupAutoSlider(loanTrack, { pageSizePc: 4, pageSizeMobile: 1 });
-    setupAutoSlider(productTrack, { pageSizePc: 4, pageSizeMobile: 1 });
-  }
-
-  /* ---------------- 슬라이더 (자동 슬라이드만) ---------------- */
-
-  function setupAutoSlider(trackEl, { pageSizePc, pageSizeMobile }) {
-    if (!trackEl) return;
-    const viewport = trackEl.parentElement;
-    if (!viewport) return;
-
-    let index = 0;
-    let timerId = null;
-
-    function getPageSize() {
-      return window.innerWidth <= 768 ? pageSizeMobile : pageSizePc;
+    // 카드가 렌더링된 이후 슬라이더 초기화
+    if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
+      window.initOntuStatsSliders();
     }
-
-    function getPageCount() {
-      const size = getPageSize();
-      const totalCards = trackEl.children.length;
-      if (totalCards === 0) return 1;
-      return Math.max(1, Math.ceil(totalCards / size));
-    }
-
-    function applyTransform() {
-      const pageCount = getPageCount();
-      if (index >= pageCount) index = 0;
-      const percent = index * 100;
-      trackEl.style.transition = 'transform 0.4s ease';
-      trackEl.style.transform = `translateX(-${percent}%)`;
-    }
-
-    function startTimer() {
-      if (timerId) clearInterval(timerId);
-      timerId = setInterval(() => {
-        index = (index + 1) % getPageCount();
-        applyTransform();
-      }, 3000);
-    }
-
-    window.addEventListener('resize', () => {
-      // 페이지 개수/폭이 바뀔 수 있으니 현재 인덱스 기준으로 다시 계산
-      applyTransform();
-    });
-
-    applyTransform();
-    startTimer();
   }
 
   /* ---------------- 초기 로딩 ---------------- */
@@ -476,54 +440,59 @@
 })();
 
 /* ======================
- * 온투 통계 슬라이더 유틸
+ * 온투 통계 슬라이더 유틸 (카드 1장 단위 슬라이드)
  * ====================== */
 
 (function () {
   /**
-   * 슬라이더 세팅
-   * @param {string} panelSelector - .stats-panel--loan .stats-panel--products 같은 선택자
+   * 개별 패널 슬라이더 세팅
+   * @param {string} panelSelector - .stats-panel--loan / .stats-panel--products
    */
-  function setupOntuSlider(panelSelector) {
+  function setupStatsSlider(panelSelector) {
     const panel = document.querySelector(panelSelector);
     if (!panel) return;
 
-    const slider = panel.querySelector(".stats-panel__slider");
-    const viewport = slider?.querySelector(".stats-panel__viewport");
-    const track = slider?.querySelector(".stats-panel__track");
-    if (!viewport || !track) return;
+    // 이미 초기화된 패널이면 다시 바인딩하지 않음
+    if (panel.dataset.ontuSliderInitialized === 'true') return;
+    panel.dataset.ontuSliderInitialized = 'true';
 
-    const cards = Array.from(track.querySelectorAll(".stats-card"));
-    if (!cards.length) return;
+    const slider = panel.querySelector('.stats-panel__slider');
+    const viewport = slider?.querySelector('.stats-panel__viewport');
+    const track = slider?.querySelector('.stats-panel__track');
+    if (!viewport || !track) return;
 
     let currentIndex = 0;
     let autoTimer = null;
-    let isHover = false;
 
-    // --- 자동 슬라이드 ---
-    function scrollToIndex(index) {
-      const clamped = (index + cards.length) % cards.length;
-      currentIndex = clamped;
-      const card = cards[clamped];
+    let isPointerDown = false;
+    let startX = 0;
+    let deltaX = 0;
+
+    function getCards() {
+      return Array.from(track.querySelectorAll('.stats-card'));
+    }
+
+    function scrollToIndex(newIndex, opts) {
+      const options = Object.assign({ smooth: true }, opts || {});
+      const cards = getCards();
+      const total = cards.length;
+      if (!total) return;
+
+      const normalized =
+        ((newIndex % total) + total) % total; // 음수 인덱스 보정
+      currentIndex = normalized;
+
+      const card = cards[normalized];
       const cardRect = card.getBoundingClientRect();
       const vpRect = viewport.getBoundingClientRect();
 
-      // 카드가 뷰포트 가운데쯤 오도록 스크롤
       const offset =
         card.offsetLeft - (vpRect.width - cardRect.width) / 2;
 
       viewport.scrollTo({
         left: offset,
-        behavior: "smooth",
+        behavior: options.smooth ? 'smooth' : 'auto',
       });
-    }
-
-    function startAuto() {
-      if (autoTimer) return;
-      autoTimer = setInterval(() => {
-        if (isHover) return;
-        scrollToIndex(currentIndex + 1);
-      }, 3000);
     }
 
     function stopAuto() {
@@ -532,57 +501,106 @@
       autoTimer = null;
     }
 
-    // hover 시 자동 슬라이드 일시정지 (PC 에서만 의미 있음)
-    slider.addEventListener("mouseenter", () => {
-      isHover = true;
-    });
-    slider.addEventListener("mouseleave", () => {
-      isHover = false;
-    });
-
-    // --- 드래그로 슬라이드 (마우스) ---
-    let isDown = false;
-    let startX = 0;
-    let startScrollLeft = 0;
-
-    viewport.addEventListener("mousedown", (e) => {
-      isDown = true;
-      startX = e.clientX;
-      startScrollLeft = viewport.scrollLeft;
-      viewport.classList.add("is-dragging");
-      // 자동 슬라이드 잠깐 멈춤
+    function startAuto() {
       stopAuto();
-    });
+      autoTimer = setInterval(() => {
+        scrollToIndex(currentIndex + 1, { smooth: true });
+      }, 4000);
+    }
 
-    window.addEventListener("mouseup", () => {
-      if (!isDown) return;
-      isDown = false;
-      viewport.classList.remove("is-dragging");
-      // 다시 자동 슬라이드 시작
+    // 공통 포인터 로직 (마우스 + 터치)
+    function onPointerDown(clientX) {
+      isPointerDown = true;
+      startX = clientX;
+      deltaX = 0;
+      stopAuto();
+    }
+
+    function onPointerMove(clientX) {
+      if (!isPointerDown) return;
+      deltaX = clientX - startX;
+    }
+
+    function onPointerUp() {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+
+      const threshold = viewport.offsetWidth * 0.15; // 뷰포트 폭의 15% 이상 스와이프 시 페이지 전환
+
+      if (deltaX > threshold) {
+        // 오른쪽으로 스와이프 → 이전 카드
+        scrollToIndex(currentIndex - 1);
+      } else if (deltaX < -threshold) {
+        // 왼쪽으로 스와이프 → 다음 카드
+        scrollToIndex(currentIndex + 1);
+      } else {
+        // 애매하면 제자리 카드로 스냅
+        scrollToIndex(currentIndex);
+      }
+
       startAuto();
+    }
+
+    // 마우스 이벤트
+    viewport.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      onPointerDown(e.clientX);
+    });
+    window.addEventListener('mousemove', (e) => {
+      onPointerMove(e.clientX);
+    });
+    window.addEventListener('mouseup', () => {
+      onPointerUp();
     });
 
-    window.addEventListener("mousemove", (e) => {
-      if (!isDown) return;
-      const dx = e.clientX - startX;
-      viewport.scrollLeft = startScrollLeft - dx;
+    // 터치 이벤트
+    viewport.addEventListener(
+      'touchstart',
+      (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        onPointerDown(t.clientX);
+      },
+      { passive: true },
+    );
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        onPointerMove(t.clientX);
+      },
+      { passive: true },
+    );
+    window.addEventListener('touchend', () => {
+      onPointerUp();
     });
 
-    // 터치(모바일)는 기본 스크롤만 사용 → 별도 코드는 필요 없음
+    // PC에서 hover 시 자동 슬라이드 일시정지
+    slider.addEventListener('mouseenter', stopAuto);
+    slider.addEventListener('mouseleave', startAuto);
 
-    // 초기 카드 위치 세팅 + 자동 슬라이드 시작
-    scrollToIndex(0);
-    startAuto();
+    // 리사이즈 시 현재 카드 기준으로 다시 정렬 (걸쳐 보이는 문제 방지)
+    window.addEventListener('resize', () => {
+      scrollToIndex(currentIndex, { smooth: false });
+    });
+
+    // 초기 위치 & 자동 슬라이드 시작
+    setTimeout(() => {
+      scrollToIndex(0, { smooth: false });
+      startAuto();
+    }, 0);
   }
 
-  // 페이지 로드 후 슬라이더 세팅
-  document.addEventListener("DOMContentLoaded", function () {
+  function initOntuStatsSliders() {
     try {
-      setupOntuSlider(".stats-panel--loan");
-      setupOntuSlider(".stats-panel--products");
+      setupStatsSlider('.stats-panel--loan');
+      setupStatsSlider('.stats-panel--products');
     } catch (e) {
-      console.error("[ontu-stats] slider error:", e);
+      console.error('[ontu-stats] slider init error:', e);
     }
-  });
-})();
+  }
 
+  // 전역에서 호출할 수 있도록 노출
+  window.initOntuStatsSliders = initOntuStatsSliders;
+})();
