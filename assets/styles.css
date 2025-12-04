@@ -1751,18 +1751,6 @@ body.ontu-stats-page .stats-card__label {
   color: #4b5563;
 }
 
-/* 중앙 숫자 영역 – 항상 한 줄, 가운데 정렬 */
-body.ontu-stats-page .stats-card__value--main {
-  margin-bottom: 14px;
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  white-space: nowrap;
-  text-align: center;
-}
-
 /* 숫자 / 단위 공통 (PC 기본) */
 body.ontu-stats-page .stats-card__number,
 body.ontu-stats-page .stats-panel .money-number {
@@ -1894,12 +1882,6 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
   margin-bottom: 1rem;
 }
 
-/* 메인 금액 블록 위치 조정 */
-.stats-card__value--main {
-  margin-top: 0.5rem;
-  margin-bottom: 1.1rem;
-}
-
 /* 첫 번째 패널 아래에 오는 두 번째 패널 간 간격 */
 .stats-panel + .stats-panel {
   margin-top: 4rem;
@@ -1999,6 +1981,26 @@ body.ontu-stats-page .beta-section:last-of-type {
 body.ontu-stats-page .beta-month-picker {
   position: relative;
   top: -6px;                 /* 필요하면 -1px, -3px 정도로 미세 조정 */
+}
+
+/* 온투 통계: 금액(또는 개수) 라인 고정폭 + 한 줄 유지 */
+body.ontu-stats-page .stats-card__value--main {
+  /* 위치 */
+  margin: 0 auto 14px;
+
+  /* 가로 방향 정렬 */
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+
+  /* ✅ 3번: PC/모바일 공통 고정폭 180px */
+  width: 180px;
+  max-width: 100%;      /* 아주 작은 화면에서 깨지는 것 방지용 */
+
+  /* ✅ 2번: 줄바꿈 없이 1줄 유지 */
+  white-space: nowrap;
+  text-align: center;
 }
 
 
