@@ -1871,30 +1871,85 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
   }
 }
 
-/* ───────────────── 모바일 폰트 튜닝 (두 줄 깨짐 방지) ───────────────── */
+/* 대출 통계 헤더: 제목 + 월 선택기 나란히 */
+.ontu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
-@media (max-width: 480px) {
-  body.ontu-stats-page .stats-card__label {
-    font-size: 13px;
-  }
+/* 월 선택기 정렬 */
+.ontu-month-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-  body.ontu-stats-page .stats-card__number,
-  body.ontu-stats-page .stats-panel .money-number {
-    font-size: 22px;
-  }
+.ontu-month-label {
+  font-size: 0.9rem;
+  color: #4b5563;
+}
 
-  body.ontu-stats-page .stats-card__unit,
-  body.ontu-stats-page .stats-panel .money-unit {
-    font-size: 11px;
-  }
-
-  body.ontu-stats-page .stats-card__delta-rate {
-    font-size: 13px;
-  }
-
-  body.ontu-stats-page .stats-card__delta {
-    font-size: 14px;
+@media (max-width: 768px) {
+  .ontu-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 }
 
+/* 카드 제목(대출잔액 등)과 금액 사이 간격 */
+.stats-card__label {
+  margin-bottom: 1rem; /* 값이 더 작다면 1rem 정도로 늘려줘 */
+}
 
+/* 메인 금액 블록 위치 조정 */
+.stats-card__value--main {
+  margin-top: 0.5rem;   /* 제목과의 간격 */
+  margin-bottom: 1.1rem; /* 아래 전월대비와의 간격 */
+}
+
+/* 첫 번째 패널 아래에 오는 두 번째 패널 간 간격 */
+.stats-panel + .stats-panel {
+  margin-top: 4rem; /* 2rem ~ 4rem 사이로 조절해봐 */
+}
+
+/* 개수 카드 숫자 (49 등) */
+.stats-card__number {
+  font-size: 2.8rem;   /* 기존 값이 1.4rem 이었다면 정확히 2배 */
+  font-weight: 700;
+}
+
+/* 단위 '개'는 그대로 두고 싶으면 이건 손대지 말기 */
+.stats-card__unit {
+  /* 기존 font-size 유지 */
+}
+
+
+/* ───────────────── 온투 통계 페이지 모바일 카드 폰트 튜닝 ───────────────── */
+@media (max-width: 768px) {
+  /* 카드 제목 (대출잔액, 부동산담보 등) */
+  body.ontu-stats-page .stats-card__label {
+    font-size: 1.6rem;
+  }
+
+  /* 금액 한 줄(조/억/만원) */
+  body.ontu-stats-page .money-text {
+    font-size: 1.8rem;
+  }
+
+  /* 개수 카드 숫자 (49 같은 것) */
+  body.ontu-stats-page .stats-card__number {
+    font-size: 3.2rem;
+  }
+
+  /* 단위·보조 텍스트들 */
+  body.ontu-stats-page .stats-card__unit,
+  body.ontu-stats-page .stats-card__delta-label,
+  body.ontu-stats-page .stats-card__delta-rate,
+  body.ontu-stats-page .stats-card__delta-amount,
+  body.ontu-stats-page .stats-card__share {
+    font-size: 1.2rem;
+  }
+}
