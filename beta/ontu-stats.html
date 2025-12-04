@@ -50,6 +50,7 @@
           <div class="beta-stats-header__top-row">
             <h1 class="beta-stats-title">대출 통계</h1>
             <div class="beta-month-picker">
+              <label for="ontuMonthInput" class="beta-month-picker__label">기준월</label>
               <input
                 type="month"
                 id="ontuMonthInput"
@@ -70,7 +71,7 @@
       <div class="stats-panel stats-panel--loan">
         <div class="stats-panel__header">
           <h2 class="stats-panel__title">대출 현황</h2>
-          <p class="stats-panel__meta" data-ontu-month-text="loan"></p>
+          <!-- 패널 내부의 'YYYY년 M월 기준' 텍스트 제거: stats-panel__meta 삭제 -->
         </div>
 
         <div class="stats-panel__body stats-panel__slider stats-panel__slider--loan">
@@ -88,7 +89,7 @@
       <div class="stats-panel stats-panel--products">
         <div class="stats-panel__header">
           <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-          <p class="stats-panel__meta" data-ontu-month-text="products"></p>
+          <!-- 패널 내부의 'YYYY년 M월 기준' 텍스트 제거: stats-panel__meta 삭제 -->
         </div>
 
         <div class="stats-panel__body stats-panel__slider stats-panel__slider--products">
@@ -315,4 +316,3 @@
   </script>
 </body>
 </html>
-
