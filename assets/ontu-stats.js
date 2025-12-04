@@ -391,7 +391,7 @@
     }
   }
 
-    // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
+  // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
   function normalizeMonthKey(raw) {
     if (!raw) return '';
     const parts = raw.split('-');
@@ -424,7 +424,7 @@
       renderAll(current, prev);
 
       // month 인풋에서 직접 변경했을 때
-         if (monthInput) {
+      if (monthInput) {
         monthInput.addEventListener('change', async (e) => {
           // 입력값 정규화
           const raw = e.target.value;
@@ -446,6 +446,10 @@
           }
         });
       }
+    } catch (err) {
+      console.error('[ontu-stats] init error', err);
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', loadInitial);
 })();
