@@ -1608,17 +1608,17 @@ body.ontu-stats-page .beta-stats-header__left {
 body.ontu-stats-page .beta-stats-title {
   margin: 0 0 4px;
   text-align: left;
-  font-size: 1.5rem;       /* ← 타이틀 텍스트 크기 */
+  font-size: 1.5rem;       /* PC 기본 크기 */
   font-weight: 700;
-   margin-bottom: 1rem;     /* ← 타이틀 아래 여백 */
+  margin-bottom: 1rem;
   color: #111827;
 }
 
 body.ontu-stats-page .beta-stats-subtitle {
-  font-size: 1.0rem;     /* ← 원하는 크기로 조절 */
-  line-height: 1.5;     
-  margin-top: 0.4rem;    /* 위쪽 간격 */
-  margin-bottom: 1rem;   /* 아래쪽 간격 조절 */
+  font-size: 1.0rem;
+  line-height: 1.5;
+  margin-top: 0.4rem;
+  margin-bottom: 1rem;
   color: #4b5563;
 }
 
@@ -1669,7 +1669,7 @@ body.ontu-stats-page .stats-panel__header {
 
 body.ontu-stats-page .stats-panel__title {
   margin: 0;
-  font-size: clamp(18px, 2.1vw, 22px); /* 기존 대비 약 30% up */
+  font-size: clamp(18px, 2.1vw, 22px);
   font-weight: 800;
   color: #ffffff;
 }
@@ -1759,29 +1759,24 @@ body.ontu-stats-page .stats-card__value--main {
   justify-content: center;
   gap: 6px;
   width: 100%;
-  white-space: nowrap;  /* 숫자 + 단위 모두 한 줄 유지 */
+  white-space: nowrap;
   text-align: center;
 }
 
-/* 5번 요구사항:
-   - 금액 숫자(조/억/만원 앞 숫자) 2배 크게
-   - 단위(조/억/만원, 개)는 숫자의 50% 정도 크기 */
+/* 숫자 / 단위 공통 (PC 기본) */
 body.ontu-stats-page .stats-card__number,
 body.ontu-stats-page .stats-panel .money-number {
-  font-size: clamp(24px, 3vw, 30px);   /* 큰 숫자 */
+  font-size: clamp(24px, 3vw, 30px);
   font-weight: 800;
   color: #111827;
 }
 
 body.ontu-stats-page .stats-card__unit,
 body.ontu-stats-page .stats-panel .money-unit {
-  font-size: clamp(12px, 1.5vw, 15px); /* 숫자의 대략 1/2 */
+  font-size: clamp(12px, 1.5vw, 15px);
   font-weight: 600;
   color: #6b7280;
 }
-
-/* 4번 요구사항: "49개" 한 줄로 표시 (이미 위에서 한 줄화 처리) */
-/* 별도 구조 없이 number + unit이 같이 들어가면 자동으로 한 줄 유지됨 */
 
 /* 하단 점유비 텍스트 */
 body.ontu-stats-page .stats-card__share {
@@ -1800,7 +1795,6 @@ body.ontu-stats-page .stats-panel--products .stats-card__bottom-row {
 
 /* ───────────────── 전월대비 블록 (퍼센트/금액) ───────────────── */
 
-/* 하단 레이아웃: 좌측 점유비 / 우측 전월대비 */
 body.ontu-stats-page .stats-card__bottom-row {
   margin-top: auto;
   width: 100%;
@@ -1817,7 +1811,6 @@ body.ontu-stats-page .stats-card__delta-wrap {
   align-items: flex-end;
 }
 
-/* "전월대비" 라벨 */
 body.ontu-stats-page .stats-card__delta-label {
   margin-top: 6px;
   font-size: 13px;
@@ -1825,7 +1818,6 @@ body.ontu-stats-page .stats-card__delta-label {
   color: #9ca3af;
 }
 
-/* (+5.02%) 퍼센트 */
 body.ontu-stats-page .stats-card__delta-rate {
   margin-top: 3px;
   font-size: 16px;
@@ -1834,10 +1826,9 @@ body.ontu-stats-page .stats-card__delta-rate {
   white-space: nowrap;
 }
 
-/* ▲ 719억 … 금액 */
 body.ontu-stats-page .stats-card__delta {
   margin-top: 4px;
-  font-size: 18px;        /* 기존 대비 눈에 띄게 크게 (체감 3~4배) */
+  font-size: 18px;
   font-weight: 700;
   display: inline-flex;
   align-items: baseline;
@@ -1845,12 +1836,10 @@ body.ontu-stats-page .stats-card__delta {
   white-space: nowrap;
 }
 
-/* 화살표(▲▼–) */
 body.ontu-stats-page .stats-card__delta .delta-arrow {
   font-size: 0.9em;
 }
 
-/* 상승/하락/보합 색상 */
 body.ontu-stats-page .stats-card__delta.delta-up {
   color: #dc2626;
 }
@@ -1902,57 +1891,70 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
 
 /* 카드 제목(대출잔액 등)과 금액 사이 간격 */
 .stats-card__label {
-  margin-bottom: 1rem; /* 값이 더 작다면 1rem 정도로 늘려줘 */
+  margin-bottom: 1rem;
 }
 
 /* 메인 금액 블록 위치 조정 */
 .stats-card__value--main {
-  margin-top: 0.5rem;   /* 제목과의 간격 */
-  margin-bottom: 1.1rem; /* 아래 전월대비와의 간격 */
+  margin-top: 0.5rem;
+  margin-bottom: 1.1rem;
 }
 
 /* 첫 번째 패널 아래에 오는 두 번째 패널 간 간격 */
 .stats-panel + .stats-panel {
-  margin-top: 4rem; /* 2rem ~ 4rem 사이로 조절해봐 */
+  margin-top: 4rem;
 }
 
 /* 온투업 통계: '데이터수집 온투업체수' 카드 숫자(49) 크게 */
 body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__number {
-  font-size: 5rem;      /* 필요하면 4rem, 3.6rem 등으로 조절 */
+  font-size: 5rem;
   line-height: 1.1;
   font-weight: 700;
 }
 
-/* 단위 '개'는 그대로 두고 싶으면 이건 손대지 말기 */
-.stats-card__unit {
-  /* 기존 font-size 유지 */
-}
-
-
 /* ───────────────── 온투 통계 페이지 모바일 카드 폰트 튜닝 ───────────────── */
 @media (max-width: 768px) {
-  /* 카드 제목 (대출잔액, 부동산담보 등) */
+  /* 1) 카드 제목 (대출잔액, 부동산담보 등) */
   body.ontu-stats-page .stats-card__label {
     font-size: 1.6rem;
   }
 
-  /* 금액 한 줄(조/억/만원) */
-  body.ontu-stats-page .money-text {
-    font-size: 1.8rem;
+  /* 2) 각 카드의 메인 금액 숫자 (두 번째 줄) */
+  body.ontu-stats-page .stats-panel .money-number {
+    font-size: 2.4rem;      /* 이전보다 조금 더 크게 */
   }
 
-  /* 개수 카드 숫자 (49 같은 것) */
+  /* money-text만 있는 카드 fallback */
+  body.ontu-stats-page .money-text {
+    font-size: 2.2rem;
+  }
+
+  /* 3) 개수 카드 숫자 (49 같은 것) */
   body.ontu-stats-page .stats-card__number {
     font-size: 3.2rem;
   }
 
-  /* 단위·보조 텍스트들 */
+  /* 4) 단위·보조 텍스트들 */
   body.ontu-stats-page .stats-card__unit,
   body.ontu-stats-page .stats-card__delta-label,
   body.ontu-stats-page .stats-card__delta-rate,
   body.ontu-stats-page .stats-card__delta-amount,
   body.ontu-stats-page .stats-card__share {
     font-size: 1.2rem;
+  }
+
+  /* 5) 모바일에서 대출 통계 타이틀 크기 */
+  body.ontu-stats-page .beta-stats-title {
+    font-size: 2.0rem;      /* PC(1.5rem)보다 크게 */
+    line-height: 1.2;
+  }
+
+  /* 6) 모바일에서 설명 문장을 한 줄로 강제 */
+  body.ontu-stats-page .beta-stats-subtitle {
+    font-size: 0.9rem;      /* 살짝 줄여서 화면에 맞게 */
+    white-space: nowrap;    /* 줄바꿈 금지 */
+    overflow: hidden;
+    text-overflow: ellipsis;/* 길면 … 처리 */
   }
 }
 
@@ -1961,8 +1963,8 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
 body.ontu-stats-page .beta-stats-header__top-row {
   display: flex;
   align-items: center;
-  gap: 16px;         /* 제목과 캘린더 사이 간격 */
-  flex-wrap: wrap;   /* 화면 좁아지면 자동 줄바꿈 */
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 /* 혹시 예전 스타일에서 margin-top 줬다면 없애기 */
@@ -1970,6 +1972,25 @@ body.ontu-stats-page .beta-month-picker {
   margin-top: 0;
 }
 
+/* 대출통계 타이틀 + 캘린더 정렬 */
+body.ontu-stats-page .beta-stats-header__top-row {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
 
+body.ontu-stats-page .beta-month-picker {
+  display: flex;
+  align-items: center;
+}
 
+/* month input 기본 라인 높이 정리 */
+body.ontu-stats-page #ontuMonthInput {
+  line-height: 1;
+}
 
+/* 온투 통계 페이지: 마지막 패널 아래 여백 50%로 줄이기 */
+body.ontu-stats-page .beta-section:last-of-type {
+  margin-bottom: 4rem;
+}
