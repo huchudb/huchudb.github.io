@@ -391,6 +391,18 @@
     }
   }
 
+    // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
+  function normalizeMonthKey(raw) {
+    if (!raw) return '';
+    const parts = raw.split('-');
+    if (parts.length >= 2) {
+      const y = parts[0];
+      const m = parts[1].padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    return raw;
+  }
+
   /* ---------------- 초기 로딩 ---------------- */
 
   async function loadInitial() {
@@ -412,10 +424,13 @@
       renderAll(current, prev);
 
       // month 인풋에서 직접 변경했을 때
-      if (monthInput) {
+         if (monthInput) {
         monthInput.addEventListener('change', async (e) => {
-          const value = e.target.value;
+          // 입력값 정규화
+          const raw = e.target.value;
+          const value = normalizeMonthKey(raw);
           if (!value) return;
+
           try {
             const cur = await fetchMonthData(value);
             let pv = null;
@@ -431,10 +446,6 @@
           }
         });
       }
-    } catch (err) {
-      console.error('[ontu-stats] init error', err);
-    }
-  }
 
   document.addEventListener('DOMContentLoaded', loadInitial);
 })();
