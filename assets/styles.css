@@ -1879,7 +1879,7 @@ body.ontu-stats-page .stats-card__delta.delta-flat {
 
 /* 카드 제목(대출잔액 등)과 금액 사이 간격 */
 .stats-card__label {
-  margin-bottom: 1rem;
+  margin-bottom: 0.4rem; /* 제목 아래 여백 약간 줄이고 */
 }
 
 /* 첫 번째 패널 아래에 오는 두 번째 패널 간 간격 */
@@ -1974,7 +1974,7 @@ body.ontu-stats-page #ontuMonthInput {
 
 /* 온투 통계 페이지: 마지막 패널 아래 여백 50%로 줄이기 */
 body.ontu-stats-page .beta-section:last-of-type {
-  margin-bottom: 4rem;
+  margin-bottom: -2rem;
 }
 
 /* 대출 통계 타이틀 옆 캘린더 수평 정렬 미세 조정 */
@@ -1985,7 +1985,8 @@ body.ontu-stats-page .beta-month-picker {
 
 /* 공통 기본값: 모바일 기준 180px */
 body.ontu-stats-page .stats-card__value--main {
-  margin: 0 auto 14px;
+  margin: 10px auto 16px;  /* ← 여기만 수정!
+                             위로 10px 띄우고, 아래도 살짝 여유 */
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
@@ -2002,6 +2003,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
