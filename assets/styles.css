@@ -1896,15 +1896,14 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
 
 /* 온투 통계 페이지 – 데이터 출처 문구 (우측 하단 정렬) */
 body.ontu-stats-page .ontu-source-note {
-  max-width: 1120px;       /* .beta-inner와 동일 폭 */
-  margin: 12px auto 8px;   /* 위쪽 약간 띄우고, 아래는 살짝 여백 */
-  padding: 0 20px 0;       /* 좌우 패딩, beta-inner 패딩과 맞춤 */
-  text-align: right;       /* 우측 정렬 */
+  max-width: 1120px;         /* .beta-inner 폭과 맞추기 */
+  margin: 12px auto 8px;     /* 위·아래 여백 */
+  padding: 0 24px 0;         /* 좌우는 beta-inner 패딩과 맞춤 */
+  text-align: right;         /* 👉 우측 정렬 핵심 */
   font-size: 11px;
   line-height: 1.5;
-  color: #6b7280;          /* 회색 톤 */
+  color: #6b7280;
 }
-
 
 /* ───────────────── 온투 통계 페이지 모바일 카드 폰트 튜닝 ───────────────── */
 @media (max-width: 768px) {
@@ -2015,6 +2014,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
