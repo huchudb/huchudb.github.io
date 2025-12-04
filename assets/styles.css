@@ -1994,3 +1994,9 @@ body.ontu-stats-page #ontuMonthInput {
 body.ontu-stats-page .beta-section:last-of-type {
   margin-bottom: 4rem;
 }
+
+/* 대출 통계 타이틀 옆 캘린더 수평 정렬 미세 조정 */
+body.ontu-stats-page .beta-month-picker {
+  position: relative;
+  top: -2px;                 /* 필요하면 -1px, -3px 정도로 미세 조정 */
+}
