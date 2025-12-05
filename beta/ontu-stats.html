@@ -9,6 +9,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="/assets/styles.css?v=20251203-ontu-stats-final" />
 </head>
+
 <body class="beta-body ontu-stats-page">
 
   <!-- 상단 헤더 -->
@@ -101,10 +102,12 @@
         </div>
       </div>
     </section>
-     <!-- 여기 아래에 출처 텍스트 추가 -->
+
+    <!-- 출처 텍스트 -->
     <div class="ontu-source-note">
       ※출처: 온라인투자연계금융업 중앙기록관리기관
-   </main>
+    </div>
+  </main>
 
   <!-- 공통 푸터 -->
   <footer class="beta-footer" role="contentinfo">
@@ -144,7 +147,7 @@
         if (!nodes.length) return;
 
         nodes.forEach((node) => {
-          // 첫 카드(데이터수집 온투업체수)는 지금 잘 나오니 건너뜀
+          // 첫 카드(데이터수집 온투업체수)는 건너뜀
           const isLoanPanel = node.closest('.stats-panel--loan');
           const card = node.closest('.stats-card');
           if (isLoanPanel && card && card === card.parentElement.firstElementChild) {
@@ -189,19 +192,35 @@
         const viewport = document.querySelector(viewportSelector);
         if (!track || !viewport) return;
 
+        // PC/모바일 판별
+        const isMobile =
+          window.matchMedia &&
+          window.matchMedia('(max-width: 768px)').matches;
+
         let index = 0;
         let timer = null;
+        let direction = 1; // 1: 오른쪽, -1: 왼쪽
 
         function slideOnce() {
           const cards = track.children;
-          if (!cards.length) return;
-          index = (index + 1) % cards.length;
+          const total = cards.length;
+          if (!total) return;
+
+          let next = index + direction;
+          if (next < 0 || next >= total) {
+            direction *= -1;
+            next = index + direction;
+          }
+
+          index = next;
           const target = cards[index];
           const offset = target.offsetLeft;
           viewport.scrollTo({ left: offset, behavior: 'smooth' });
         }
 
         function start() {
+          // PC에서는 자동 슬라이드 안 함
+          if (!isMobile) return;
           if (timer) return;
           timer = setInterval(slideOnce, intervalMs);
         }
@@ -216,7 +235,7 @@
         viewport.addEventListener('mouseenter', stop);
         viewport.addEventListener('mouseleave', start);
 
-        // 마우스 드래그로 좌우 이동 (특히 상품유형 패널 요구사항)
+        // 마우스 드래그로 좌우 이동
         let isDown = false;
         let startX = 0;
         let scrollLeft = 0;
@@ -233,7 +252,7 @@
           if (!isDown) return;
           isDown = false;
           viewport.classList.remove('is-dragging');
-          start(); // 드래그 끝나면 다시 자동 슬라이드
+          start(); // 드래그 끝나면 다시 자동 슬라이드 (모바일에서만)
         });
 
         viewport.addEventListener('mousemove', (e) => {
@@ -277,7 +296,7 @@
           { passive: true }
         );
 
-        // 초기 자동 슬라이드 시작
+        // 초기 자동 슬라이드 시작 (모바일에서만 실제 동작)
         start();
       }
 
@@ -293,20 +312,20 @@
           setupAutoSlider(
             '#ontuLoanTrack',
             '.stats-panel__slider--loan .stats-panel__viewport',
-            3000
+            5000   // 모바일 자동 슬라이드 5초
           );
 
           setupAutoSlider(
             '#ontuProductTrack',
             '.stats-panel__slider--products .stats-panel__viewport',
-            3000
+            5000   // 모바일 자동 슬라이드 5초
           );
 
           sliderInitialized = true;
         }
       }
 
-      // ✅ ontu-stats.js 가 카드 렌더를 끝냈을 때마다 호출
+      // ontu-stats.js 가 카드 렌더를 끝냈을 때마다 호출
       document.addEventListener('ontuStatsRendered', initEnhance);
 
       // 첫 로딩 직후(최신 월) 한 번 호출 – 혹시 이벤트가 먼저 발행되었을 경우 대비
