@@ -434,6 +434,9 @@
     if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
       window.initOntuStatsSliders();
     }
+
+    // 👇 장식/추가 효과(숫자 스팬 래핑, 자동 슬라이드 등)용 커스텀 이벤트
+    document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
   }
 
   // "2025-10" 또는 "2025-10-01" -> "2025-10"
