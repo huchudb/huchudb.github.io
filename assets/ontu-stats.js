@@ -1,5 +1,5 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본)
+// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 응답형식 방어 강화본)
 
 (function () {
   const API_BASE = 'https://huchudb-github-io.vercel.app';
@@ -60,6 +60,18 @@
     return formatMonthKey(d);
   }
 
+  // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
+  function normalizeMonthKey(raw) {
+    if (!raw) return '';
+    const parts = String(raw).split('-');
+    if (parts.length >= 2) {
+      const y = parts[0];
+      const m = parts[1].padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    return raw;
+  }
+
   /* ---------------- 금액 포맷 (원 → 조/억/만원) ---------------- */
 
   // amountWon 은 **원 단위** 숫자 (예: 17766071578000)
@@ -87,8 +99,11 @@
 
   // 카드 메인 숫자: "17조 7,660억 7,157만원" 처럼 **한 줄**로 보여주기
   function formatKoreanMoneyLine(amountWon) {
-    const sign = amountWon < 0 ? '-' : '';
-    const { jo, eok, man } = splitKoreanMoney(amountWon);
+    const n = Number(amountWon);
+    if (!Number.isFinite(n)) return '-';
+
+    const sign = n < 0 ? '-' : '';
+    const { jo, eok, man } = splitKoreanMoney(n);
 
     const parts = [];
     if (jo) parts.push(`${jo.toLocaleString()}조`);
@@ -108,11 +123,13 @@
 
   // 퍼센트: +1.48%, -0.32%, 0.00%
   function formatDeltaRate(current, prev) {
-    if (!Number.isFinite(current) || !Number.isFinite(prev) || prev === 0) {
+    const cur = Number(current);
+    const prv = Number(prev);
+    if (!Number.isFinite(cur) || !Number.isFinite(prv) || prv === 0) {
       return '0.00%';
     }
-    const diff = current - prev;
-    const rate = (diff / prev) * 100;
+    const diff = cur - prv;
+    const rate = (diff / prv) * 100;
     const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
     return `${sign}${Math.abs(rate).toFixed(2)}%`;
   }
@@ -123,11 +140,23 @@
     const url = monthKey
       ? `${API_URL}?month=${encodeURIComponent(monthKey)}`
       : API_URL;
+
     const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) throw new Error(`API ${res.status}`);
+
     const json = await res.json();
-    console.log('[ontu-stats] API response:', json);
-    return json;
+
+    // 응답 형식이 {month, summary, byType} 이거나 {data:{month,summary,byType}} 둘 다 허용
+    const payload =
+      json &&
+      typeof json === 'object' &&
+      json.data &&
+      (json.data.summary || json.data.byType || json.data.month)
+        ? json.data
+        : json;
+
+    console.log('[ontu-stats] API response:', payload);
+    return payload;
   }
 
   /* ---------------- 카드 DOM 생성 ---------------- */
@@ -199,7 +228,8 @@
       const prevAmount = prevByType[key]
         ? Number(prevByType[key].amount ?? 0)
         : null;
-      const ratio = Number(cur.ratio ?? 0); // 0~1 또는 %
+      const ratioRaw = cur.ratio ?? null;
+      const ratio = ratioRaw == null ? null : Number(ratioRaw); // 0~1 또는 % 예상
 
       cards.push(createProductCard(key, curAmount, prevAmount, ratio));
     });
@@ -210,8 +240,10 @@
   /* ----- 개수형 카드 (온투업체수) ----- */
 
   function createCountCard(label, currentValue, prevValue) {
-    const diff = prevValue == null ? 0 : currentValue - prevValue;
-    const rateText = formatDeltaRate(currentValue, prevValue ?? 0);
+    const cur = Number(currentValue) || 0;
+    const prv = prevValue == null ? null : Number(prevValue);
+    const diff = prv == null ? 0 : cur - prv;
+    const rateText = formatDeltaRate(cur, prv ?? 0);
 
     let deltaClass = 'delta-flat';
     let arrow = '–';
@@ -229,7 +261,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="stats-card__number">${currentValue.toLocaleString()}</span>
+        <span class="stats-card__number">${cur.toLocaleString()}</span>
         <span class="stats-card__unit">개</span>
       </div>
       <div class="stats-card__bottom-row">
@@ -257,9 +289,11 @@
   /* ----- 금액 카드 (조/억/만원 한 줄) ----- */
 
   function createMoneyCard(label, currentWon, prevWon) {
-    const diff = prevWon == null ? 0 : currentWon - prevWon;
+    const cur = Number(currentWon) || 0;
+    const prv = prevWon == null ? null : Number(prevWon);
+    const diff = prv == null ? 0 : cur - prv;
     const absDiff = Math.abs(diff);
-    const rateText = formatDeltaRate(currentWon, prevWon ?? 0);
+    const rateText = formatDeltaRate(cur, prv ?? 0);
 
     let deltaClass = 'delta-flat';
     let arrow = '–';
@@ -277,7 +311,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${formatKoreanMoneyLine(currentWon)}</span>
+        <span class="money-text">${formatKoreanMoneyLine(cur)}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share"></div>
@@ -287,11 +321,7 @@
           <div class="stats-card__delta ${deltaClass}">
             <span class="stats-card__delta-arrow">${arrow}</span>
             <span class="stats-card__delta-amount">
-              ${
-                diff === 0
-                  ? '변동 없음'
-                  : formatDeltaAmount(absDiff)
-              }
+              ${diff === 0 ? '변동 없음' : formatDeltaAmount(absDiff)}
             </span>
           </div>
         </div>
@@ -304,9 +334,11 @@
   /* ----- 상품유형별 카드 ----- */
 
   function createProductCard(label, currentWon, prevWon, ratio) {
-    const diff = prevWon == null ? 0 : currentWon - prevWon;
+    const cur = Number(currentWon) || 0;
+    const prv = prevWon == null ? null : Number(prevWon);
+    const diff = prv == null ? 0 : cur - prv;
     const absDiff = Math.abs(diff);
-    const rateText = formatDeltaRate(currentWon, prevWon ?? 0);
+    const rateText = formatDeltaRate(cur, prv ?? 0);
 
     let deltaClass = 'delta-flat';
     let arrow = '–';
@@ -329,7 +361,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${formatKoreanMoneyLine(currentWon)}</span>
+        <span class="money-text">${formatKoreanMoneyLine(cur)}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share">${shareText}</div>
@@ -339,11 +371,7 @@
           <div class="stats-card__delta ${deltaClass}">
             <span class="stats-card__delta-arrow">${arrow}</span>
             <span class="stats-card__delta-amount">
-              ${
-                diff === 0
-                  ? '변동 없음'
-                  : formatDeltaAmount(absDiff)
-              }
+              ${diff === 0 ? '변동 없음' : formatDeltaAmount(absDiff)}
             </span>
           </div>
         </div>
@@ -357,7 +385,8 @@
 
   function renderMonthText(monthKey) {
     const nodes = document.querySelectorAll('[data-ontu-month-text]');
-    const d = parseMonthKey(monthKey);
+    const normalized = normalizeMonthKey(monthKey);
+    const d = parseMonthKey(normalized);
     const text = `${d.getFullYear()}년 ${d.getMonth() + 1}월 기준`;
 
     nodes.forEach((el) => {
@@ -370,8 +399,9 @@
   }
 
   function renderAll(current, prev) {
-    const monthKey = current.month;
+    const monthKey = normalizeMonthKey(current.month);
     if (monthInput) {
+      // input[type="month"]에는 항상 YYYY-MM 형식으로
       monthInput.value = monthKey;
     }
     renderMonthText(monthKey);
@@ -386,21 +416,12 @@
     productCards.forEach((c) => productTrack.appendChild(c));
 
     // 카드가 렌더링된 이후 슬라이더 초기화
-    if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.initOntuStatsSliders === 'function'
+    ) {
       window.initOntuStatsSliders();
     }
-  }
-
-  // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
-  function normalizeMonthKey(raw) {
-    if (!raw) return '';
-    const parts = raw.split('-');
-    if (parts.length >= 2) {
-      const y = parts[0];
-      const m = parts[1].padStart(2, '0');
-      return `${y}-${m}`;
-    }
-    return raw;
   }
 
   /* ---------------- 초기 로딩 ---------------- */
@@ -409,7 +430,7 @@
     try {
       // 1) 최신월
       const current = await fetchMonthData();
-      const monthKey = current.month;
+      const monthKey = normalizeMonthKey(current.month);
 
       // 2) 전월 데이터(있으면)
       let prev = null;
@@ -426,7 +447,6 @@
       // month 인풋에서 직접 변경했을 때
       if (monthInput) {
         monthInput.addEventListener('change', async (e) => {
-          // 입력값 정규화
           const raw = e.target.value;
           const value = normalizeMonthKey(raw);
           if (!value) return;
@@ -435,7 +455,7 @@
             const cur = await fetchMonthData(value);
             let pv = null;
             try {
-              const prevKey = getPrevMonthKey(cur.month);
+              const prevKey = getPrevMonthKey(normalizeMonthKey(cur.month));
               pv = await fetchMonthData(prevKey);
             } catch (err) {
               console.warn('[ontu-stats] no prev for selected month', err);
@@ -493,8 +513,7 @@
       const total = cards.length;
       if (!total) return;
 
-      const normalized =
-        ((newIndex % total) + total) % total; // 음수 인덱스 보정
+      const normalized = ((newIndex % total) + total) % total; // 음수 인덱스 보정
       currentIndex = normalized;
 
       const card = cards[normalized];
