@@ -2038,14 +2038,35 @@ body.ontu-stats-page .stats-card__value--main {
   color: #111827;            /* 혹시 상위에서 흰색 상속되더라도 한 번 더 고정 */
 }
 
+/* 상품유형별 대출잔액: 도넛 + 유형별 카드 2열 레이아웃 */
+.stats-panel--products .stats-panel__content{
+  display:grid;
+  grid-template-columns:minmax(0, 1.1fr) minmax(0, 1.4fr);
+  gap:18px;
+  align-items:stretch;
+}
 
+.stats-panel--products .stats-panel__chart{
+  background:#047857;
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
+.stats-panel--products .stats-panel__grid--products{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
 
-
-
-
-
-
-
-
-
+/* 모바일에서는 도넛 위, 카드 아래 한 줄씩 */
+@media(max-width:768px){
+  .stats-panel--products .stats-panel__content{
+    grid-template-columns:1fr;
+  }
+  .stats-panel--products .stats-panel__grid--products{
+    grid-template-columns:1fr;
+  }
+}
