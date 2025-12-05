@@ -2070,3 +2070,104 @@ body.ontu-stats-page .stats-card__value--main {
     grid-template-columns:1fr;
   }
 }
+
+/* ==============================================
+   HERO 오른쪽 4개 버튼 (이미지 카드 → 버튼)
+   =========================================== */
+.beta-hero-links{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.hero-link-btn{
+  width:100%;
+  min-height:44px;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#ffffff;
+  color:#111827;
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(15,23,42,0.04);
+}
+
+.hero-link-btn::after{
+  content:"›";
+  font-size:14px;
+  opacity:.6;
+}
+
+.hero-link-btn:hover{
+  background:#f3f4f6;
+}
+
+@media (max-width:768px){
+  .hero-link-btn{
+    min-height:40px;
+    font-size:12px;
+  }
+}
+
+/* ==============================================
+   금일 계산기 이용자수 + 개인정보 배너 좌우 1:1
+   =========================================== */
+.beta-subinfo{
+  margin-top:8px;
+  display:flex;
+  flex-direction:row;
+  gap:10px;
+  align-items:stretch;
+}
+
+.beta-subinfo__left,
+.beta-subinfo__right{
+  flex:0 0 50%;
+}
+
+/* 기존 metric-row 스타일은 그대로 사용해도 되고,
+   width는 부모 flex에 맞춰 자동 */
+.beta-subinfo__metric-row{
+  width:100%;
+}
+
+/* 오른쪽 배너 박스 */
+.beta-subinfo__banner{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:20px;
+  overflow:hidden;
+  background:#e5e7eb;
+}
+
+.beta-subinfo__banner img{
+  display:block;
+  width:100%;
+  max-width:260px;      /* 렌더 기준 가로폭 */
+  aspect-ratio:3 / 1;   /* 3:1 비율 추천 (예: 900x300, 1080x360 등) */
+  object-fit:cover;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+}
+
+/* 모바일에서는 다시 세로로 쌓기 */
+@media (max-width:640px){
+  .beta-subinfo{
+    flex-direction:column;
+  }
+  .beta-subinfo__left,
+  .beta-subinfo__right{
+    flex:0 0 auto;
+  }
+}
