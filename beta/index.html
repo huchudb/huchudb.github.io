@@ -16,24 +16,26 @@
 
   <!-- 상단 헤더: 로고 + MENU 버튼 -->
   <header class="huchu-header beta-header" role="banner">
-  <div class="huchu-header__inner beta-header__inner">
-    <!-- 로고 -->
-    <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
-      <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-      <span class="logo-fallback">
-        <span class="logo-mark">%</span>
-        <span class="logo-text">후추 Huchu</span>
-      </span>
-    </a>
+    <div class="huchu-header__inner beta-header__inner">
+      <!-- 로고 -->
+      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
+        </span>
+      </a>
 
-    <!-- MENU + 드롭다운 -->
-<button id="betaMenuToggle"
+      <!-- MENU + 드롭다운 -->
+      <button
+        id="betaMenuToggle"
         class="beta-menu-toggle"
         type="button"
         aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
+        aria-expanded="false"
+      >
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
 
       <!-- 처음에는 숨김: hide 클래스 중요!! -->
       <div id="betaMenuPanel" class="beta-menu-panel hide">
@@ -44,8 +46,7 @@
         <a class="beta-menu-link" href="/beta/contact.html">광고문의</a>
       </div>
     </div>
-  </div>
-</header>
+  </header>
 
   <!-- 메인 -->
   <main class="beta-main">
@@ -55,63 +56,71 @@
       <section class="beta-hero">
         <div class="beta-hero-grid">
 
-          <!-- 왼쪽: 메인 배너 -->
-         <div class="beta-hero-banner" id="heroBanner">
-  <!-- 1번 배너 -->
-  <a href="/beta/products/index.html"
-     class="beta-hero-banner__slide is-active">
-    <img src="/assets/hero/banner1.png"
-         alt="온투업 담보대출 상품 통계 안내 배너">
-  </a>
+          <!-- 왼쪽: 메인 배너 (슬라이드) -->
+          <div class="beta-hero-banner" id="heroBanner">
+            <!-- 1번 배너 -->
+            <a href="/beta/products/index.html"
+               class="beta-hero-banner__slide is-active">
+              <img src="/assets/hero/banner1.png"
+                   alt="온투업 담보대출 상품 통계 안내 배너">
+            </a>
 
-  <!-- 2번 배너 -->
-  <a href="/beta/"
-     class="beta-hero-banner__slide">
-    <img src="/assets/hero/banner2.png"
-         alt="온투업 담보대출 통계 요약 배너">
-  </a>
+            <!-- 2번 배너 -->
+            <a href="/beta/"
+               class="beta-hero-banner__slide">
+              <img src="/assets/hero/banner2.png"
+                   alt="온투업 담보대출 통계 요약 배너">
+            </a>
 
-  <!-- 좌우 화살표 네비게이션 -->
-  <button class="hero-nav hero-nav--prev" type="button" aria-label="이전 배너">
-    《
-  </button>
-  <button class="hero-nav hero-nav--next" type="button" aria-label="다음 배너">
-    》
-  </button>
-</div>
+            <!-- 좌우 화살표 네비게이션 -->
+            <button class="hero-nav hero-nav--prev" type="button" aria-label="이전 배너">
+              《
+            </button>
+            <button class="hero-nav hero-nav--next" type="button" aria-label="다음 배너">
+              》
+            </button>
+          </div>
 
-          <!-- 오른쪽: 2×2 기능 카드 + 금일 이용자수 + 서브 배너 -->
+          <!-- 오른쪽: 기능 버튼 4개 + 금일 이용자수/배너 -->
           <div class="beta-hero-right">
 
-            <!-- 2×2 이미지 카드 (일단 정적인 이미지; 나중에 관리자 연동) -->
-            <div class="beta-hero-cards">
-              <div class="beta-hero-cards__grid">
-                <a href="/beta/ontu-stats.html" class="beta-hero-card">
-                  <img src="/assets/hero-card-stat.png" alt="온투업(P2P) 대출 통계" />
-                </a>
-                <a href="/beta/products/index.html" class="beta-hero-card">
-                  <img src="/assets/hero-card-products.png" alt="온투업(P2P) 대출 상품 정보" />
-                </a>
-                <a href="/" class="beta-hero-card">
-                  <img src="/assets/hero-card-calculator.png" alt="온투업 전용 담보대출 계산기" />
-                </a>
-                <a href="https://blog.naver.com/honestbros" target="_blank" rel="noopener" class="beta-hero-card">
-                  <img src="/assets/hero-card-blog.png" alt="후추 공식 블로그" />
-                </a>
-              </div>
+            <!-- 4개 기능 버튼 (이미지 카드 → 버튼으로 변경) -->
+            <div class="beta-hero-links">
+              <a href="/beta/ontu-stats.html" class="hero-link-btn">
+                <span>온투업(P2P) 대출통계</span>
+              </a>
+              <a href="/beta/products/index.html" class="hero-link-btn">
+                <span>온투업(P2P) 대출상품정보</span>
+              </a>
+              <a href="/" class="hero-link-btn">
+                <span>담보대출 가능액 계산기</span>
+              </a>
+              <a href="https://blog.naver.com/honestbros" target="_blank" rel="noopener" class="hero-link-btn">
+                <span>후추 공식 블로그</span>
+              </a>
             </div>
 
-            <!-- 금일 이용자수 + 서브 이미지 -->
+            <!-- 금일 이용자수 + 서브 이미지 (좌우 1:1) -->
             <div class="beta-subinfo">
-              <div class="beta-subinfo__metric-row">
-                <div class="beta-subinfo__label">금일 계산기 이용자수</div>
-                <div class="beta-subinfo__value">
-                  <span id="todayUsersCount">0</span>
-                  <span class="unit">명</span>
+              <!-- 왼쪽: 금일 이용자수 -->
+              <div class="beta-subinfo__left">
+                <div class="beta-subinfo__metric-row">
+                  <div class="beta-subinfo__label">금일 계산기 이용자수</div>
+                  <div class="beta-subinfo__value">
+                    <span id="todayUsersCount">0</span>
+                    <span class="unit">명</span>
+                  </div>
                 </div>
               </div>
-              <div class="beta-subinfo__banner">
-                <img src="/assets/hero-subinfo-banner.png" alt="개인정보 입력 없이 간편하게 담보대출 가능 여부를 확인해보세요.">
+
+              <!-- 오른쪽: 개인정보 안내 배너 이미지 -->
+              <div class="beta-subinfo__right">
+                <div class="beta-subinfo__banner">
+                  <img
+                    src="/assets/hero-subinfo-banner.png"
+                    alt="개인정보 입력 없이 간편하게 담보대출 가능 여부를 확인해보세요."
+                  >
+                </div>
               </div>
             </div>
 
@@ -119,43 +128,41 @@
         </div>
       </section>
 
-<section class="beta-section">
-  <!-- 회색 카드로 한 번 감싸기 -->
-  <div class="beta-card beta-card--wide">
-    <div class="stats-panel stats-panel--loan">
-      <div class="stats-panel__header">
-        <h2 class="stats-panel__title">대출 현황</h2>
-        <div id="loanStatusMonth" class="stats-panel__meta"></div>
-      </div>
+      <!-- 대출현황 섹션 (회색 카드 안에 초록 패널) -->
+      <section class="beta-section">
+        <div class="beta-card beta-card--wide">
+          <div class="stats-panel stats-panel--loan">
+            <div class="stats-panel__header">
+              <h2 class="stats-panel__title">대출 현황</h2>
+              <div id="loanStatusMonth" class="stats-panel__meta"></div>
+            </div>
 
-      <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
-        <!-- home-beta.js(또는 ontu-stats.js)에서 .stats-card들을 렌더 -->
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="beta-section">
-  <div class="beta-card beta-card--wide">
-    <div class="stats-panel stats-panel--products">
-      <div class="stats-panel__header">
-        <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-        <div id="productStatusMonth" class="stats-panel__meta"></div>
-      </div>
-
-      <!-- 도넛 + 유형별 카드 레이아웃용 래퍼 -->
-      <div class="stats-panel__content">
-        <div class="stats-panel__chart">
-          <canvas id="productTypeDonut"></canvas>
+            <!-- 여기 그리드 안에 JS가 카드(.stats-card)를 여러 개 넣어줌 -->
+            <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
+              <!-- home-beta.js에서 .beta-loanstatus-grid 렌더링 -->
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div id="ontuProductSection" class="stats-panel__grid stats-panel__grid--products">
-          <!-- JS에서 아파트/단독·다가구/토지… 유형별 .stats-card 렌더 -->
+      <!-- 상품유형별 대출잔액 섹션 (회색 카드 안에 초록 패널) -->
+      <section class="beta-section">
+        <div class="beta-card beta-card--wide">
+          <div class="stats-panel stats-panel--products">
+            <div class="stats-panel__header">
+              <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+              <div id="productStatusMonth" class="stats-panel__meta"></div>
+            </div>
+
+            <!-- JS에서 도넛 + 유형별 박스 렌더링 -->
+            <div id="ontuProductSection" class="stats-panel__grid stats-panel__grid--products">
+              <!-- home-beta.js에서 도넛 + .beta-product-box 들 렌더링 -->
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
     </div>
-  </div>
-</section>
   </main>
 
   <!-- 푸터 -->
@@ -166,12 +173,14 @@
       <a href="/privacy.html">개인정보 취급방침</a>
     </div>
     <div class="beta-footer__bottom">
-     <div class="beta-footer__brand">
-  <img src="/assets/logo/huchu-logo-white.png"
-       alt="HUCHU 로고"
-       class="beta-footer__logo-img" />
-  <span class="beta-footer__logo-text">HUCHU</span>
-</div>
+      <div class="beta-footer__brand">
+        <img
+          src="/assets/logo/huchu-logo-white.png"
+          alt="HUCHU 로고"
+          class="beta-footer__logo-img"
+        />
+        <span class="beta-footer__logo-text">HUCHU</span>
+      </div>
       <div class="beta-footer__info">
         <p>상호: (예시) 후추랩 | 대표: 장현성</p>
         <p>주소: (예시) 경기도 고양시 일산동구 00로 00</p>
