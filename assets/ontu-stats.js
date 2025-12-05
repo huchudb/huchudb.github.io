@@ -1,21 +1,42 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 응답형식 방어 강화본)
+// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 숫자 변환 안정화)
 
 (function () {
   const API_BASE = 'https://huchudb-github-io.vercel.app';
   const API_URL = `${API_BASE}/api/ontu-stats`;
 
-  const monthInput = document.getElementById('ontuMonthInput');
-  const loanTrack = document.getElementById('ontuLoanTrack');
+  const monthInput   = document.getElementById('ontuMonthInput');
+  const loanTrack    = document.getElementById('ontuLoanTrack');
   const productTrack = document.getElementById('ontuProductTrack');
 
   if (!loanTrack || !productTrack) return;
+
+  /* ---------------- 공통: 안전한 숫자 변환 ---------------- */
+
+  // "12,345,678", " 12345 ", 12345 → 12345
+  // 이상한 값이면 0으로 처리
+  function toNumberSafe(value) {
+    if (value == null) return 0;
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[^\d.-]/g, ''); // 숫자/부호만 남김
+      if (!cleaned) return 0;
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    return 0;
+  }
 
   /* ---------------- 메뉴 토글 (공통 헤더용) ---------------- */
 
   (function setupMenu() {
     const toggle = document.getElementById('betaMenuToggle');
-    const panel = document.getElementById('betaMenuPanel');
+    const panel  = document.getElementById('betaMenuPanel');
     if (!toggle || !panel) return;
 
     function openMenu() {
@@ -60,21 +81,8 @@
     return formatMonthKey(d);
   }
 
-  // "2025-10" 또는 "2025-10-01" -> "2025-10" 으로 정규화
-  function normalizeMonthKey(raw) {
-    if (!raw) return '';
-    const parts = String(raw).split('-');
-    if (parts.length >= 2) {
-      const y = parts[0];
-      const m = parts[1].padStart(2, '0');
-      return `${y}-${m}`;
-    }
-    return raw;
-  }
-
   /* ---------------- 금액 포맷 (원 → 조/억/만원) ---------------- */
 
-  // amountWon 은 **원 단위** 숫자 (예: 17766071578000)
   function splitKoreanMoney(amountWon) {
     if (!Number.isFinite(amountWon)) {
       return { jo: 0, eok: 0, man: 0 };
@@ -82,33 +90,30 @@
 
     const abs = Math.floor(Math.abs(amountWon));
 
-    const JO_UNIT = 10 ** 12; // 1조 원
-    const EOK_UNIT = 10 ** 8; // 1억 원
-    const MAN_UNIT = 10 ** 4; // 1만원
+    const JO_UNIT  = 10 ** 12; // 1조
+    const EOK_UNIT = 10 ** 8;  // 1억
+    const MAN_UNIT = 10 ** 4;  // 1만원
 
-    const jo = Math.floor(abs / JO_UNIT);
+    const jo   = Math.floor(abs / JO_UNIT);
     const rem1 = abs % JO_UNIT;
 
-    const eok = Math.floor(rem1 / EOK_UNIT);
+    const eok  = Math.floor(rem1 / EOK_UNIT);
     const rem2 = rem1 % EOK_UNIT;
 
-    const man = Math.floor(rem2 / MAN_UNIT);
+    const man  = Math.floor(rem2 / MAN_UNIT);
 
     return { jo, eok, man };
   }
 
-  // 카드 메인 숫자: "17조 7,660억 7,157만원" 처럼 **한 줄**로 보여주기
-  function formatKoreanMoneyLine(amountWon) {
-    const n = Number(amountWon);
-    if (!Number.isFinite(n)) return '-';
-
-    const sign = n < 0 ? '-' : '';
-    const { jo, eok, man } = splitKoreanMoney(n);
+  // 메인 금액: "17조 7,660억 7,157만원" 한 줄로
+  function formatKoreanMoneyLine(amountWonRaw) {
+    const amountWon = toNumberSafe(amountWonRaw);
+    const sign = amountWon < 0 ? '-' : '';
+    const { jo, eok, man } = splitKoreanMoney(amountWon);
 
     const parts = [];
-    if (jo) parts.push(`${jo.toLocaleString()}조`);
+    if (jo)  parts.push(`${jo.toLocaleString()}조`);
     if (eok) parts.push(`${eok.toLocaleString()}억`);
-    // 만원은 0이라도, 앞에 아무 것도 없으면 0만원은 보여 줌
     if (man || parts.length === 0) {
       parts.push(`${man.toLocaleString()}만원`);
     }
@@ -116,20 +121,22 @@
     return sign + parts.join(' ');
   }
 
-  // 전월대비 금액용(절댓값만, 조/억/만원 한 줄)
-  function formatDeltaAmount(absWon) {
-    return formatKoreanMoneyLine(absWon);
+  function formatDeltaAmount(absWonRaw) {
+    return formatKoreanMoneyLine(absWonRaw);
   }
 
   // 퍼센트: +1.48%, -0.32%, 0.00%
-  function formatDeltaRate(current, prev) {
-    const cur = Number(current);
-    const prv = Number(prev);
-    if (!Number.isFinite(cur) || !Number.isFinite(prv) || prv === 0) {
+  function formatDeltaRate(currentRaw, prevRaw) {
+    const current = toNumberSafe(currentRaw);
+    const prev    = toNumberSafe(prevRaw);
+
+    // 전월 값이 0 이하거나, 숫자가 아니면 0.00%
+    if (!Number.isFinite(current) || !Number.isFinite(prev) || prev <= 0) {
       return '0.00%';
     }
-    const diff = cur - prv;
-    const rate = (diff / prv) * 100;
+
+    const diff = current - prev;
+    const rate = (diff / prev) * 100;
     const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
     return `${sign}${Math.abs(rate).toFixed(2)}%`;
   }
@@ -140,37 +147,29 @@
     const url = monthKey
       ? `${API_URL}?month=${encodeURIComponent(monthKey)}`
       : API_URL;
-
     const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) throw new Error(`API ${res.status}`);
-
     const json = await res.json();
-
-    // 응답 형식이 {month, summary, byType} 이거나 {data:{month,summary,byType}} 둘 다 허용
-    const payload =
-      json &&
-      typeof json === 'object' &&
-      json.data &&
-      (json.data.summary || json.data.byType || json.data.month)
-        ? json.data
-        : json;
-
-    console.log('[ontu-stats] API response:', payload);
-    return payload;
+    console.log('[ontu-stats] API response:', json);
+    return json;
   }
 
   /* ---------------- 카드 DOM 생성 ---------------- */
 
   function createLoanCards(current, prev) {
-    const summary = current.summary || {};
+    const summary     = current.summary || {};
     const prevSummary = prev && prev.summary ? prev.summary : null;
 
     const cards = [];
 
     // 1) 데이터수집 온투업체수 (개수형)
-    const firmCount = Number(summary.dataFirms ?? summary.registeredFirms ?? 0);
+    const firmCount = toNumberSafe(
+      summary.dataFirms ?? summary.registeredFirms ?? 0,
+    );
     const prevFirmCount = prevSummary
-      ? Number(prevSummary.dataFirms ?? prevSummary.registeredFirms ?? 0)
+      ? toNumberSafe(
+          prevSummary.dataFirms ?? prevSummary.registeredFirms ?? 0,
+        )
       : null;
 
     cards.push(createCountCard('데이터수집 온투업체수', firmCount, prevFirmCount));
@@ -179,8 +178,8 @@
     cards.push(
       createMoneyCard(
         '누적 대출금액',
-        Number(summary.totalLoan ?? 0),
-        prevSummary ? Number(prevSummary.totalLoan ?? 0) : null,
+        toNumberSafe(summary.totalLoan),
+        prevSummary ? toNumberSafe(prevSummary.totalLoan) : null,
       ),
     );
 
@@ -188,8 +187,8 @@
     cards.push(
       createMoneyCard(
         '누적 상환금액',
-        Number(summary.totalRepaid ?? 0),
-        prevSummary ? Number(prevSummary.totalRepaid ?? 0) : null,
+        toNumberSafe(summary.totalRepaid),
+        prevSummary ? toNumberSafe(prevSummary.totalRepaid) : null,
       ),
     );
 
@@ -197,8 +196,8 @@
     cards.push(
       createMoneyCard(
         '대출잔액',
-        Number(summary.balance ?? 0),
-        prevSummary ? Number(prevSummary.balance ?? 0) : null,
+        toNumberSafe(summary.balance),
+        prevSummary ? toNumberSafe(prevSummary.balance) : null,
       ),
     );
 
@@ -206,7 +205,7 @@
   }
 
   function createProductCards(current, prev) {
-    const byType = current.byType || {};
+    const byType     = current.byType || {};
     const prevByType = prev && prev.byType ? prev.byType : {};
 
     const order = [
@@ -224,12 +223,13 @@
       const cur = byType[key];
       if (!cur) return;
 
-      const curAmount = Number(cur.amount ?? 0);
+      const curAmount  = toNumberSafe(cur.amount);
       const prevAmount = prevByType[key]
-        ? Number(prevByType[key].amount ?? 0)
+        ? toNumberSafe(prevByType[key].amount)
         : null;
-      const ratioRaw = cur.ratio ?? null;
-      const ratio = ratioRaw == null ? null : Number(ratioRaw); // 0~1 또는 % 예상
+
+      let ratio = cur.ratio != null ? toNumberSafe(cur.ratio) : 0;
+      if (ratio > 1) ratio = ratio / 100; // 23.4 이런 % 값이면 0.234로 보정
 
       cards.push(createProductCard(key, curAmount, prevAmount, ratio));
     });
@@ -239,20 +239,21 @@
 
   /* ----- 개수형 카드 (온투업체수) ----- */
 
-  function createCountCard(label, currentValue, prevValue) {
-    const cur = Number(currentValue) || 0;
-    const prv = prevValue == null ? null : Number(prevValue);
-    const diff = prv == null ? 0 : cur - prv;
-    const rateText = formatDeltaRate(cur, prv ?? 0);
+  function createCountCard(label, currentValueRaw, prevValueRaw) {
+    const currentValue = toNumberSafe(currentValueRaw);
+    const prevValue    = prevValueRaw == null ? null : toNumberSafe(prevValueRaw);
+
+    const diff     = prevValue == null ? 0 : currentValue - prevValue;
+    const rateText = formatDeltaRate(currentValue, prevValue ?? 0);
 
     let deltaClass = 'delta-flat';
-    let arrow = '–';
+    let arrow      = '–';
     if (diff > 0) {
       deltaClass = 'delta-up';
-      arrow = '▲';
+      arrow      = '▲';
     } else if (diff < 0) {
       deltaClass = 'delta-down';
-      arrow = '▼';
+      arrow      = '▼';
     }
 
     const el = document.createElement('article');
@@ -261,7 +262,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="stats-card__number">${cur.toLocaleString()}</span>
+        <span class="stats-card__number">${currentValue.toLocaleString()}</span>
         <span class="stats-card__unit">개</span>
       </div>
       <div class="stats-card__bottom-row">
@@ -288,21 +289,28 @@
 
   /* ----- 금액 카드 (조/억/만원 한 줄) ----- */
 
-  function createMoneyCard(label, currentWon, prevWon) {
-    const cur = Number(currentWon) || 0;
-    const prv = prevWon == null ? null : Number(prevWon);
-    const diff = prv == null ? 0 : cur - prv;
+  function createMoneyCard(label, currentWonRaw, prevWonRaw) {
+    const currentWon = toNumberSafe(currentWonRaw);
+    const prevWon    = prevWonRaw == null ? null : toNumberSafe(prevWonRaw);
+
+    const diff    = prevWon == null ? 0 : currentWon - prevWon;
     const absDiff = Math.abs(diff);
-    const rateText = formatDeltaRate(cur, prv ?? 0);
+    const rateText = formatDeltaRate(currentWon, prevWon ?? 0);
 
     let deltaClass = 'delta-flat';
-    let arrow = '–';
+    let arrow      = '–';
     if (diff > 0) {
       deltaClass = 'delta-up';
-      arrow = '▲';
+      arrow      = '▲';
     } else if (diff < 0) {
       deltaClass = 'delta-down';
-      arrow = '▼';
+      arrow      = '▼';
+    }
+
+    // 메인 금액 포맷 실패 대비용 안전장치
+    let mainText = formatKoreanMoneyLine(currentWon);
+    if (!mainText || mainText === '-' || mainText === 'NaN만원') {
+      mainText = `${currentWon.toLocaleString('ko-KR')}원`;
     }
 
     const el = document.createElement('article');
@@ -311,7 +319,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${formatKoreanMoneyLine(cur)}</span>
+        <span class="money-text">${mainText}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share"></div>
@@ -321,7 +329,11 @@
           <div class="stats-card__delta ${deltaClass}">
             <span class="stats-card__delta-arrow">${arrow}</span>
             <span class="stats-card__delta-amount">
-              ${diff === 0 ? '변동 없음' : formatDeltaAmount(absDiff)}
+              ${
+                diff === 0
+                  ? '변동 없음'
+                  : formatDeltaAmount(absDiff)
+              }
             </span>
           </div>
         </div>
@@ -333,27 +345,28 @@
 
   /* ----- 상품유형별 카드 ----- */
 
-  function createProductCard(label, currentWon, prevWon, ratio) {
-    const cur = Number(currentWon) || 0;
-    const prv = prevWon == null ? null : Number(prevWon);
-    const diff = prv == null ? 0 : cur - prv;
+  function createProductCard(label, currentWonRaw, prevWonRaw, ratioRaw) {
+    const currentWon = toNumberSafe(currentWonRaw);
+    const prevWon    = prevWonRaw == null ? null : toNumberSafe(prevWonRaw);
+
+    const diff    = prevWon == null ? 0 : currentWon - prevWon;
     const absDiff = Math.abs(diff);
-    const rateText = formatDeltaRate(cur, prv ?? 0);
+    const rateText = formatDeltaRate(currentWon, prevWon ?? 0);
 
     let deltaClass = 'delta-flat';
-    let arrow = '–';
+    let arrow      = '–';
     if (diff > 0) {
       deltaClass = 'delta-up';
-      arrow = '▲';
+      arrow      = '▲';
     } else if (diff < 0) {
       deltaClass = 'delta-down';
-      arrow = '▼';
+      arrow      = '▼';
     }
 
+    let ratio = ratioRaw != null ? toNumberSafe(ratioRaw) : 0;
+    if (ratio > 1) ratio = ratio / 100;
     const shareText =
-      ratio != null && !Number.isNaN(ratio)
-        ? `${(ratio * 100).toFixed(1)}% 점유`
-        : '';
+      ratio > 0 ? `${(ratio * 100).toFixed(1)}% 점유` : '';
 
     const el = document.createElement('article');
     el.className = 'stats-card stats-card--product';
@@ -361,7 +374,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${formatKoreanMoneyLine(cur)}</span>
+        <span class="money-text">${formatKoreanMoneyLine(currentWon)}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share">${shareText}</div>
@@ -371,7 +384,11 @@
           <div class="stats-card__delta ${deltaClass}">
             <span class="stats-card__delta-arrow">${arrow}</span>
             <span class="stats-card__delta-amount">
-              ${diff === 0 ? '변동 없음' : formatDeltaAmount(absDiff)}
+              ${
+                diff === 0
+                  ? '변동 없음'
+                  : formatDeltaAmount(absDiff)
+              }
             </span>
           </div>
         </div>
@@ -385,10 +402,9 @@
 
   function renderMonthText(monthKey) {
     const nodes = document.querySelectorAll('[data-ontu-month-text]');
-    const normalized = normalizeMonthKey(monthKey);
-    const d = parseMonthKey(normalized);
+    if (!monthKey) return;
+    const d = parseMonthKey(monthKey);
     const text = `${d.getFullYear()}년 ${d.getMonth() + 1}월 기준`;
-
     nodes.forEach((el) => {
       el.textContent = text;
     });
@@ -399,9 +415,8 @@
   }
 
   function renderAll(current, prev) {
-    const monthKey = normalizeMonthKey(current.month);
-    if (monthInput) {
-      // input[type="month"]에는 항상 YYYY-MM 형식으로
+    const monthKey = current.month;
+    if (monthInput && monthKey) {
       monthInput.value = monthKey;
     }
     renderMonthText(monthKey);
@@ -415,13 +430,22 @@
     const productCards = createProductCards(current, prev);
     productCards.forEach((c) => productTrack.appendChild(c));
 
-    // 카드가 렌더링된 이후 슬라이더 초기화
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.initOntuStatsSliders === 'function'
-    ) {
+    // 카드 렌더 후 슬라이더 초기화/재정렬
+    if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
       window.initOntuStatsSliders();
     }
+  }
+
+  // "2025-10" 또는 "2025-10-01" -> "2025-10"
+  function normalizeMonthKey(raw) {
+    if (!raw) return '';
+    const parts = raw.split('-');
+    if (parts.length >= 2) {
+      const y = parts[0];
+      const m = parts[1].padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    return raw;
   }
 
   /* ---------------- 초기 로딩 ---------------- */
@@ -430,7 +454,7 @@
     try {
       // 1) 최신월
       const current = await fetchMonthData();
-      const monthKey = normalizeMonthKey(current.month);
+      const monthKey = current.month;
 
       // 2) 전월 데이터(있으면)
       let prev = null;
@@ -438,16 +462,15 @@
         const prevKey = getPrevMonthKey(monthKey);
         prev = await fetchMonthData(prevKey);
       } catch (e) {
-        // 전월 데이터 없으면 무시
         console.warn('[ontu-stats] no previous month data', e);
       }
 
       renderAll(current, prev);
 
-      // month 인풋에서 직접 변경했을 때
+      // month 인풋 변경
       if (monthInput) {
         monthInput.addEventListener('change', async (e) => {
-          const raw = e.target.value;
+          const raw   = e.target.value;
           const value = normalizeMonthKey(raw);
           if (!value) return;
 
@@ -455,7 +478,7 @@
             const cur = await fetchMonthData(value);
             let pv = null;
             try {
-              const prevKey = getPrevMonthKey(normalizeMonthKey(cur.month));
+              const prevKey = getPrevMonthKey(cur.month);
               pv = await fetchMonthData(prevKey);
             } catch (err) {
               console.warn('[ontu-stats] no prev for selected month', err);
@@ -479,29 +502,24 @@
  * ====================== */
 
 (function () {
-  /**
-   * 개별 패널 슬라이더 세팅
-   * @param {string} panelSelector - .stats-panel--loan / .stats-panel--products
-   */
   function setupStatsSlider(panelSelector) {
     const panel = document.querySelector(panelSelector);
     if (!panel) return;
 
-    // 이미 초기화된 패널이면 다시 바인딩하지 않음
     if (panel.dataset.ontuSliderInitialized === 'true') return;
     panel.dataset.ontuSliderInitialized = 'true';
 
-    const slider = panel.querySelector('.stats-panel__slider');
+    const slider   = panel.querySelector('.stats-panel__slider');
     const viewport = slider?.querySelector('.stats-panel__viewport');
-    const track = slider?.querySelector('.stats-panel__track');
+    const track    = slider?.querySelector('.stats-panel__track');
     if (!viewport || !track) return;
 
     let currentIndex = 0;
-    let autoTimer = null;
+    let autoTimer    = null;
 
     let isPointerDown = false;
-    let startX = 0;
-    let deltaX = 0;
+    let startX        = 0;
+    let deltaX        = 0;
 
     function getCards() {
       return Array.from(track.querySelectorAll('.stats-card'));
@@ -513,15 +531,14 @@
       const total = cards.length;
       if (!total) return;
 
-      const normalized = ((newIndex % total) + total) % total; // 음수 인덱스 보정
+      const normalized = ((newIndex % total) + total) % total;
       currentIndex = normalized;
 
-      const card = cards[normalized];
+      const card    = cards[normalized];
       const cardRect = card.getBoundingClientRect();
-      const vpRect = viewport.getBoundingClientRect();
+      const vpRect   = viewport.getBoundingClientRect();
 
-      const offset =
-        card.offsetLeft - (vpRect.width - cardRect.width) / 2;
+      const offset = card.offsetLeft - (vpRect.width - cardRect.width) / 2;
 
       viewport.scrollTo({
         left: offset,
@@ -542,7 +559,6 @@
       }, 4000);
     }
 
-    // 공통 포인터 로직 (마우스 + 터치)
     function onPointerDown(clientX) {
       isPointerDown = true;
       startX = clientX;
@@ -559,23 +575,20 @@
       if (!isPointerDown) return;
       isPointerDown = false;
 
-      const threshold = viewport.offsetWidth * 0.15; // 뷰포트 폭의 15% 이상 스와이프 시 페이지 전환
+      const threshold = viewport.offsetWidth * 0.15;
 
       if (deltaX > threshold) {
-        // 오른쪽으로 스와이프 → 이전 카드
         scrollToIndex(currentIndex - 1);
       } else if (deltaX < -threshold) {
-        // 왼쪽으로 스와이프 → 다음 카드
         scrollToIndex(currentIndex + 1);
       } else {
-        // 애매하면 제자리 카드로 스냅
         scrollToIndex(currentIndex);
       }
 
       startAuto();
     }
 
-    // 마우스 이벤트
+    // 마우스
     viewport.addEventListener('mousedown', (e) => {
       e.preventDefault();
       onPointerDown(e.clientX);
@@ -587,7 +600,7 @@
       onPointerUp();
     });
 
-    // 터치 이벤트
+    // 터치
     viewport.addEventListener(
       'touchstart',
       (e) => {
@@ -610,11 +623,11 @@
       onPointerUp();
     });
 
-    // PC에서 hover 시 자동 슬라이드 일시정지
+    // hover 시 자동 슬라이드 일시정지
     slider.addEventListener('mouseenter', stopAuto);
     slider.addEventListener('mouseleave', startAuto);
 
-    // 리사이즈 시 현재 카드 기준으로 다시 정렬 (걸쳐 보이는 문제 방지)
+    // 리사이즈 시 현재 카드 기준 재정렬
     window.addEventListener('resize', () => {
       scrollToIndex(currentIndex, { smooth: false });
     });
@@ -635,6 +648,5 @@
     }
   }
 
-  // 전역에서 호출할 수 있도록 노출
   window.initOntuStatsSliders = initOntuStatsSliders;
 })();
