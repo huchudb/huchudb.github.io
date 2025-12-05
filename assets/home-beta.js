@@ -87,7 +87,6 @@ function formatMonthLabel(ym) {
 const DEFAULT_ONTU_STATS = {
   month: "2025-10",
   summary: {
-    // registeredFirms는 이제 UI에서 사용 안 함
     registeredFirms: 51,
     dataFirms: 49,
     // 18조 3,580억 776만원
@@ -133,9 +132,8 @@ const DEFAULT_ONTU_STATS = {
 };
 
 // ───────── API 베이스 ─────────
-const API_BASE        = "https://huchudb-github-io.vercel.app";
-const ONTU_API        = `${API_BASE}/api/ontu-stats`;
-const DAILY_USERS_API = `${API_BASE}/api/daily-users`;
+const API_BASE  = "https://huchudb-github-io.vercel.app";
+const ONTU_API  = `${API_BASE}/api/ontu-stats`;
 
 // ───────── 온투업 통계 가져오기 ─────────
 async function fetchOntuStats() {
@@ -186,7 +184,6 @@ function renderLoanStatus(summary, monthStr) {
     monthEl.textContent = `최근 기준월: ${formatMonthLabel(monthStr)}`;
   }
 
-  // UI에는 4개 지표만 노출: 데이터 수집 업체수 + 누적대출 + 누적상환 + 대출잔액
   const items = [
     {
       label: "데이터 수집 온투업체수",
@@ -253,6 +250,12 @@ function renderProductSection(summary, byType) {
     return;
   }
 
+  // 기준월 출력
+  const monthStr = summary.monthKey || summary.month || DEFAULT_ONTU_STATS.month;
+  if (monthEl) {
+    monthEl.textContent = `최근 기준월: ${formatMonthLabel(monthStr)}`;
+  }
+
   const balance = Number(summary.balance || 0);
 
   const labels   = [];
@@ -269,15 +272,10 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
-  if (monthEl) {
-    monthEl.textContent = `최근 기준월: ${formatMonthLabel(summary.month || DEFAULT_ONTU_STATS.month)}`;
-  }
-
-  // A안: 도넛(왼쪽) + 우측 카드 리스트만, 도넛 아래 텍스트 리스트는 없음
   section.innerHTML = `
     <div class="beta-product-grid">
       <div class="beta-product-donut-wrap">
-        <canvas id="productDonut"></canvas>
+        <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
       </div>
       <div class="beta-product-boxes">
         ${labels
@@ -286,9 +284,9 @@ function renderProductSection(summary, byType) {
             return `
               <div class="beta-product-box" style="--product-color:${color};">
                 <div class="beta-product-box__title">${name}</div>
-                <div class="beta-product-box__amount">
-                  ${formatKoreanCurrencyJo(amounts[idx])} · ${percents[idx].toFixed(1)}%
-                </div>
+                <div class="beta-product-box__amount">${formatKoreanCurrencyJo(
+                  amounts[idx]
+                )}</div>
               </div>
             `;
           })
@@ -323,7 +321,7 @@ function renderProductSection(summary, byType) {
       maintainAspectRatio: false,
       cutout: "60%",
       plugins: {
-        legend: { display: false },   // ← 도넛 아래 기본 legend 제거 (중복 방지)
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: (ctx) => {
@@ -362,29 +360,6 @@ async function initOntuStats() {
   }
 }
 
-// 금일 이용자수 (조회만)
-async function initDailyUsers() {
-  const el = document.getElementById("todayUsersCount");
-  if (!el) return;
-
-  try {
-    const res = await fetch(`${DAILY_USERS_API}?t=${Date.now()}`, {
-      method: "GET",
-      mode: "cors",
-      credentials: "omit",
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-    if (!res.ok) throw new Error("failed");
-    const json  = await res.json();
-    const total = Number(json.count || 0);
-    el.textContent = total.toLocaleString("ko-KR");
-  } catch (e) {
-    console.error(e);
-    el.textContent = "-";
-  }
-}
-
 // 상단 MENU 드롭다운
 function setupBetaMenu() {
   const btn   = document.getElementById("betaMenuToggle");
@@ -417,7 +392,6 @@ function setupBetaMenu() {
 // DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initOntuStats();
-  initDailyUsers();
   setupBetaMenu();
 });
 
@@ -427,7 +401,7 @@ const heroPrev   = document.querySelector(".hero-nav--prev");
 const heroNext   = document.querySelector(".hero-nav--next");
 
 // 자동 넘김 시간(ms)
-const HERO_SLIDE_INTERVAL = 5000; // 5초
+const HERO_SLIDE_INTERVAL = 5000; // 5000ms = 5초
 
 let heroIndex = 0;
 let heroTimer = null;
