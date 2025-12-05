@@ -435,7 +435,7 @@
       window.initOntuStatsSliders();
     }
 
-    // 👇 장식/추가 효과(숫자 스팬 래핑, 자동 슬라이드 등)용 커스텀 이벤트
+    // 장식/추가 효과(숫자 스팬 래핑, 자동 슬라이드 등)용 커스텀 이벤트
     document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
   }
 
@@ -505,10 +505,24 @@
  * ====================== */
 
 (function () {
+  // PC/모바일 판별용
+  function isMobile() {
+    try {
+      return (
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(max-width: 768px)').matches
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function setupStatsSlider(panelSelector) {
     const panel = document.querySelector(panelSelector);
     if (!panel) return;
 
+    // 이미 초기화된 패널이면 다시 바인딩하지 않음
     if (panel.dataset.ontuSliderInitialized === 'true') return;
     panel.dataset.ontuSliderInitialized = 'true';
 
@@ -519,6 +533,7 @@
 
     let currentIndex = 0;
     let autoTimer    = null;
+    let direction    = 1;   // 1: 오른쪽(다음 카드), -1: 왼쪽(이전 카드)
 
     let isPointerDown = false;
     let startX        = 0;
@@ -534,14 +549,15 @@
       const total = cards.length;
       if (!total) return;
 
-      const normalized = ((newIndex % total) + total) % total;
+      const normalized = ((newIndex % total) + total) % total; // 음수 인덱스 보정
       currentIndex = normalized;
 
-      const card    = cards[normalized];
+      const card     = cards[normalized];
       const cardRect = card.getBoundingClientRect();
       const vpRect   = viewport.getBoundingClientRect();
 
-      const offset = card.offsetLeft - (vpRect.width - cardRect.width) / 2;
+      const offset =
+        card.offsetLeft - (vpRect.width - cardRect.width) / 2;
 
       viewport.scrollTo({
         left: offset,
@@ -556,10 +572,26 @@
     }
 
     function startAuto() {
+      // PC에서는 자동 슬라이드 사용 안 함
+      if (!isMobile()) {
+        stopAuto();
+        return;
+      }
+
       stopAuto();
       autoTimer = setInterval(() => {
-        scrollToIndex(currentIndex + 1, { smooth: true });
-      }, 4000);
+        const cards = getCards();
+        const total = cards.length;
+        if (!total) return;
+
+        // 핑퐁 방식: 0→1→2→…→마지막→…→0 반복
+        let next = currentIndex + direction;
+        if (next < 0 || next >= total) {
+          direction *= -1;
+          next = currentIndex + direction;
+        }
+        scrollToIndex(next, { smooth: true });
+      }, 5000); // 모바일 자동 슬라이드 5초
     }
 
     function onPointerDown(clientX) {
@@ -578,20 +610,25 @@
       if (!isPointerDown) return;
       isPointerDown = false;
 
-      const threshold = viewport.offsetWidth * 0.15;
+      const threshold = viewport.offsetWidth * 0.15; // 뷰포트 폭의 15% 이상 스와이프 시 페이지 전환
 
       if (deltaX > threshold) {
+        // 오른쪽으로 스와이프 → 이전 카드
         scrollToIndex(currentIndex - 1);
+        direction = -1;
       } else if (deltaX < -threshold) {
+        // 왼쪽으로 스와이프 → 다음 카드
         scrollToIndex(currentIndex + 1);
+        direction = 1;
       } else {
+        // 애매하면 제자리 카드로 스냅
         scrollToIndex(currentIndex);
       }
 
       startAuto();
     }
 
-    // 마우스
+    // 마우스 이벤트
     viewport.addEventListener('mousedown', (e) => {
       e.preventDefault();
       onPointerDown(e.clientX);
@@ -603,7 +640,7 @@
       onPointerUp();
     });
 
-    // 터치
+    // 터치 이벤트
     viewport.addEventListener(
       'touchstart',
       (e) => {
@@ -626,7 +663,7 @@
       onPointerUp();
     });
 
-    // hover 시 자동 슬라이드 일시정지
+    // hover 시 자동 슬라이드 일시정지 / 재개
     slider.addEventListener('mouseenter', stopAuto);
     slider.addEventListener('mouseleave', startAuto);
 
