@@ -2015,6 +2015,29 @@ body.ontu-stats-page .stats-card__value--main {
   }
 }
 
+/* ===== 온투 통계: 데이터 없는 월용 빈 카드 스타일 ===== */
+
+.stats-card--empty {
+  max-width: 320px;          /* 카드 폭은 적당히, 필요하면 조절 */
+  margin: 40px auto;         /* 좌우 auto로 패널 가운데 정렬 + 위아래 여백 */
+  color: #111827;            /* 카드 전체 기본 글자색을 진한 회색으로 */
+}
+
+.stats-card--empty .stats-card__empty-inner {
+  min-height: 200px;         /* 카드 높이(패널 안에서 적당히 보이게) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* 가로 가운데 */
+  justify-content: center;   /* 세로 가운데 */
+  text-align: center;
+}
+
+.stats-card--empty .stats-card__empty-line {
+  margin: 4px 0;
+  font-size: 0.95rem;
+  color: #111827;            /* 혹시 상위에서 흰색 상속되더라도 한 번 더 고정 */
+}
+
 
 
 
