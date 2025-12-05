@@ -1618,7 +1618,7 @@ body.ontu-stats-page .beta-stats-subtitle {
   font-size: 1.0rem;
   line-height: 1.5;
   margin-top: 0.4rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #4b5563;
 }
 
@@ -2014,6 +2014,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
