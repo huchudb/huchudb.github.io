@@ -1900,7 +1900,7 @@ body.ontu-stats-page .ontu-source-note {
   margin: 12px auto 8px;     /* 위·아래 여백 */
   padding: 0 24px 0;         /* 좌우는 beta-inner 패딩과 맞춤 */
   text-align: right;         /* 👉 우측 정렬 핵심 */
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: #6b7280;
 }
@@ -2014,6 +2014,7 @@ body.ontu-stats-page .stats-card__value--main {
     width: 240px;    /* 220px → 240px 로 살짝 더 여유 */
   }
 }
+
 
 
 
