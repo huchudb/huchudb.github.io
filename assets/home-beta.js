@@ -87,7 +87,7 @@ function formatMonthLabel(ym) {
 const DEFAULT_ONTU_STATS = {
   month: "2025-10",
   summary: {
-    registeredFirms: 51,
+    // 등록업체수는 화면에서 쓰지 않으니 상수에서도 제거
     dataFirms: 49,
     // 18조 3,580억 776만원
     totalLoan: 18_358_007_760_000,
@@ -165,7 +165,6 @@ async function fetchOntuStats() {
   }
 }
 
-
 // ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
   const container = document.getElementById("ontuLoanStatus");
@@ -188,28 +187,32 @@ function renderLoanStatus(summary, monthStr) {
 
   const items = [
     {
-      label: "금융위원회 등록 온투업체수",
-      value: summary.registeredFirms != null
-        ? `${summary.registeredFirms.toLocaleString("ko-KR")}개`
-        : "-"
-    },
-    {
       label: "데이터 수집 온투업체수",
-      value: summary.dataFirms != null
-        ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
-        : "-"
+      value:
+        summary.dataFirms != null
+          ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
+          : "-"
     },
     {
       label: "누적대출금액",
-      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-"
+      value:
+        summary.totalLoan != null
+          ? formatKoreanCurrencyJo(summary.totalLoan)
+          : "-"
     },
     {
       label: "누적상환금액",
-      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-"
+      value:
+        summary.totalRepaid != null
+          ? formatKoreanCurrencyJo(summary.totalRepaid)
+          : "-"
     },
     {
       label: "대출잔액",
-      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-"
+      value:
+        summary.balance != null
+          ? formatKoreanCurrencyJo(summary.balance)
+          : "-"
     }
   ];
 
@@ -240,11 +243,12 @@ const PRODUCT_COLORS = [
   "#22c55e", // 개인신용
   "#a855f7"  // 법인신용
 ];
-// ───────── 상품유형별 대출잔액 렌더 ─────────
+
 let donutChart = null;
 
 function renderProductSection(summary, byType) {
   const section = document.getElementById("ontuProductSection");
+  const monthEl = document.getElementById("productStatusMonth");
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
@@ -253,7 +257,14 @@ function renderProductSection(summary, byType) {
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
     `;
+    if (monthEl) monthEl.textContent = "";
     return;
+  }
+
+  if (monthEl) {
+    // 대출현황과 동일하게 최근 기준월 표시
+    const m = summary.month || summary.monthKey;
+    monthEl.textContent = m ? `최근 기준월: ${formatMonthLabel(m)}` : "";
   }
 
   const balance = Number(summary.balance || 0);
@@ -279,23 +290,23 @@ function renderProductSection(summary, byType) {
       </div>
       <div class="beta-product-boxes">
         ${labels
-        .map((name, idx) => {
-          const color = PRODUCT_COLORS[idx] || "#e5e7eb"; // 색 없으면 회색
-          return `
-            <div class="beta-product-box" style="--product-color:${color};">
-            <div class="beta-product-box__title">
-               ${name}
-               </div>
-              <div class="beta-product-box__amount">
-                ${formatKoreanCurrencyJo(amounts[idx])}
+          .map((name, idx) => {
+            const color = PRODUCT_COLORS[idx] || "#e5e7eb"; // 색 없으면 회색
+            return `
+              <div class="beta-product-box" style="--product-color:${color};">
+                <div class="beta-product-box__title">
+                  ${name}
+                </div>
+                <div class="beta-product-box__amount">
+                  ${formatKoreanCurrencyJo(amounts[idx])}
+                </div>
               </div>
-            </div>
-          `;
-        })
-        .join("")}
+            `;
+          })
+          .join("")}
+      </div>
     </div>
-  </div>
-`;
+  `;
 
   const canvas = document.getElementById("productDonut");
   if (!canvas || !window.Chart) return;
@@ -313,8 +324,8 @@ function renderProductSection(summary, byType) {
       datasets: [
         {
           data: percents,
-         backgroundColor: PRODUCT_COLORS,
-         borderWidth: 0
+          backgroundColor: PRODUCT_COLORS,
+          borderWidth: 0
         }
       ]
     },
@@ -419,9 +430,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ===== 메인 히어로 배너 슬라이드 =====
-const heroSlides = document.querySelectorAll('.beta-hero-banner__slide');
-const heroPrev = document.querySelector('.hero-nav--prev');
-const heroNext = document.querySelector('.hero-nav--next');
+const heroSlides = document.querySelectorAll(".beta-hero-banner__slide");
+const heroPrev   = document.querySelector(".hero-nav--prev");
+const heroNext   = document.querySelector(".hero-nav--next");
 
 // ★ 자동 넘김 시간(ms) – 여기 숫자만 바꾸면 됨
 const HERO_SLIDE_INTERVAL = 5000; // 5000ms = 5초
@@ -431,7 +442,7 @@ let heroTimer = null;
 
 function showHeroSlide(index) {
   heroSlides.forEach((slide, i) => {
-    slide.classList.toggle('is-active', i === index);
+    slide.classList.toggle("is-active", i === index);
   });
   heroIndex = index;
 }
@@ -456,14 +467,14 @@ if (heroSlides.length > 0) {
   startHeroAutoSlide();
 
   if (heroPrev) {
-    heroPrev.addEventListener('click', () => {
+    heroPrev.addEventListener("click", () => {
       showPrevHero();
       startHeroAutoSlide(); // 클릭 후에도 자동 넘김 계속
     });
   }
 
   if (heroNext) {
-    heroNext.addEventListener('click', () => {
+    heroNext.addEventListener("click", () => {
       showNextHero();
       startHeroAutoSlide();
     });
