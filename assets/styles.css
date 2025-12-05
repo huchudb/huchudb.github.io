@@ -454,7 +454,7 @@ button:hover{background:#153154}
   border-top:1px solid var(--line);
 }
 .huchu-footer__inner{
-  max-width:960px;
+  max-width:1200px;
   margin:0 auto;
   padding:18px 16px;
 }
@@ -480,10 +480,12 @@ button:hover{background:#153154}
 /* ======================= 베타 홈 레이아웃 ======================= */
 
 {margin-top:24px;} /* 8px → 24px 정도로 여유 있게 */
-.beta-inner{
-  max-width:960px;
-  margin:0 auto 40px;
-  padding:0 16px 40px;
+/* 베타 공통 페이지 폭 컨테이너 */
+.beta-inner {
+  max-width: 1200px;        /* 기존 960~1040 근처였을 가능성 → 1200으로 확장 */
+  margin: 0 auto;
+  padding: 0 24px 40px;     /* 좌우 여백은 24px 유지해서 너무 꽉 차 보이지 않게 */
+  box-sizing: border-box;
 }
 
 /* 히어로 영역 */
@@ -755,7 +757,7 @@ button:hover{background:#153154}
   padding:18px 16px 26px;
 }
 .beta-footer__top{
-  max-width:960px;
+  max-width:1200px;
   margin:0 auto 10px;
   display:flex;
   gap:18px;
@@ -767,7 +769,7 @@ button:hover{background:#153154}
 }
 .beta-footer__top a:hover{text-decoration:underline;}
 .beta-footer__bottom{
-  max-width:960px;
+  max-width:1200px;
   margin:0 auto;
   display:flex;
   flex-direction:column;
@@ -995,7 +997,7 @@ body.beta-body button{
   
   /* 전체 레이아웃 */
   .products-main{
-    max-width:960px;
+    max-width:1200px;
     margin:0 auto 40px;
     padding:16px;
   }
@@ -3011,4 +3013,5 @@ button:hover{background:#153154}
   font-size: 0.95rem;
   color: #111827;
 }
+
 
