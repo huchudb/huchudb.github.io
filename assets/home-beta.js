@@ -87,7 +87,8 @@ function formatMonthLabel(ym) {
 const DEFAULT_ONTU_STATS = {
   month: "2025-10",
   summary: {
-    // 등록업체수는 화면에서 쓰지 않으니 상수에서도 제거
+    // registeredFirms는 이제 UI에서 사용 안 함
+    registeredFirms: 51,
     dataFirms: 49,
     // 18조 3,580억 776만원
     totalLoan: 18_358_007_760_000,
@@ -185,34 +186,25 @@ function renderLoanStatus(summary, monthStr) {
     monthEl.textContent = `최근 기준월: ${formatMonthLabel(monthStr)}`;
   }
 
+  // UI에는 4개 지표만 노출: 데이터 수집 업체수 + 누적대출 + 누적상환 + 대출잔액
   const items = [
     {
       label: "데이터 수집 온투업체수",
-      value:
-        summary.dataFirms != null
-          ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
-          : "-"
+      value: summary.dataFirms != null
+        ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
+        : "-"
     },
     {
       label: "누적대출금액",
-      value:
-        summary.totalLoan != null
-          ? formatKoreanCurrencyJo(summary.totalLoan)
-          : "-"
+      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-"
     },
     {
       label: "누적상환금액",
-      value:
-        summary.totalRepaid != null
-          ? formatKoreanCurrencyJo(summary.totalRepaid)
-          : "-"
+      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-"
     },
     {
       label: "대출잔액",
-      value:
-        summary.balance != null
-          ? formatKoreanCurrencyJo(summary.balance)
-          : "-"
+      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-"
     }
   ];
 
@@ -261,12 +253,6 @@ function renderProductSection(summary, byType) {
     return;
   }
 
-  if (monthEl) {
-    // 대출현황과 동일하게 최근 기준월 표시
-    const m = summary.month || summary.monthKey;
-    monthEl.textContent = m ? `최근 기준월: ${formatMonthLabel(m)}` : "";
-  }
-
   const balance = Number(summary.balance || 0);
 
   const labels   = [];
@@ -283,6 +269,11 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
+  if (monthEl) {
+    monthEl.textContent = `최근 기준월: ${formatMonthLabel(summary.month || DEFAULT_ONTU_STATS.month)}`;
+  }
+
+  // A안: 도넛(왼쪽) + 우측 카드 리스트만, 도넛 아래 텍스트 리스트는 없음
   section.innerHTML = `
     <div class="beta-product-grid">
       <div class="beta-product-donut-wrap">
@@ -291,14 +282,12 @@ function renderProductSection(summary, byType) {
       <div class="beta-product-boxes">
         ${labels
           .map((name, idx) => {
-            const color = PRODUCT_COLORS[idx] || "#e5e7eb"; // 색 없으면 회색
+            const color = PRODUCT_COLORS[idx] || "#e5e7eb";
             return `
               <div class="beta-product-box" style="--product-color:${color};">
-                <div class="beta-product-box__title">
-                  ${name}
-                </div>
+                <div class="beta-product-box__title">${name}</div>
                 <div class="beta-product-box__amount">
-                  ${formatKoreanCurrencyJo(amounts[idx])}
+                  ${formatKoreanCurrencyJo(amounts[idx])} · ${percents[idx].toFixed(1)}%
                 </div>
               </div>
             `;
@@ -334,7 +323,7 @@ function renderProductSection(summary, byType) {
       maintainAspectRatio: false,
       cutout: "60%",
       plugins: {
-        legend: { display: false },
+        legend: { display: false },   // ← 도넛 아래 기본 legend 제거 (중복 방지)
         tooltip: {
           callbacks: {
             label: (ctx) => {
@@ -362,11 +351,14 @@ async function initOntuStats() {
     const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
 
     renderLoanStatus(summary, month);
-    renderProductSection(summary, byType);
+    renderProductSection({ ...summary, month }, byType);
   } catch (e) {
     console.error("[initOntuStats] 치명적 오류:", e);
     renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
-    renderProductSection(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.byType);
+    renderProductSection(
+      { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
+      DEFAULT_ONTU_STATS.byType
+    );
   }
 }
 
@@ -434,8 +426,8 @@ const heroSlides = document.querySelectorAll(".beta-hero-banner__slide");
 const heroPrev   = document.querySelector(".hero-nav--prev");
 const heroNext   = document.querySelector(".hero-nav--next");
 
-// ★ 자동 넘김 시간(ms) – 여기 숫자만 바꾸면 됨
-const HERO_SLIDE_INTERVAL = 5000; // 5000ms = 5초
+// 자동 넘김 시간(ms)
+const HERO_SLIDE_INTERVAL = 5000; // 5초
 
 let heroIndex = 0;
 let heroTimer = null;
@@ -469,7 +461,7 @@ if (heroSlides.length > 0) {
   if (heroPrev) {
     heroPrev.addEventListener("click", () => {
       showPrevHero();
-      startHeroAutoSlide(); // 클릭 후에도 자동 넘김 계속
+      startHeroAutoSlide();
     });
   }
 
