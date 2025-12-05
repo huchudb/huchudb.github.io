@@ -284,39 +284,37 @@
         start();
       }
 
+      // 슬라이더는 한 번만 세팅하면 되니까 플래그로 중복 방지
+      let sliderInitialized = false;
+
       function initEnhance() {
+        // 1) 매번 새 카드가 생길 때마다 숫자/단위 래핑
         decorateMoneySpans();
 
-        // 대출현황 패널 자동 슬라이드
-        setupAutoSlider(
-          '#ontuLoanTrack',
-          '.stats-panel__slider--loan .stats-panel__viewport',
-          3000
-        );
+        // 2) 자동 슬라이더/드래그는 한 번만 세팅
+        if (!sliderInitialized) {
+          setupAutoSlider(
+            '#ontuLoanTrack',
+            '.stats-panel__slider--loan .stats-panel__viewport',
+            3000
+          );
 
-        // 상품유형별 대출잔액 패널 자동 슬라이드 + 드래그
-        setupAutoSlider(
-          '#ontuProductTrack',
-          '.stats-panel__slider--products .stats-panel__viewport',
-          3000
-        );
+          setupAutoSlider(
+            '#ontuProductTrack',
+            '.stats-panel__slider--products .stats-panel__viewport',
+            3000
+          );
+
+          sliderInitialized = true;
+        }
       }
 
-      // ontu-stats.js가 카드 DOM을 만든 뒤에 실행되도록 감시
-      document.addEventListener('DOMContentLoaded', function () {
-        const loanTrack = document.getElementById('ontuLoanTrack');
-        const productTrack = document.getElementById('ontuProductTrack');
-        if (!loanTrack || !productTrack) return;
+      // ✅ ontu-stats.js 가 카드 렌더를 끝냈을 때마다 호출
+      document.addEventListener('ontuStatsRendered', initEnhance);
 
-        const observer = new MutationObserver(() => {
-          if (loanTrack.children.length || productTrack.children.length) {
-            observer.disconnect();
-            initEnhance();
-          }
-        });
-
-        observer.observe(loanTrack, { childList: true });
-        observer.observe(productTrack, { childList: true });
+      // 첫 로딩 직후(최신 월) 한 번 호출 – 혹시 이벤트가 먼저 발행되었을 경우 대비
+      document.addEventListener('DOMContentLoaded', () => {
+        initEnhance();
       });
     })();
   </script>
