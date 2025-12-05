@@ -6,11 +6,14 @@
   <title>후추 | 온투업(P2P) 담보대출 통계 (베타)</title>
   <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 현황을 한눈에 정리한 페이지입니다.">
 
-  <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+  <!-- 공용 스타일 -->
+  <link rel="stylesheet" href="/assets/styles.css?v=20251206-beta-home" />
+
   <!-- Chart.js (도넛 차트용) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- 베타 전용 JS -->
-  <script type="module" src="/assets/home-beta.js?v=20251117-beta"></script>
+
+  <!-- 베타 홈 전용 JS -->
+  <script type="module" src="/assets/home-beta.js?v=20251206-beta-home"></script>
 </head>
 <body class="beta-body">
 
@@ -32,11 +35,12 @@
         class="beta-menu-toggle"
         type="button"
         aria-haspopup="true"
-        aria-expanded="false">
+        aria-expanded="false"
+      >
         <span class="beta-menu-toggle__label">MENU</span>
       </button>
 
-      <!-- 처음에는 숨김: hide 클래스 중요!! -->
+      <!-- 드롭다운: 처음에는 숨김 -->
       <div id="betaMenuPanel" class="beta-menu-panel hide">
         <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
         <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
@@ -58,65 +62,51 @@
           <!-- 왼쪽: 메인 배너 (슬라이드) -->
           <div class="beta-hero-banner" id="heroBanner">
             <!-- 1번 배너 -->
-            <a href="/beta/products/index.html"
-               class="beta-hero-banner__slide is-active">
-              <img src="/assets/hero/banner1.png"
-                   alt="온투업 담보대출 상품 통계 안내 배너">
+            <a
+              href="/beta/products/index.html"
+              class="beta-hero-banner__slide is-active"
+            >
+              <img
+                src="/assets/hero/banner1.png"
+                alt="온투업 담보대출 상품 통계 안내 배너"
+              />
             </a>
 
             <!-- 2번 배너 -->
-            <a href="/beta/"
-               class="beta-hero-banner__slide">
-              <img src="/assets/hero/banner2.png"
-                   alt="온투업 담보대출 통계 요약 배너">
+            <a
+              href="/beta/"
+              class="beta-hero-banner__slide"
+            >
+              <img
+                src="/assets/hero/banner2.png"
+                alt="온투업 담보대출 통계 요약 배너"
+              />
             </a>
 
             <!-- 좌우 화살표 네비게이션 -->
-            <button class="hero-nav hero-nav--prev" type="button" aria-label="이전 배너">
+            <button
+              class="hero-nav hero-nav--prev"
+              type="button"
+              aria-label="이전 배너"
+            >
               《
             </button>
-            <button class="hero-nav hero-nav--next" type="button" aria-label="다음 배너">
+            <button
+              class="hero-nav hero-nav--next"
+              type="button"
+              aria-label="다음 배너"
+            >
               》
             </button>
           </div>
 
-          <!-- 오른쪽: 2×2 기능 카드 + 금일 이용자수 + 서브 배너 -->
-          <div class="beta-hero-right">
-
-            <!-- 2×2 이미지 카드 (정적 링크) -->
-            <div class="beta-hero-cards">
-              <div class="beta-hero-cards__grid">
-                <a href="/beta/ontu-stats.html" class="beta-hero-card">
-                  <img src="/assets/hero-card-stat.png" alt="온투업(P2P) 대출 통계" />
-                </a>
-                <a href="/beta/products/index.html" class="beta-hero-card">
-                  <img src="/assets/hero-card-products.png" alt="온투업(P2P) 대출 상품 정보" />
-                </a>
-                <a href="/" class="beta-hero-card">
-                  <img src="/assets/hero-card-calculator.png" alt="온투업 전용 담보대출 계산기" />
-                </a>
-                <a href="https://blog.naver.com/honestbros" target="_blank" rel="noopener" class="beta-hero-card">
-                  <img src="/assets/hero-card-blog.png" alt="후추 공식 블로그" />
-                </a>
-              </div>
+          <!-- 오른쪽: 향후 계산기 이용로그/통계 영역 (현재는 빈 공간으로 예약) -->
+          <div class="beta-hero-right beta-hero-right--empty">
+            <div class="beta-hero-placeholder">
+              <!-- 비워둔 상태. 나중에 계산기 이용 로그/통계 카드 들어올 자리 -->
             </div>
-
-            <!-- 금일 이용자수 + 서브 이미지 -->
-            <div class="beta-subinfo">
-              <div class="beta-subinfo__metric-row">
-                <div class="beta-subinfo__label">금일 계산기 이용자수</div>
-                <div class="beta-subinfo__value">
-                  <span id="todayUsersCount">0</span>
-                  <span class="unit">명</span>
-                </div>
-              </div>
-              <div class="beta-subinfo__banner">
-                <img src="/assets/hero-subinfo-banner.png"
-                     alt="개인정보 입력 없이 간편하게 담보대출 가능 여부를 확인해보세요.">
-              </div>
-            </div>
-
           </div>
+
         </div>
       </section>
 
@@ -128,9 +118,12 @@
             <div id="loanStatusMonth" class="stats-panel__meta"></div>
           </div>
 
-          <!-- 여기 그리드 안에 JS가 카드(.beta-loanstatus-item)를 여러 개 넣어줌 -->
-          <div id="ontuLoanStatus" class="stats-panel__grid stats-panel__grid--loan">
-            <!-- home-beta.js에서 렌더링 -->
+          <!-- 여기 그리드 안에 JS가 카드(.stats-card)를 여러 개 넣어줌 -->
+          <div
+            id="ontuLoanStatus"
+            class="stats-panel__grid stats-panel__grid--loan"
+          >
+            <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
           </div>
         </div>
       </section>
@@ -143,12 +136,15 @@
             <div id="productStatusMonth" class="stats-panel__meta"></div>
           </div>
 
-          <!-- 도넛 + 우측 카드 그리드 (A안) -->
-          <div id="ontuProductSection" class="stats-panel__grid stats-panel__grid--products">
-            <!-- home-beta.js에서 .beta-product-grid 구조로 렌더링 -->
+          <div
+            id="ontuProductSection"
+            class="stats-panel__grid stats-panel__grid--products"
+          >
+            <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
           </div>
         </div>
       </section>
+
     </div>
   </main>
 
@@ -161,9 +157,11 @@
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img src="/assets/logo/huchu-logo-white.png"
-             alt="HUCHU 로고"
-             class="beta-footer__logo-img" />
+        <img
+          src="/assets/logo/huchu-logo-white.png"
+          alt="HUCHU 로고"
+          class="beta-footer__logo-img"
+        />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
