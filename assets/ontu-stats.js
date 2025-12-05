@@ -1,5 +1,5 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 숫자 변환 안정화)
+// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 숫자 변환 안정화 + 없는 월 Empty State 처리)
 
 (function () {
   const API_BASE = 'https://huchudb-github-io.vercel.app';
@@ -79,6 +79,20 @@
     const d = parseMonthKey(monthKey);
     d.setMonth(d.getMonth() - 1);
     return formatMonthKey(d);
+  }
+
+  // "2025-01" → "2025년 1월"
+  function getMonthLabelFromKey(monthKey) {
+    if (!monthKey) return '선택하신 기준월';
+    try {
+      const d = parseMonthKey(monthKey);
+      if (!isNaN(d.getTime())) {
+        return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return '선택하신 기준월';
   }
 
   /* ---------------- 금액 포맷 (원 → 조/억/만원) ---------------- */
@@ -398,6 +412,49 @@
     return el;
   }
 
+  /* ----- 데이터 없는 월용 Empty State 카드 ----- */
+
+  function createEmptyStateCard(panelType, monthKey) {
+    const monthLabel = getMonthLabelFromKey(monthKey);
+
+    let title = '';
+    let mainMessage = '';
+    let subMessage = '';
+
+    if (panelType === 'loan') {
+      title = '대출 통계 준비중';
+      mainMessage = `${monthLabel} 기준 대출 통계는 아직 준비되지 않았습니다.`;
+      subMessage = '데이터가 등록된 다른 기준월을 선택해 주세요.';
+    } else {
+      title = '상품유형별 통계 준비중';
+      mainMessage = `${monthLabel} 기준 상품유형별 대출잔액 통계는 아직 준비되지 않았습니다.`;
+      subMessage = '상단 기준월에서 다른 월을 선택해 주세요.';
+    }
+
+    const el = document.createElement('article');
+    el.className = 'stats-card stats-card--empty';
+
+    el.innerHTML = `
+      <h3 class="stats-card__label">${title}</h3>
+      <div class="stats-card__value--main">
+        <span class="stats-card__empty-message">${mainMessage}</span>
+      </div>
+      <div class="stats-card__bottom-row">
+        <div class="stats-card__share"></div>
+        <div class="stats-card__delta-wrap">
+          <div class="stats-card__delta-label">안내</div>
+          <div class="stats-card__delta-rate">표시할 데이터가 없습니다.</div>
+          <div class="stats-card__delta delta-flat">
+            <span class="stats-card__delta-arrow">–</span>
+            <span class="stats-card__delta-amount">${subMessage}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return el;
+  }
+
   /* ---------------- 렌더링 ---------------- */
 
   function renderMonthText(monthKey) {
@@ -439,6 +496,23 @@
     document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
   }
 
+  // 데이터 없는 월을 선택했을 때의 빈 상태 렌더링
+  function renderEmptyState(monthKey) {
+    clearTrack(loanTrack);
+    clearTrack(productTrack);
+
+    const loanEmptyCard = createEmptyStateCard('loan', monthKey);
+    const productEmptyCard = createEmptyStateCard('products', monthKey);
+
+    loanTrack.appendChild(loanEmptyCard);
+    productTrack.appendChild(productEmptyCard);
+
+    if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
+      window.initOntuStatsSliders();
+    }
+    document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
+  }
+
   // "2025-10" 또는 "2025-10-01" -> "2025-10"
   function normalizeMonthKey(raw) {
     if (!raw) return '';
@@ -477,8 +551,10 @@
           const value = normalizeMonthKey(raw);
           if (!value) return;
 
+          const selectedMonthKey = value;
+
           try {
-            const cur = await fetchMonthData(value);
+            const cur = await fetchMonthData(selectedMonthKey);
             let pv = null;
             try {
               const prevKey = getPrevMonthKey(cur.month);
@@ -489,11 +565,14 @@
             renderAll(cur, pv);
           } catch (err) {
             console.error('[ontu-stats] month change error', err);
+            // 선택한 월에 대한 데이터가 없을 때: Empty State 카드로 교체
+            renderEmptyState(selectedMonthKey);
           }
         });
       }
     } catch (err) {
       console.error('[ontu-stats] init error', err);
+      // 초기 로딩 에러는 기존대로 콘솔만; 필요하면 여기서도 Empty State 처리 가능
     }
   }
 
@@ -505,24 +584,10 @@
  * ====================== */
 
 (function () {
-  // PC/모바일 판별용
-  function isMobile() {
-    try {
-      return (
-        typeof window !== 'undefined' &&
-        window.matchMedia &&
-        window.matchMedia('(max-width: 768px)').matches
-      );
-    } catch (e) {
-      return false;
-    }
-  }
-
   function setupStatsSlider(panelSelector) {
     const panel = document.querySelector(panelSelector);
     if (!panel) return;
 
-    // 이미 초기화된 패널이면 다시 바인딩하지 않음
     if (panel.dataset.ontuSliderInitialized === 'true') return;
     panel.dataset.ontuSliderInitialized = 'true';
 
@@ -533,7 +598,6 @@
 
     let currentIndex = 0;
     let autoTimer    = null;
-    let direction    = 1;   // 1: 오른쪽(다음 카드), -1: 왼쪽(이전 카드)
 
     let isPointerDown = false;
     let startX        = 0;
@@ -549,15 +613,14 @@
       const total = cards.length;
       if (!total) return;
 
-      const normalized = ((newIndex % total) + total) % total; // 음수 인덱스 보정
+      const normalized = ((newIndex % total) + total) % total;
       currentIndex = normalized;
 
-      const card     = cards[normalized];
+      const card    = cards[normalized];
       const cardRect = card.getBoundingClientRect();
       const vpRect   = viewport.getBoundingClientRect();
 
-      const offset =
-        card.offsetLeft - (vpRect.width - cardRect.width) / 2;
+      const offset = card.offsetLeft - (vpRect.width - cardRect.width) / 2;
 
       viewport.scrollTo({
         left: offset,
@@ -572,26 +635,10 @@
     }
 
     function startAuto() {
-      // PC에서는 자동 슬라이드 사용 안 함
-      if (!isMobile()) {
-        stopAuto();
-        return;
-      }
-
       stopAuto();
       autoTimer = setInterval(() => {
-        const cards = getCards();
-        const total = cards.length;
-        if (!total) return;
-
-        // 핑퐁 방식: 0→1→2→…→마지막→…→0 반복
-        let next = currentIndex + direction;
-        if (next < 0 || next >= total) {
-          direction *= -1;
-          next = currentIndex + direction;
-        }
-        scrollToIndex(next, { smooth: true });
-      }, 5000); // 모바일 자동 슬라이드 5초
+        scrollToIndex(currentIndex + 1, { smooth: true });
+      }, 4000);
     }
 
     function onPointerDown(clientX) {
@@ -610,25 +657,20 @@
       if (!isPointerDown) return;
       isPointerDown = false;
 
-      const threshold = viewport.offsetWidth * 0.15; // 뷰포트 폭의 15% 이상 스와이프 시 페이지 전환
+      const threshold = viewport.offsetWidth * 0.15;
 
       if (deltaX > threshold) {
-        // 오른쪽으로 스와이프 → 이전 카드
         scrollToIndex(currentIndex - 1);
-        direction = -1;
       } else if (deltaX < -threshold) {
-        // 왼쪽으로 스와이프 → 다음 카드
         scrollToIndex(currentIndex + 1);
-        direction = 1;
       } else {
-        // 애매하면 제자리 카드로 스냅
         scrollToIndex(currentIndex);
       }
 
       startAuto();
     }
 
-    // 마우스 이벤트
+    // 마우스
     viewport.addEventListener('mousedown', (e) => {
       e.preventDefault();
       onPointerDown(e.clientX);
@@ -640,7 +682,7 @@
       onPointerUp();
     });
 
-    // 터치 이벤트
+    // 터치
     viewport.addEventListener(
       'touchstart',
       (e) => {
@@ -663,7 +705,7 @@
       onPointerUp();
     });
 
-    // hover 시 자동 슬라이드 일시정지 / 재개
+    // hover 시 자동 슬라이드 일시정지
     slider.addEventListener('mouseenter', stopAuto);
     slider.addEventListener('mouseleave', startAuto);
 
