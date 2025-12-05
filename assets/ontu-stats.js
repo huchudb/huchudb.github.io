@@ -1,5 +1,5 @@
 // /assets/ontu-stats.js
-// 온투업 대출 통계 전용 스크립트 (2025-12-04 재정비본 + 숫자 변환 안정화 + 없는 월 Empty State 처리)
+// 온투업 대출 통계 전용 스크립트 (없는 월 Empty State 심플 카드 버전)
 
 (function () {
   const API_BASE = 'https://huchudb-github-io.vercel.app';
@@ -13,8 +13,6 @@
 
   /* ---------------- 공통: 안전한 숫자 변환 ---------------- */
 
-  // "12,345,678", " 12345 ", 12345 → 12345
-  // 이상한 값이면 0으로 처리
   function toNumberSafe(value) {
     if (value == null) return 0;
 
@@ -23,7 +21,7 @@
     }
 
     if (typeof value === 'string') {
-      const cleaned = value.replace(/[^\d.-]/g, ''); // 숫자/부호만 남김
+      const cleaned = value.replace(/[^\d.-]/g, '');
       if (!cleaned) return 0;
       const n = Number(cleaned);
       return Number.isFinite(n) ? n : 0;
@@ -81,20 +79,6 @@
     return formatMonthKey(d);
   }
 
-  // "2025-01" → "2025년 1월"
-  function getMonthLabelFromKey(monthKey) {
-    if (!monthKey) return '선택하신 기준월';
-    try {
-      const d = parseMonthKey(monthKey);
-      if (!isNaN(d.getTime())) {
-        return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
-      }
-    } catch (e) {
-      // ignore
-    }
-    return '선택하신 기준월';
-  }
-
   /* ---------------- 금액 포맷 (원 → 조/억/만원) ---------------- */
 
   function splitKoreanMoney(amountWon) {
@@ -119,7 +103,6 @@
     return { jo, eok, man };
   }
 
-  // 메인 금액: "17조 7,660억 7,157만원" 한 줄로
   function formatKoreanMoneyLine(amountWonRaw) {
     const amountWon = toNumberSafe(amountWonRaw);
     const sign = amountWon < 0 ? '-' : '';
@@ -139,12 +122,10 @@
     return formatKoreanMoneyLine(absWonRaw);
   }
 
-  // 퍼센트: +1.48%, -0.32%, 0.00%
   function formatDeltaRate(currentRaw, prevRaw) {
     const current = toNumberSafe(currentRaw);
     const prev    = toNumberSafe(prevRaw);
 
-    // 전월 값이 0 이하거나, 숫자가 아니면 0.00%
     if (!Number.isFinite(current) || !Number.isFinite(prev) || prev <= 0) {
       return '0.00%';
     }
@@ -176,7 +157,6 @@
 
     const cards = [];
 
-    // 1) 데이터수집 온투업체수 (개수형)
     const firmCount = toNumberSafe(
       summary.dataFirms ?? summary.registeredFirms ?? 0,
     );
@@ -188,7 +168,6 @@
 
     cards.push(createCountCard('데이터수집 온투업체수', firmCount, prevFirmCount));
 
-    // 2) 누적 대출금액
     cards.push(
       createMoneyCard(
         '누적 대출금액',
@@ -197,7 +176,6 @@
       ),
     );
 
-    // 3) 누적 상환금액
     cards.push(
       createMoneyCard(
         '누적 상환금액',
@@ -206,7 +184,6 @@
       ),
     );
 
-    // 4) 대출잔액
     cards.push(
       createMoneyCard(
         '대출잔액',
@@ -243,7 +220,7 @@
         : null;
 
       let ratio = cur.ratio != null ? toNumberSafe(cur.ratio) : 0;
-      if (ratio > 1) ratio = ratio / 100; // 23.4 이런 % 값이면 0.234로 보정
+      if (ratio > 1) ratio = ratio / 100;
 
       cards.push(createProductCard(key, curAmount, prevAmount, ratio));
     });
@@ -251,7 +228,7 @@
     return cards;
   }
 
-  /* ----- 개수형 카드 (온투업체수) ----- */
+  /* ----- 개수형 카드 ----- */
 
   function createCountCard(label, currentValueRaw, prevValueRaw) {
     const currentValue = toNumberSafe(currentValueRaw);
@@ -301,7 +278,7 @@
     return el;
   }
 
-  /* ----- 금액 카드 (조/억/만원 한 줄) ----- */
+  /* ----- 금액 카드 ----- */
 
   function createMoneyCard(label, currentWonRaw, prevWonRaw) {
     const currentWon = toNumberSafe(currentWonRaw);
@@ -321,7 +298,6 @@
       arrow      = '▼';
     }
 
-    // 메인 금액 포맷 실패 대비용 안전장치
     let mainText = formatKoreanMoneyLine(currentWon);
     if (!mainText || mainText === '-' || mainText === 'NaN만원') {
       mainText = `${currentWon.toLocaleString('ko-KR')}원`;
@@ -412,43 +388,16 @@
     return el;
   }
 
-  /* ----- 데이터 없는 월용 Empty State 카드 ----- */
+  /* ----- 데이터 없는 월용 Empty State 카드 (심플 텍스트 2줄) ----- */
 
-  function createEmptyStateCard(panelType, monthKey) {
-    const monthLabel = getMonthLabelFromKey(monthKey);
-
-    let title = '';
-    let mainMessage = '';
-    let subMessage = '';
-
-    if (panelType === 'loan') {
-      title = '대출 통계 준비중';
-      mainMessage = `${monthLabel} 기준 대출 통계는 아직 준비되지 않았습니다.`;
-      subMessage = '데이터가 등록된 다른 기준월을 선택해 주세요.';
-    } else {
-      title = '상품유형별 통계 준비중';
-      mainMessage = `${monthLabel} 기준 상품유형별 대출잔액 통계는 아직 준비되지 않았습니다.`;
-      subMessage = '상단 기준월에서 다른 월을 선택해 주세요.';
-    }
-
+  function createEmptyStateCard() {
     const el = document.createElement('article');
     el.className = 'stats-card stats-card--empty';
 
     el.innerHTML = `
-      <h3 class="stats-card__label">${title}</h3>
-      <div class="stats-card__value--main">
-        <span class="stats-card__empty-message">${mainMessage}</span>
-      </div>
-      <div class="stats-card__bottom-row">
-        <div class="stats-card__share"></div>
-        <div class="stats-card__delta-wrap">
-          <div class="stats-card__delta-label">안내</div>
-          <div class="stats-card__delta-rate">표시할 데이터가 없습니다.</div>
-          <div class="stats-card__delta delta-flat">
-            <span class="stats-card__delta-arrow">–</span>
-            <span class="stats-card__delta-amount">${subMessage}</span>
-          </div>
-        </div>
+      <div class="stats-card__empty-inner">
+        <p class="stats-card__empty-line">표시할 통계 데이터가 없습니다.</p>
+        <p class="stats-card__empty-line">다른 년/월을 선택해 주세요.</p>
       </div>
     `;
 
@@ -487,22 +436,19 @@
     const productCards = createProductCards(current, prev);
     productCards.forEach((c) => productTrack.appendChild(c));
 
-    // 카드 렌더 후 슬라이더 초기화/재정렬
     if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
       window.initOntuStatsSliders();
     }
 
-    // 장식/추가 효과(숫자 스팬 래핑, 자동 슬라이드 등)용 커스텀 이벤트
     document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
   }
 
-  // 데이터 없는 월을 선택했을 때의 빈 상태 렌더링
-  function renderEmptyState(monthKey) {
+  function renderEmptyState() {
     clearTrack(loanTrack);
     clearTrack(productTrack);
 
-    const loanEmptyCard = createEmptyStateCard('loan', monthKey);
-    const productEmptyCard = createEmptyStateCard('products', monthKey);
+    const loanEmptyCard = createEmptyStateCard();
+    const productEmptyCard = createEmptyStateCard();
 
     loanTrack.appendChild(loanEmptyCard);
     productTrack.appendChild(productEmptyCard);
@@ -513,7 +459,6 @@
     document.dispatchEvent(new CustomEvent('ontuStatsRendered'));
   }
 
-  // "2025-10" 또는 "2025-10-01" -> "2025-10"
   function normalizeMonthKey(raw) {
     if (!raw) return '';
     const parts = raw.split('-');
@@ -529,11 +474,9 @@
 
   async function loadInitial() {
     try {
-      // 1) 최신월
       const current = await fetchMonthData();
       const monthKey = current.month;
 
-      // 2) 전월 데이터(있으면)
       let prev = null;
       try {
         const prevKey = getPrevMonthKey(monthKey);
@@ -544,17 +487,14 @@
 
       renderAll(current, prev);
 
-      // month 인풋 변경
       if (monthInput) {
         monthInput.addEventListener('change', async (e) => {
           const raw   = e.target.value;
           const value = normalizeMonthKey(raw);
           if (!value) return;
 
-          const selectedMonthKey = value;
-
           try {
-            const cur = await fetchMonthData(selectedMonthKey);
+            const cur = await fetchMonthData(value);
             let pv = null;
             try {
               const prevKey = getPrevMonthKey(cur.month);
@@ -565,14 +505,13 @@
             renderAll(cur, pv);
           } catch (err) {
             console.error('[ontu-stats] month change error', err);
-            // 선택한 월에 대한 데이터가 없을 때: Empty State 카드로 교체
-            renderEmptyState(selectedMonthKey);
+            // 없는 월 → 심플 Empty 카드
+            renderEmptyState();
           }
         });
       }
     } catch (err) {
       console.error('[ontu-stats] init error', err);
-      // 초기 로딩 에러는 기존대로 콘솔만; 필요하면 여기서도 Empty State 처리 가능
     }
   }
 
@@ -670,7 +609,6 @@
       startAuto();
     }
 
-    // 마우스
     viewport.addEventListener('mousedown', (e) => {
       e.preventDefault();
       onPointerDown(e.clientX);
@@ -682,7 +620,6 @@
       onPointerUp();
     });
 
-    // 터치
     viewport.addEventListener(
       'touchstart',
       (e) => {
@@ -705,16 +642,13 @@
       onPointerUp();
     });
 
-    // hover 시 자동 슬라이드 일시정지
     slider.addEventListener('mouseenter', stopAuto);
     slider.addEventListener('mouseleave', startAuto);
 
-    // 리사이즈 시 현재 카드 기준 재정렬
     window.addEventListener('resize', () => {
       scrollToIndex(currentIndex, { smooth: false });
     });
 
-    // 초기 위치 & 자동 슬라이드 시작
     setTimeout(() => {
       scrollToIndex(0, { smooth: false });
       startAuto();
