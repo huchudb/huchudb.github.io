@@ -3,175 +3,250 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>후추 | 온투업(P2P) 담보대출 통계 (베타)</title>
-  <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 현황을 한눈에 정리한 페이지입니다.">
+  <title>후추 베타 | 온투업 담보대출 통계</title>
+  <meta name="description" content="온라인투자연계금융업 온투업 담보대출 현황과 상품유형별 잔액을 한눈에 볼 수 있는 통계 페이지입니다.">
+  <meta name="robots" content="noindex, nofollow" />
 
-  <!-- 공용 스타일 -->
-  <link rel="stylesheet" href="/assets/styles.css?v=20251206-beta-home" />
-
-  <!-- Chart.js (도넛 차트용) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- 베타 홈 전용 JS -->
-  <script type="module" src="/assets/home-beta.js?v=20251206-beta-home"></script>
+  <!-- 이 페이지 전용 CSS (공용 styles.css는 그대로 두고) -->
+  <link rel="stylesheet" href="/assets/ontu-stats.css?v=20251205" />
 </head>
-<body class="beta-body">
 
-  <!-- 상단 헤더: 로고 + MENU 버튼 -->
-  <header class="huchu-header beta-header" role="banner">
-    <div class="huchu-header__inner beta-header__inner">
-      <!-- 로고 -->
-      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-        <span class="logo-fallback">
-          <span class="logo-mark">%</span>
-          <span class="logo-text">후추 Huchu</span>
-        </span>
+<body class="beta-body ontu-stats-page">
+  <!-- 헤더 -->
+  <header class="huchu-header beta-header">
+    <div class="huchu-header__inner">
+      <a href="/" class="huchu-logo" aria-label="후추 홈으로 이동">
+        <img src="/assets/logo/huchu-logo.png" alt="후추 HUCHU" class="logo-img" />
       </a>
 
-      <!-- MENU + 드롭다운 -->
-      <button
-        id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false"
-      >
-        <span class="beta-menu-toggle__label">MENU</span>
-      </button>
+      <div class="beta-menu">
+        <button type="button" class="beta-menu-toggle" id="betaMenuToggle">
+          <span class="beta-menu-toggle__label">MENU</span>
+          <span class="beta-menu-toggle__icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
 
-      <!-- 드롭다운: 처음에는 숨김 -->
-      <div id="betaMenuPanel" class="beta-menu-panel hide">
-        <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
-        <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
-        <a class="beta-menu-link" href="/">담보대출 계산기</a>
-        <a class="beta-menu-link" href="/beta/company.html">회사소개</a>
-        <a class="beta-menu-link" href="/beta/contact.html">광고문의</a>
+        <div class="beta-menu-panel hide" id="betaMenuPanel">
+          <a href="/" class="beta-menu-link">홈</a>
+          <a href="/calculator.html" class="beta-menu-link">담보대출 계산기</a>
+          <a href="/beta/index.html" class="beta-menu-link">온투업 담보대출 통계</a>
+          <a href="/products/index.html" class="beta-menu-link">대출상품 안내</a>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- 메인 -->
-  <main class="beta-main">
-    <div class="beta-inner">
+  <!-- 메인 컨테이너 -->
+  <main class="beta-inner">
 
-      <!-- 히어로 영역 -->
-      <section class="beta-hero">
-        <div class="beta-hero-grid">
-
-          <!-- 왼쪽: 메인 배너 (슬라이드) -->
-          <div class="beta-hero-banner" id="heroBanner">
-            <!-- 1번 배너 -->
-            <a
-              href="/beta/products/index.html"
-              class="beta-hero-banner__slide is-active"
-            >
-              <img
-                src="/assets/hero/banner1.png"
-                alt="온투업 담보대출 상품 통계 안내 배너"
-              />
-            </a>
-
-            <!-- 2번 배너 -->
-            <a
-              href="/beta/"
-              class="beta-hero-banner__slide"
-            >
-              <img
-                src="/assets/hero/banner2.png"
-                alt="온투업 담보대출 통계 요약 배너"
-              />
-            </a>
-
-            <!-- 좌우 화살표 네비게이션 -->
-            <button
-              class="hero-nav hero-nav--prev"
-              type="button"
-              aria-label="이전 배너"
-            >
-              《
-            </button>
-            <button
-              class="hero-nav hero-nav--next"
-              type="button"
-              aria-label="다음 배너"
-            >
-              》
-            </button>
+    <!-- 히어로 배너 (이미지) -->
+    <section class="beta-hero">
+      <div class="beta-hero-grid">
+        <div class="beta-hero-banner">
+          <!-- 현재 쓰는 배너 이미지 그대로 사용 -->
+          <div class="beta-hero-banner__slide is-active">
+            <img src="/assets/ontu-banners/ontu-city-mortgage.jpg" alt="부동산 담보대출 통계 배너" />
           </div>
+        </div>
 
-          <!-- 오른쪽: 향후 계산기 이용로그/통계 영역 (현재는 빈 공간으로 예약) -->
-          <div class="beta-hero-right beta-hero-right--empty">
-            <div class="beta-hero-placeholder">
-              <!-- 비워둔 상태. 나중에 계산기 이용 로그/통계 카드 들어올 자리 -->
+        <div class="beta-hero-right beta-hero-right--empty">
+          <div class="beta-hero-placeholder"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 패턴 A: 대출현황 + 상품유형별 2컬럼 대시보드 ===== -->
+    <section class="beta-section beta-section--dashboard">
+      <!-- 상단 타이틀 + 기준월 선택 -->
+      <div class="beta-stats-header">
+        <div class="beta-stats-header__left">
+          <div class="beta-stats-header__top-row">
+            <h2 class="beta-stats-title">온투업 담보대출 통계</h2>
+            <div class="beta-month-picker">
+              <label for="ontuMonthInput" class="beta-month-picker__label">기준월</label>
+              <input type="month" id="ontuMonthInput" name="ontu-month" />
             </div>
           </div>
-
+          <p class="beta-stats-subtitle">
+            온라인투자연계금융업(온투업) 담보대출의 누적대출·상환·잔액과 상품유형별 대출잔액을 한눈에 비교합니다.
+          </p>
         </div>
-      </section>
+      </div>
 
-      <!-- 대출현황 섹션 -->
-      <section class="beta-section">
-        <div class="stats-panel stats-panel--loan">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">대출 현황</h2>
-            <div id="loanStatusMonth" class="stats-panel__meta"></div>
-          </div>
+      <!-- 2컬럼 대시보드 -->
+      <div class="beta-dashboard-grid">
+        <!-- ───────── 왼쪽: 대출 현황 ───────── -->
+        <div class="dashboard-column dashboard-column--loan">
+          <section class="beta-section beta-section--loan">
+            <div class="beta-section__header">
+              <div class="beta-section__title-wrap">
+                <h3 class="beta-section__title">대출 현황</h3>
+                <span class="beta-section__meta">
+                  최근 기준월:
+                  <span id="loanBaseMonthLabel">2025년 11월</span>
+                </span>
+              </div>
+            </div>
 
-          <!-- 여기 그리드 안에 JS가 카드(.stats-card)를 여러 개 넣어줌 -->
-          <div
-            id="ontuLoanStatus"
-            class="stats-panel__grid stats-panel__grid--loan"
-          >
-            <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
-          </div>
+            <div class="stats-panel stats-panel--loan">
+              <div class="stats-panel__slider">
+                <div class="stats-panel__viewport">
+                  <div class="stats-panel__track" id="loanStatsTrack">
+                    <!-- 카드 1: 데이터 수집 온투업체수 -->
+                    <article class="stats-card">
+                      <h4 class="stats-card__label">데이터 수집 온투업체수</h4>
+                      <div class="stats-card__value--main">
+                        <span class="stats-card__number" id="loanStatCompanyCount">49</span>
+                        <span class="stats-card__unit">개</span>
+                      </div>
+                      <div class="stats-card__bottom-row">
+                        <div class="stats-card__share"></div>
+                        <div class="stats-card__delta-wrap">
+                          <div class="stats-card__delta-label">전월 대비</div>
+                          <div class="stats-card__delta-rate" id="loanStatCompanyRate">+0.0%</div>
+                          <div class="stats-card__delta delta-flat" id="loanStatCompanyDelta">
+                            <span class="delta-arrow">→</span>
+                            <span>변동 없음</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <!-- 카드 2: 누적대출금액 -->
+                    <article class="stats-card">
+                      <h4 class="stats-card__label">누적대출금액</h4>
+                      <div class="stats-card__value--main">
+                        <span class="money-number" id="loanStatTotalAmount">183조 6,908억</span>
+                        <span class="money-unit">234만건</span>
+                      </div>
+                      <div class="stats-card__bottom-row">
+                        <div class="stats-card__share"></div>
+                        <div class="stats-card__delta-wrap">
+                          <div class="stats-card__delta-label">전월 대비</div>
+                          <div class="stats-card__delta-rate" id="loanStatTotalRate">+0.0%</div>
+                          <div class="stats-card__delta delta-up" id="loanStatTotalDelta">
+                            <span class="delta-arrow">▲</span>
+                            <span>+0원</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <!-- 카드 3: 누적상환금액 -->
+                    <article class="stats-card">
+                      <h4 class="stats-card__label">누적상환금액</h4>
+                      <div class="stats-card__value--main">
+                        <span class="money-number" id="loanStatRepaidAmount">172조 1,849억</span>
+                        <span class="money-unit">6,195만건</span>
+                      </div>
+                      <div class="stats-card__bottom-row">
+                        <div class="stats-card__share"></div>
+                        <div class="stats-card__delta-wrap">
+                          <div class="stats-card__delta-label">전월 대비</div>
+                          <div class="stats-card__delta-rate" id="loanStatRepaidRate">+0.0%</div>
+                          <div class="stats-card__delta delta-up" id="loanStatRepaidDelta">
+                            <span class="delta-arrow">▲</span>
+                            <span>+0원</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <!-- 카드 4: 대출잔액 -->
+                    <article class="stats-card">
+                      <h4 class="stats-card__label">대출잔액</h4>
+                      <div class="stats-card__value--main">
+                        <span class="money-number" id="loanStatBalanceAmount">12조 5,058억</span>
+                        <span class="money-unit">4,038만건</span>
+                      </div>
+                      <div class="stats-card__bottom-row">
+                        <div class="stats-card__share"></div>
+                        <div class="stats-card__delta-wrap">
+                          <div class="stats-card__delta-label">전월 대비</div>
+                          <div class="stats-card__delta-rate" id="loanStatBalanceRate">+0.0%</div>
+                          <div class="stats-card__delta delta-up" id="loanStatBalanceDelta">
+                            <span class="delta-arrow">▲</span>
+                            <span>+0원</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <!-- 상품유형별 대출잔액 섹션 -->
-      <section class="beta-section">
-        <div class="stats-panel stats-panel--products">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-            <div id="productStatusMonth" class="stats-panel__meta"></div>
-          </div>
+        <!-- ───────── 오른쪽: 상품유형별 대출잔액 ───────── -->
+        <div class="dashboard-column dashboard-column--products">
+          <section class="beta-section beta-section--products">
+            <div class="beta-section__header">
+              <div class="beta-section__title-wrap">
+                <h3 class="beta-section__title">상품유형별 대출잔액</h3>
+                <span class="beta-section__meta">
+                  최근 기준월:
+                  <span id="productBaseMonthLabel">2025년 11월</span>
+                </span>
+              </div>
+            </div>
 
-          <div
-            id="ontuProductSection"
-            class="stats-panel__grid stats-panel__grid--products"
-          >
-            <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
-          </div>
+            <div class="stats-panel stats-panel--products">
+              <div class="stats-panel__content">
+                <!-- 왼쪽: 도넛 차트 -->
+                <div class="stats-panel__chart">
+                  <canvas id="productTypeDonut"></canvas>
+                </div>
+
+                <!-- 오른쪽: 유형별 카드 2열 -->
+                <div class="stats-panel__grid stats-panel__grid--products" id="productTypeCards">
+                  <!-- 예시 카드 구조 (JS에서 값만 교체) -->
+                  <article class="stats-card">
+                    <h4 class="stats-card__label">부동산PF</h4>
+                    <div class="stats-card__value--main">
+                      <span class="stats-card__number">30조 1억</span>
+                      <span class="stats-card__unit">1,680만건</span>
+                    </div>
+                  </article>
+
+                  <!-- 실제로는 JS에서 유형별 카드들 루프 돌려서 채우면 됨 -->
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
+    </section>
 
-    </div>
+    <!-- 데이터 출처 안내 -->
+    <p class="ontu-source-note">
+      * 데이터 출처: 온라인투자연계금융업 중앙기록관리기관 공시자료 및 각 온투업체 공시자료(후추 내부 가공 기준).
+    </p>
   </main>
 
   <!-- 푸터 -->
-  <footer class="beta-footer" role="contentinfo">
+  <footer class="beta-footer">
     <div class="beta-footer__top">
-      <a href="/company.html">회사소개</a>
-      <a href="/terms.html">서비스이용약관</a>
-      <a href="/privacy.html">개인정보 취급방침</a>
+      <div><a href="/about.html">회사소개</a></div>
+      <div><a href="/terms.html">서비스이용약관</a></div>
+      <div><a href="/privacy.html">개인정보 처리방침</a></div>
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img
-          src="/assets/logo/huchu-logo-white.png"
-          alt="HUCHU 로고"
-          class="beta-footer__logo-img"
-        />
+        <span class="beta-footer__logo-mark">후</span>
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
-        <p>상호: (예시) 후추랩 | 대표: 장현성</p>
-        <p>주소: (예시) 경기도 고양시 일산동구 00로 00</p>
-        <p>E-MAIL: huchudb01@gmail.com | 사업자번호: 000-00-00000</p>
-        <p>2025 © HUCHU. ALL RIGHTS RESERVED.</p>
+        <p>후추 HUCHU | 온투업 담보대출 정보 플랫폼 (베타)</p>
+        <p>© 2025 HUCHU. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
+  <!-- JS (기존 ontu-stats.js 그대로 사용) -->
+  <script type="module" src="/assets/ontu-stats.js?v=20251205"></script>
 </body>
 </html>
