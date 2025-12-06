@@ -110,38 +110,41 @@
         </div>
       </section>
 
-      <!-- 대출현황 섹션 -->
+      <!-- 대출현황 + 상품유형별 대출잔액 대시보드 섹션 (A-1 패턴) -->
       <section class="beta-section">
-        <div class="stats-panel stats-panel--loan">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">대출 현황</h2>
-            <div id="loanStatusMonth" class="stats-panel__meta"></div>
+        <div class="beta-dashboard-grid">
+
+          <!-- 왼쪽: 대출 현황 -->
+          <div class="stats-panel stats-panel--loan">
+            <div class="stats-panel__header">
+              <h2 class="stats-panel__title">대출 현황</h2>
+              <div id="loanStatusMonth" class="stats-panel__meta"></div>
+            </div>
+
+            <!-- JS가 카드(.beta-loanstatus-grid)를 렌더링 -->
+            <div
+              id="ontuLoanStatus"
+              class="stats-panel__grid stats-panel__grid--loan"
+            >
+              <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
+            </div>
           </div>
 
-          <!-- 여기 그리드 안에 JS가 카드(.stats-card)를 여러 개 넣어줌 -->
-          <div
-            id="ontuLoanStatus"
-            class="stats-panel__grid stats-panel__grid--loan"
-          >
-            <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
-          </div>
-        </div>
-      </section>
+          <!-- 오른쪽: 상품유형별 대출잔액 -->
+          <div class="stats-panel stats-panel--products">
+            <div class="stats-panel__header">
+              <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+              <div id="productStatusMonth" class="stats-panel__meta"></div>
+            </div>
 
-      <!-- 상품유형별 대출잔액 섹션 -->
-      <section class="beta-section">
-        <div class="stats-panel stats-panel--products">
-          <div class="stats-panel__header">
-            <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-            <div id="productStatusMonth" class="stats-panel__meta"></div>
+            <div
+              id="ontuProductSection"
+              class="stats-panel__grid stats-panel__grid--products"
+            >
+              <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
+            </div>
           </div>
 
-          <div
-            id="ontuProductSection"
-            class="stats-panel__grid stats-panel__grid--products"
-          >
-            <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
-          </div>
         </div>
       </section>
 
