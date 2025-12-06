@@ -1797,3 +1797,59 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
+/* ===========================================
+   패턴 A: 대출현황 + 상품유형별 2컬럼 대시보드
+   ======================================== */
+
+/* 대시보드 섹션 전체 여백 조정 */
+.beta-section--dashboard {
+  margin-bottom: 32px;
+}
+
+/* 2컬럼 그리드: 왼쪽(대출현황) / 오른쪽(상품유형별) */
+.beta-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.dashboard-column {
+  min-width: 0;
+}
+
+/* 내부 섹션 간 여백 줄이기 (타이틀 ~ 패널 사이) */
+.beta-section--loan .beta-section__header,
+.beta-section--products .beta-section__header {
+  margin-bottom: 10px;
+}
+
+/* 모바일/태블릿에서는 1열로 쌓기 */
+@media (max-width: 900px) {
+  .beta-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .beta-section--dashboard {
+    margin-bottom: 24px;
+  }
+}
+
+/* 왼쪽/오른쪽 컬럼 안의 stats-panel 기본값 정리 */
+.dashboard-column .stats-panel {
+  height: 100%;
+}
+
+/* 대출현황 카드에서 숫자 영역이 너무 좁지 않도록 최소 폭 */
+body.ontu-stats-page .stats-card__value--main {
+  margin: 10px auto 14px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 160px;
+  max-width: 260px;
+  white-space: nowrap;
+  text-align: center;
+}
