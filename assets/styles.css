@@ -1162,19 +1162,6 @@ body.beta-body button{width:auto;}
 
 /* 공통 섹션 박스 */
 .beta-section{margin-bottom:28px;}
-/* 홈 대시보드 섹션용 회색 밴드 */
-.beta-section-surface{
-  background:#f9fafb;
-  border-radius:24px;
-  padding:22px 24px 26px;
-  border:1px solid #e5e7eb;
-}
-@media(max-width:900px){
-  .beta-section-surface{
-    padding:18px 16px 22px;
-  }
-}
-
 .beta-section__header{
   display:flex;
   align-items:center;
@@ -1197,63 +1184,67 @@ body.beta-body button{width:auto;}
   color:#6b7280;
 }
 
-/* 홈 대시보드 레이아웃 (A-1) – 왼쪽 대출현황, 오른쪽 상품유형 */
+/* ======================= 홈: 대출현황 + 상품유형 대시보드 (A-1 최종) ======================= */
+
+/* 회색 큰 패널 */
 .beta-dashboard-grid{
+  margin-top:8px;
+  background:#f3f4f6;
+  border-radius:24px;
+  padding:28px 40px 32px;
   display:grid;
-  grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);
-  gap:28px;
-  align-items:stretch;
+  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
+  column-gap:48px;
+  align-items:flex-start;
 }
-@media (max-width:900px){
+@media (max-width:1024px){
   .beta-dashboard-grid{
     grid-template-columns:1fr;
-    gap:20px;
+    row-gap:32px;
+    padding:22px 18px 26px;
   }
 }
 
-/* 홈 전용 stats-panel 기본 스타일
-   (온투 통계 페이지는 body.ontu-stats-page .stats-panel 이 더 구체적으로 override) */
+/* 패널 공통 (홈 전용) */
 .stats-panel{
   background:transparent;
+  padding:0;
+  border:0;
+  box-shadow:none;
 }
 .stats-panel__header{
   display:flex;
-  align-items:baseline;
-  justify-content:flex-start;
+  align-items:flex-end;
   gap:8px;
-  margin-bottom:12px;
+  margin-bottom:18px;
 }
 .stats-panel__title{
   margin:0;
-  font-size:20px;
+  font-size:24px;
   font-weight:800;
   color:#111827;
 }
 .stats-panel__meta{
-  font-size:12px;
+  font-size:11px;
   color:#6b7280;
 }
 
-/* 회색 카드 래퍼 (필요 시 사용) */
-.beta-card{
-  background:#f3f4f6;
-  border-radius:18px;
-  padding:14px 16px;
-  border:1px solid #e5e7eb;
+/* 왼쪽: 대출현황 카드 영역 폭 */
+.stats-panel__grid--loan{
+  max-width:320px;
 }
-.beta-card--wide{width:100%;}
 
-/* 대출현황 카드 그리드 (홈) – 세로 1열 고정 */
+/* 대출현황 카드 그리드 – 세로 1열 고정 */
 .beta-loanstatus-grid{
   display:grid;
-  grid-template-columns:1fr;   /* 항상 1열 */
+  grid-template-columns:1fr;
   gap:10px;
 }
 
 .beta-loanstatus-item{
   background:#ffffff;
-  border-radius:16px;           /* 둥글기 살짝 키움 */
-  padding:14px 18px;            /* 여백 넉넉히 */
+  border-radius:16px;
+  padding:14px 18px;
   box-shadow:none;
   border:1px solid #e5e7eb;
 }
@@ -1271,37 +1262,59 @@ body.beta-body button{width:auto;}
   line-height:1.4;
 }
 
-/* 상품유형별 도넛 + 카드 레이아웃 (홈) */
+/* 오른쪽: 상품유형별 도넛 + 카드 레이아웃 */
+.stats-panel__grid--products{
+  width:100%;
+}
+
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.15fr) minmax(0,0.85fr);
-  gap:16px;
-  align-items:stretch;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr);
+  gap:20px;
+  align-items:center;
 }
 @media(max-width:900px){
-  .beta-product-grid{grid-template-columns:1fr;}
+  .beta-product-grid{
+    grid-template-columns:1fr;
+  }
 }
+
+/* 도넛: 회색 배경 위에 바로 올리는 느낌 */
 .beta-product-donut-wrap{
-  background:#ffffff;
-  border-radius:18px;
-  border:1px solid #e5e7eb;
-  padding:18px 18px 20px;
+  background:transparent;
+  border-radius:0;
+  border:0;
+  padding:0;
   min-height:260px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .beta-product-donut-wrap canvas{
   display:block;
   width:100%;
-  height:100%;
+  max-width:320px;
+  max-height:320px;
 }
+
 /* 상품유형별 카드 묶음: 2열 그리드 */
 .beta-product-boxes{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));  /* 2열 */
-  gap:12px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px 16px;
+  align-self:center;
 }
 @media(max-width:900px){
   .beta-product-boxes{
-    grid-template-columns:1fr;   /* 모바일은 1열 */
+    grid-template-columns:1fr;
+    max-width:none;
+    margin:0;
+  }
+}
+@media(min-width:901px){
+  .beta-product-boxes{
+    max-width:420px;
+    margin-left:auto;
   }
 }
 
@@ -1328,7 +1341,7 @@ body.beta-body button{width:auto;}
 
 /* 라벨(부동산담보, 어음·매출채권 등) */
 .beta-product-box__title{
-  margin:0 0 2px;
+  margin:0 0 4px;
   font-size:14px;
   font-weight:700;
   color:#111827;
