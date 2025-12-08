@@ -1206,19 +1206,11 @@ body.beta-body button{width:auto;}
 }
 .beta-card--wide{width:100%;}
 
-/* 대출현황 카드 그리드 */
+/* 대출현황 카드 그리드 (홈) – 세로 1열 고정 */
 .beta-loanstatus-grid{
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));  /* 4등분 고정 */
-  gap:12px;                                       /* 카드 사이 여유 조금 늘림 */
-}
-@media(max-width:1200px){
-  .beta-loanstatus-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-}
-@media(max-width:520px){
-  .beta-loanstatus-grid{grid-template-columns:1fr;}
+  grid-template-columns:1fr;   /* 항상 1열 */
+  gap:10px;
 }
 
 .beta-loanstatus-item{
@@ -1829,4 +1821,5 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
