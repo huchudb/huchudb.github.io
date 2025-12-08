@@ -1206,11 +1206,11 @@ body.beta-body button{width:auto;}
 }
 .beta-card--wide{width:100%;}
 
-/* 대출현황 카드 그리드 (홈) */
+/* 대출현황 카드 그리드 */
 .beta-loanstatus-grid{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
-  gap:10px;
+  grid-template-columns:repeat(4,minmax(0,1fr));  /* 4등분 고정 */
+  gap:12px;                                       /* 카드 사이 여유 조금 늘림 */
 }
 @media(max-width:1200px){
   .beta-loanstatus-grid{
@@ -1220,21 +1220,24 @@ body.beta-body button{width:auto;}
 @media(max-width:520px){
   .beta-loanstatus-grid{grid-template-columns:1fr;}
 }
+
 .beta-loanstatus-item{
   background:#ffffff;
-  border-radius:12px;
-  padding:10px 12px;
+  border-radius:16px;           /* 둥글기 살짝 키움 */
+  padding:14px 18px;            /* 상하/좌우 여백 늘려서 숨 쉬게 */
   box-shadow:none;
   border:1px solid #e5e7eb;
 }
+
 .beta-loanstatus-item__label{
-  font-size:14px;
+  font-size:13px;               /* 살짝만 줄여서 숫자 대비 */
   color:#6b7280;
-  margin-bottom:4px;
+  margin-bottom:6px;            /* 텍스트와 금액 사이 간격 */
 }
+
 .beta-loanstatus-item__value{
   text-align:right;
-  font-size:16px;
+  font-size:18px;               /* 숫자 16 → 18 로 키움 */
   font-weight:800;
   line-height:1.4;
 }
@@ -1261,38 +1264,54 @@ body.beta-body button{width:auto;}
   width:100%;
   height:100%;
 }
+/* 상품유형별 카드 묶음: 2열 그리드 */
 .beta-product-boxes{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));  /* 2열 */
+  gap:12px;
 }
+
+@media(max-width:900px){
+  .beta-product-boxes{
+    grid-template-columns:1fr;   /* 모바일은 1열 */
+  }
+}
+
+/* 개별 카드 */
 .beta-product-box{
   position:relative;
   background:#ffffff;
-  border-radius:16px;
+  border-radius:18px;               /* 둥근 정도 강화 */
   border:1px solid #e5e7eb;
-  padding:10px 12px 11px 14px;
+  padding:14px 20px 14px 24px;      /* 왼쪽 여백은 조금 더 크게(컬러바 + 텍스트) */
 }
+
+/* 왼쪽 컬러 바 */
 .beta-product-box::before{
   content:"";
   position:absolute;
-  left:6px;
-  top:10px;
-  bottom:10px;
+  left:10px;
+  top:12px;
+  bottom:12px;
   width:3px;
   border-radius:999px;
   background:var(--product-color,#e5e7eb);
 }
+
+/* 라벨(부동산담보, 어음·매출채권 등) */
 .beta-product-box__title{
   margin:0 0 2px;
-  font-size:13px;
+  font-size:14px;
   font-weight:700;
   color:#111827;
 }
+
+/* 금액 */
 .beta-product-box__amount{
-  font-size:14px;
+  font-size:15px;
   font-weight:800;
   color:#0b2a66;
+  line-height:1.35;
 }
 
 /* 베타 푸터 */
@@ -1810,3 +1829,4 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
