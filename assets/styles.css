@@ -1231,7 +1231,8 @@ body.beta-body button{width:auto;}
 
 /* 왼쪽: 대출현황 카드 영역 폭 */
 .stats-panel__grid--loan{
-  max-width:320px;
+ display:inline-block;   /* 내용만큼만 차지하도록 */
+  max-width:none;
 }
 
 /* 대출현황 카드 그리드 – 세로 1열 고정 */
@@ -1270,7 +1271,7 @@ body.beta-body button{width:auto;}
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr); /* 도넛이 살짝 더 넓게 */
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr); /* 도넛:카드 = 1.1 : 1.3 */
   gap:28px;
   align-items:center;
 }
@@ -1315,45 +1316,33 @@ body.beta-body button{width:auto;}
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:16px 20px 14px 26px;    /* 왼쪽 여백 조금 더 크게(컬러바+텍스트) */
-  min-height:96px;                /* 너무 길지 않게 압축 */
+  padding:16px 20px 14px 26px;
+  min-height:96px;
   display:flex;
   flex-direction:column;
   justify-content:center;
 }
 
-/* 왼쪽 컬러 바 */
-.beta-product-box::before{
-  content:"";
-  position:absolute;
-  left:10px;
-  top:12px;
-  bottom:12px;
-  width:3px;
-  border-radius:999px;
-  background:var(--product-color,#e5e7eb);
-}
-
 /* 라벨(부동산담보, 어음·매출채권 등) */
 .beta-product-box__title{
   margin:0 0 4px;
-  font-size:14px;
+  font-size:13px;         /* 살짝 줄여서 두 줄일 때도 안정감 있게 */
   font-weight:700;
   color:#111827;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  white-space:normal;      /* 줄바꿈 허용 */
+  overflow:visible;
+  text-overflow:unset;
 }
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:18px;                 /* 숫자는 큼직하게 */
+  font-size:16px;          /* 기존 18px → 16px, 하지만 여전히 메인 숫자 느낌 */
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  white-space:normal;      /* 필요 시 두 줄로 보이게 */
+  overflow:visible;
+  text-overflow:unset;
 }
 
 /* 베타 푸터 */
@@ -1871,6 +1860,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
