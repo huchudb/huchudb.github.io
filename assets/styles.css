@@ -1186,23 +1186,17 @@ body.beta-body button{width:auto;}
 
 /* ======================= 홈: 대출현황 + 상품유형 대시보드 (A-1 최종) ======================= */
 
-/* 회색 큰 패널 */
+/* 회색 큰 패널 – 좌/우 비율 조정 */
 .beta-dashboard-grid{
   margin-top:8px;
   background:#f3f4f6;
   border-radius:24px;
   padding:28px 40px 32px;
   display:grid;
-  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
+  /* 기존: grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr); */
+  grid-template-columns:auto minmax(0,1fr);   /* 왼쪽은 내용폭, 오른쪽은 나머지 전체 */
   column-gap:48px;
   align-items:flex-start;
-}
-@media (max-width:1024px){
-  .beta-dashboard-grid{
-    grid-template-columns:1fr;
-    row-gap:32px;
-    padding:22px 18px 26px;
-  }
 }
 
 /* 패널 공통 (홈 전용) */
@@ -1860,6 +1854,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
