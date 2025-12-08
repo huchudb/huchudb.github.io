@@ -1162,6 +1162,19 @@ body.beta-body button{width:auto;}
 
 /* 공통 섹션 박스 */
 .beta-section{margin-bottom:28px;}
+/* 홈 대시보드 섹션용 회색 밴드 */
+.beta-section-surface{
+  background:#f9fafb;
+  border-radius:24px;
+  padding:22px 24px 26px;
+  border:1px solid #e5e7eb;
+}
+@media(max-width:900px){
+  .beta-section-surface{
+    padding:18px 16px 22px;
+  }
+}
+
 .beta-section__header{
   display:flex;
   align-items:center;
@@ -1184,17 +1197,41 @@ body.beta-body button{width:auto;}
   color:#6b7280;
 }
 
-/* 홈 대시보드 레이아웃 (A-1) */
+/* 홈 대시보드 레이아웃 (A-1) – 왼쪽 대출현황, 오른쪽 상품유형 */
 .beta-dashboard-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr);
-  gap:20px;
-  align-items:flex-start;
+  grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);
+  gap:28px;
+  align-items:stretch;
 }
 @media (max-width:900px){
   .beta-dashboard-grid{
     grid-template-columns:1fr;
+    gap:20px;
   }
+}
+
+/* 홈 전용 stats-panel 기본 스타일
+   (온투 통계 페이지는 body.ontu-stats-page .stats-panel 이 더 구체적으로 override) */
+.stats-panel{
+  background:transparent;
+}
+.stats-panel__header{
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-start;
+  gap:8px;
+  margin-bottom:12px;
+}
+.stats-panel__title{
+  margin:0;
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+}
+.stats-panel__meta{
+  font-size:12px;
+  color:#6b7280;
 }
 
 /* 회색 카드 래퍼 (필요 시 사용) */
@@ -1216,20 +1253,20 @@ body.beta-body button{width:auto;}
 .beta-loanstatus-item{
   background:#ffffff;
   border-radius:16px;           /* 둥글기 살짝 키움 */
-  padding:14px 18px;            /* 상하/좌우 여백 늘려서 숨 쉬게 */
+  padding:14px 18px;            /* 여백 넉넉히 */
   box-shadow:none;
   border:1px solid #e5e7eb;
 }
 
 .beta-loanstatus-item__label{
-  font-size:13px;               /* 살짝만 줄여서 숫자 대비 */
+  font-size:13px;
   color:#6b7280;
-  margin-bottom:6px;            /* 텍스트와 금액 사이 간격 */
+  margin-bottom:6px;
 }
 
 .beta-loanstatus-item__value{
   text-align:right;
-  font-size:18px;               /* 숫자 16 → 18 로 키움 */
+  font-size:18px;
   font-weight:800;
   line-height:1.4;
 }
@@ -1262,7 +1299,6 @@ body.beta-body button{width:auto;}
   grid-template-columns:repeat(2,minmax(0,1fr));  /* 2열 */
   gap:12px;
 }
-
 @media(max-width:900px){
   .beta-product-boxes{
     grid-template-columns:1fr;   /* 모바일은 1열 */
@@ -1273,9 +1309,9 @@ body.beta-body button{width:auto;}
 .beta-product-box{
   position:relative;
   background:#ffffff;
-  border-radius:18px;               /* 둥근 정도 강화 */
+  border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:14px 20px 14px 24px;      /* 왼쪽 여백은 조금 더 크게(컬러바 + 텍스트) */
+  padding:14px 20px 14px 24px;
 }
 
 /* 왼쪽 컬러 바 */
@@ -1821,5 +1857,3 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
-
-
