@@ -1262,6 +1262,11 @@ body.beta-body button{width:auto;}
   line-height:1.4;
 }
 
+/* 홈 전용 상품유형 섹션 래퍼 */
+.beta-product-section{
+  width:100%;
+}
+
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
@@ -1685,13 +1690,13 @@ body.ontu-stats-page .stats-card__value--main{
 }
 
 /* 상품유형별 대출잔액 – 도넛+카드 레이아웃(초록패널 안) */
-.stats-panel--products .stats-panel__content{
+body.ontu-stats-page .stats-panel--products .stats-panel__content{
   display:grid;
   grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
   gap:18px;
   align-items:stretch;
 }
-.stats-panel--products .stats-panel__chart{
+body.ontu-stats-page .stats-panel--products .stats-panel__chart{
   background:#047857;
   border-radius:16px;
   padding:14px;
@@ -1699,16 +1704,16 @@ body.ontu-stats-page .stats-card__value--main{
   align-items:center;
   justify-content:center;
 }
-.stats-panel--products .stats-panel__grid--products{
+body.ontu-stats-page .stats-panel--products .stats-panel__grid--products{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:12px;
 }
 @media(max-width:768px){
-  .stats-panel--products .stats-panel__content{
+  body.ontu-stats-page .stats-panel--products .stats-panel__content{
     grid-template-columns:1fr;
   }
-  .stats-panel--products .stats-panel__grid--products{
+  body.ontu-stats-page .stats-panel--products .stats-panel__grid--products{
     grid-template-columns:1fr;
   }
 }
@@ -1866,4 +1871,3 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
-
