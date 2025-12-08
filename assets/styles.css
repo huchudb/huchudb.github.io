@@ -1262,59 +1262,45 @@ body.beta-body button{width:auto;}
   line-height:1.4;
 }
 
-/* 오른쪽: 상품유형별 도넛 + 카드 레이아웃 */
-.stats-panel__grid--products{
-  width:100%;
-}
-
+/* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr);
-  gap:20px;
+  grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr); /* 도넛이 살짝 더 넓게 */
+  gap:28px;
   align-items:center;
 }
-@media(max-width:900px){
-  .beta-product-grid{
-    grid-template-columns:1fr;
-  }
-}
 
-/* 도넛: 회색 배경 위에 바로 올리는 느낌 */
+/* 도넛 카드 */
 .beta-product-donut-wrap{
-  background:transparent;
-  border-radius:0;
-  border:0;
-  padding:0;
-  min-height:260px;
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  padding:24px;
+  min-height:320px;               /* 세로 공간 확보해서 도넛 크게 */
   display:flex;
   align-items:center;
   justify-content:center;
 }
 .beta-product-donut-wrap canvas{
   display:block;
+  max-width:360px;                /* 도넛 최대 크기 (예시 화면 느낌) */
+  max-height:360px;
   width:100%;
-  max-width:320px;
-  max-height:320px;
+  height:auto;
 }
 
 /* 상품유형별 카드 묶음: 2열 그리드 */
 .beta-product-boxes{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px 16px;
-  align-self:center;
+  grid-template-columns:repeat(2,minmax(0,1fr));  /* 2열 고정 */
+  gap:16px;
 }
 @media(max-width:900px){
-  .beta-product-boxes{
+  .beta-product-grid{
     grid-template-columns:1fr;
-    max-width:none;
-    margin:0;
   }
-}
-@media(min-width:901px){
   .beta-product-boxes{
-    max-width:420px;
-    margin-left:auto;
+    grid-template-columns:1fr;    /* 모바일은 1열 */
   }
 }
 
@@ -1324,7 +1310,11 @@ body.beta-body button{width:auto;}
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:14px 20px 14px 24px;
+  padding:16px 20px 14px 26px;    /* 왼쪽 여백 조금 더 크게(컬러바+텍스트) */
+  min-height:96px;                /* 너무 길지 않게 압축 */
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
 }
 
 /* 왼쪽 컬러 바 */
@@ -1345,14 +1335,20 @@ body.beta-body button{width:auto;}
   font-size:14px;
   font-weight:700;
   color:#111827;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:15px;
+  font-size:18px;                 /* 숫자는 큼직하게 */
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* 베타 푸터 */
@@ -1870,3 +1866,4 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
