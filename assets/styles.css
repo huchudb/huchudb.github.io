@@ -1193,7 +1193,7 @@ body.beta-body button{width:auto;}
   border-radius:24px;
   padding:28px 40px 32px;
   display:grid;
-  grid-template-columns:minmax(0,0.85fr) minmax(0,1.45fr); /* 왼쪽(대출현황) 좁게, 오른쪽 넓게 */
+  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
   column-gap:48px;
   align-items:flex-start;
 }
@@ -1216,13 +1216,8 @@ body.beta-body button{width:auto;}
   display:flex;
   align-items:flex-end;
   gap:8px;
-  margin:0 0 18px;
+  margin-bottom:18px;
 }
-/* 상품유형별 대출잔액 헤더를 살짝 위로 올려서 수평 정렬 */
-.stats-panel--products .stats-panel__header{
-  margin-top:-4px;
-}
-
 .stats-panel__title{
   margin:0;
   font-size:24px;
@@ -1234,9 +1229,9 @@ body.beta-body button{width:auto;}
   color:#6b7280;
 }
 
-/* 왼쪽: 대출현황 카드 영역 폭 (금액 풀 텍스트 기준으로 적당히만) */
+/* 왼쪽: 대출현황 카드 영역 폭 */
 .stats-panel__grid--loan{
-  max-width:360px;  /* 누적상환금액 한 줄 기준 폭 */
+  max-width:320px;
 }
 
 /* 대출현황 카드 그리드 – 세로 1열 고정 */
@@ -1265,6 +1260,11 @@ body.beta-body button{width:auto;}
   font-size:18px;
   font-weight:800;
   line-height:1.4;
+}
+
+/* 홈 전용 상품유형 섹션 래퍼 */
+.beta-product-section{
+  width:100%;
 }
 
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
@@ -1871,5 +1871,6 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
