@@ -166,7 +166,8 @@ async function fetchOntuStats() {
 
 // ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
-  const container = document.getElementById("ontuLoanStatus");
+  const container   = document.getElementById("ontuLoanStatus");
+  const monthHeader = document.getElementById("dashboardMonth"); // 상단 공통 타이틀 옆 월 표기
   if (!container) return;
 
   if (!summary) {
@@ -175,7 +176,13 @@ function renderLoanStatus(summary, monthStr) {
         <p>온투업 통계를 불러오지 못했습니다.</p>
       </div>
     `;
+    if (monthHeader) monthHeader.textContent = "";
     return;
+  }
+
+  // 상단 "온라인투자연계금융업" 우측에 월만 표시
+  if (monthHeader) {
+    monthHeader.textContent = formatMonthLabel(monthStr);
   }
 
   const items = [
@@ -231,6 +238,7 @@ let donutChart = null;
 
 function renderProductSection(summary, byType) {
   const section = document.getElementById("ontuProductSection");
+  const monthEl = document.getElementById("productStatusMonth");
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
@@ -239,7 +247,14 @@ function renderProductSection(summary, byType) {
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
     `;
+    if (monthEl) monthEl.textContent = "";
     return;
+  }
+
+  // 기준월 (현재는 화면에 보이지 않지만 보조 텍스트로만 유지)
+  const monthStr = summary.monthKey || summary.month || DEFAULT_ONTU_STATS.month;
+  if (monthEl) {
+    monthEl.textContent = formatMonthLabel(monthStr);
   }
 
   const balance = Number(summary.balance || 0);
@@ -334,29 +349,14 @@ async function initOntuStats() {
     const summary = data.summary || DEFAULT_ONTU_STATS.summary;
     const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
 
-    // 상단 공통 헤더에 기준월 표시 (텍스트 '최근 기준월' 없이)
-    const dashboardMonthEl = document.getElementById("dashboardMonth");
-    if (dashboardMonthEl) {
-      dashboardMonthEl.textContent = formatMonthLabel(month);
-    }
-
     renderLoanStatus(summary, month);
     renderProductSection({ ...summary, month }, byType);
   } catch (e) {
     console.error("[initOntuStats] 치명적 오류:", e);
-    const fallbackMonth = DEFAULT_ONTU_STATS.month;
-    const fallbackSummary = DEFAULT_ONTU_STATS.summary;
-    const fallbackByType = DEFAULT_ONTU_STATS.byType;
-
-    const dashboardMonthEl = document.getElementById("dashboardMonth");
-    if (dashboardMonthEl) {
-      dashboardMonthEl.textContent = formatMonthLabel(fallbackMonth);
-    }
-
-    renderLoanStatus(fallbackSummary, fallbackMonth);
+    renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
     renderProductSection(
-      { ...fallbackSummary, month: fallbackMonth },
-      fallbackByType
+      { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
+      DEFAULT_ONTU_STATS.byType
     );
   }
 }
