@@ -112,49 +112,51 @@
 
       <!-- 대출현황 + 상품유형별 대출잔액 대시보드 섹션 (A-1 패턴) -->
       <section class="beta-section">
-        <!-- 회색 밴드(풀폭) 안에 2패널(대출현황 / 상품유형별) 배치 -->
+        <!-- 회색 밴드 안에 2패널(대출현황 / 상품유형별) 배치 -->
         <div class="beta-section-surface">
-          <div class="beta-section-surface__inner">
 
-            <!-- 상단 공통 타이틀: 온라인투자연계금융업 + 기준월 -->
-            <div class="beta-dashboard-header">
-              <span class="beta-dashboard-header__label">온라인투자연계금융업</span>
-              <span id="dashboardMonth" class="beta-dashboard-header__month"></span>
+          <!-- 상단 공통 타이틀: 온라인투자연계금융업 + 기준월 -->
+          <div class="beta-dashboard-header">
+            <div class="beta-dashboard-header__left">
+              <span class="beta-dashboard-title">온라인투자연계금융업</span>
+              <span id="dashboardMonth" class="beta-dashboard-month"></span>
             </div>
+          </div>
 
-            <div class="beta-dashboard-grid">
+          <div class="beta-dashboard-grid">
 
-              <!-- 왼쪽: 대출 현황 -->
-              <div class="stats-panel stats-panel--loan">
-                <div class="stats-panel__header">
-                  <h2 class="stats-panel__title">대출 현황</h2>
-                </div>
-
-                <!-- JS가 카드(.beta-loanstatus-grid)를 렌더링 -->
-                <div
-                  id="ontuLoanStatus"
-                  class="stats-panel__grid stats-panel__grid--loan"
-                >
-                  <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
-                </div>
+            <!-- 왼쪽: 대출 현황 -->
+            <div class="stats-panel stats-panel--loan">
+              <div class="stats-panel__header">
+                <h2 class="stats-panel__title">대출 현황</h2>
               </div>
 
-              <!-- 오른쪽: 상품유형별 대출잔액 -->
-              <div class="stats-panel stats-panel--products">
-                <div class="stats-panel__header">
-                  <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
-                </div>
+              <!-- JS가 카드(.beta-loanstatus-grid)를 렌더링 -->
+              <div
+                id="ontuLoanStatus"
+                class="stats-panel__grid stats-panel__grid--loan"
+              >
+                <!-- home-beta.js에서 .beta-loanstatus-grid 카드들 렌더링 -->
+              </div>
+            </div>
 
-                <!-- 홈 전용: beta-product-grid 구조가 이 안에 들어감 -->
-                <div
-                  id="ontuProductSection"
-                  class="beta-product-section"
-                >
-                  <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
-                </div>
+            <!-- 오른쪽: 상품유형별 대출잔액 -->
+            <div class="stats-panel stats-panel--products">
+              <div class="stats-panel__header">
+                <h2 class="stats-panel__title">상품유형별 대출잔액</h2>
+                <!-- 기준월 텍스트는 상단(온라인투자연계금융업 옆)에서만 노출 -->
+                <div id="productStatusMonth" class="stats-panel__meta stats-panel__meta--hidden"></div>
               </div>
 
+              <!-- 홈 전용: beta-product-grid 구조가 이 안에 들어감 -->
+              <div
+                id="ontuProductSection"
+                class="beta-product-section"
+              >
+                <!-- home-beta.js에서 도넛 + 우측 박스 렌더링 -->
+              </div>
             </div>
+
           </div>
         </div>
       </section>
