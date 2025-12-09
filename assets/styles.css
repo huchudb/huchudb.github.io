@@ -1184,14 +1184,28 @@ body.beta-body button{width:auto;}
   color:#6b7280;
 }
 
+/* 대출현황+상품유형 회색 밴드 전체 폭 */
+.beta-section-surface{
+  margin-top:8px;
+  margin-left:-24px;
+  margin-right:-24px;
+  background:#f3f4f6;
+  padding:28px 40px 32px;
+}
+@media (max-width:1024px){
+  .beta-section-surface{
+    padding:22px 18px 26px;
+  }
+}
+
 /* ======================= 홈: 대출현황 + 상품유형 대시보드 (A-1 최종) ======================= */
 
-/* 회색 큰 패널 */
+/* 회색 큰 패널 안 그리드 */
 .beta-dashboard-grid{
-  margin-top:8px;
-  background:#f3f4f6;
-  border-radius:24px;
-  padding:28px 40px 32px;
+  margin-top:0;
+  background:transparent;
+  border-radius:0;
+  padding:0;
   display:grid;
   /* 왼쪽 좁게, 오른쪽 넓게 조정 */
   grid-template-columns:minmax(0,0.7fr) minmax(0,1.6fr);
@@ -1202,7 +1216,6 @@ body.beta-body button{width:auto;}
   .beta-dashboard-grid{
     grid-template-columns:1fr;
     row-gap:32px;
-    padding:22px 18px 26px;
   }
 }
 
@@ -1213,11 +1226,19 @@ body.beta-body button{width:auto;}
   border:0;
   box-shadow:none;
 }
+
+/* 상단 제목/부제 정렬 */
 .stats-panel__header{
   display:flex;
-  align-items:flex-end;
+  align-items:flex-start;
+  justify-content:space-between;
   gap:8px;
   margin-bottom:18px;
+}
+.stats-panel__header-left{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
 }
 .stats-panel__title{
   margin:0;
@@ -1225,9 +1246,29 @@ body.beta-body button{width:auto;}
   font-weight:800;
   color:#111827;
 }
+
+/* 상단 suptitle (온라인투자연계금융업 + 기준월) */
+.stats-panel__suptitle{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  font-size:12px;
+  font-weight:700;
+}
+.stats-panel__suptitle-main{
+  color:#4b5563;
+}
+.stats-panel__suptitle-meta{
+  font-size:11px;
+  color:#9ca3af;
+}
+
 .stats-panel__meta{
   font-size:11px;
   color:#6b7280;
+}
+.stats-panel__meta--hidden{
+  display:none;
 }
 
 /* 왼쪽: 대출현황 카드 영역 폭 */
@@ -1271,7 +1312,7 @@ body.beta-body button{width:auto;}
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr); /* 도넛이 살짝 더 넓게 */
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr); /* 우측 카드 영역을 더 넓게 */
   gap:28px;
   align-items:center;
 }
@@ -1341,20 +1382,20 @@ body.beta-body button{width:auto;}
   font-size:14px;
   font-weight:700;
   color:#111827;
-  /* 긴 제목도 여러 줄로 자연스럽게 */
-  white-space:normal;
-  overflow:visible;
-  text-overflow:clip;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:17px;                 /* 살짝 줄여서 가독성 확보 */
+  font-size:17px;
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
-  /* 카드 폭에 맞춰 줄바꿈 허용 */
-  white-space:normal;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* 베타 푸터 */
