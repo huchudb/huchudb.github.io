@@ -1193,8 +1193,9 @@ body.beta-body button{width:auto;}
   border-radius:24px;
   padding:28px 40px 32px;
   display:grid;
-  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
-  column-gap:48px;
+  /* 왼쪽 좁게, 오른쪽 넓게 조정 */
+  grid-template-columns:minmax(0,0.7fr) minmax(0,1.6fr);
+  column-gap:40px;
   align-items:flex-start;
 }
 @media (max-width:1024px){
@@ -1231,7 +1232,7 @@ body.beta-body button{width:auto;}
 
 /* 왼쪽: 대출현황 카드 영역 폭 */
 .stats-panel__grid--loan{
-  max-width:320px;
+  max-width:280px;
 }
 
 /* 대출현황 카드 그리드 – 세로 1열 고정 */
@@ -1340,20 +1341,20 @@ body.beta-body button{width:auto;}
   font-size:14px;
   font-weight:700;
   color:#111827;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  /* 긴 제목도 여러 줄로 자연스럽게 */
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
 }
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:18px;                 /* 숫자는 큼직하게 */
+  font-size:17px;                 /* 살짝 줄여서 가독성 확보 */
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  /* 카드 폭에 맞춰 줄바꿈 허용 */
+  white-space:normal;
 }
 
 /* 베타 푸터 */
@@ -1787,7 +1788,7 @@ body.ontu-stats-page .ontu-source-note{
 
 /* 카드 제목/금액 사이 간격 */
 .stats-card__label{margin-bottom:0.4rem;}
-.stats-panel + .stats-panel{margin-top:4rem;}
+body.ontu-stats-page .stats-panel + .stats-panel{margin-top:4rem;}
 body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__number{
   font-size:5rem;
   line-height:1.1;
