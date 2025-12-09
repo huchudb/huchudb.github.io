@@ -166,8 +166,8 @@ async function fetchOntuStats() {
 
 // ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
-  const container   = document.getElementById("ontuLoanStatus");
-  const monthHeader = document.getElementById("dashboardMonth"); // 상단 공통 타이틀 옆 월 표기
+  const container = document.getElementById("ontuLoanStatus");
+  const monthEl   = document.getElementById("dashboardMonth");
   if (!container) return;
 
   if (!summary) {
@@ -176,13 +176,12 @@ function renderLoanStatus(summary, monthStr) {
         <p>온투업 통계를 불러오지 못했습니다.</p>
       </div>
     `;
-    if (monthHeader) monthHeader.textContent = "";
+    if (monthEl) monthEl.textContent = "";
     return;
   }
 
-  // 상단 "온라인투자연계금융업" 우측에 월만 표시
-  if (monthHeader) {
-    monthHeader.textContent = formatMonthLabel(monthStr);
+  if (monthEl) {
+    monthEl.textContent = formatMonthLabel(monthStr);
   }
 
   const items = [
@@ -238,7 +237,6 @@ let donutChart = null;
 
 function renderProductSection(summary, byType) {
   const section = document.getElementById("ontuProductSection");
-  const monthEl = document.getElementById("productStatusMonth");
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
@@ -247,14 +245,7 @@ function renderProductSection(summary, byType) {
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
     `;
-    if (monthEl) monthEl.textContent = "";
     return;
-  }
-
-  // 기준월 (현재는 화면에 보이지 않지만 보조 텍스트로만 유지)
-  const monthStr = summary.monthKey || summary.month || DEFAULT_ONTU_STATS.month;
-  if (monthEl) {
-    monthEl.textContent = formatMonthLabel(monthStr);
   }
 
   const balance = Number(summary.balance || 0);
@@ -273,30 +264,67 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
+  // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
-    <div class="beta-product-grid">
-      <div class="beta-product-donut-wrap">
-        <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
+    <div class="beta-product-card">
+      <div class="beta-product-card__header">
+        <span class="beta-product-card__title">상품유형별 대출잔액</span>
       </div>
-      <div class="beta-product-boxes">
-        ${labels
-          .map((name, idx) => {
-            const color = PRODUCT_COLORS[idx] || "#e5e7eb";
-            return `
-              <div class="beta-product-box" style="--product-color:${color};">
-                <div class="beta-product-box__title">${name}</div>
-                <div class="beta-product-box__amount">${formatKoreanCurrencyJo(
-                  amounts[idx]
-                )}</div>
-              </div>
-            `;
-          })
-          .join("")}
+      <div class="beta-product-grid">
+        <div class="beta-product-donut-wrap">
+          <div class="beta-product-donut-inner">
+            <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
+            <div class="beta-product-donut-center" id="productDonutCenter">
+              <div class="beta-product-donut-center__label"></div>
+              <div class="beta-product-donut-center__value"></div>
+            </div>
+          </div>
+        </div>
+        <div class="beta-product-boxes">
+          ${labels
+            .map((name, idx) => {
+              const color = PRODUCT_COLORS[idx] || "#e5e7eb";
+              return `
+                <div class="beta-product-box" style="--product-color:${color};">
+                  <div class="beta-product-box__title">${name}</div>
+                  <div class="beta-product-box__amount">${formatKoreanCurrencyJo(
+                    amounts[idx]
+                  )}</div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
       </div>
     </div>
   `;
 
   const canvas = document.getElementById("productDonut");
+  const centerEl = document.getElementById("productDonutCenter");
+  let centerLabelEl = null;
+  let centerValueEl = null;
+
+  if (centerEl) {
+    centerLabelEl = centerEl.querySelector(".beta-product-donut-center__label");
+    centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
+  }
+
+  function updateCenter(index) {
+    if (!centerEl || !centerLabelEl || !centerValueEl) return;
+
+    if (index == null || index < 0 || index >= labels.length) {
+      centerLabelEl.textContent = "상품유형별";
+      centerValueEl.textContent = "대출잔액";
+      return;
+    }
+
+    centerLabelEl.textContent = labels[index];
+    centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
+  }
+
+  // 기본 텍스트
+  updateCenter(null);
+
   if (!canvas || !window.Chart) return;
 
   const ctx = canvas.getContext("2d");
@@ -333,7 +361,21 @@ function renderProductSection(summary, byType) {
           }
         }
       },
-      layout: { padding: 4 }
+      layout: { padding: 4 },
+      onClick: (evt, elements) => {
+        if (!elements || !elements.length) {
+          updateCenter(null);
+          return;
+        }
+        const idx = elements[0].index;
+        updateCenter(idx);
+      },
+      onHover: (evt, elements) => {
+        const target = evt?.native?.target || evt?.target;
+        if (target && target.style) {
+          target.style.cursor = elements && elements.length ? "pointer" : "default";
+        }
+      }
     }
   });
 }
