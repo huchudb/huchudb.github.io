@@ -1076,15 +1076,9 @@ body.beta-body button{width:auto;}
 /* 전체 페이지 폭 컨테이너 */
 .beta-inner{
   max-width:1200px;
-  margin:0 auto 40px;
+  margin:0 auto 0;
   padding:0 24px 40px;
   box-sizing:border-box;
-}
-
-/* 홈 메인에서는 푸터와 회색띠 사이 여백 제거 */
-body.beta-body .beta-inner{
-  margin-bottom:0;
-  padding-bottom:0;
 }
 
 /* 섹션 안 회색 띠 – 화면 끝까지 */
@@ -1200,76 +1194,49 @@ body.beta-body .beta-inner{
   .beta-hero-right--empty{display:none;}
 }
 
-/* ======================= 홈: 대출현황 + 상품유형 대시보드 (A-1 최종) ======================= */
+/* ======================= 홈: 대출현황 + 상품유형 대시보드 (통합 타이틀 + 5카드) ======================= */
 
-/* 상단 공통 타이틀 */
+/* 상단 대표 타이틀 */
 .beta-dashboard-header{
   display:flex;
   align-items:baseline;
   justify-content:flex-start;
-  margin-bottom:12px;
-}
-.beta-dashboard-header__left{
-  display:flex;
-  align-items:baseline;
-  gap:8px;
 }
 .beta-dashboard-title{
-  font-size:22px;
+  margin:0;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
   font-weight:800;
   color:#111827;
+  font-size:26px;
 }
-.beta-dashboard-month{
-  font-size:13px;
+.beta-dashboard-title-main{
+  letter-spacing:-0.02em;
+}
+.beta-dashboard-title-month{
+  font-size:14px;
   font-weight:600;
   color:#6b7280;
 }
 
-/* 회색 띠 안 2패널 그리드 */
+/* 메인 그리드: 좌측 KPI / 우측 상품유형별 카드 */
 .beta-dashboard-grid{
-  margin-top:4px;
+  margin-top:16px;
   display:grid;
-  grid-template-columns:minmax(0,0.8fr) minmax(0,1.5fr); /* 왼쪽 10% 축소 */
-  column-gap:32px;                                      /* 마진 조금 축소 */
-  align-items:flex-start;
+  grid-template-columns:minmax(0,0.42fr) minmax(0,1.0fr);
+  column-gap:28px;
+  align-items:stretch;
+}
+.beta-dashboard-left,
+.beta-dashboard-right{
+  width:100%;
 }
 @media (max-width:1024px){
   .beta-dashboard-grid{
     grid-template-columns:1fr;
-    row-gap:32px;
+    row-gap:20px;
   }
-}
-
-/* 패널 공통 (홈 전용) */
-.stats-panel{
-  background:transparent;
-  padding:0;
-  border:0;
-  box-shadow:none;
-}
-
-/* 헤더 */
-.stats-panel__header{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:4px;
-  margin-bottom:18px;
-}
-.stats-panel__title{
-  margin:0;
-  font-size:24px;
-  font-weight:800;
-  color:#111827;
-}
-.stats-panel__meta{
-  font-size:11px;
-  color:#6b7280;
-}
-
-/* 왼쪽: 대출현황 카드 영역 폭 (10% 축소) */
-.stats-panel__grid--loan{
-  max-width:288px;                 /* 기존 320px에서 약 10% 감소 */
 }
 
 /* 대출현황 카드 그리드 – 세로 1열 고정 */
@@ -1305,31 +1272,73 @@ body.beta-body .beta-inner{
   width:100%;
 }
 
-/* 상품유형별 도넛 + 카드 레이아웃 (홈) */
-.beta-product-grid{
-  display:grid;
-  grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr); /* 도넛 약간 넓게 */
-  gap:28px;
-  align-items:center;
-}
-
-/* 도넛 카드 */
-.beta-product-donut-wrap{
+/* 상품유형별 대출잔액 – 전체 카드 */
+.beta-product-card{
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:24px;
-  min-height:320px;
+  padding:18px 20px 20px;
+}
+.beta-product-card__header{
+  margin-bottom:12px;
+}
+.beta-product-card__title{
+  font-size:15px;
+  font-weight:800;
+  color:#111827;
+}
+
+/* 상품유형별 도넛 + 카드 레이아웃 (홈) */
+.beta-product-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1.1fr);
+  gap:24px;
+  align-items:center;
+}
+
+/* 도넛 카드 내부 */
+.beta-product-donut-wrap{
   display:flex;
   align-items:center;
   justify-content:center;
 }
-.beta-product-donut-wrap canvas{
-  display:block;
-  max-width:360px;
-  max-height:360px;
+.beta-product-donut-inner{
+  position:relative;
   width:100%;
-  height:auto;
+  max-width:360px;
+  aspect-ratio:1/1;
+  margin:0 auto;
+}
+.beta-product-donut-inner canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* 도넛 가운데 선택 정보 표시 */
+.beta-product-donut-center{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  pointer-events:none;
+}
+.beta-product-donut-center__label{
+  font-size:12px;
+  font-weight:700;
+  color:#4b5563;
+  margin-bottom:2px;
+}
+.beta-product-donut-center__value{
+  font-size:13px;
+  font-weight:800;
+  color:#0b2a66;
+  white-space:nowrap;
 }
 
 /* 상품유형별 카드 묶음: 2열 그리드 */
@@ -1338,14 +1347,6 @@ body.beta-body .beta-inner{
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
 }
-@media(max-width:900px){
-  .beta-product-grid{
-    grid-template-columns:1fr;
-  }
-  .beta-product-boxes{
-    grid-template-columns:1fr;
-  }
-}
 
 /* 개별 카드 */
 .beta-product-box{
@@ -1353,7 +1354,7 @@ body.beta-body .beta-inner{
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:14px 20px 12px 24px;    /* 살짝 컴팩트하게 조정 */
+  padding:14px 20px 12px 24px;
   min-height:88px;
   display:flex;
   flex-direction:column;
@@ -1383,14 +1384,38 @@ body.beta-body .beta-inner{
   text-overflow:ellipsis;
 }
 
-/* 금액 – 줄바꿈 허용 (PC에서 잘리지 않도록) */
+/* 금액 */
 .beta-product-box__amount{
   font-size:18px;
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
-  white-space:normal;
-  overflow:visible;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* 반응형 – 상품유형 영역 */
+@media(max-width:900px){
+  .beta-product-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* 모바일(좁은 화면): 도넛만 보여주고 카드 숨기기, 타이틀 폰트/레이아웃 조정 */
+@media(max-width:768px){
+  .beta-dashboard-title{
+    flex-direction:column;
+    align-items:flex-start;
+    font-size:22px;
+    gap:4px;
+  }
+  .beta-dashboard-title-month{
+    font-size:13px;
+  }
+  .beta-product-boxes{
+    display:none;
+  }
 }
 
 /* 베타 푸터 */
@@ -1907,19 +1932,4 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo{flex-direction:column;}
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
-}
-
-/* ===== 모바일 전용 튜닝: 도넛 크기 & 카드 간격 ===== */
-@media (max-width:768px){
-  .beta-product-donut-wrap{
-    padding:18px;
-    min-height:280px;
-  }
-  .beta-product-donut-wrap canvas{
-    max-width:280px;
-    max-height:280px;
-  }
-  .beta-product-boxes{
-    gap:16px;
-  }
 }
