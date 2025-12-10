@@ -1353,8 +1353,31 @@ body.beta-body button{width:auto;}
   width:10px;
   height:10px;
   border-radius:3px;
-  background:#000;   /* 초기 테스트용 (JS가 곧 덮어씀) */
+  background:transparent;  /* 기본은 투명, JS에서 색 입힘 */
   flex-shrink:0;
+}
+
+/* 라벨(상품유형명) + 칩 한 줄 정렬 */
+.beta-product-donut-center__label-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+
+/* 가운데 라벨 텍스트 */
+.beta-product-donut-center__label{
+  font-size:13px;
+  font-weight:700;
+  color:#4b5563;
+}
+
+/* 가운데 금액 텍스트 */
+.beta-product-donut-center__value{
+  font-size:15px;
+  font-weight:800;
+  color:#0b2a66;
+  white-space:nowrap;
 }
 
 /* 가운데 텍스트/칩 */
@@ -1968,6 +1991,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
