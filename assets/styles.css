@@ -1076,13 +1076,13 @@ body.beta-body button{width:auto;}
 /* 전체 페이지 폭 컨테이너 */
 .beta-inner{
   max-width:1200px;
-  margin:0 auto 0;
+  margin:0 auto 40px;
   padding:0 24px 40px;
   box-sizing:border-box;
 }
 
 /* 섹션 안 회색 띠 – 화면 끝까지 */
-.beta-section{margin-bottom:0;}
+.beta-section{margin-bottom:28px;}
 .beta-section-surface{
   margin:0 -24px;                 /* 좌우 패딩 상쇄해서 풀폭 */
   background:#f3f4f6;
@@ -1194,49 +1194,68 @@ body.beta-body button{width:auto;}
   .beta-hero-right--empty{display:none;}
 }
 
-/* ======================= 홈: 대출현황 + 상품유형 대시보드 (통합 타이틀 + 5카드) ======================= */
+/* ======================= 홈: 대출현황 + 상품유형 대시보드 (A-1 최종) ======================= */
 
-/* 상단 대표 타이틀 */
-.beta-dashboard-header{
-  display:flex;
-  align-items:baseline;
-  justify-content:flex-start;
-}
-.beta-dashboard-title{
-  margin:0;
-  display:flex;
-  align-items:baseline;
-  gap:10px;
-  font-weight:800;
-  color:#111827;
-  font-size:26px;
-}
-.beta-dashboard-title-main{
-  letter-spacing:-0.02em;
-}
-.beta-dashboard-title-month{
-  font-size:14px;
-  font-weight:600;
-  color:#6b7280;
-}
-
-/* 메인 그리드: 좌측 KPI / 우측 상품유형별 카드 */
+/* 회색 띠 안 2패널 그리드 */
 .beta-dashboard-grid{
-  margin-top:16px;
+  margin-top:4px;
   display:grid;
-  grid-template-columns:minmax(0,0.42fr) minmax(0,1.0fr);
-  column-gap:28px;
-  align-items:stretch;
-}
-.beta-dashboard-left,
-.beta-dashboard-right{
-  width:100%;
+  grid-template-columns:minmax(0,0.8fr) minmax(0,1.5fr); /* 왼쪽 10% 축소 */
+  column-gap:48px;
+  align-items:flex-start;
 }
 @media (max-width:1024px){
   .beta-dashboard-grid{
     grid-template-columns:1fr;
-    row-gap:20px;
+    row-gap:32px;
   }
+}
+
+/* 패널 공통 (홈 전용) */
+.stats-panel{
+  background:transparent;
+  padding:0;
+  border:0;
+  box-shadow:none;
+}
+
+/* 헤더: 세로 정렬 (온라인투자연계금융업 위, 제목 아래) */
+.stats-panel__header{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  margin-bottom:18px;
+}
+.stats-panel__title{
+  margin:0;
+  font-size:24px;
+  font-weight:800;
+  color:#111827;
+}
+.stats-panel__meta{
+  font-size:11px;
+  color:#6b7280;
+}
+
+/* 홈 대시보드 상단 라벨 – 온라인투자연계금융업 + 기준월 (텍스트만 재구성) */
+.beta-dashboard-grid #loanStatusMonth{
+  position:relative;
+  font-size:0;                     /* 기존 문자열 숨김 */
+}
+.beta-dashboard-grid #loanStatusMonth::after{
+  content:"온라인투자연계금융업 대출 현황  2025년 11월"; /* 실제 표시는 JS에서 월 업데이트 */
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+}
+.beta-dashboard-grid #productStatusMonth{
+  display:none;                    /* 우측 패널 기준월 중복 제거 */
+}
+
+/* 왼쪽: 대출현황 카드 영역 폭 (10% 축소) */
+.stats-panel__grid--loan{
+  max-width:288px;                 /* 기존 320px에서 약 10% 감소 */
 }
 
 /* 대출현황 카드 그리드 – 세로 1열 고정 */
@@ -1272,80 +1291,64 @@ body.beta-body button{width:auto;}
   width:100%;
 }
 
-/* 상품유형별 대출잔액 – 전체 카드 */
-.beta-product-card{
-  background:#ffffff;
-  border-radius:18px;
-  border:1px solid #e5e7eb;
-  padding:18px 20px 20px;
-}
-.beta-product-card__header{
-  margin-bottom:12px;
-}
-.beta-product-card__title{
-  font-size:15px;
-  font-weight:800;
-  color:#111827;
-}
-
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.15fr) minmax(0,1.1fr);
-  gap:24px;
+  grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr); /* 도넛 약간 넓게 */
+  gap:28px;
   align-items:center;
 }
 
-/* 도넛 카드 내부 */
+/* 도넛 카드 */
 .beta-product-donut-wrap{
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  padding:24px;
+  min-height:320px;
   display:flex;
+  flex-direction:column;         /* 제목 + 도넛 수직 정렬 */
   align-items:center;
   justify-content:center;
-}
-.beta-product-donut-inner{
-  position:relative;
-  width:100%;
-  max-width:360px;
-  aspect-ratio:1/1;
-  margin:0 auto;
-}
-.beta-product-donut-inner canvas{
-  display:block;
-  width:100%;
-  height:100%;
 }
 
-/* 도넛 가운데 선택 정보 표시 */
-.beta-product-donut-center{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  pointer-events:none;
-}
-.beta-product-donut-center__label{
-  font-size:12px;
-  font-weight:700;
-  color:#4b5563;
-  margin-bottom:2px;
-}
-.beta-product-donut-center__value{
+/* NEW: 도넛 제목 – 색상은 대출현황 카드 라벨과 동일 */
+.beta-product-donut-title{
   font-size:13px;
-  font-weight:800;
-  color:#0b2a66;
-  white-space:nowrap;
+  font-weight:700;
+  color:#6b7280;                 /* = .beta-loanstatus-item__label 색상 */
+  margin-bottom:10px;
 }
 
-/* 상품유형별 카드 묶음: 2열 그리드 */
+.beta-product-donut-wrap canvas{
+  display:block;
+  max-width:288px;              /* 360px → 288px (약 20% 축소) */
+  max-height:288px;
+  width:100%;
+  height:auto;
+}
+
+/* 상품유형별 카드 묶음: 2열 → PC에서 1열 */
 .beta-product-boxes{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
+}
+
+/* PC에서 1열 세로 정렬 */
+@media (min-width:1024px){
+  .beta-product-boxes{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:900px){
+  .beta-product-grid{
+    grid-template-columns:1fr;
+  }
+  .beta-product-boxes{
+    grid-template-columns:1fr;
+  }
 }
 
 /* 개별 카드 */
@@ -1354,7 +1357,7 @@ body.beta-body button{width:auto;}
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:14px 20px 12px 24px;
+  padding:14px 20px 12px 24px;    /* 살짝 컴팩트하게 조정 */
   min-height:88px;
   display:flex;
   flex-direction:column;
@@ -1395,32 +1398,9 @@ body.beta-body button{width:auto;}
   text-overflow:ellipsis;
 }
 
-/* 반응형 – 상품유형 영역 */
-@media(max-width:900px){
-  .beta-product-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-/* 모바일(좁은 화면): 도넛만 보여주고 카드 숨기기, 타이틀 폰트/레이아웃 조정 */
-@media(max-width:768px){
-  .beta-dashboard-title{
-    flex-direction:column;
-    align-items:flex-start;
-    font-size:22px;
-    gap:4px;
-  }
-  .beta-dashboard-title-month{
-    font-size:13px;
-  }
-  .beta-product-boxes{
-    display:none;
-  }
-}
-
 /* 베타 푸터 */
 .beta-footer{
-  margin-top:0;
+  margin-top:0;               /* 회색띠와 사이 여백 제거 */
   background:#020617;
   color:#9ca3af;
   padding:18px 16px 26px;
@@ -1481,7 +1461,6 @@ body.beta-body button{width:auto;}
 
 /* ======================= ONTU STATS PAGE 전용 ======================= */
 
-/* 페이지 컨테이너 */
 body.ontu-stats-page .beta-inner{
   max-width:1120px;
   padding:24px 20px 32px;
