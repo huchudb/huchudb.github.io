@@ -1338,7 +1338,6 @@ body.beta-body button{width:auto;}
   height:100%;
 }
 
-/* 도넛 가운데 선택 정보 표시 */
 .beta-product-donut-center{
   position:absolute;
   left:50%;
@@ -1351,14 +1350,32 @@ body.beta-body button{width:auto;}
   text-align:center;
   pointer-events:none;
 }
+
+/* 라벨 + 색상칩 한 줄 정렬 */
+.beta-product-donut-center__label-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+
+/* 선택된 구간 색상칩 */
+.beta-product-donut-center__chip{
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  background:transparent;  /* JS에서 색 넣어줄거라 기본은 투명 */
+}
+
+/* 라벨 / 값 글자 살짝 키우기 */
 .beta-product-donut-center__label{
-  font-size:12px;
+  font-size:13px;          /* 12 → 13 */
   font-weight:700;
   color:#4b5563;
-  margin-bottom:2px;
 }
+
 .beta-product-donut-center__value{
-  font-size:13px;
+  font-size:15px;          /* 13 → 15 */
   font-weight:800;
   color:#0b2a66;
   white-space:nowrap;
@@ -1960,6 +1977,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
