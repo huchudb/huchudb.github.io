@@ -1080,22 +1080,32 @@ body.beta-body button{width:auto;}
   padding:0 24px 40px;
   box-sizing:border-box;
 }
-/* 수정 코드: 회색 배경을 화면 끝까지(full-bleed) */
+/* 섹션 안 회색 띠 – 화면 끝까지 */
+.beta-section{
+  margin-bottom:0;
+}
+
+/* 회색 배경은 화면 전체(100vw), 내용은 안쪽 래퍼에서 다시 1200px로 제한 */
 .beta-section-surface{
   position:relative;
   left:50%;
-  width:100vw;              /* 화면 전체 폭 */
-  margin-left:-50vw;        /* 가운데 정렬 */
+  right:50%;
+  width:100vw;
+  margin-left:-50vw;
+  margin-right:-50vw;
   background:#f3f4f6;
-  padding:28px 40px 32px;
 }
-/* 안쪽 내용 카드용 래퍼 – 다시 1200px로 가운데 정렬 */
+
+/* 실제 흰 카드가 들어가는 래퍼 */
 .beta-section-surface__inner{
   max-width:1200px;
   margin:0 auto;
+  padding:28px 40px 32px;  /* 예전 padding 그대로 여기로 이동 */
 }
+
+/* 반응형 padding 조정 */
 @media(max-width:1024px){
-  .beta-section-surface{
+  .beta-section-surface__inner{
     padding:22px 18px 26px;
   }
 }
@@ -1939,6 +1949,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
