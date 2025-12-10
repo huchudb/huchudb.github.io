@@ -320,16 +320,18 @@ function renderProductSection(summary, byType) {
   function updateCenter(index) {
     if (!centerEl || !centerLabelEl || !centerValueEl) return;
 
-    // 기본 상태
+ // 유효한 index가 없으면 항상 0번(부동산담보)으로 fallback
     if (index == null || index < 0 || index >= labels.length) {
-      if (centerChipEl) {
-        centerChipEl.style.visibility = "hidden";
-        centerChipEl.style.backgroundColor = "transparent";
-      }
-      centerLabelEl.textContent = "상품유형별";
-      centerValueEl.textContent = "대출잔액";
-      return;
+      index = 0;
     }
+
+    centerLabelEl.textContent = labels[index];
+    centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
+
+    const color = PRODUCT_COLORS[index] || "#e5e7eb";
+    centerChipEl.style.visibility = "visible";
+    centerChipEl.style.backgroundColor = color;
+  }
 
     // 특정 구간 선택 시
     if (centerChipEl) {
@@ -341,7 +343,7 @@ function renderProductSection(summary, byType) {
   }
 
   // 기본 텍스트/칩 상태
-  updateCenter(null);
+  updateCenter(0);
 
   if (!canvas || !window.Chart) return;
 
