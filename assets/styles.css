@@ -1364,6 +1364,13 @@ body.beta-body button{width:auto;}
   white-space:nowrap;
 }
 
+/* PC 화면에서는 도넛 가운데 텍스트 숨기기 */
+@media (min-width: 769px){
+  .beta-product-donut-center{
+    display:none;
+  }
+}
+
 /* 상품유형별 카드 묶음: 2열 그리드 */
 .beta-product-boxes{
   display:grid;
@@ -1953,6 +1960,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
