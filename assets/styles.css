@@ -1347,6 +1347,16 @@ body.beta-body button{width:auto;}
   height:100%;
 }
 
+/* ✅ 모바일 도넛 중앙 색상 칩 복구 */
+.beta-product-donut-center__chip{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  background:#000;   /* 초기 테스트용 (JS가 곧 덮어씀) */
+  flex-shrink:0;
+}
+
 /* 가운데 텍스트/칩 */
 .beta-product-donut-center{
   position:absolute;                     /* ✅ wrap 기준으로 절대 위치 */
@@ -1958,6 +1968,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
