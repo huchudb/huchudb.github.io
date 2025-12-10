@@ -1328,7 +1328,7 @@ body.beta-body button{width:auto;}
 .beta-product-donut-inner{
   position:relative;
   width:100%;
-  max-width:300px;
+  max-width:270px;
   aspect-ratio:1/1;
   margin:0 auto;
 }
@@ -1956,6 +1956,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
