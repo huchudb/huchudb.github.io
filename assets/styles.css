@@ -1247,7 +1247,7 @@ body.beta-body button{width:auto;}
 .beta-dashboard-grid{
   margin-top:32px;
   display:grid;
-  grid-template-columns:minmax(0,0.42fr) minmax(0,1.0fr);
+  grid-template-columns:minmax(0,0.35fr) minmax(0,1.0fr);
   column-gap:28px;
   align-items:stretch;
 }
@@ -1956,6 +1956,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
