@@ -1080,12 +1080,13 @@ body.beta-body button{width:auto;}
   padding:0 24px 40px;
   box-sizing:border-box;
 }
+
 /* 섹션 안 회색 띠 – 화면 끝까지 */
 .beta-section{
   margin-bottom:0;
 }
 
-/* 회색 배경은 화면 전체(100vw), 내용은 안쪽 래퍼에서 다시 1200px로 제한 */
+/* 회색 배경은 화면 전체(100vw), 안의 내용 폭은 다시 1200px로 제한 */
 .beta-section-surface{
   position:relative;
   left:50%;
@@ -1094,19 +1095,25 @@ body.beta-body button{width:auto;}
   margin-left:-50vw;
   margin-right:-50vw;
   background:#f3f4f6;
+  padding:28px 0 32px;         /* 위·아래 여백만 여기서 줌 */
 }
 
-/* 실제 흰 카드가 들어가는 래퍼 */
-.beta-section-surface__inner{
+/* 섹션 안 실제 내용들(헤더, 그리드 등)은 다시 가운데 1200px로 정렬 */
+.beta-section-surface > *{
   max-width:1200px;
-  margin:0 auto;
-  padding:28px 40px 32px;  /* 예전 padding 그대로 여기로 이동 */
+  margin-left:auto;
+  margin-right:auto;
+  padding:0 24px;              /* 위에 hero 영역과 맞추려고 좌우 24px */
+  box-sizing:border-box;
 }
 
 /* 반응형 padding 조정 */
 @media(max-width:1024px){
-  .beta-section-surface__inner{
-    padding:22px 18px 26px;
+  .beta-section-surface{
+    padding:22px 0 26px;
+  }
+  .beta-section-surface > *{
+    padding:0 18px;
   }
 }
 .beta-section__header{
@@ -1949,6 +1956,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
