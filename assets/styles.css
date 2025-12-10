@@ -1081,10 +1081,12 @@ body.beta-body button{width:auto;}
   box-sizing:border-box;
 }
 
-/* 섹션 안 회색 띠 – 화면 끝까지 */
-.beta-section{margin-bottom:0;}
+/* 수정 코드: 회색 배경을 화면 끝까지(full-bleed) */
 .beta-section-surface{
-  margin:0 -24px;                 /* 좌우 패딩 상쇄해서 풀폭 */
+  position:relative;
+  left:50%;
+  width:100vw;              /* 화면 전체 폭 */
+  margin-left:-50vw;        /* 가운데 정렬 */
   background:#f3f4f6;
   padding:28px 40px 32px;
 }
@@ -1933,3 +1935,4 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
