@@ -1321,25 +1321,35 @@ body.beta-body button{width:auto;}
 
 /* 도넛 카드 내부 */
 .beta-product-donut-wrap{
+  position:relative;                     /* ✅ 기준 컨테이너 */
   display:flex;
   align-items:center;
   justify-content:center;
 }
-.beta-product-donut-inner{ - ㅡmain 도넛크기조정
-  position:relative;
+
+.beta-product-donut-inner{
   width:100%;
   max-width:270px;
   aspect-ratio:1/1;
   margin:0 auto;
 }
+
+/* 오래된 브라우저 대비 높이 fallback */
+@supports not (aspect-ratio:1 / 1){
+  .beta-product-donut-inner{
+    height:260px;
+  }
+}
+
 .beta-product-donut-inner canvas{
   display:block;
   width:100%;
   height:100%;
 }
 
+/* 가운데 텍스트/칩 */
 .beta-product-donut-center{
-  position:absolute;
+  position:absolute;                     /* ✅ wrap 기준으로 절대 위치 */
   left:50%;
   top:50%;
   transform:translate(-50%,-50%);
@@ -1349,38 +1359,7 @@ body.beta-body button{width:auto;}
   justify-content:center;
   text-align:center;
   pointer-events:none;
-}
-
-/* 라벨 + 색상칩 한 줄 정렬 */
-.beta-product-donut-center__label-row{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  margin-bottom:4px;
-}
-
-/* 선택된 구간 색상칩 */
-.beta-product-donut-center__chip{
-  display:inline-block;   /* ← 이거 추가 */
-  flex-shrink:0;          /* 옵션: 줄어들지 않게 */
-  width:10px;
-  height:10px;
-  border-radius:3px;
-  background:transparent;  /* JS에서 색 넣어줄거라 기본은 투명 */
-}
-
-/* 라벨 / 값 글자 살짝 키우기 */
-.beta-product-donut-center__label{
-  font-size:13px;          /* 12 → 13 */
-  font-weight:700;
-  color:#4b5563;
-}
-
-.beta-product-donut-center__value{
-  font-size:15px;          /* 13 → 15 */
-  font-weight:800;
-  color:#0b2a66;
-  white-space:nowrap;
+  z-index:1;                             /* 캔버스 위에 오도록 */
 }
 
 /* PC 화면에서는 도넛 가운데 텍스트 숨기기 */
@@ -1979,6 +1958,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
