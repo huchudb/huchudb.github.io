@@ -1314,8 +1314,8 @@ body.beta-body button{width:auto;}
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
-  grid-template-columns:minmax(0,1.15fr) minmax(0,1.1fr);
-  gap:24px;
+  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
+  gap:18px;
   align-items:center;
 }
 
@@ -1952,6 +1952,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
