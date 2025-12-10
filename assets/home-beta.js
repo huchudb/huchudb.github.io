@@ -275,7 +275,10 @@ function renderProductSection(summary, byType) {
           <div class="beta-product-donut-inner">
             <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
             <div class="beta-product-donut-center" id="productDonutCenter">
-              <div class="beta-product-donut-center__label"></div>
+              <div class="beta-product-donut-center__label-row">
+                <span class="beta-product-donut-center__chip"></span>
+                <span class="beta-product-donut-center__label"></span>
+              </div>
               <div class="beta-product-donut-center__value"></div>
             </div>
           </div>
@@ -299,12 +302,17 @@ function renderProductSection(summary, byType) {
     </div>
   `;
 
-  const canvas = document.getElementById("productDonut");
+  const canvas  = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
+
+  let centerRowEl   = null;
+  let centerChipEl  = null;
   let centerLabelEl = null;
   let centerValueEl = null;
 
   if (centerEl) {
+    centerRowEl   = centerEl.querySelector(".beta-product-donut-center__label-row");
+    centerChipEl  = centerEl.querySelector(".beta-product-donut-center__chip");
     centerLabelEl = centerEl.querySelector(".beta-product-donut-center__label");
     centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
   }
@@ -312,17 +320,27 @@ function renderProductSection(summary, byType) {
   function updateCenter(index) {
     if (!centerEl || !centerLabelEl || !centerValueEl) return;
 
+    // 기본 상태
     if (index == null || index < 0 || index >= labels.length) {
+      if (centerChipEl) {
+        centerChipEl.style.visibility = "hidden";
+        centerChipEl.style.backgroundColor = "transparent";
+      }
       centerLabelEl.textContent = "상품유형별";
       centerValueEl.textContent = "대출잔액";
       return;
     }
 
+    // 특정 구간 선택 시
+    if (centerChipEl) {
+      centerChipEl.style.visibility = "visible";
+      centerChipEl.style.backgroundColor = PRODUCT_COLORS[index] || "#e5e7eb";
+    }
     centerLabelEl.textContent = labels[index];
     centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
   }
 
-  // 기본 텍스트
+  // 기본 텍스트/칩 상태
   updateCenter(null);
 
   if (!canvas || !window.Chart) return;
@@ -351,7 +369,7 @@ function renderProductSection(summary, byType) {
       cutout: "60%",
       plugins: {
         legend: { display: false },
-        // 🔧 툴팁 완전히 비활성화 (PC/모바일 공통)
+        // 검은 툴팁(hover/click 박스) 전면 비활성화
         tooltip: {
           enabled: false
         }
