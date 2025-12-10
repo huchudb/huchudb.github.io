@@ -1093,6 +1093,7 @@ body.beta-body button{width:auto;}
 @media(max-width:1024px){
   .beta-section-surface{
     padding:22px 18px 26px;
+    margin:0 auto;
   }
 }
 .beta-section__header{
@@ -1935,4 +1936,5 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
