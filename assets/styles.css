@@ -1325,10 +1325,10 @@ body.beta-body button{width:auto;}
   align-items:center;
   justify-content:center;
 }
-.beta-product-donut-inner{
+.beta-product-donut-inner{ - ㅡmain 도넛크기조정
   position:relative;
   width:100%;
-  max-width:290px;
+  max-width:270px;
   aspect-ratio:1/1;
   margin:0 auto;
 }
@@ -1979,6 +1979,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
