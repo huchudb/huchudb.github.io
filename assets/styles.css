@@ -1361,6 +1361,8 @@ body.beta-body button{width:auto;}
 
 /* 선택된 구간 색상칩 */
 .beta-product-donut-center__chip{
+  display:inline-block;   /* ← 이거 추가 */
+  flex-shrink:0;          /* 옵션: 줄어들지 않게 */
   width:10px;
   height:10px;
   border-radius:3px;
@@ -1977,6 +1979,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
