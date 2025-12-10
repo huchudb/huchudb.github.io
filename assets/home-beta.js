@@ -351,14 +351,9 @@ function renderProductSection(summary, byType) {
       cutout: "60%",
       plugins: {
         legend: { display: false },
+        // 🔧 툴팁 완전히 비활성화 (PC/모바일 공통)
         tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const label = ctx.label || "";
-              const val   = ctx.raw ?? 0;
-              return `${label}: ${Number(val).toFixed(1)}%`;
-            }
-          }
+          enabled: false
         }
       },
       layout: { padding: 4 },
