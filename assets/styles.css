@@ -1245,7 +1245,7 @@ body.beta-body button{width:auto;}
 
 /* 메인 그리드: 좌측 KPI / 우측 상품유형별 카드 */
 .beta-dashboard-grid{
-  margin-top:16px;
+  margin-top:32px;
   display:grid;
   grid-template-columns:minmax(0,0.42fr) minmax(0,1.0fr);
   column-gap:28px;
@@ -1956,6 +1956,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
