@@ -1403,19 +1403,15 @@ body.beta-body button{width:auto;}
   font-weight:700;
   color:#111827;
   white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:18px;
+  font-size:16px;
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
   white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
 
 /* 반응형 – 상품유형 영역 */
@@ -1956,6 +1952,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
