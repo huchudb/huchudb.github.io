@@ -302,7 +302,7 @@ function renderProductSection(summary, byType) {
     </div>
   `;
 
-  const canvas  = document.getElementById("productDonut");
+  const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
 
   let centerRowEl   = null;
@@ -317,10 +317,11 @@ function renderProductSection(summary, byType) {
     centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
   }
 
+  // 도넛 중앙 텍스트/칩 갱신
   function updateCenter(index) {
-    if (!centerEl || !centerLabelEl || !centerValueEl) return;
+    if (!centerLabelEl || !centerValueEl) return;
 
- // 유효한 index가 없으면 항상 0번(부동산담보)으로 fallback
+    // 유효한 index가 없으면 항상 0번(부동산담보)로 fallback
     if (index == null || index < 0 || index >= labels.length) {
       index = 0;
     }
@@ -328,21 +329,14 @@ function renderProductSection(summary, byType) {
     centerLabelEl.textContent = labels[index];
     centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
 
-    const color = PRODUCT_COLORS[index] || "#e5e7eb";
-    centerChipEl.style.visibility = "visible";
-    centerChipEl.style.backgroundColor = color;
-  }
-
-    // 특정 구간 선택 시
     if (centerChipEl) {
+      const color = PRODUCT_COLORS[index] || "#e5e7eb";
       centerChipEl.style.visibility = "visible";
-      centerChipEl.style.backgroundColor = PRODUCT_COLORS[index] || "#e5e7eb";
+      centerChipEl.style.backgroundColor = color;
     }
-    centerLabelEl.textContent = labels[index];
-    centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
   }
 
-  // 기본 텍스트/칩 상태
+  // 기본 상태: 0번(부동산담보) 정보 표시
   updateCenter(0);
 
   if (!canvas || !window.Chart) return;
@@ -379,7 +373,8 @@ function renderProductSection(summary, byType) {
       layout: { padding: 4 },
       onClick: (evt, elements) => {
         if (!elements || !elements.length) {
-          updateCenter(null);
+          // 빈 영역 클릭: 다시 0번(부동산담보)
+          updateCenter(0);
           return;
         }
         const idx = elements[0].index;
