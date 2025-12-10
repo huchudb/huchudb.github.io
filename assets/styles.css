@@ -1306,7 +1306,7 @@ body.beta-body button{width:auto;}
   margin-bottom:12px;
 }
 .beta-product-card__title{
-  font-size:15px;
+  font-size:13px;
   font-weight:800;
   color:#737373;
 }
@@ -1956,6 +1956,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
