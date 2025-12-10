@@ -1398,8 +1398,8 @@ body.beta-body button{width:auto;}
 
 /* 라벨(부동산담보, 어음·매출채권 등) */
 .beta-product-box__title{
-  margin:0 0 4px;
-  font-size:14px;
+  margin:0 0 8px;
+  font-size:16px;
   font-weight:700;
   color:#111827;
   white-space:nowrap;
@@ -1407,11 +1407,12 @@ body.beta-body button{width:auto;}
 
 /* 금액 */
 .beta-product-box__amount{
-  font-size:16px;
+  font-size:18px;
   font-weight:800;
   color:#0b2a66;
   line-height:1.35;
   white-space:nowrap;
+  text-align:right;   /* 추가: 금액 우측 정렬 */
 }
 
 /* 반응형 – 상품유형 영역 */
@@ -1952,6 +1953,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
