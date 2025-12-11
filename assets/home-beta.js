@@ -348,6 +348,10 @@ function renderProductSection(summary, byType) {
             .join("")}
         </div>
       </div>
+      <!-- ✅ 출처 문구 추가 -->
+      <div class="beta-product-source-note">
+        ※출처: 온라인투자연계금융업 중앙기록관리기관
+      </div>
     </div>
   `;
 
