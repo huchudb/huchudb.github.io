@@ -1,166 +1,116 @@
+// api/loan-config.js
+//
+// 후추 네비게이션 전용 loan-config API
+// - CORS: https://www.huchulab.com 및 localhost 허용
+// - 구조: { byType: { ... }, lenders: { ... } }
+//   · byType  : 부동산담보 LTV/금리 등 (나중에 쓰려면 확장)
+//   · lenders : 온투업체별 설정 (lendersConfig)
+// - 현재는 메모리(global 변수)에 저장 (Vercel 서버리스 기준 간단 버전)
 
-// /api/loan-config.js  — Node.js (Vercel Serverless Function with Upstash Redis)
-// 환경변수: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
-
-const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-// Redis key
-const LOAN_CONFIG_KEY = 'config:loan';
+let loanConfigStore = {
+  byType: {},   // 향후 확장용 (지금은 비워둬도 OK)
+  lenders: {}   // admin-beta 쪽에서 보내는 lendersConfig 그대로 저장
+};
 
 const ALLOWED_ORIGINS = [
-  'https://huchudb.github.io',
   'https://www.huchulab.com',
-  'https://huchulab.com',
-  'https://huchudb-github-io.vercel.app',
-  'http://www.huchulab.com',
+  'http://localhost:3000',
+  'http://localhost:4173',
+  'http://127.0.0.1:3000'
 ];
 
-function corsHeaders(origin) {
-  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Vary': 'Origin',
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Cache-Control, Pragma, Accept',
-    'Access-Control-Max-Age': '600',
-    'Cache-Control': 'no-store',
-  };
-}
-
-const enc = encodeURIComponent;
-
-async function upstash(path) {
-  const r = await fetch(`${REDIS_URL}/${path}`, {
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-    cache: 'no-store',
-  });
-  const j = await r.json();
-  if (!r.ok) throw new Error(`Upstash ${path} failed: HTTP ${r.status} ${JSON.stringify(j)}`);
-  if (j && j.error) throw new Error(`Upstash ${path} error: ${j.error}`);
-  return j;
-}
-
-async function getJson(key) {
-  const j = await upstash(`get/${enc(key)}`);
-  const raw = j.result;
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('loan-config getJson parse error', e, 'raw=', raw);
-    return null;
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
-}
-
-async function setJson(key, obj) {
-  const str = JSON.stringify(obj);
-  await upstash(`set/${enc(key)}/${enc(str)}`);
-}
-
-// 기본값 (서버/Redis에 아무것도 없을 때 사용)
-function defaultLoanConfig() {
-  return {
-    updatedAt: new Date().toISOString(),
-    byType: {
-      '아파트':     { maxLtv: 0.73, rateMin: 0.068, rateMax: 0.148 },
-      '다세대/연립': { maxLtv: 0.70, rateMin: 0.078, rateMax: 0.158 },
-      '단독/다가구': { maxLtv: 0.70, rateMin: 0.080, rateMax: 0.160 },
-      '토지/임야':   { maxLtv: 0.50, rateMin: 0.100, rateMax: 0.180 },
-    },
-  };
-}
-
-function parseBody(req) {
-  if (!req.body) return {};
-  if (typeof req.body === 'object') return req.body;
-  try {
-    return JSON.parse(req.body);
-  } catch (_) {
-    return {};
-  }
+  res.setHeader('Vary', 'Origin');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, X-Requested-With'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, OPTIONS'
+  );
 }
 
 export default async function handler(req, res) {
-  const origin  = req.headers.origin || '';
-  const headers = corsHeaders(origin);
+  setCorsHeaders(req, res);
 
-  // Preflight
+  // 👉 프리플라이트(OPTIONS) 처리
   if (req.method === 'OPTIONS') {
-    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-    res.status(204).setHeader('Content-Length', '0');
-    return res.end();
+    return res.status(204).end();
   }
 
-  try {
-    if (req.method === 'GET') {
-      let config = null;
-      try {
-        config = await getJson(LOAN_CONFIG_KEY);
-      } catch (e) {
-        console.error('loan-config GET upstash error', e);
-      }
-
-      if (!config) {
-        // Redis 비어있으면 기본값 리턴 + 백그라운드로 저장 시도
-        config = defaultLoanConfig();
-        try {
-          await setJson(LOAN_CONFIG_KEY, config);
-        } catch (e) {
-          console.error('loan-config default set error', e);
-        }
-      }
-
-      for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-      return res.status(200).json(config);
+  // 👉 설정 조회
+  if (req.method === 'GET') {
+    // 저장된 값이 없으면 기본 구조 리턴
+    if (
+      !loanConfigStore ||
+      typeof loanConfigStore !== 'object'
+    ) {
+      loanConfigStore = { byType: {}, lenders: {} };
     }
+    return res.status(200).json(loanConfigStore);
+  }
 
-    if (req.method === 'POST') {
-      const body = parseBody(req);
+  // 👉 설정 저장
+  if (req.method === 'POST') {
+    try {
+      const body =
+        typeof req.body === 'string'
+          ? JSON.parse(req.body || '{}')
+          : (req.body || {});
 
-      if (!body || typeof body !== 'object') {
-        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-        return res.status(400).json({ error: 'invalid body' });
+      const { byType, lenders } = body;
+
+      // 타입 체크(있으면 object여야 함). 둘 다 없어도 허용.
+      if (
+        byType !== undefined &&
+        (typeof byType !== 'object' || Array.isArray(byType))
+      ) {
+        return res
+          .status(400)
+          .json({ error: '`byType` must be an object when provided' });
       }
 
-      const byType = body.byType;
-      if (!byType || typeof byType !== 'object') {
-        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-        return res.status(400).json({ error: 'byType object is required' });
+      if (
+        lenders !== undefined &&
+        (typeof lenders !== 'object' || Array.isArray(lenders))
+      ) {
+        return res
+          .status(400)
+          .json({ error: '`lenders` must be an object when provided' });
       }
 
-      // 숫자 정리 (maxLtv, rateMin, rateMax)
-      const cleanedByType = {};
-      for (const key of Object.keys(byType)) {
-        const item = byType[key] || {};
-        const maxLtv  = typeof item.maxLtv  === 'number' ? item.maxLtv  : null;
-        const rateMin = typeof item.rateMin === 'number' ? item.rateMin : null;
-        const rateMax = typeof item.rateMax === 'number' ? item.rateMax : null;
-        cleanedByType[key] = { maxLtv, rateMin, rateMax };
-      }
-
-      const config = {
-        updatedAt: body.updatedAt || new Date().toISOString(),
-        byType: cleanedByType,
+      // 기존 값 유지 + 덮어쓰기
+      const nextStore = {
+        byType:
+          byType && typeof byType === 'object'
+            ? byType
+            : (loanConfigStore.byType || {}),
+        lenders:
+          lenders && typeof lenders === 'object'
+            ? lenders
+            : (loanConfigStore.lenders || {})
       };
 
-      try {
-        await setJson(LOAN_CONFIG_KEY, config);
-      } catch (e) {
-        console.error('loan-config POST upstash error', e);
-        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-        return res.status(500).json({ error: 'internal error' });
-      }
+      loanConfigStore = nextStore;
 
-      for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-      return res.status(200).json(config);
+      return res.status(200).json({
+        ok: true,
+        loanConfig: loanConfigStore
+      });
+    } catch (err) {
+      console.error('loan-config POST error:', err);
+      return res
+        .status(500)
+        .json({ error: 'failed to save loan-config' });
     }
-
-    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  } catch (e) {
-    console.error('loan-config handler error', e);
-    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-    return res.status(500).json({ error: 'Server Error', detail: String(e && e.message || e) });
   }
+
+  // 허용되지 않은 메서드
+  res.setHeader('Allow', 'GET, POST, OPTIONS');
+  return res.status(405).json({ error: 'Method Not Allowed' });
 }
