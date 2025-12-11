@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>후추 | 온투업(P2P) 관리자 (베타)</title>
-  <meta name="description" content="온투업 담보대출 LTV·금리 설정 및 중앙기록관리기관 통계 데이터를 관리하는 베타 관리자 페이지입니다.">
+  <meta name="description" content="온투업 담보대출 LTV·금리 설정, 온투업 업체 조건 및 중앙기록관리기관 통계 데이터를 관리하는 베타 관리자 페이지입니다.">
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-  <script type="module" src="/assets/admin-beta.js?v=20251117-beta"></script>
+  <script defer src="/assets/admin-beta.js?v=20251211-beta"></script>
 </head>
 <body class="beta-body">
 
-  <!-- 상단 헤더: 베타 홈과 동일한 구조 -->
+  <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
       <!-- 로고 -->
@@ -23,23 +23,22 @@
         </span>
       </a>
 
-       <!-- MENU + 드롭다운 -->
-<button id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
+      <!-- MENU + 드롭다운 -->
+      <button id="betaMenuToggle"
+              class="beta-menu-toggle"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
 
-          <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
-          <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
-          <a class="beta-menu-link" href="/">담보대출 계산기</a>
-          <a class="beta-menu-link" href="/company.html">회사소개</a>
-          <a class="beta-menu-link" href="/contact.html">광고문의</a>
-          <a class="beta-menu-link" href="/admin-beta.html">관리자(베타)</a>
-        </div>
+      <div id="betaMenuPanel" class="beta-menu-panel hide">
+        <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
+        <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
+        <a class="beta-menu-link" href="/">담보대출 계산기</a>
+        <a class="beta-menu-link" href="/company.html">회사소개</a>
+        <a class="beta-menu-link" href="/contact.html">광고문의</a>
+        <a class="beta-menu-link" href="/admin-beta.html">관리자(베타)</a>
       </div>
     </div>
   </header>
@@ -57,32 +56,49 @@
         </div>
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
-            이 페이지에서 <strong>LTV·금리 설정(loan-config)</strong>과
-            <strong>온투업 대출 통계(ontu-stats)</strong>를 직접 저장할 수 있습니다.
+            이 페이지에서 <strong>LTV·금리 기본 설정</strong>과
+            <strong>온투업 담보대출 통계</strong>, <strong>온투업체 네비게이션 조건</strong>을 관리할 수 있습니다.
           </p>
           <p style="margin:0;font-size:12px;color:#9ca3af;">
-            ※ 저장 즉시 베타 통계 페이지(/beta)와 베타 계산기에서 해당 값이 사용됩니다.
-            (현재는 브라우저 <code>localStorage</code> 기준, 서버 연동 전용 테스트입니다.)
+            ※ 저장된 값은 베타 통계 페이지(/beta)와 베타 네비게이션(/beta/navi-*.html)에서 사용됩니다.
           </p>
         </div>
       </section>
 
-      <!-- 1. 담보대출 LTV / 금리 설정 -->
-      <section class="beta-section" id="adminLoanConfigSection">
+      <!-- 상단 탭 -->
+      <section class="beta-section">
+        <div class="beta-card beta-card--wide">
+          <div class="admin-tab-row">
+            <button type="button"
+                    class="admin-tab-btn is-active"
+                    data-admin-tab="stats">
+              온투업 통계 · LTV 저장
+            </button>
+            <button type="button"
+                    class="admin-tab-btn"
+                    data-admin-tab="lenders">
+              온투업체 정보 등록
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: 온투업 통계 / LTV -->
+      <section class="beta-section admin-tab-panel is-active" id="adminTabStats">
+        <!-- 1-1. 담보대출 LTV / 금리 설정 (기존 구조 유지) -->
         <div class="beta-section__header">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-gold"></span>
-            <h2 class="beta-section__title">담보대출 LTV / 금리 설정</h2>
+            <h2 class="beta-section__title">담보대출 LTV / 금리 설정 (지역별 기본값)</h2>
           </div>
         </div>
-
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 8px;font-size:13px;color:#4b5563;">
             부동산 종류별 <strong>최대 LTV(%)</strong>와 <strong>금리 범위(연 %)</strong>를 입력해주세요.
             <br />※ 내부에는 <code>0.73</code>, <code>0.068</code>처럼 <strong>소수(비율)</strong>로 저장됩니다.
           </p>
           <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
-            계산기 1번 <strong>지역 선택(서울, 경기, 인천, 충청도, 전라도, 강원도, 경상도, 제주도)</strong>와 동일한 지역별 설정입니다.
+            네비게이션에서 업체별 LTV가 설정되지 않은 경우, 이 값을 기본값으로 사용합니다.
           </p>
 
           <!-- 지역 선택 -->
@@ -92,15 +108,12 @@
               <button type="button" class="admin-region-btn is-active" data-region="서울">서울</button>
               <button type="button" class="admin-region-btn" data-region="경기">경기</button>
               <button type="button" class="admin-region-btn" data-region="인천">인천</button>
-              <button type="button" class="admin-region-btn" data-region="충청도">충청도</button>
-              <button type="button" class="admin-region-btn" data-region="전라도">전라도</button>
-              <button type="button" class="admin-region-btn" data-region="강원도">강원도</button>
-              <button type="button" class="admin-region-btn" data-region="경상도">경상도</button>
-              <button type="button" class="admin-region-btn" data-region="제주도">제주도</button>
+              <button type="button" class="admin-region-btn" data-region="충청">충청</button>
+              <button type="button" class="admin-region-btn" data-region="전라">전라</button>
+              <button type="button" class="admin-region-btn" data-region="강원">강원</button>
+              <button type="button" class="admin-region-btn" data-region="경상">경상</button>
+              <button type="button" class="admin-region-btn" data-region="제주">제주</button>
             </div>
-            <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">
-              선택한 지역 기준으로 아래 LTV/금리 값을 입력합니다. 다른 지역을 누르면 해당 지역에 저장된 값이 다시 표시됩니다.
-            </p>
           </div>
 
           <!-- 물건 종류별 LTV/금리 -->
@@ -117,117 +130,39 @@
               <tbody id="loanConfigBody">
                 <tr data-prop="아파트">
                   <td>아파트</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="100" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="maxLtv"
-                      placeholder="예) 79"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMin"
-                      placeholder="예) 6.8"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMax"
-                      placeholder="예) 15.9"
-                    />
-                  </td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" placeholder="예) 79" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" placeholder="예) 6.8" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" placeholder="예) 15.9" /></td>
                 </tr>
-
-                <tr data-prop="다세대/연립">
-                  <td>다세대/연립</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="100" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="maxLtv"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMin"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMax"
-                    />
-                  </td>
+                <tr data-prop="오피스텔">
+                  <td>오피스텔</td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" /></td>
                 </tr>
-
-                <tr data-prop="단독/다가구">
-                  <td>단독/다가구</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="100" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="maxLtv"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMin"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMax"
-                    />
-                  </td>
+                <tr data-prop="빌라·연립">
+                  <td>빌라·연립</td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" /></td>
                 </tr>
-
-                <tr data-prop="토지/임야">
-                  <td>토지/임야</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="100" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="maxLtv"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMin"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0" max="99" step="0.1"
-                      class="admin-input admin-ltv-input"
-                      data-field="rateMax"
-                    />
-                  </td>
+                <tr data-prop="단독·다가구">
+                  <td>단독·다가구</td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" /></td>
+                </tr>
+                <tr data-prop="토지·임야">
+                  <td>토지·임야</td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" /></td>
+                </tr>
+                <tr data-prop="근린생활시설">
+                  <td>근린생활시설</td>
+                  <td><input type="number" min="0" max="100" step="0.1" class="admin-input admin-ltv-input" data-field="maxLtv" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMin" /></td>
+                  <td><input type="number" min="0" max="99" step="0.1" class="admin-input admin-ltv-input" data-field="rateMax" /></td>
                 </tr>
               </tbody>
             </table>
@@ -240,11 +175,9 @@
             <span id="loanConfigStatus" style="font-size:12px;color:#6b7280;"></span>
           </div>
         </div>
-      </section>
 
-      <!-- 2. 온투업 통계 (중앙기록관리기관) -->
-      <section class="beta-section" id="adminOntuStatsSection">
-        <div class="beta-section__header">
+        <!-- 1-2. 온투업 통계 (기존 ontu-stats 섹션) -->
+        <div class="beta-section__header" style="margin-top:32px;">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-gold"></span>
             <h2 class="beta-section__title">온투업 대출 통계 (중앙기록관리)</h2>
@@ -252,84 +185,46 @@
         </div>
 
         <div class="beta-card beta-card--wide">
-
-          <!-- 기준월: 캘린더 선택 시 자동 로드 -->
           <div class="admin-stats-month-row">
             <label class="admin-stats-month-label">
               조회년월
-              <input
-                type="month"
-                id="statsMonth"
-                class="admin-input admin-input-month"
-              />
+              <input type="month" id="statsMonth" class="admin-input admin-input-month" />
             </label>
             <p class="admin-stats-month-help">
               · 년/월을 선택하면 하단 통계 값이 자동으로 불러옵니다.
-              (저장 시 월별로 <code>localStorage</code>에 보관)
             </p>
           </div>
 
-          <!-- 대출현황 summary -->
           <div class="admin-card" style="margin-top:10px;">
             <h3 class="admin-subtitle">[대출현황]</h3>
             <div class="admin-stats-grid">
               <label class="admin-field">
                 금융위 등록 온투업체수
-                <input
-                  type="number"
-                  id="statsRegisteredFirms"
-                  min="0"
-                  class="admin-input"
-                />
+                <input type="number" id="statsRegisteredFirms" min="0" class="admin-input" />
               </label>
               <label class="admin-field">
                 데이터 수집 온투업체수
-                <input
-                  type="number"
-                  id="statsDataFirms"
-                  min="0"
-                  class="admin-input"
-                />
+                <input type="number" id="statsDataFirms" min="0" class="admin-input" />
               </label>
               <label class="admin-field">
                 누적대출금액 (원)
-                <input
-                  type="text"
-                  id="statsTotalLoan"
-                  data-type="money"
-                  class="admin-input"
-                  placeholder="예) 18358007760000"
-                />
+                <input type="text" id="statsTotalLoan" data-type="money" class="admin-input" />
               </label>
               <label class="admin-field">
                 누적상환금액 (원)
-                <input
-                  type="text"
-                  id="statsTotalRepaid"
-                  data-type="money"
-                  class="admin-input"
-                  placeholder="예) 16924144010000"
-                />
+                <input type="text" id="statsTotalRepaid" data-type="money" class="admin-input" />
               </label>
               <label class="admin-field">
                 대출잔액 (원)
-                <input
-                  type="text"
-                  id="statsBalance"
-                  data-type="money"
-                  class="admin-input"
-                  placeholder="예) 1433867500000"
-                />
+                <input type="text" id="statsBalance" data-type="money" class="admin-input" />
               </label>
             </div>
           </div>
 
-          <!-- [상품유형별 대출잔액] -->
           <div class="admin-card" style="margin-top:12px;">
             <h3 class="admin-subtitle">[상품유형별 대출잔액]</h3>
             <p class="admin-section__desc">
               비율은 전체 <strong>대출잔액 기준 % (0~100)</strong>, 금액은 원 단위로 자동 계산됩니다.
-              (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
             </p>
 
             <table class="admin-table">
@@ -343,124 +238,33 @@
               <tbody id="productRows">
                 <tr data-key="부동산담보">
                   <td>부동산담보</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="부동산담보"
-                      min="0" max="100" step="0.1"
-                      placeholder="예) 43"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="부동산담보"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="부동산담보" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="부동산담보" data-type="money" readonly /></td>
                 </tr>
                 <tr data-key="부동산PF">
                   <td>부동산PF</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="부동산PF"
-                      min="0" max="100" step="0.1"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="부동산PF"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="부동산PF" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="부동산PF" data-type="money" readonly /></td>
                 </tr>
                 <tr data-key="어음·매출채권담보">
                   <td>어음·매출채권담보</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="어음·매출채권담보"
-                      min="0" max="100" step="0.1"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="어음·매출채권담보"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="어음·매출채권담보" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="어음·매출채권담보" data-type="money" readonly /></td>
                 </tr>
                 <tr data-key="기타담보(주식 등)">
                   <td>기타담보(주식 등)</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="기타담보(주식 등)"
-                      min="0" max="100" step="0.1"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="기타담보(주식 등)"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="기타담보(주식 등)" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="기타담보(주식 등)" data-type="money" readonly /></td>
                 </tr>
                 <tr data-key="개인신용">
                   <td>개인신용</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="개인신용"
-                      min="0" max="100" step="0.1"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="개인신용"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="개인신용" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="개인신용" data-type="money" readonly /></td>
                 </tr>
                 <tr data-key="법인신용">
                   <td>법인신용</td>
-                  <td>
-                    <input
-                      type="number"
-                      class="admin-input js-ratio"
-                      data-key="법인신용"
-                      min="0" max="100" step="0.1"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      class="admin-input js-amount"
-                      data-key="법인신용"
-                      data-type="money"
-                      readonly
-                    />
-                  </td>
+                  <td><input type="number" class="admin-input js-ratio" data-key="법인신용" min="0" max="100" step="0.1" /></td>
+                  <td><input type="text" class="admin-input js-amount" data-key="법인신용" data-type="money" readonly /></td>
                 </tr>
               </tbody>
             </table>
@@ -472,7 +276,46 @@
               <span id="statsSaveStatus" style="font-size:12px;color:#6b7280;"></span>
             </div>
           </div>
+        </div>
+      </section>
 
+      <!-- TAB 2: 온투업체 정보 등록 -->
+      <section class="beta-section admin-tab-panel" id="adminTabLenders">
+        <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h2 class="beta-section__title">온투업체 정보 등록 (네비게이션용)</h2>
+          </div>
+        </div>
+
+        <div class="beta-card beta-card--wide">
+          <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
+            각 온투업체별로 <strong>신규대출 취급 여부</strong>, <strong>제휴 여부</strong>, <strong>취급 상품군</strong>,
+            <strong>부동산 담보대출 조건</strong>, <strong>차주 조건(소득·신용 등)</strong>을 설정합니다.
+          </p>
+          <p style="margin:0 0 10px;font-size:12px;color:#9ca3af;">
+            후추 네비게이션 결과 화면에서 추천 온투업체를 필터링·정렬할 때 이 설정을 사용합니다.
+          </p>
+
+          <!-- 검색/필터 -->
+          <div class="admin-lender-toolbar">
+            <input type="text"
+                   id="lenderSearchInput"
+                   class="admin-input"
+                   placeholder="온투업체명 검색 (예: F펀딩, 테라펀딩)" />
+          </div>
+
+          <!-- 온투업체 리스트 -->
+          <div id="lenderListContainer" class="admin-lender-list">
+            <!-- JS에서 렌더링 -->
+          </div>
+
+          <div class="admin-actions-row" style="margin-top:16px;">
+            <button type="button" id="saveLendersConfigBtn" class="admin-primary-btn">
+              온투업체 설정 저장
+            </button>
+            <span id="lendersSaveStatus" style="font-size:12px;color:#6b7280;"></span>
+          </div>
         </div>
       </section>
 
