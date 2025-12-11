@@ -1162,10 +1162,9 @@ body.beta-body button{width:auto;}
   padding:0;
   background:#020617;
   box-shadow:none;
-}
-@media (min-width:1024px){
-  .beta-hero-banner{aspect-ratio:16/9;}
-}
+  aspect-ratio:16/9;   /* ✅ 여기로 옮김: 모든 해상도에서 높이 확보 */
+  }
+
 .beta-hero-banner img{
   display:block;
   width:100%;
@@ -1993,6 +1992,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
