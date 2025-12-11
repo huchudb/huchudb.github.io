@@ -1277,12 +1277,30 @@ body.beta-body button{width:auto;}
     gap:10px;
   }
 
+/* 기존 .beta-loanstatus-item__value 블록을 이걸로 교체 */
 .beta-loanstatus-item__value{
-  text-align:right;
+  display:inline-flex;          /* 숫자 + 단위 한 줄 배치 */
+  align-items:baseline;
+  justify-content:flex-end;
+  gap:4px;
+  flex-wrap:wrap;
   font-size:18px;
-  font-weight:800;
   line-height:1.4;
-  color:#111827;   /* 숫자/단위 모두 검정 계열 */
+}
+  
+/* 숫자 스타일 */
+.beta-loanstatus-item__value .money-number{
+  font-weight:800;
+  color:#111827;        /* 숫자: 진한 검정 */
+  font-variant-numeric:tabular-nums;
+}
+
+/* 단위(조/억/만원) 스타일 */
+.beta-loanstatus-item__value .money-unit{
+  font-weight:600;
+  color:#737373;        /* 단위: 요청한 회색 */
+  font-size:0.85em;     /* 숫자보다 살짝 작게 */
+  margin-left:2px;
 }
 
   .beta-loanstatus-item__label{
@@ -2038,6 +2056,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
