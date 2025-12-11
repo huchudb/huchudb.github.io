@@ -4,18 +4,182 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>후추 | 온투업(P2P) 관리자 (베타)</title>
-  <meta name="description" content="온투업 담보대출 통계 및 온투업체 정보를 관리하는 베타 관리자 페이지입니다.">
+  <meta name="description" content="온투업 담보대출 LTV·금리, 중앙기록관리기관 통계, 네비게이션용 온투업체 정보를 관리하는 베타 관리자 페이지입니다.">
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-  <script type="module" src="/assets/admin-beta.js?v=20251211-beta"></script>
+
+  <!-- 간단 탭/레이아웃 보조 스타일 -->
+  <style>
+    .admin-tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .admin-tab-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background-color: #f9fafb;
+      cursor: pointer;
+      color: #374151;
+    }
+    .admin-tab-btn.is-active {
+      background-color: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+    .admin-tab-panel.hide {
+      display: none;
+    }
+    .admin-lenders-layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .admin-lenders-list {
+      flex: 0 0 240px;
+      max-height: 420px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px;
+      overflow-y: auto;
+      background-color: #f9fafb;
+    }
+    .admin-lenders-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .admin-lenders-list-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .admin-lenders-list-ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+    }
+    .admin-lender-item {
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+    .admin-lender-item span {
+      display: inline-block;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-lender-item small {
+      color: #9ca3af;
+      font-size: 11px;
+    }
+    .admin-lender-item.is-active {
+      background-color: #111827;
+      color: #f9fafb;
+    }
+    .admin-lenders-detail {
+      flex: 1 1 320px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      background-color: #ffffff;
+    }
+    .admin-lenders-detail h3 {
+      font-size: 14px;
+      margin: 0 0 6px;
+      color: #111827;
+    }
+    .admin-lenders-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      margin-top: 8px;
+    }
+    .admin-lenders-grid label {
+      font-size: 12px;
+      color: #374151;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .admin-lenders-grid input[type="text"],
+    .admin-lenders-grid input[type="number"] {
+      font-size: 12px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+    }
+    .admin-chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .admin-chip {
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      border: 1px solid #d1d5db;
+      background-color: #f9fafb;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .admin-chip.is-on {
+      background-color: #111827;
+      border-color: #111827;
+      color: #f9fafb;
+    }
+    .admin-subsection-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 12px 0 4px;
+      color: #111827;
+    }
+    .admin-footnote {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .admin-actions-row--right {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .admin-lenders-layout {
+        flex-direction: column;
+      }
+      .admin-lenders-list {
+        flex: 1 1 auto;
+        max-height: 260px;
+      }
+    }
+  </style>
+
+  <script type="module" src="/assets/admin-beta.js?v=20251211-navi"></script>
 </head>
 <body class="beta-body">
 
-  <!-- 상단 헤더: 베타 홈과 동일한 구조 -->
+  <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
       <!-- 로고 -->
-      <a href="/beta/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
+      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
         <span class="logo-fallback">
           <span class="logo-mark">%</span>
@@ -24,21 +188,24 @@
       </a>
 
       <!-- MENU + 드롭다운 -->
-      <button id="betaMenuToggle"
-              class="beta-menu-toggle"
-              type="button"
-              aria-haspopup="true"
-              aria-expanded="false">
+      <button
+        id="betaMenuToggle"
+        class="beta-menu-toggle"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
         <span class="beta-menu-toggle__label">MENU</span>
       </button>
 
       <div id="betaMenuPanel" class="beta-menu-panel hide">
         <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
         <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
-        <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
+        <a class="beta-menu-link" href="/">담보대출 계산기</a>
+        <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션(베타)</a>
         <a class="beta-menu-link" href="/company.html">회사소개</a>
         <a class="beta-menu-link" href="/contact.html">광고문의</a>
-        <a class="beta-menu-link" href="/admin-beta.html">관리자(베타)</a>
+        <a class="beta-menu-link" href="/beta/admin-beta.html">관리자(베타)</a>
       </div>
     </div>
   </header>
@@ -54,41 +221,213 @@
             <h1 class="beta-section__title">온투업 베타 관리자</h1>
           </div>
         </div>
+
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
-            이 페이지에서 <strong>온투업 대출 통계</strong>와
-            <strong>온투업체 정보(네비게이션 매칭 기준)</strong>를 설정할 수 있습니다.
+            이 페이지에서 <strong>① LTV·금리 설정</strong>, <strong>② 온투업 대출 통계(ontu-stats)</strong>,
+            <strong>③ 후추 네비게이션용 온투업체 정보(loan-config)</strong>를 관리합니다.
           </p>
           <p style="margin:0;font-size:12px;color:#9ca3af;">
-            · 저장된 정보는 베타 통계 페이지(/beta)와 &ldquo;후추 네비게이션&rdquo;에서 사용됩니다.<br />
-            · 현재는 서버 API + 브라우저 <code>localStorage</code> 기준 테스트 용도로 동작합니다.
+            · 입력한 값은 <code>/api/loan-config</code>, <code>/api/ontu-stats</code> 등 서버에 저장되며,
+            후추 네비게이션(베타) 및 통계 페이지에서 바로 사용됩니다.
           </p>
-        </div>
-      </section>
 
-      <!-- 탭 버튼 -->
-      <section class="beta-section">
-        <div class="beta-card beta-card--wide">
-          <div class="admin-tab-header">
-            <button type="button"
-                    class="admin-tab-btn is-active"
-                    data-admin-tab-target="stats">
-              온투업 통계 저장
+          <div class="admin-tab-bar">
+            <button
+              type="button"
+              class="admin-tab-btn is-active"
+              data-admin-tab-target="tabStats"
+            >
+              1. 온투업 통계 / LTV·금리
             </button>
-            <button type="button"
-                    class="admin-tab-btn"
-                    data-admin-tab-target="lenders">
-              온투업체 정보 등록
+            <button
+              type="button"
+              class="admin-tab-btn"
+              data-admin-tab-target="tabLenders"
+            >
+              2. 온투업체 정보 등록 (네비게이션)
             </button>
           </div>
         </div>
       </section>
 
-      <!-- 탭 패널: 1) 온투업 통계 저장 -->
-      <section class="beta-section"
-               id="adminOntuStatsSection"
-               data-admin-tab-panel="stats">
+      <!-- 탭 1: 기존 LTV/금리 + 온투업 통계 -->
+      <section id="tabStats" class="beta-section admin-tab-panel">
+        <!-- 1. 담보대출 LTV / 금리 설정 -->
         <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h2 class="beta-section__title">담보대출 LTV / 금리 설정</h2>
+          </div>
+        </div>
+
+        <div class="beta-card beta-card--wide">
+          <p style="margin:0 0 8px;font-size:13px;color:#4b5563;">
+            부동산 종류별 <strong>최대 LTV(%)</strong>와 <strong>금리 범위(연 %)</strong>를 입력해주세요.
+            <br />※ 내부에는 <code>0.73</code>, <code>0.068</code>처럼 <strong>소수(비율)</strong>로 저장됩니다.
+          </p>
+          <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
+            계산기와 통계에서 공통으로 사용하는 지역별 설정입니다.
+          </p>
+
+          <!-- 지역 선택 -->
+          <div style="margin-top:12px;">
+            <label style="font-size:13px;color:#374151;margin-bottom:6px;">지역 선택</label>
+            <div id="loanRegionTabs" class="admin-region-list">
+              <button type="button" class="admin-region-btn is-active" data-region="서울">서울</button>
+              <button type="button" class="admin-region-btn" data-region="경기">경기</button>
+              <button type="button" class="admin-region-btn" data-region="인천">인천</button>
+              <button type="button" class="admin-region-btn" data-region="충청도">충청도</button>
+              <button type="button" class="admin-region-btn" data-region="전라도">전라도</button>
+              <button type="button" class="admin-region-btn" data-region="강원도">강원도</button>
+              <button type="button" class="admin-region-btn" data-region="경상도">경상도</button>
+              <button type="button" class="admin-region-btn" data-region="제주도">제주도</button>
+            </div>
+            <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">
+              선택한 지역 기준으로 아래 LTV/금리 값을 입력합니다. 다른 지역을 누르면 해당 지역에 저장된 값이 다시 표시됩니다.
+            </p>
+          </div>
+
+          <!-- 물건 종류별 LTV/금리 -->
+          <div class="admin-card">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="text-align:left;">부동산 종류</th>
+                  <th style="text-align:right;">최대 LTV (%)</th>
+                  <th style="text-align:right;">최소 금리 (연 %)</th>
+                  <th style="text-align:right;">최대 금리 (연 %)</th>
+                </tr>
+              </thead>
+              <tbody id="loanConfigBody">
+                <tr data-prop="아파트">
+                  <td>아파트</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="100" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="maxLtv"
+                      placeholder="예) 79"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMin"
+                      placeholder="예) 6.8"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMax"
+                      placeholder="예) 15.9"
+                    />
+                  </td>
+                </tr>
+
+                <tr data-prop="다세대/연립">
+                  <td>다세대/연립</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="100" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="maxLtv"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMin"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMax"
+                    />
+                  </td>
+                </tr>
+
+                <tr data-prop="단독/다가구">
+                  <td>단독/다가구</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="100" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="maxLtv"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMin"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMax"
+                    />
+                  </td>
+                </tr>
+
+                <tr data-prop="토지/임야">
+                  <td>토지/임야</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="100" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="maxLtv"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMin"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0" max="99" step="0.1"
+                      class="admin-input admin-ltv-input"
+                      data-field="rateMax"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="admin-actions-row">
+            <button type="button" id="loanConfigSaveBtn" class="admin-primary-btn">
+              LTV / 금리 설정 저장
+            </button>
+            <span id="loanConfigStatus" style="font-size:12px;color:#6b7280;"></span>
+          </div>
+        </div>
+
+        <!-- 2. 온투업 통계 -->
+        <div class="beta-section__header" style="margin-top:32px;">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-gold"></span>
             <h2 class="beta-section__title">온투업 대출 통계 (중앙기록관리)</h2>
@@ -96,8 +435,7 @@
         </div>
 
         <div class="beta-card beta-card--wide">
-
-          <!-- 기준월: 캘린더 선택 시 자동 로드 -->
+          <!-- 기준월 -->
           <div class="admin-stats-month-row">
             <label class="admin-stats-month-label">
               조회년월
@@ -109,11 +447,10 @@
             </label>
             <p class="admin-stats-month-help">
               · 년/월을 선택하면 하단 통계 값이 자동으로 불러옵니다.
-              (저장 시 월별로 <code>ontu-stats</code> API + <code>localStorage</code>에 보관)
             </p>
           </div>
 
-          <!-- 대출현황 summary -->
+          <!-- summary -->
           <div class="admin-card" style="margin-top:10px;">
             <h3 class="admin-subtitle">[대출현황]</h3>
             <div class="admin-stats-grid">
@@ -168,12 +505,11 @@
             </div>
           </div>
 
-          <!-- [상품유형별 대출잔액] -->
+          <!-- 상품유형별 대출잔액 -->
           <div class="admin-card" style="margin-top:12px;">
             <h3 class="admin-subtitle">[상품유형별 대출잔액]</h3>
             <p class="admin-section__desc">
               비율은 전체 <strong>대출잔액 기준 % (0~100)</strong>, 금액은 원 단위로 자동 계산됩니다.
-              (베타 홈에서는 조/억/만원으로 자동 포맷됩니다.)
             </p>
 
             <table class="admin-table">
@@ -319,64 +655,205 @@
         </div>
       </section>
 
-      <!-- 탭 패널: 2) 온투업체 정보 등록 -->
-      <section class="beta-section hide"
-               id="adminLendersSection"
-               data-admin-tab-panel="lenders">
+      <!-- 탭 2: 온투업체 정보 등록 (네비게이션용) -->
+      <section id="tabLenders" class="beta-section admin-tab-panel hide">
         <div class="beta-section__header">
           <div class="beta-section__title-wrap">
             <span class="icon-dot dot-gold"></span>
-            <h2 class="beta-section__title">온투업체 정보 등록 (후추 네비게이션 기준)</h2>
+            <h2 class="beta-section__title">온투업체 정보 등록 (후추 네비게이션)</h2>
           </div>
         </div>
 
         <div class="beta-card beta-card--wide">
           <p style="margin:0 0 6px;font-size:13px;color:#4b5563;">
-            &ldquo;후추 네비게이션&rdquo;에서 사용할 <strong>온투업체별 취급상품·조건·상담채널</strong>을 설정합니다.
+            후추 네비게이션(베타)에서 추천할 <strong>온투업체별 취급 조건</strong>을 등록합니다.
+            <br />· 각 온투업체 클릭 → 우측 상세조건 입력 → 하단 <strong>[네비게이션 설정 저장]</strong>을 누르면
+            <code>/api/loan-config</code>에 저장됩니다.
           </p>
-          <p style="margin:0 0 12px;font-size:12px;color:#9ca3af;">
-            · 제휴업체는 결과 화면에서 상단에 우선 표시됩니다.<br />
-            · 부동산담보대출은 <strong>지역·부동산유형·대출종류·최소금액·LTV</strong> 등을 기준으로 매칭되고,<br />
-            · 개인신용, 스탁론 등 비부동산 상품군은 <strong>취급 여부 + 제휴 여부</strong>만으로 리스트업 됩니다.
+          <p class="admin-footnote">
+            ※ <strong>제휴업체</strong>로 체크된 온투업체는 네비게이션 결과에서 상단에 우선적으로 노출됩니다.
           </p>
 
           <div class="admin-lenders-layout">
             <!-- 왼쪽: 온투업체 리스트 -->
-            <div class="admin-lenders-list-panel">
+            <div class="admin-lenders-list">
               <div class="admin-lenders-list-header">
-                <h3 class="admin-subtitle" style="margin:0;">온투업체 리스트</h3>
-                <button type="button" id="addLenderBtn" class="admin-secondary-btn">
-                  + 온투업체 추가
+                <span class="admin-lenders-list-title">온투업체 목록</span>
+                <button type="button" id="addLenderBtn" class="admin-secondary-btn" style="padding:4px 8px;font-size:11px;">
+                  + 추가
                 </button>
               </div>
-              <p class="admin-section__desc" style="margin-bottom:6px;">
-                · 정렬순서는 네비게이션 결과 화면에서의 기본 노출 순서를 의미합니다.<br />
-                · &ldquo;제휴업체&rdquo;는 항상 비제휴업체보다 상단에 노출됩니다.
+              <ul id="lenderList" class="admin-lenders-list-ul">
+                <!-- JS에서 렌더링 -->
+              </ul>
+              <p class="admin-footnote">
+                · 항목을 클릭하면 우측에 상세조건이 표시됩니다.<br />
+                · 필요 시 최대 49개까지 추가 가능합니다.
               </p>
-              <div id="lendersList" class="admin-lenders-list">
-                <!-- JS 에서 lender-row 들이 렌더링됨 -->
-              </div>
             </div>
 
-            <!-- 오른쪽: 상세 설정 -->
-            <div class="admin-lenders-detail-panel">
-              <h3 class="admin-subtitle" style="margin:0 0 6px;">상세 설정</h3>
-              <p class="admin-section__desc" style="margin-bottom:8px;">
-                왼쪽 온투업체 행의 &ldquo;상세 설정&rdquo; 버튼을 클릭하면 여기에 상세 설정 폼이 표시됩니다.
+            <!-- 오른쪽: 상세 조건 입력 -->
+            <div class="admin-lenders-detail">
+              <h3>선택한 온투업체 상세 조건</h3>
+              <p class="admin-footnote">
+                ※ 먼저 왼쪽에서 온투업체를 선택하거나 <strong>[+ 추가]</strong>를 눌러 신규 온투업체를 생성하세요.
               </p>
-              <div id="lenderDetailPanel" class="admin-lenders-detail">
-                <!-- JS 에서 lender-detail 들이 렌더링됨 -->
+
+              <div class="admin-lenders-grid">
+                <label>
+                  온투업체 ID(내부용)
+                  <input type="text" id="lenderIdInput" placeholder="예) L001" />
+                </label>
+                <label>
+                  온투업체명 (노출명)
+                  <input type="text" id="lenderNameInput" placeholder="예) 아파트온투 P2P" />
+                </label>
+                <label>
+                  정렬순서 (숫자 낮을수록 상단)
+                  <input type="number" id="lenderOrderInput" min="1" step="1" />
+                </label>
               </div>
 
-              <div class="admin-actions-row" style="margin-top:16px;">
-                <button type="button" id="saveLendersBtn" class="admin-primary-btn">
-                  온투업체 설정 저장
-                </button>
-                <span id="lendersSaveStatus" style="font-size:12px;color:#6b7280;"></span>
+              <div class="admin-subsection-title">기본 설정</div>
+              <div class="admin-chip-group" id="lenderBasicFlags">
+                <button type="button" class="admin-chip" data-flag="isActive">사용중</button>
+                <button type="button" class="admin-chip" data-flag="isNewLoanActive">신규대출 취급</button>
+                <button type="button" class="admin-chip" data-flag="isPartner">제휴업체</button>
               </div>
-              <p class="admin-section__desc" style="margin-top:6px;font-size:11px;color:#9ca3af;">
-                ※ 저장 시 서버 API 및 브라우저 <code>localStorage</code>에 동시에 반영됩니다.
+
+              <div class="admin-subsection-title">취급 상품군</div>
+              <p class="admin-footnote">
+                후추 네비게이션 첫 화면의 <strong>대출 상품군</strong> 선택과 매칭됩니다.
               </p>
+              <div class="admin-chip-group" id="lenderLoanCategories">
+                <button type="button" class="admin-chip" data-cat="부동산담보대출">부동산담보대출</button>
+                <button type="button" class="admin-chip" data-cat="개인신용대출">개인신용대출</button>
+                <button type="button" class="admin-chip" data-cat="스탁론">스탁론</button>
+                <button type="button" class="admin-chip" data-cat="법인신용대출">법인신용대출</button>
+                <button type="button" class="admin-chip" data-cat="매출채권유동화">매출채권유동화</button>
+                <button type="button" class="admin-chip" data-cat="의료사업자대출">의료사업자대출</button>
+                <button type="button" class="admin-chip" data-cat="온라인선정산">온라인선정산</button>
+                <button type="button" class="admin-chip" data-cat="전자어음">전자어음</button>
+              </div>
+
+              <div class="admin-subsection-title">[부동산 담보대출] 취급 조건</div>
+              <p class="admin-footnote">
+                부동산담보대출 상품군을 선택한 경우에만 적용됩니다.
+              </p>
+
+              <div class="admin-lenders-grid">
+                <label>
+                  취급 지역
+                  <div class="admin-chip-group" id="lenderRegions">
+                    <button type="button" class="admin-chip" data-region="전국">전국</button>
+                    <button type="button" class="admin-chip" data-region="서울">서울</button>
+                    <button type="button" class="admin-chip" data-region="경기">경기</button>
+                    <button type="button" class="admin-chip" data-region="인천">인천</button>
+                    <button type="button" class="admin-chip" data-region="충청도">충청</button>
+                    <button type="button" class="admin-chip" data-region="전라도">전라</button>
+                    <button type="button" class="admin-chip" data-region="경상도">경상</button>
+                    <button type="button" class="admin-chip" data-region="강원도">강원</button>
+                    <button type="button" class="admin-chip" data-region="제주도">제주</button>
+                  </div>
+                </label>
+                <label>
+                  취급 부동산 유형
+                  <div class="admin-chip-group" id="lenderPropertyTypes">
+                    <button type="button" class="admin-chip" data-prop="아파트">아파트</button>
+                    <button type="button" class="admin-chip" data-prop="오피스텔">오피스텔</button>
+                    <button type="button" class="admin-chip" data-prop="다세대/연립">빌라·연립</button>
+                    <button type="button" class="admin-chip" data-prop="단독/다가구">단독·다가구</button>
+                    <button type="button" class="admin-chip" data-prop="토지/임야">토지·임야</button>
+                    <button type="button" class="admin-chip" data-prop="근린생활시설">근린생활시설</button>
+                  </div>
+                </label>
+              </div>
+
+              <div class="admin-subsection-title">취급 대출종류(부동산 담보대출 내부)</div>
+              <div class="admin-chip-group" id="lenderRealEstateLoanTypes">
+                <button type="button" class="admin-chip" data-loan-type="일반담보대출">일반담보대출</button>
+                <button type="button" class="admin-chip" data-loan-type="임대보증금반환대출">임대보증금반환대출</button>
+                <button type="button" class="admin-chip" data-loan-type="지분대출">지분대출</button>
+                <button type="button" class="admin-chip" data-loan-type="경락잔금대출">경락잔금대출</button>
+                <button type="button" class="admin-chip" data-loan-type="대환대출">대환대출</button>
+              </div>
+
+              <div class="admin-lenders-grid" style="margin-top:4px;">
+                <label>
+                  최대 총 LTV (예: 0.8)
+                  <input type="number" step="0.01" min="0" max="2" id="lenderMaxLtvInput" />
+                </label>
+                <label>
+                  최소 대출금액 (아파트, 원 단위)
+                  <input type="text" id="lenderMinAptAmountInput" placeholder="예) 10000000" />
+                </label>
+                <label>
+                  최소 대출금액 (기타 부동산, 원 단위)
+                  <input type="text" id="lenderMinOtherAmountInput" placeholder="예) 30000000" />
+                </label>
+              </div>
+
+              <div class="admin-subsection-title">차주 조건 (신용 / 취급 불가)</div>
+              <div class="admin-lenders-grid">
+                <label>
+                  허용 신용점수 구간
+                  <div class="admin-chip-group" id="lenderCreditBands">
+                    <button type="button" class="admin-chip" data-band="600미만">600점 미만</button>
+                    <button type="button" class="admin-chip" data-band="600이상">600점 이상</button>
+                  </div>
+                </label>
+                <label>
+                  취급 불가 사항
+                  <div class="admin-chip-group" id="lenderBlockedFlags">
+                    <button type="button" class="admin-chip" data-block="taxArrears">세금체납 불가</button>
+                    <button type="button" class="admin-chip" data-block="delinquency">연체기록 불가</button>
+                    <button type="button" class="admin-chip" data-block="bankruptcy">개인회생/파산 불가</button>
+                    <button type="button" class="admin-chip" data-block="seizure">압류·가압류 불가</button>
+                  </div>
+                </label>
+              </div>
+
+              <div class="admin-subsection-title">상담 채널 정보</div>
+              <div class="admin-lenders-grid">
+                <label>
+                  유선 상담 전화번호
+                  <input type="text" id="lenderPhoneInput" placeholder="예) 02-1234-5678" />
+                </label>
+                <label>
+                  카카오톡 채팅상담 URL
+                  <input type="text" id="lenderKakaoUrlInput" placeholder="예) https://pf.kakao.com/_abcd" />
+                </label>
+              </div>
+
+              <div class="admin-subsection-title">비고 / 메모</div>
+              <textarea
+                id="lenderNotesInput"
+                rows="3"
+                style="width:100%;font-size:12px;border-radius:6px;border:1px solid #d1d5db;padding:4px 6px;"
+                placeholder="내부 참고용 메모를 입력하세요."
+              ></textarea>
+
+              <div class="admin-actions-row admin-actions-row--right" style="margin-top:12px;">
+                <button
+                  type="button"
+                  id="deleteLenderBtn"
+                  class="admin-secondary-btn"
+                  style="padding:4px 10px;font-size:12px;"
+                >
+                  선택 온투업체 삭제
+                </button>
+              </div>
+
+              <div class="admin-actions-row" style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:8px;">
+                <button
+                  type="button"
+                  id="naviLoanConfigSaveBtn"
+                  class="admin-primary-btn"
+                >
+                  네비게이션 설정 저장
+                </button>
+                <span id="naviLoanConfigStatus" style="font-size:12px;color:#6b7280;"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -393,9 +870,11 @@
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img src="/assets/logo/huchu-logo-white.png"
-             alt="HUCHU 로고"
-             class="beta-footer__logo-img" />
+        <img
+          src="/assets/logo/huchu-logo-white.png"
+          alt="HUCHU 로고"
+          class="beta-footer__logo-img"
+        />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
