@@ -226,7 +226,7 @@ function renderLoanStatus(summary, monthStr) {
 
   const items = [
     {
-      // 🔹 49개 → 숫자/단위 분리 (개 = money-unit)
+      // 49개 → 숫자/단위 분리
       label: "데이터 수집 온투업체수",
       value: summary.dataFirms != null
         ? (
@@ -266,7 +266,6 @@ function renderLoanStatus(summary, monthStr) {
     </div>
   `;
 
-  // 🔹 카드 렌더 후, 자동 폰트 축소 적용 (PC+모바일 공통)
   autoFitLoanStatusText();
 }
 
@@ -348,23 +347,20 @@ function renderProductSection(summary, byType) {
             .join("")}
         </div>
       </div>
-      <!-- ✅ 출처 문구 추가 -->
-      <div class="beta-product-source-note">
-        ※출처: 온라인투자연계금융업 중앙기록관리기관
-      </div>
+    </div>
+    <div class="beta-product-source-note">
+      ※출처: 온라인투자연계금융업 중앙기록관리기관
     </div>
   `;
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
 
-  let centerRowEl   = null;
   let centerChipEl  = null;
   let centerLabelEl = null;
   let centerValueEl = null;
 
   if (centerEl) {
-    centerRowEl   = centerEl.querySelector(".beta-product-donut-center__label-row");
     centerChipEl  = centerEl.querySelector(".beta-product-donut-center__chip");
     centerLabelEl = centerEl.querySelector(".beta-product-donut-center__label");
     centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
@@ -374,13 +370,11 @@ function renderProductSection(summary, byType) {
   function updateCenter(index) {
     if (!centerLabelEl || !centerValueEl) return;
 
-    // 유효한 index가 없으면 항상 0번(부동산담보)로 fallback
     if (index == null || index < 0 || index >= labels.length) {
       index = 0;
     }
 
     centerLabelEl.textContent = labels[index];
-    // 🔹 HTML(span) 그대로 넣어주기 → .money-unit 회색 적용
     centerValueEl.innerHTML   = formatKoreanCurrencyJo(amounts[index]);
 
     if (centerChipEl) {
@@ -419,15 +413,11 @@ function renderProductSection(summary, byType) {
       cutout: "60%",
       plugins: {
         legend: { display: false },
-        // 검은 툴팁(hover/click 박스) 전면 비활성화
-        tooltip: {
-          enabled: false
-        }
+        tooltip: { enabled: false }
       },
       layout: { padding: 4 },
       onClick: (evt, elements) => {
         if (!elements || !elements.length) {
-          // 빈 영역 클릭: 다시 0번(부동산담보)
           updateCenter(0);
           return;
         }
@@ -501,7 +491,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initOntuStats();
   setupBetaMenu();
 
-  // 🔹 화면 크기 바뀔 때마다 금액 폰트 다시 맞추기
   window.addEventListener("resize", () => {
     autoFitLoanStatusText();
   });
@@ -512,8 +501,7 @@ const heroSlides = document.querySelectorAll(".beta-hero-banner__slide");
 const heroPrev   = document.querySelector(".hero-nav--prev");
 const heroNext   = document.querySelector(".hero-nav--next");
 
-// 자동 넘김 시간(ms)
-const HERO_SLIDE_INTERVAL = 5000; // 5000ms = 5초
+const HERO_SLIDE_INTERVAL = 5000;
 
 let heroIndex = 0;
 let heroTimer = null;
