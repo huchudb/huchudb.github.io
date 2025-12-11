@@ -37,7 +37,11 @@ if (window.Chart && Chart.register) {
 const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
 const toNumber   = (s) => Number(onlyDigits(s)) || 0;
 
-// '조/억/만원' 포맷
+/**
+ * '조/억/만원' + HTML(span) 포맷
+ * - 숫자는 .money-number
+ * - 단위(조·억·만원·원)는 .money-unit
+ */
 function formatKoreanCurrencyJo(num) {
   const n = Math.max(0, Math.floor(num));
 
@@ -45,34 +49,48 @@ function formatKoreanCurrencyJo(num) {
   const ONE_EOK = 100_000_000;
   const ONE_JO  = 1_000_000_000_000;
 
-  if (n >= ONE_JO) {
-    const jo           = Math.floor(n / ONE_JO);
-    const restAfterJo  = n % ONE_JO;
-    const eok          = Math.floor(restAfterJo / ONE_EOK);
-    const restAfterEok = restAfterJo % ONE_EOK;
-    const man          = Math.floor(restAfterEok / ONE_MAN);
+  const parts = [];
 
-    const parts = [];
-    if (jo  > 0) parts.push(`${jo.toLocaleString("ko-KR")}조`);
-    if (eok > 0) parts.push(`${eok.toLocaleString("ko-KR")}억`);
-    if (man > 0) parts.push(`${man.toLocaleString("ko-KR")}만원`);
+  const pushPart = (value, unit) => {
+    if (!value) return;
+    parts.push(
+      `<span class="money-number">${value.toLocaleString("ko-KR")}</span>` +
+      `<span class="money-unit">${unit}</span>`
+    );
+  };
+
+  // 1만원 이상: 조/억/만원 분해
+  if (n >= ONE_MAN) {
+    let remain = n;
+
+    const jo  = Math.floor(remain / ONE_JO);
+    remain   %= ONE_JO;
+
+    const eok = Math.floor(remain / ONE_EOK);
+    remain   %= ONE_EOK;
+
+    const man = Math.floor(remain / ONE_MAN);
+
+    pushPart(jo,  "조");
+    pushPart(eok, "억");
+    pushPart(man, "만원");
+
     return parts.join(" ");
   }
 
-  if (n >= ONE_EOK) {
-    const eok  = Math.floor(n / ONE_EOK);
-    const rest = n % ONE_EOK;
-    const man  = Math.floor(rest / ONE_MAN);
-    if (man > 0) return `${eok.toLocaleString("ko-KR")}억 ${man.toLocaleString("ko-KR")}만원`;
-    return `${eok.toLocaleString("ko-KR")}억 원`;
+  // 1만원 미만 ~ 1원 이상: '원' 단위
+  if (n > 0) {
+    return (
+      `<span class="money-number">${n.toLocaleString("ko-KR")}</span>` +
+      `<span class="money-unit">원</span>`
+    );
   }
 
-  if (n >= ONE_MAN) {
-    const man = Math.floor(n / ONE_MAN);
-    return `${man.toLocaleString("ko-KR")}만원`;
-  }
-
-  return `${n.toLocaleString("ko-KR")}원`;
+  // 0 처리
+  return (
+    `<span class="money-number">0</span>` +
+    `<span class="money-unit">원</span>`
+  );
 }
 
 // 'YYYY-MM' → 'YYYY년 M월'
@@ -327,7 +345,8 @@ function renderProductSection(summary, byType) {
     }
 
     centerLabelEl.textContent = labels[index];
-    centerValueEl.textContent = formatKoreanCurrencyJo(amounts[index]);
+    // 🔹 HTML(span) 그대로 넣어주기
+    centerValueEl.innerHTML   = formatKoreanCurrencyJo(amounts[index]);
 
     if (centerChipEl) {
       const color = PRODUCT_COLORS[index] || "#e5e7eb";
