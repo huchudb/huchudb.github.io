@@ -491,6 +491,11 @@ function setupBetaMenu() {
 document.addEventListener("DOMContentLoaded", () => {
   initOntuStats();
   setupBetaMenu();
+
+   // 🔹 화면 크기 바뀔 때마다 금액 폰트 다시 맞추기
+  window.addEventListener("resize", () => {
+    autoFitLoanStatusText();
+  });
 });
 
 // ===== 메인 히어로 배너 슬라이드 =====
