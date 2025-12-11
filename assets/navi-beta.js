@@ -23,7 +23,8 @@ function formatWithCommas(value) {
   if (value === null || value === undefined) return "";
   const digits = stripNonDigits(String(value));
   if (!digits) return "";
-  return digits.replace(/\B?(?=(\d{3})+(?!\d))/g, ",");
+  // ✅ \B 뒤에 ? 제거
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 function parseMoneyInput(inputEl) {
   if (!inputEl) return 0;
