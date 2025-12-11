@@ -1442,7 +1442,7 @@ body.beta-body button{width:auto;}
 .money-unit{
   font-size:0.78em;   /* 숫자보다 살짝 작게 */
   font-weight:700;
-  color:#111827;
+  color:#737373;
   margin-left:2px;
 }
 
@@ -2057,6 +2057,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
