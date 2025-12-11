@@ -1283,7 +1283,8 @@ body.beta-body button{width:auto;}
   align-items:baseline;
   justify-content:flex-end;
   gap:4px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
+  white-space:nowrap;
   font-size:18px;
   line-height:1.4;
 }
@@ -2056,6 +2057,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
