@@ -1,60 +1,16 @@
-// /assets/admin-beta.js  (후추 베타 관리자 전용 스크립트)
-// ------------------------------------------------------
-// 0. 공통 상수 / 유틸
-// ------------------------------------------------------
+// /assets/admin-beta.js
+// 후추 베타 관리자 스크립트
+// - 탭 전환
+// - 온투 통계 저장 (/api/ontu-stats)
+// - 온투업체 네비게이션 설정 (/api/loan-config)
 
 console.log("✅ admin-beta.js loaded");
 
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const ONTU_STATS_API = `${API_BASE}/api/ontu-stats`;
-const LOAN_CONFIG_API = `${API_BASE}/api/loan-config`;
-
-// localStorage 키
-const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
-const LENDERS_LOCAL_KEY = "huchu_lenders_config_beta_v1";
-
-// 숫자 유틸
-function stripNonDigits(str) {
-  return (str || "").replace(/[^\d]/g, "");
-}
-function formatWithCommas(str) {
-  const digits = stripNonDigits(str);
-  if (!digits) return "";
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function getMoneyValue(inputEl) {
-  if (!inputEl) return 0;
-  const digits = stripNonDigits(inputEl.value);
-  return digits ? Number(digits) : 0;
-}
-
-// money input(텍스트)에 3자리 쉼표 자동
-function setupMoneyInputs(root) {
-  const scope = root || document;
-  const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
-  moneyInputs.forEach((input) => {
-    input.addEventListener("input", (e) => {
-      const v = e.target.value;
-      e.target.value = formatWithCommas(v);
-    });
-    if (input.value) {
-      input.value = formatWithCommas(input.value);
-    }
-  });
-}
-
-// 간단 escape
-function escapeHtml(str) {
-  return (str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 // ------------------------------------------------------
-// 1. 상단 MENU 드롭다운 (공통)
+// 공통: 메뉴 토글, 숫자 유틸, 금액 포맷
 // ------------------------------------------------------
+
+// 상단 MENU 드롭다운
 function setupBetaMenu() {
   const toggle = document.getElementById("betaMenuToggle");
   const panel = document.getElementById("betaMenuPanel");
@@ -82,52 +38,71 @@ function setupBetaMenu() {
   });
 }
 
-// ------------------------------------------------------
-// 2. 탭 – [온투업 통계 저장] / [온투업체 정보 등록]
-// ------------------------------------------------------
+// 탭 전환 (온투업 통계 저장 / 온투업체 정보 등록)
 function setupAdminTabs() {
   const tabButtons = document.querySelectorAll(".admin-tab-btn");
-  const tabPanels = document.querySelectorAll(".admin-tab-panel");
-  if (!tabButtons.length || !tabPanels.length) return;
-
-  function activateTab(targetId) {
-    tabButtons.forEach((btn) => {
-      const t = btn.getAttribute("data-tab-target");
-      const isActive = t === targetId;
-      btn.classList.toggle("is-active", isActive);
-      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
-    });
-    tabPanels.forEach((panel) => {
-      panel.classList.toggle(
-        "hide",
-        panel.id !== targetId
-      );
-    });
-  }
+  const panelStats = document.getElementById("admin-tab-stats");
+  const panelLenders = document.getElementById("admin-tab-lenders");
+  if (!tabButtons.length || !panelStats || !panelLenders) return;
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const targetId = btn.getAttribute("data-tab-target");
-      if (!targetId) return;
-      activateTab(targetId);
+      const tab = btn.getAttribute("data-tab");
+      // 버튼 active 토글
+      tabButtons.forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+
+      // 패널 show/hide
+      if (tab === "stats") {
+        panelStats.classList.remove("hide");
+        panelLenders.classList.add("hide");
+      } else if (tab === "lenders") {
+        panelLenders.classList.remove("hide");
+        panelStats.classList.add("hide");
+      }
     });
   });
+}
 
-  // 기본 첫 탭 활성화
-  const first = tabButtons[0];
-  if (first) {
-    const targetId = first.getAttribute("data-tab-target");
-    if (targetId) activateTab(targetId);
-  }
+// 숫자 유틸
+function stripNonDigits(str) {
+  return (str || "").replace(/[^\d]/g, "");
+}
+function formatWithCommas(str) {
+  const digits = stripNonDigits(str);
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function getMoneyValue(inputEl) {
+  if (!inputEl) return 0;
+  const digits = stripNonDigits(inputEl.value);
+  return digits ? Number(digits) : 0;
+}
+
+// 금액 input(텍스트)에 3자리 쉼표 자동
+function setupMoneyInputs(root) {
+  const scope = root || document;
+  const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
+  moneyInputs.forEach((input) => {
+    input.addEventListener("input", (e) => {
+      const v = e.target.value;
+      e.target.value = formatWithCommas(v);
+    });
+    if (input.value) {
+      input.value = formatWithCommas(input.value);
+    }
+  });
 }
 
 // ------------------------------------------------------
-// 3. 온투업 통계 저장 (기존 ontu-stats 관리자)
+// 1. 온투업 통계 저장 (ontu-stats)
 // ------------------------------------------------------
 
+const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
+
 let statsRoot = {
-  // byMonth: { "YYYY-MM": { summary:{...}, products:{...} } }
-  byMonth: {},
+  // byMonth: { "2025-11": { summary:{...}, products:{...} } }
+  byMonth: {}
 };
 
 function loadStatsFromStorage() {
@@ -161,7 +136,7 @@ function clearStatsForm() {
     "statsDataFirms",
     "statsTotalLoan",
     "statsTotalRepaid",
-    "statsBalance",
+    "statsBalance"
   ];
   ids.forEach((id) => {
     const el = document.getElementById(id);
@@ -206,9 +181,7 @@ function fillStatsForm(stat) {
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
     if (ratioEl) ratioEl.value = cfg.ratioPercent != null ? cfg.ratioPercent : "";
-    if (amountEl)
-      amountEl.value =
-        cfg.amount != null ? formatWithCommas(String(cfg.amount)) : "";
+    if (amountEl) amountEl.value = cfg.amount != null ? formatWithCommas(String(cfg.amount)) : "";
   });
 }
 
@@ -228,7 +201,7 @@ function collectStatsFormData() {
     dataFirms: dataEl ? Number(dataEl.value || 0) : 0,
     totalLoan: getMoneyValue(tlEl),
     totalRepaid: getMoneyValue(trEl),
-    balance: getMoneyValue(balEl),
+    balance: getMoneyValue(balEl)
   };
 
   const products = {};
@@ -246,7 +219,7 @@ function collectStatsFormData() {
 
     products[key] = {
       ratioPercent,
-      amount,
+      amount
     };
   });
 
@@ -286,6 +259,7 @@ function setupStatsInteractions() {
       }
       const stat = statsRoot.byMonth[m] || null;
       fillStatsForm(stat);
+      // money 포맷 재적용
       setupMoneyInputs();
       recalcProductAmounts();
     });
@@ -320,16 +294,16 @@ function setupStatsInteractions() {
 
       try {
         // 1) 서버로 저장
-        const res = await fetch(ONTU_STATS_API, {
+        const res = await fetch("/api/ontu-stats", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             monthKey,
             summary,
-            products,
-          }),
+            products
+          })
         });
 
         if (!res.ok) {
@@ -337,10 +311,10 @@ function setupStatsInteractions() {
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
 
-        const json = await res.json();
+        const json = await res.json().catch(() => null);
         console.log("ontu-stats saved:", json);
 
-        // 2) localStorage에도 같이 저장
+        // 2) localStorage에도 저장
         statsRoot.byMonth[monthKey] = { summary, products };
         saveStatsToStorage();
 
@@ -363,651 +337,393 @@ function setupStatsInteractions() {
 }
 
 // ------------------------------------------------------
-// 4. 온투업체 정보 등록 – lendersConfig
+// 2. 온투업체 네비게이션 설정 (loan-config)
+//   : 최소 스펙 = 신규대출취급, 제휴업체, 취급 상품군, 연락처
 // ------------------------------------------------------
 
-// 앞으로 실제 온투업체명으로 교체하면 됨
+// 네비 첫 화면에서 선택하는 상품군 키와 동일하게 맞춤
+const PRODUCT_GROUPS = [
+  { key: "부동산담보대출", label: "부동산 담보대출" },
+  { key: "개인신용대출", label: "개인신용대출" },
+  { key: "스탁론", label: "스탁론" },
+  { key: "법인신용대출", label: "법인신용대출" },
+  { key: "매출채권유동화", label: "매출채권유동화" },
+  { key: "의료사업자대출", label: "의료사업자대출" },
+  { key: "온라인선정산", label: "온라인선정산" },
+  { key: "전자어음", label: "전자어음" }
+];
+
+// 기본 온투업체 목록 (id는 영문 고정키, name은 화면 표시용)
+// → 나중에 여기 배열만 늘려도 UI 자동 생성됨
 const LENDERS_MASTER = [
   { id: "fmfunding", name: "FM펀딩" },
-  { id: "eightpercent", name: "8퍼센트" },
-  { id: "together", name: "투게더펀딩" },
-  { id: "peoplefund", name: "피플펀드" },
-  { id: "lufax", name: "루팍스(예시)" },
-  { id: "etc01", name: "기타온투업체(예시)" },
-  // TODO: 나머지 온투업체는 동일한 형식으로 49개까지 추가
+  { id: "8percent", name: "에잇퍼센트" },
+  { id: "peoplefund", name: "피플펀드" }
+  // TODO: 나중에 실제 49개 목록으로 확장
 ];
 
-const REGIONS = ["서울", "경기", "인천", "충청", "전라", "경상", "강원", "제주"];
+let lendersConfig = {
+  // lenders: {
+  //   fmfunding: { id, name, isActive, isPartner, products:[], phoneNumber, kakaoUrl }
+  // }
+  lenders: {}
+};
 
-const REAL_ESTATE_PROPERTY_TYPES = [
-  "아파트",
-  "오피스텔",
-  "빌라·연립",
-  "단독·다가구",
-  "토지·임야",
-  "근린생활시설",
-];
-
-const LOAN_TYPES_REAL_ESTATE = [
-  "일반담보대출",
-  "임대보증금반환대출",
-  "지분대출",
-  "경락잔금대출",
-  "대환대출",
-];
-
-const PRODUCT_GROUPS = [
-  "부동산 담보대출",
-  "개인신용대출",
-  "스탁론",
-  "법인신용대출",
-  "매출채권유동화",
-  "의료사업자대출",
-  "온라인선정산",
-  "전자어음",
-];
-
-const EXTRA_INCOME_TYPES = [
-  "근로소득",
-  "근로외 증빙소득",
-  "증빙소득 없음",
-  "증빙소득 없으나 이자 납입가능",
-];
-const EXTRA_CREDIT_BUCKETS = ["600점 미만", "600점 이상"];
-const EXTRA_REPAY_PLANS = ["3개월내", "3개월 이상~1년 미만", "1년 이상"];
-const EXTRA_NEED_TIMING = ["당일", "1주일내", "한달이내"];
-const EXTRA_SPECIAL_FLAGS = ["세금체납", "연체기록", "압류·가압류", "개인회생"];
-
-let lendersConfig = {}; // { lenderId: { ... } }
-
-// 서버에서 loan-config 불러오기
+// 서버 → lendersConfig 로드
 async function loadLendersConfigFromServer() {
   try {
-    const res = await fetch(LOAN_CONFIG_API, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    console.info("ℹ️ loan-config from server:", json);
-
-    if (json && typeof json === "object") {
-      if (json.lenders && typeof json.lenders === "object") {
-        lendersConfig = json.lenders;
+    const res = await fetch("/api/loan-config", { method: "GET" });
+    if (!res.ok) {
+      console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
+      lendersConfig = { lenders: {} };
+    } else {
+      const json = await res.json().catch(() => null);
+      if (json && typeof json === "object" && json.lenders) {
+        lendersConfig = json;
       } else {
-        lendersConfig = {};
+        lendersConfig = { lenders: {} };
       }
     }
-
-    // localStorage 백업
-    try {
-      localStorage.setItem(
-        LENDERS_LOCAL_KEY,
-        JSON.stringify({ lenders: lendersConfig })
-      );
-    } catch (e) {
-      console.warn("lenders localStorage backup failed:", e);
-    }
-  } catch (err) {
-    console.warn(
-      "⚠️ lenders-config API 불러오기 실패, localStorage로 대체:",
-      err
-    );
-    try {
-      const raw = localStorage.getItem(LENDERS_LOCAL_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object" && parsed.lenders) {
-          lendersConfig = parsed.lenders;
-        } else {
-          lendersConfig = {};
-        }
-      } else {
-        lendersConfig = {};
-      }
-    } catch (e2) {
-      console.warn("localStorage lendersConfig load error:", e2);
-      lendersConfig = {};
-    }
+  } catch (e) {
+    console.warn("loan-config fetch error:", e);
+    lendersConfig = { lenders: {} };
   }
 
-  console.log("✅ lendersConfig in admin:", lendersConfig);
+  mergeLendersWithMaster();
+  renderLendersList();
+  updateLendersConfigPreview();
 }
 
-// 온투업체 카드 하나 렌더링
-function createLenderCard(def) {
-  const cfg = lendersConfig[def.id] || {};
+// MASTER 기준으로 누락된 업체 채워넣기
+function mergeLendersWithMaster() {
+  const merged = {};
+  const current = (lendersConfig && lendersConfig.lenders) || {};
 
-  const card = document.createElement("div");
-  card.className = "lender-card";
-  card.dataset.lenderId = def.id;
-
-  const isActive =
-    cfg.isActiveNewLoan === undefined ? true : !!cfg.isActiveNewLoan;
-  const isPartner = !!cfg.isPartner;
-
-  const basicName = cfg.displayName || def.name;
-
-  const productGroups = Array.isArray(cfg.productGroups)
-    ? cfg.productGroups
-    : [];
-  const propertyTypes = Array.isArray(cfg.propertyTypes)
-    ? cfg.propertyTypes
-    : [];
-  const allowedRegions = Array.isArray(cfg.allowedRegions)
-    ? cfg.allowedRegions
-    : [];
-
-  const extra = cfg.extraConditions || {};
-  const extraIncome = extra.incomeTypes || [];
-  const extraCredit = extra.creditBuckets || [];
-  const extraRepay = extra.repayPlans || [];
-  const extraTiming = extra.needTiming || [];
-  const extraFlags = extra.specialFlags || [];
-
-  const contact = cfg.contact || {};
-
-  function isChecked(list, val) {
-    return list && list.indexOf(val) !== -1;
-  }
-
-  // 체크박스 생성 helper
-  const makeCheckboxGroup = (items, name, selectedList) => {
-    return items
-      .map((item) => {
-        const id = `${def.id}_${name}_${item}`;
-        const checked = isChecked(selectedList, item) ? "checked" : "";
-        return `
-          <label class="admin-chip-check" for="${id}">
-            <input type="checkbox" id="${id}" data-group="${name}" value="${escapeHtml(
-          item
-        )}" ${checked} />
-            <span>${escapeHtml(item)}</span>
-          </label>
-        `;
-      })
-      .join("");
-  };
-
-  card.innerHTML = `
-    <button type="button" class="lender-toggle" aria-expanded="false">
-      <span class="lender-toggle__name">${escapeHtml(basicName)}</span>
-      <span class="lender-toggle__badges">
-        <span class="lender-badge lender-badge--partner ${
-          isPartner ? "" : "is-off"
-        }">제휴</span>
-        <span class="lender-badge lender-badge--active ${
-          isActive ? "" : "is-off"
-        }">신규</span>
-      </span>
-    </button>
-
-    <div class="lender-panel hide">
-      <div class="admin-card lender-panel__inner">
-
-        <div class="admin-field-group">
-          <h3 class="admin-field-title">1. 기본 정보</h3>
-          <div class="admin-field-grid">
-            <label class="admin-field">
-              온투업체 ID
-              <input type="text" class="admin-input" value="${escapeHtml(
-                def.id
-              )}" readonly />
-            </label>
-            <label class="admin-field">
-              표시명(네비게이션에 노출)
-              <input type="text" class="admin-input js-lender-displayName" value="${escapeHtml(
-                basicName
-              )}" />
-            </label>
-          </div>
-
-          <div class="admin-field-grid">
-            <div class="admin-switch-field">
-              <span class="admin-switch-label">신규대출 취급 여부</span>
-              <label class="admin-switch">
-                <input type="checkbox" class="js-lender-active" ${
-                  isActive ? "checked" : ""
-                } />
-                <span>ON/OFF</span>
-              </label>
-            </div>
-            <div class="admin-switch-field">
-              <span class="admin-switch-label">제휴업체 여부</span>
-              <label class="admin-switch">
-                <input type="checkbox" class="js-lender-partner" ${
-                  isPartner ? "checked" : ""
-                } />
-                <span>제휴</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">취급 상품군 (네비 첫화면 대출종류 매핑)</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                PRODUCT_GROUPS,
-                "productGroups",
-                productGroups
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div class="admin-field-group">
-          <h3 class="admin-field-title">2. 부동산 담보대출 설정</h3>
-
-          <div class="admin-field">
-            <span class="admin-label">취급 부동산 유형</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                REAL_ESTATE_PROPERTY_TYPES,
-                "propertyTypes",
-                propertyTypes
-              )}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">취급 지역 (부동산 담보대출에만 적용)</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(REGIONS, "regions", allowedRegions)}
-            </div>
-          </div>
-
-          <div class="admin-subbox">
-            <p class="admin-subbox-title">최소 대출금액 (부동산 담보대출 기준)</p>
-            <p class="admin-subbox-help">
-              · 아파트·오피스텔 : 최소 1,000만원 이상<br/>
-              · 그 외(빌라·연립, 단독·다가구, 토지·임야, 근린생활시설) : 최소 3,000만원 이상<br/>
-              ※ 온투업체별로 다를 경우 이 값으로 네비게이션에서 필터링합니다.
-            </p>
-            <div class="admin-field-grid">
-              ${REAL_ESTATE_PROPERTY_TYPES.map((pt) => {
-                const minMap = (cfg.minAmountByPropertyType || {});
-                const val = minMap[pt] != null ? formatWithCommas(String(minMap[pt])) : "";
-                return `
-                  <label class="admin-field">
-                    ${escapeHtml(pt)} 최소 대출금액 (원)
-                    <input type="text" class="admin-input js-min-amount" data-prop="${escapeHtml(
-                      pt
-                    )}" data-type="money" value="${val}" placeholder="${
-                  pt === "아파트" || pt === "오피스텔"
-                    ? "예) 10000000"
-                    : "예) 30000000"
-                }" />
-                  </label>
-                `;
-              }).join("")}
-            </div>
-          </div>
-
-          <div class="admin-subbox">
-            <p class="admin-subbox-title">대표 LTV/금리 범위 (부동산 전체 공통 값)</p>
-            <p class="admin-subbox-help">
-              상품별로 조금씩 다르더라도 대표적으로 안내할 범위를 입력해주세요.
-              (네비게이션 결과 카드에 참고용으로 노출됩니다.)
-            </p>
-            <div class="admin-loantype-grid">
-              ${LOAN_TYPES_REAL_ESTATE.map((lt) => {
-                const ltCfg =
-                  (cfg.loanTypeSummary && cfg.loanTypeSummary[lt]) || {};
-                const maxLtvPct =
-                  typeof ltCfg.maxLtv === "number"
-                    ? Math.round(ltCfg.maxLtv * 1000) / 10
-                    : "";
-                const rateMinPct =
-                  typeof ltCfg.rateMin === "number"
-                    ? Math.round(ltCfg.rateMin * 1000) / 10
-                    : "";
-                const rateMaxPct =
-                  typeof ltCfg.rateMax === "number"
-                    ? Math.round(ltCfg.rateMax * 1000) / 10
-                    : "";
-
-                return `
-                  <div class="admin-loantype-row" data-loan-type="${escapeHtml(
-                    lt
-                  )}">
-                    <div class="admin-loantype-label">${escapeHtml(lt)}</div>
-                    <div class="admin-loantype-fields">
-                      <label>
-                        최대 LTV(%)
-                        <input type="number" step="0.1" min="0" max="100" class="admin-input js-lt-maxltv" value="${
-                          maxLtvPct !== "" ? maxLtvPct : ""
-                        }" />
-                      </label>
-                      <label>
-                        최소 금리(연, %)
-                        <input type="number" step="0.1" min="0" max="99" class="admin-input js-lt-ratemin" value="${
-                          rateMinPct !== "" ? rateMinPct : ""
-                        }" />
-                      </label>
-                      <label>
-                        최대 금리(연, %)
-                        <input type="number" step="0.1" min="0" max="99" class="admin-input js-lt-ratemax" value="${
-                          rateMaxPct !== "" ? rateMaxPct : ""
-                        }" />
-                      </label>
-                    </div>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </div>
-        </div>
-
-        <div class="admin-field-group">
-          <h3 class="admin-field-title">3. 차주 추가조건 매칭 (6-1 화면 연동)</h3>
-          <p class="admin-note">
-            ※ 모두 입력하지 않아도 됩니다. 다만 조건을 자세히 설정할수록 보다 정확한 온투업체 매칭이 가능합니다.
-          </p>
-
-          <div class="admin-field">
-            <span class="admin-label">소득유형 (가능한 경우만 체크)</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(EXTRA_INCOME_TYPES, "extra-income", extraIncome)}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">신용점수 구간</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                EXTRA_CREDIT_BUCKETS,
-                "extra-credit",
-                extraCredit
-              )}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">상환계획</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                EXTRA_REPAY_PLANS,
-                "extra-repay",
-                extraRepay
-              )}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">대출금 필요 시기</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                EXTRA_NEED_TIMING,
-                "extra-timing",
-                extraTiming
-              )}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <span class="admin-label">기타사항 허용</span>
-            <div class="admin-chip-row">
-              ${makeCheckboxGroup(
-                EXTRA_SPECIAL_FLAGS,
-                "extra-flags",
-                extraFlags
-              )}
-            </div>
-          </div>
-
-          <div class="admin-field">
-            <p class="admin-note">
-              ※ 온투업 전업종 취급 불가사항 (네비게이션 공통 안내용, 개별 온투업체 설정과는 별도로 안내칩으로 노출)<br/>
-              · 임차인·무상거주자 동의 불가, 맹지, 법인소유자, 시세 1억 미만
-            </p>
-          </div>
-        </div>
-
-        <div class="admin-field-group">
-          <h3 class="admin-field-title">4. 상담 채널</h3>
-          <div class="admin-field-grid">
-            <label class="admin-field">
-              유선상담 전화번호
-              <input type="text" class="admin-input js-contact-phone" placeholder="예) 02-000-0000" value="${escapeHtml(
-                contact.phone || ""
-              )}" />
-            </label>
-            <label class="admin-field">
-              채팅상담(카카오톡) URL
-              <input type="text" class="admin-input js-contact-kakao" placeholder="예) https://pf.kakao.com/..." value="${escapeHtml(
-                contact.kakaoUrl || ""
-              )}" />
-            </label>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  `;
-
-  // 토글 버튼 이벤트
-  const toggleBtn = card.querySelector(".lender-toggle");
-  const panel = card.querySelector(".lender-panel");
-  if (toggleBtn && panel) {
-    toggleBtn.addEventListener("click", () => {
-      const isHidden = panel.classList.contains("hide");
-      panel.classList.toggle("hide", !isHidden);
-      toggleBtn.setAttribute("aria-expanded", isHidden ? "true" : "false");
-    });
-  }
-
-  return card;
-}
-
-// 전체 리스트 렌더링
-function renderLenderList() {
-  const listEl = document.getElementById("lenderList");
-  if (!listEl) return;
-
-  listEl.innerHTML = "";
-
-  LENDERS_MASTER.forEach((def) => {
-    const card = createLenderCard(def);
-    listEl.appendChild(card);
+  LENDERS_MASTER.forEach((m) => {
+    const existing = current[m.id] || {};
+    merged[m.id] = {
+      id: m.id,
+      name: m.name,
+      isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
+      isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
+      products: Array.isArray(existing.products) ? existing.products : [],
+      phoneNumber: existing.phoneNumber || "",
+      kakaoUrl: existing.kakaoUrl || ""
+    };
   });
 
-  // 새로 추가된 money input 포맷팅
-  setupMoneyInputs(listEl);
+  lendersConfig.lenders = merged;
 }
 
-// 폼에서 lendersConfig 다시 수집
+// 온투업체 리스트 렌더링
+function renderLendersList() {
+  const container = document.getElementById("lendersList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const cfg = lendersConfig.lenders || {};
+
+  LENDERS_MASTER.forEach((m) => {
+    const lender = cfg[m.id];
+    if (!lender) return;
+
+    const card = document.createElement("div");
+    card.className = "lender-card";
+
+    // 헤더(접기/펼치기 버튼)
+    const headerBtn = document.createElement("button");
+    headerBtn.type = "button";
+    headerBtn.className = "lender-toggle";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "lender-toggle__name";
+    nameSpan.textContent = lender.name;
+
+    const badgesWrap = document.createElement("span");
+
+    // 제휴업체 배지
+    const partnerBadge = document.createElement("span");
+    partnerBadge.className = "lender-badge lender-badge--partner";
+    if (!lender.isPartner) partnerBadge.classList.add("is-off");
+    partnerBadge.textContent = "제휴업체";
+
+    // 신규대출취급 배지
+    const activeBadge = document.createElement("span");
+    activeBadge.className = "lender-badge lender-badge--active";
+    if (!lender.isActive) activeBadge.classList.add("is-off");
+    activeBadge.textContent = "신규대출취급";
+
+    badgesWrap.appendChild(partnerBadge);
+    badgesWrap.appendChild(activeBadge);
+
+    headerBtn.appendChild(nameSpan);
+    headerBtn.appendChild(badgesWrap);
+
+    // 펼침 패널
+    const panel = document.createElement("div");
+    panel.className = "lender-panel hide";
+
+    const inner = document.createElement("div");
+    inner.className = "lender-panel__inner";
+
+    // 1) on/off 스위치
+    const switchGroup = document.createElement("div");
+    switchGroup.className = "admin-field-grid";
+
+    const fieldActive = document.createElement("div");
+    fieldActive.className = "admin-field admin-switch-field";
+    const activeLabel = document.createElement("span");
+    activeLabel.className = "admin-switch-label";
+    activeLabel.textContent = "신규대출 취급여부";
+    const activeSwitchWrap = document.createElement("label");
+    activeSwitchWrap.className = "admin-switch";
+    const activeInput = document.createElement("input");
+    activeInput.type = "checkbox";
+    activeInput.id = `lender-active-${lender.id}`;
+    activeInput.checked = !!lender.isActive;
+    activeSwitchWrap.appendChild(activeInput);
+    fieldActive.appendChild(activeLabel);
+    fieldActive.appendChild(activeSwitchWrap);
+
+    const fieldPartner = document.createElement("div");
+    fieldPartner.className = "admin-field admin-switch-field";
+    const partnerLabel = document.createElement("span");
+    partnerLabel.className = "admin-switch-label";
+    partnerLabel.textContent = "제휴업체 여부";
+    const partnerSwitchWrap = document.createElement("label");
+    partnerSwitchWrap.className = "admin-switch";
+    const partnerInput = document.createElement("input");
+    partnerInput.type = "checkbox";
+    partnerInput.id = `lender-partner-${lender.id}`;
+    partnerInput.checked = !!lender.isPartner;
+    partnerSwitchWrap.appendChild(partnerInput);
+    fieldPartner.appendChild(partnerLabel);
+    fieldPartner.appendChild(partnerSwitchWrap);
+
+    switchGroup.appendChild(fieldActive);
+    switchGroup.appendChild(fieldPartner);
+
+    inner.appendChild(switchGroup);
+
+    // 2) 취급 상품군 체크박스
+    const productsBox = document.createElement("div");
+    productsBox.className = "admin-subbox";
+    const pTitle = document.createElement("h3");
+    pTitle.className = "admin-subbox-title";
+    pTitle.textContent = "취급 상품군 설정";
+    const pHelp = document.createElement("p");
+    pHelp.className = "admin-subbox-help";
+    pHelp.textContent =
+      "후추 네비게이션 첫 화면에서 선택 가능한 상품군입니다. 해당 온투업체가 실제로 취급하는 상품만 체크해주세요.";
+    const chipRow = document.createElement("div");
+    chipRow.className = "admin-chip-row";
+
+    (PRODUCT_GROUPS || []).forEach((pg) => {
+      const label = document.createElement("label");
+      label.className = "admin-chip-check";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = `lender-product-${lender.id}-${pg.key}`;
+      cb.checked = Array.isArray(lender.products)
+        ? lender.products.includes(pg.key)
+        : false;
+      const span = document.createElement("span");
+      span.textContent = pg.label;
+      label.appendChild(cb);
+      label.appendChild(span);
+      chipRow.appendChild(label);
+    });
+
+    productsBox.appendChild(pTitle);
+    productsBox.appendChild(pHelp);
+    productsBox.appendChild(chipRow);
+    inner.appendChild(productsBox);
+
+    // 3) 상담 채널
+    const contactBox = document.createElement("div");
+    contactBox.className = "admin-subbox";
+    const cTitle = document.createElement("h3");
+    cTitle.className = "admin-subbox-title";
+    cTitle.textContent = "상담 채널 정보";
+    const cHelp = document.createElement("p");
+    cHelp.className = "admin-subbox-help";
+    cHelp.innerHTML =
+      "유선상담 / 카카오톡 채팅상담 등 실제로 연결할 채널 정보를 입력해주세요.<br />" +
+      "네비게이션 결과 화면에서 온투업체 카드에 버튼으로 노출됩니다.";
+
+    const contactGrid = document.createElement("div");
+    contactGrid.className = "admin-field-grid";
+
+    const phoneField = document.createElement("div");
+    phoneField.className = "admin-field";
+    const phoneLabel = document.createElement("label");
+    phoneLabel.setAttribute("for", `lender-phone-${lender.id}`);
+    phoneLabel.textContent = "유선상담 전화번호";
+    const phoneInput = document.createElement("input");
+    phoneInput.type = "text";
+    phoneInput.className = "admin-input";
+    phoneInput.id = `lender-phone-${lender.id}`;
+    phoneInput.placeholder = "예) 02-1234-5678";
+    phoneInput.value = lender.phoneNumber || "";
+    phoneField.appendChild(phoneLabel);
+    phoneField.appendChild(phoneInput);
+
+    const kakaoField = document.createElement("div");
+    kakaoField.className = "admin-field";
+    const kakaoLabel = document.createElement("label");
+    kakaoLabel.setAttribute("for", `lender-kakao-${lender.id}`);
+    kakaoLabel.textContent = "카카오톡 채팅상담 URL";
+    const kakaoInput = document.createElement("input");
+    kakaoInput.type = "text";
+    kakaoInput.className = "admin-input";
+    kakaoInput.id = `lender-kakao-${lender.id}`;
+    kakaoInput.placeholder = "예) https://pf.kakao.com/...";
+    kakaoInput.value = lender.kakaoUrl || "";
+    kakaoField.appendChild(kakaoLabel);
+    kakaoField.appendChild(kakaoInput);
+
+    contactGrid.appendChild(phoneField);
+    contactGrid.appendChild(kakaoField);
+
+    contactBox.appendChild(cTitle);
+    contactBox.appendChild(cHelp);
+    contactBox.appendChild(contactGrid);
+
+    inner.appendChild(contactBox);
+
+    panel.appendChild(inner);
+
+    // 토글 이벤트
+    headerBtn.addEventListener("click", () => {
+      const isHidden = panel.classList.contains("hide");
+      if (isHidden) {
+        panel.classList.remove("hide");
+      } else {
+        panel.classList.add("hide");
+      }
+    });
+
+    card.appendChild(headerBtn);
+    card.appendChild(panel);
+
+    container.appendChild(card);
+  });
+}
+
+// 폼 → lendersConfig JSON 만들기
 function collectLendersConfigFromForm() {
-  const listEl = document.getElementById("lenderList");
-  if (!listEl) return {};
+  const result = { lenders: {} };
 
-  const cards = listEl.querySelectorAll(".lender-card");
-  const result = {};
+  LENDERS_MASTER.forEach((m) => {
+    const id = m.id;
+    const name = m.name;
 
-  cards.forEach((card) => {
-    const lenderId = card.dataset.lenderId;
-    if (!lenderId) return;
+    const activeInput = document.getElementById(`lender-active-${id}`);
+    const partnerInput = document.getElementById(`lender-partner-${id}`);
+    const phoneInput = document.getElementById(`lender-phone-${id}`);
+    const kakaoInput = document.getElementById(`lender-kakao-${id}`);
 
-    const displayNameEl = card.querySelector(".js-lender-displayName");
-    const activeEl = card.querySelector(".js-lender-active");
-    const partnerEl = card.querySelector(".js-lender-partner");
-
-    const displayName = displayNameEl ? displayNameEl.value.trim() : "";
-    const isActiveNewLoan = activeEl ? !!activeEl.checked : true;
-    const isPartner = partnerEl ? !!partnerEl.checked : false;
-
-    // 공통 helper – 체크된 값 수집
-    function collectChecked(name) {
-      const inputs = card.querySelectorAll(`input[data-group="${name}"]`);
-      const arr = [];
-      inputs.forEach((inp) => {
-        if (inp.checked) arr.push(inp.value);
-      });
-      return arr;
-    }
-
-    const productGroups = collectChecked("productGroups");
-    const propertyTypes = collectChecked("propertyTypes");
-    const allowedRegions = collectChecked("regions");
-
-    // 최소 금액
-    const minAmountByPropertyType = {};
-    const minAmountInputs = card.querySelectorAll(".js-min-amount");
-    minAmountInputs.forEach((inp) => {
-      const prop = inp.getAttribute("data-prop");
-      if (!prop) return;
-      const val = getMoneyValue(inp);
-      if (val > 0) {
-        minAmountByPropertyType[prop] = val;
-      }
+    const products = [];
+    PRODUCT_GROUPS.forEach((pg) => {
+      const cb = document.getElementById(`lender-product-${id}-${pg.key}`);
+      if (cb && cb.checked) products.push(pg.key);
     });
 
-    // LTV/금리
-    const loanTypeSummary = {};
-    const ltRows = card.querySelectorAll(".admin-loantype-row");
-    ltRows.forEach((row) => {
-      const lt = row.getAttribute("data-loan-type");
-      if (!lt) return;
-      const maxLtvEl = row.querySelector(".js-lt-maxltv");
-      const rateMinEl = row.querySelector(".js-lt-ratemin");
-      const rateMaxEl = row.querySelector(".js-lt-ratemax");
-
-      const maxLtvPct =
-        maxLtvEl && maxLtvEl.value !== "" ? Number(maxLtvEl.value) : NaN;
-      const rateMinPct =
-        rateMinEl && rateMinEl.value !== "" ? Number(rateMinEl.value) : NaN;
-      const rateMaxPct =
-        rateMaxEl && rateMaxEl.value !== "" ? Number(rateMaxEl.value) : NaN;
-
-      if (isNaN(maxLtvPct) && isNaN(rateMinPct) && isNaN(rateMaxPct)) {
-        return;
-      }
-
-      const obj = {};
-      if (!isNaN(maxLtvPct)) obj.maxLtv = maxLtvPct / 100;
-      if (!isNaN(rateMinPct)) obj.rateMin = rateMinPct / 100;
-      if (!isNaN(rateMaxPct)) obj.rateMax = rateMaxPct / 100;
-
-      loanTypeSummary[lt] = obj;
-    });
-
-    // 6-1 추가 정보
-    const extraConditions = {
-      incomeTypes: collectChecked("extra-income"),
-      creditBuckets: collectChecked("extra-credit"),
-      repayPlans: collectChecked("extra-repay"),
-      needTiming: collectChecked("extra-timing"),
-      specialFlags: collectChecked("extra-flags"),
-    };
-
-    // 상담채널
-    const phoneEl = card.querySelector(".js-contact-phone");
-    const kakaoEl = card.querySelector(".js-contact-kakao");
-
-    const contact = {
-      phone: phoneEl ? phoneEl.value.trim() : "",
-      kakaoUrl: kakaoEl ? kakaoEl.value.trim() : "",
-    };
-
-    result[lenderId] = {
-      id: lenderId,
-      displayName: displayName || undefined,
-      isActiveNewLoan,
-      isPartner,
-      productGroups,
-      propertyTypes,
-      allowedRegions,
-      minAmountByPropertyType,
-      loanTypeSummary,
-      extraConditions,
-      contact,
+    result.lenders[id] = {
+      id,
+      name,
+      isActive: !!(activeInput && activeInput.checked),
+      isPartner: !!(partnerInput && partnerInput.checked),
+      products,
+      phoneNumber: phoneInput ? phoneInput.value.trim() : "",
+      kakaoUrl: kakaoInput ? kakaoInput.value.trim() : ""
     };
   });
 
   return result;
 }
 
-// 서버 저장
-async function saveLendersConfigToServer() {
-  const statusEl = document.getElementById("lenderConfigStatus");
-
-  const newConfig = collectLendersConfigFromForm();
-  lendersConfig = newConfig;
-
+// 미리보기 영역 업데이트
+function updateLendersConfigPreview() {
+  const pre = document.getElementById("lendersConfigPreview");
+  if (!pre) return;
   try {
-    const res = await fetch(LOAN_CONFIG_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // byType은 아직 사용 안하지만, API 스키마상 함께 보낼 수 있음
-        byType: {},
-        lenders: lendersConfig,
-      }),
-    });
+    pre.textContent = JSON.stringify(lendersConfig, null, 2);
+  } catch (e) {
+    pre.textContent = "(미리보기 생성 중 오류)";
+  }
+}
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`loan-config 저장 실패: HTTP ${res.status} ${errText}`);
-    }
+// 저장 버튼 핸들러
+function setupLendersSaveButton() {
+  const btn = document.getElementById("saveLendersConfigBtn");
+  const statusEl = document.getElementById("lendersSaveStatus");
+  if (!btn) return;
 
-    const json = await res.json();
-    console.log("loan-config saved:", json);
+  btn.addEventListener("click", async () => {
+    const payload = collectLendersConfigFromForm();
 
-    // localStorage 백업
     try {
-      localStorage.setItem(
-        LENDERS_LOCAL_KEY,
-        JSON.stringify({ lenders: lendersConfig })
-      );
+      const res = await fetch("/api/loan-config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
+      }
+
+      const json = await res.json().catch(() => null);
+      console.log("loan-config saved:", json);
+
+      // 서버 응답이 lenders 구조를 돌려주면 반영
+      if (json && typeof json === "object" && json.lenders) {
+        lendersConfig = json;
+      } else {
+        lendersConfig = payload;
+      }
+
+      mergeLendersWithMaster();
+      updateLendersConfigPreview();
+
+      if (statusEl) {
+        statusEl.textContent = "온투업체 설정이 서버에 저장되었습니다.";
+        setTimeout(() => {
+          if (statusEl.textContent.includes("저장되었습니다")) {
+            statusEl.textContent = "";
+          }
+        }, 3000);
+      }
+
+      alert("온투업체 설정이 저장되었습니다.");
     } catch (e) {
-      console.warn("lenders local backup failed:", e);
+      console.error("saveLendersConfig error:", e);
+      alert("온투업체 설정 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
     }
-
-    if (statusEl) {
-      statusEl.textContent = "온투업체 설정이 서버에 저장되었습니다.";
-      setTimeout(() => {
-        if (statusEl.textContent.includes("저장되었습니다")) {
-          statusEl.textContent = "";
-        }
-      }, 3000);
-    }
-
-    alert("온투업체 설정이 서버에 저장되었습니다.");
-  } catch (err) {
-    console.error("saveNaviLoanConfigToServer error:", err);
-    alert(
-      "온투업체 설정 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요."
-    );
-  }
-}
-
-function setupLendersAdmin() {
-  const saveBtn = document.getElementById("saveLendersConfigBtn");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
-      saveLendersConfigToServer();
-    });
-  }
+  });
 }
 
 // ------------------------------------------------------
-// 5. 초기화
+// 초기화
 // ------------------------------------------------------
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  // 공통
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
 
-  // 3) 온투업 통계
+  // 통계
   loadStatsFromStorage();
   setupStatsInteractions();
 
-  // 4) 온투업체 설정
-  await loadLendersConfigFromServer();
-  renderLenderList();
-  setupLendersAdmin();
+  // 온투업체 설정
+  renderLendersList(); // 서버 로드 전, 빈 상태라도 기본 구조만 만들어두기
+  updateLendersConfigPreview();
+  setupLendersSaveButton();
+  loadLendersConfigFromServer();
 });
