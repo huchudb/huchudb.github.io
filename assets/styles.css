@@ -1162,8 +1162,8 @@ body.beta-body button{width:auto;}
   padding:0;
   background:#020617;
   box-shadow:none;
-  aspect-ratio:16/9;   /* ✅ 여기로 옮김: 모든 해상도에서 높이 확보 */
-  }
+  aspect-ratio:16/9;   /* ✅ 높이 확보 */
+}
 
 .beta-hero-banner img{
   display:block;
@@ -1191,7 +1191,8 @@ body.beta-body button{width:auto;}
   top:50%;
   transform:translateY(-50%);
   border:0;
-  background:transparent;
+  background:transparent !important; /* 완전 투명 */
+  box-shadow:none !important;
   color:#ffffff;
   font-size:32px;
   font-weight:700;
@@ -1200,8 +1201,12 @@ body.beta-body button{width:auto;}
   line-height:1;
   text-shadow:0 0 8px rgba(0,0,0,0.7);
 }
-.hero-nav--prev{left:12px;}
-.hero-nav--next{right:12px;}
+.hero-nav--prev{
+  left:0;   /* 제일 좌측 */
+}
+.hero-nav--next{
+  right:0;  /* 제일 우측 */
+}
 .hero-nav:focus{outline:none;}
 
 /* 오른쪽 히어로 영역 */
@@ -1270,34 +1275,31 @@ body.beta-body button{width:auto;}
   gap:10px;
 }
 
-/* 모바일 & 작은 화면: 대출현황 2x2 카드 배치 */
+/* 모바일 & 작은 화면: 대출현황 2x2 카드 배치 + 우측 정렬 */
 @media (max-width: 900px){
   .beta-loanstatus-grid{
     grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:10px;
   }
 
-  /* ✅ 값 컨테이너를 카드 너비 전체로 늘리고, 오른쪽 정렬 */
   .beta-loanstatus-item__value{
-    display:flex;               /* inline-flex → flex */
+    display:flex;
     align-items:baseline;
-    justify-content:flex-end;   /* 오른쪽으로 붙이기 */
+    justify-content:flex-end;   /* 오른쪽 정렬 */
     gap:4px;
     flex-wrap:nowrap;
     white-space:nowrap;
     font-size:18px;
     line-height:1.4;
-    width:100%;                 /* 카드 안에서 전체 폭 사용 */
+    width:100%;                 /* 카드 너비 꽉 채움 */
   }
-  
-  /* 숫자 스타일 */
+
   .beta-loanstatus-item__value .money-number{
     font-weight:800;
     color:#111827;
     font-variant-numeric:tabular-nums;
   }
 
-  /* 단위(조/억/만원) 스타일 */
   .beta-loanstatus-item__value .money-unit{
     font-weight:600;
     color:#737373;
@@ -1367,11 +1369,11 @@ body.beta-body button{width:auto;}
   color:#737373;
 }
 
-/* 상품유형별 대출잔액 – 출처 문구 */
+/* 상품유형별 대출잔액 – 출처 문구 (카드 바깥) */
 .beta-product-source-note{
   margin-top:6px;
-  font-size:13px;   /* 누적대출금액 라벨과 동일 */
-  color:#737373;    /* 누적대출금액 라벨과 동일 */
+  font-size:13px;
+  color:#737373;
   text-align:right;
 }
 
@@ -1385,7 +1387,7 @@ body.beta-body button{width:auto;}
 
 /* 도넛 카드 내부 */
 .beta-product-donut-wrap{
-  position:relative;                     /* ✅ 기준 컨테이너 */
+  position:relative;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -1411,13 +1413,13 @@ body.beta-body button{width:auto;}
   height:100%;
 }
 
-/* ✅ 모바일 도넛 중앙 색상 칩 복구 */
+/* 도넛 중앙 색상 칩 */
 .beta-product-donut-center__chip{
   display:inline-block;
   width:10px;
   height:10px;
   border-radius:3px;
-  background:transparent;  /* 기본은 투명, JS에서 색 입힘 */
+  background:transparent;
   flex-shrink:0;
 }
 
@@ -1440,19 +1442,19 @@ body.beta-body button{width:auto;}
 .beta-product-donut-center__value{
   font-size:15px;
   font-weight:800;
-  color:#111827;    /* 검정 */
+  color:#111827;
   white-space:nowrap;
 }
 
 /* 금액 숫자 / 단위 공통 스타일 */
 .money-number{
-  font-size:1em;      /* 부모 폰트 크기 그대로 */
+  font-size:1em;
   font-weight:800;
   color:#111827;
 }
 
 .money-unit{
-  font-size:0.78em;   /* 숫자보다 살짝 작게 */
+  font-size:0.78em;
   font-weight:700;
   color:#737373;
   margin-left:2px;
@@ -1460,7 +1462,7 @@ body.beta-body button{width:auto;}
 
 /* 가운데 텍스트/칩 */
 .beta-product-donut-center{
-  position:absolute;                     /* ✅ wrap 기준으로 절대 위치 */
+  position:absolute;
   left:50%;
   top:50%;
   transform:translate(-50%,-50%);
@@ -1470,7 +1472,7 @@ body.beta-body button{width:auto;}
   justify-content:center;
   text-align:center;
   pointer-events:none;
-  z-index:1;                             /* 캔버스 위에 오도록 */
+  z-index:1;
 }
 
 /* PC 화면에서는 도넛 가운데 텍스트 숨기기 */
@@ -1525,7 +1527,7 @@ body.beta-body button{width:auto;}
 .beta-product-box__amount{
   font-size:18px;
   font-weight:800;
-  color:#111827;  /* 기존 파란색 → 검정 */
+  color:#111827;
   line-height:1.35;
   white-space:nowrap;
   text-align:right;
@@ -2069,42 +2071,3 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
