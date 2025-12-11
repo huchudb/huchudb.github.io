@@ -1277,9 +1277,13 @@ body.beta-body button{width:auto;}
     gap:10px;
   }
 
-  .beta-loanstatus-item__value{
-    font-size:clamp(14px, 3.6vw, 16px);
-  }
+.beta-loanstatus-item__value{
+  text-align:right;
+  font-size:18px;
+  font-weight:800;
+  line-height:1.4;
+  color:#111827;   /* 숫자/단위 모두 검정 계열 */
+}
 
   .beta-loanstatus-item__label{
     font-size:12px;
@@ -1405,8 +1409,22 @@ body.beta-body button{width:auto;}
 .beta-product-donut-center__value{
   font-size:15px;
   font-weight:800;
-  color:#0b2a66;
+  color:#111827;    /* 검정 */
   white-space:nowrap;
+}
+
+/* 금액 숫자 / 단위 공통 스타일 */
+.money-number{
+  font-size:1em;      /* 부모 폰트 크기 그대로 */
+  font-weight:800;
+  color:#111827;
+}
+
+.money-unit{
+  font-size:0.78em;   /* 숫자보다 살짝 작게 */
+  font-weight:700;
+  color:#111827;
+  margin-left:2px;
 }
 
 /* 가운데 텍스트/칩 */
@@ -1476,12 +1494,12 @@ body.beta-body button{width:auto;}
 .beta-product-box__amount{
   font-size:18px;
   font-weight:800;
-  color:#0b2a66;
+  color:#111827;  /* 기존 파란색 → 검정 */
   line-height:1.35;
   white-space:nowrap;
-  text-align:right;   /* 추가: 금액 우측 정렬 */
+  text-align:right;
 }
-
+  
 /* 반응형 – 상품유형 영역 */
 @media(max-width:900px){
   .beta-product-grid{
@@ -2020,6 +2038,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
