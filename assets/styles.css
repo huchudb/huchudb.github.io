@@ -1341,6 +1341,9 @@ body.beta-body button{width:auto;}
     font-size:12px;
   }
 }
+.loan-amount-text{
+  display:inline-block;
+}
 
 /* 홈 전용 상품유형 섹션 래퍼 */
 .beta-product-section{
@@ -2057,6 +2060,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
