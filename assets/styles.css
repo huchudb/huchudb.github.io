@@ -1492,13 +1492,13 @@ body.beta-body button{width:auto;}
 /* 모바일(좁은 화면): 도넛만 보여주고 카드 숨기기, 타이틀 폰트/레이아웃 조정 */
 @media(max-width:768px){
   .beta-dashboard-title{
-    flex-direction:column;
+    flex-direction:column-reverse;
     align-items:flex-start;
     font-size:22px;
     gap:4px;
   }
   .beta-dashboard-title-month{
-    font-size:13px;
+    font-size:14px;
   }
   .beta-product-boxes{
     display:none;
@@ -2020,6 +2020,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
