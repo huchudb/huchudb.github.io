@@ -93,7 +93,6 @@ function formatKoreanCurrencyJo(num) {
   );
 }
 
-
 // 'YYYY-MM' → 'YYYY년 M월'
 function formatMonthLabel(ym) {
   if (!ym || typeof ym !== "string") return "";
@@ -105,18 +104,18 @@ function formatMonthLabel(ym) {
 // ───────── 대출현황 금액 텍스트 자동 폰트 축소 ─────────
 function autoFitLoanStatusText() {
   const els = document.querySelectorAll(".beta-loanstatus-item__value .loan-amount-text");
+
   els.forEach((el) => {
     const parent = el.parentElement;
     if (!parent) return;
 
-    // 기본 폰트 크기와 최소 폰트 크기 설정
-    let fontSize = 18;   // 기본값 (현재 쓰는 크기와 맞춰도 됨)
-    const minSize = 12;  // 이 이하로는 줄이지 않기
+    // 현재 적용된 폰트 크기를 기준으로 시작
+    const computed = window.getComputedStyle(el);
+    let fontSize = parseFloat(computed.fontSize) || 18;
+    const minSize = 9;  // 이 이하로는 안 줄임
 
-    el.style.fontSize = fontSize + "px";
     el.style.whiteSpace = "nowrap";
 
-    // 부모 폭을 넘어가는 동안만 폰트 크기 1px씩 줄이기
     while (el.scrollWidth > parent.clientWidth && fontSize > minSize) {
       fontSize -= 1;
       el.style.fontSize = fontSize + "px";
@@ -205,6 +204,7 @@ async function fetchOntuStats() {
   }
 }
 
+// ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("dashboardMonth");
@@ -226,9 +226,13 @@ function renderLoanStatus(summary, monthStr) {
 
   const items = [
     {
+      // 🔹 49개 → 숫자/단위 분리 (개 = money-unit)
       label: "데이터 수집 온투업체수",
       value: summary.dataFirms != null
-        ? `${summary.dataFirms.toLocaleString("ko-KR")}개`
+        ? (
+            `<span class="money-number">${summary.dataFirms.toLocaleString("ko-KR")}</span>` +
+            `<span class="money-unit">개</span>`
+          )
         : "-"
     },
     {
@@ -262,7 +266,7 @@ function renderLoanStatus(summary, monthStr) {
     </div>
   `;
 
-  // 🔹 카드 렌더 후, 자동 폰트 축소 적용
+  // 🔹 카드 렌더 후, 자동 폰트 축소 적용 (PC+모바일 공통)
   autoFitLoanStatusText();
 }
 
@@ -372,7 +376,7 @@ function renderProductSection(summary, byType) {
     }
 
     centerLabelEl.textContent = labels[index];
-    // 🔹 HTML(span) 그대로 넣어주기
+    // 🔹 HTML(span) 그대로 넣어주기 → .money-unit 회색 적용
     centerValueEl.innerHTML   = formatKoreanCurrencyJo(amounts[index]);
 
     if (centerChipEl) {
@@ -493,7 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initOntuStats();
   setupBetaMenu();
 
-   // 🔹 화면 크기 바뀔 때마다 금액 폰트 다시 맞추기
+  // 🔹 화면 크기 바뀔 때마다 금액 폰트 다시 맞추기
   window.addEventListener("resize", () => {
     autoFitLoanStatusText();
   });
