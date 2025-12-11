@@ -1277,32 +1277,33 @@ body.beta-body button{width:auto;}
     gap:10px;
   }
 
-/* 기존 .beta-loanstatus-item__value 블록을 이걸로 교체 */
-.beta-loanstatus-item__value{
-  display:inline-flex;          /* 숫자 + 단위 한 줄 배치 */
-  align-items:baseline;
-  justify-content:flex-end;
-  gap:4px;
-  flex-wrap:nowrap;
-  white-space:nowrap;
-  font-size:18px;
-  line-height:1.4;
-}
+  /* ✅ 값 컨테이너를 카드 너비 전체로 늘리고, 오른쪽 정렬 */
+  .beta-loanstatus-item__value{
+    display:flex;               /* inline-flex → flex */
+    align-items:baseline;
+    justify-content:flex-end;   /* 오른쪽으로 붙이기 */
+    gap:4px;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+    font-size:18px;
+    line-height:1.4;
+    width:100%;                 /* 카드 안에서 전체 폭 사용 */
+  }
   
-/* 숫자 스타일 */
-.beta-loanstatus-item__value .money-number{
-  font-weight:800;
-  color:#111827;        /* 숫자: 진한 검정 */
-  font-variant-numeric:tabular-nums;
-}
+  /* 숫자 스타일 */
+  .beta-loanstatus-item__value .money-number{
+    font-weight:800;
+    color:#111827;
+    font-variant-numeric:tabular-nums;
+  }
 
-/* 단위(조/억/만원) 스타일 */
-.beta-loanstatus-item__value .money-unit{
-  font-weight:600;
-  color:#737373;        /* 단위: 요청한 회색 */
-  font-size:0.85em;     /* 숫자보다 살짝 작게 */
-  margin-left:2px;
-}
+  /* 단위(조/억/만원) 스타일 */
+  .beta-loanstatus-item__value .money-unit{
+    font-weight:600;
+    color:#737373;
+    font-size:0.85em;
+    margin-left:2px;
+  }
 
   .beta-loanstatus-item__label{
     font-size:12px;
@@ -1364,6 +1365,14 @@ body.beta-body button{width:auto;}
   font-size:13px;
   font-weight:nomal;
   color:#737373;
+}
+
+/* 상품유형별 대출잔액 – 출처 문구 */
+.beta-product-source-note{
+  margin-top:6px;
+  font-size:13px;   /* 누적대출금액 라벨과 동일 */
+  color:#737373;    /* 누적대출금액 라벨과 동일 */
+  text-align:right;
 }
 
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
@@ -2060,6 +2069,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
