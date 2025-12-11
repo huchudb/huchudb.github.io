@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>후추 네비게이션 (베타) | 온투업 담보대출 길잡이</title>
+  <meta name="description" content="지역, 부동산 유형, 대출종류, 차주의 조건을 입력하면 온투업(P2P) 담보대출 상품을 취급하는 온투업체를 네비게이션해주는 베타 서비스입니다.">
+
+  <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+  <!-- 네비게이션 전용 스크립트 -->
+  <script type="module" src="/assets/navi-beta.js?v=20251211-beta"></script>
+</head>
+<body class="beta-body">
+
+  <!-- 상단 헤더: 베타 통계/관리자와 동일 구조 -->
+  <header class="huchu-header beta-header" role="banner">
+    <div class="huchu-header__inner beta-header__inner">
+      <!-- 로고 -->
+      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
+        <span class="logo-fallback">
+          <span class="logo-mark">%</span>
+          <span class="logo-text">후추 Huchu</span>
+        </span>
+      </a>
+
+      <!-- MENU + 드롭다운 -->
+      <button id="betaMenuToggle"
+              class="beta-menu-toggle"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
+
+      <div id="betaMenuPanel" class="beta-menu-panel hide">
+        <a class="beta-menu-link" href="/beta/">온투업 대출통계</a>
+        <a class="beta-menu-link" href="/products/">온투업 대출상품정보</a>
+        <a class="beta-menu-link" href="/">담보대출 계산기</a>
+        <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
+        <a class="beta-menu-link" href="/company.html">회사소개</a>
+        <a class="beta-menu-link" href="/contact.html">광고문의</a>
+        <a class="beta-menu-link" href="/beta/admin-beta.html">관리자(베타)</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="beta-main">
+    <div class="beta-inner">
+
+      <!-- 인트로 -->
+      <section class="beta-section">
+        <div class="beta-section__header">
+          <div class="beta-section__title-wrap">
+            <span class="icon-dot dot-gold"></span>
+            <h1 class="beta-section__title">후추 네비게이션 (베타)</h1>
+          </div>
+        </div>
+        <div class="beta-card beta-card--wide">
+          <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
+            내 상황에 맞는 <strong>온투업(P2P) 대출기관(온투업체)</strong>을 찾아주는 네비게이션 도구입니다.
+          </p>
+          <p style="margin:0 0 4px;font-size:12px;color:#6b7280;">
+            · 지역, 부동산 유형, 대출종류, 대출금액, 차주 조건(6-1)을 단계별로 입력하면<br />
+            &nbsp;&nbsp;관리자 페이지(<code>beta/admin-beta.html</code>)에 등록된 조건을 기준으로 가능한 온투업체를 보여줍니다.
+          </p>
+          <p style="margin:0;font-size:11px;color:#9ca3af;">
+            · 베타 버전으로, 실제 대출 심사 결과와는 다를 수 있습니다.<br />
+            · &ldquo;후추 네비게이션&rdquo;은 대출을 직접 실행하지 않고, <strong>가능성이 있는 온투업체를 안내하는 길잡이</strong> 역할만 수행합니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- 네비게이션 본체 -->
+      <section class="beta-section">
+        <div class="beta-card beta-card--wide" id="huchuNaviApp">
+
+          <!-- Step 헤더 / 진행바 -->
+          <div class="navi-stepper">
+            <div class="navi-stepper__item is-active" data-step="1">
+              <span class="navi-stepper__index">1</span>
+              <span class="navi-stepper__label">대출기관 선택</span>
+            </div>
+            <div class="navi-stepper__item" data-step="2">
+              <span class="navi-stepper__index">2</span>
+              <span class="navi-stepper__label">지역 선택</span>
+            </div>
+            <div class="navi-stepper__item" data-step="3">
+              <span class="navi-stepper__index">3</span>
+              <span class="navi-stepper__label">부동산 유형</span>
+            </div>
+            <div class="navi-stepper__item" data-step="4">
+              <span class="navi-stepper__index">4</span>
+              <span class="navi-stepper__label">대출종류</span>
+            </div>
+            <div class="navi-stepper__item" data-step="5">
+              <span class="navi-stepper__index">5</span>
+              <span class="navi-stepper__label">핵심정보 입력</span>
+            </div>
+            <div class="navi-stepper__item" data-step="6">
+              <span class="navi-stepper__index">6</span>
+              <span class="navi-stepper__label">자동 계산</span>
+            </div>
+            <div class="navi-stepper__item" data-step="6-1">
+              <span class="navi-stepper__index">6-1</span>
+              <span class="navi-stepper__label">차주 추가정보</span>
+            </div>
+            <div class="navi-stepper__item" data-step="7">
+              <span class="navi-stepper__index">7</span>
+              <span class="navi-stepper__label">결과</span>
+            </div>
+          </div>
+
+          <!-- Step 컨테이너 -->
+          <div class="navi-steps-wrapper">
+
+            <!-- STEP 1. 대출기관 선택 -->
+            <section class="navi-step-panel is-active" data-step-panel="1">
+              <h2 class="navi-step-title">1. 대출기관 선택</h2>
+              <p class="navi-step-desc">
+                먼저 어떤 종류의 대출기관을 이용할지 선택해주세요.
+              </p>
+
+              <div class="navi-chip-row">
+                <button type="button"
+                        class="navi-chip navi-chip--primary is-selected"
+                        data-navi-field="lenderCategory"
+                        data-navi-value="온투업">
+                  온라인투자연계금융업(P2P)
+                </button>
+                <button type="button"
+                        class="navi-chip navi-chip--disabled"
+                        disabled
+                        data-navi-field="lenderCategory"
+                        data-navi-value="대부업">
+                  대부업 (추후 지원 예정)
+                </button>
+              </div>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>
+                  다음 단계 (지역 선택)
+                </button>
+              </div>
+            </section>
+
+            <!-- STEP 2. 지역 선택 -->
+            <section class="navi-step-panel" data-step-panel="2">
+              <h2 class="navi-step-title">2. 지역 선택</h2>
+              <p class="navi-step-desc">
+                담보물(또는 부동산)이 위치한 지역을 선택해주세요.
+              </p>
+
+              <div class="navi-chip-row navi-chip-row--wrap" data-navi-group="region">
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="서울">서울</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="경기">경기</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="인천">인천</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="충청">충청</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="전라">전라</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="경상">경상</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="강원">강원</button>
+                <button type="button" class="navi-chip" data-navi-field="region" data-navi-value="제주">제주</button>
+              </div>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>다음 (부동산 유형)</button>
+              </div>
+            </section>
+
+            <!-- STEP 3. 부동산 유형 선택 -->
+            <section class="navi-step-panel" data-step-panel="3">
+              <h2 class="navi-step-title">3. 부동산 유형 선택</h2>
+              <p class="navi-step-desc">
+                담보로 제공할 부동산의 유형을 선택해주세요.
+              </p>
+
+              <div class="navi-chip-row navi-chip-row--wrap" data-navi-group="propertyType">
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="아파트">아파트</button>
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="오피스텔">오피스텔</button>
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="빌라·연립">빌라·연립</button>
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="단독·다가구">단독·다가구</button>
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="토지·임야">토지·임야</button>
+                <button type="button" class="navi-chip" data-navi-field="propertyType" data-navi-value="근린생활시설">근린생활시설</button>
+              </div>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>다음 (대출종류)</button>
+              </div>
+            </section>
+
+            <!-- STEP 4. 대출종류 선택 -->
+            <section class="navi-step-panel" data-step-panel="4">
+              <h2 class="navi-step-title">4. 대출종류 선택</h2>
+              <p class="navi-step-desc">
+                이용하고자 하는 대출의 성격을 선택해주세요.
+              </p>
+
+              <div class="navi-chip-row navi-chip-row--wrap" data-navi-group="loanType">
+                <button type="button" class="navi-chip" data-navi-field="loanType" data-navi-value="일반담보대출">일반담보대출</button>
+                <button type="button" class="navi-chip" data-navi-field="loanType" data-navi-value="임대보증금반환대출">임대보증금반환대출</button>
+                <button type="button" class="navi-chip" data-navi-field="loanType" data-navi-value="지분대출">지분대출</button>
+                <button type="button" class="navi-chip" data-navi-field="loanType" data-navi-value="경락잔금대출">경락잔금대출</button>
+                <button type="button" class="navi-chip" data-navi-field="loanType" data-navi-value="대환대출">대환대출</button>
+              </div>
+
+              <p class="navi-step-desc" style="margin-top:10px;font-size:12px;color:#9ca3af;">
+                ※ 선택한 부동산 유형에 따라 실제 가능한 대출종류는 달라질 수 있습니다.
+              </p>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>다음 (핵심정보 입력)</button>
+              </div>
+            </section>
+
+            <!-- STEP 5. 대출종류별 핵심정보 입력 -->
+            <section class="navi-step-panel" data-step-panel="5">
+              <h2 class="navi-step-title">5. 대출 핵심정보 입력</h2>
+              <p class="navi-step-desc">
+                선택하신 대출종류에 따라 필요한 정보를 입력해주세요.
+              </p>
+
+              <!-- 공통: 현재 선택 상태 요약 -->
+              <div class="navi-summary">
+                <span class="navi-summary__item" id="summaryRegion">지역: -</span>
+                <span class="navi-summary__item" id="summaryPropertyType">부동산: -</span>
+                <span class="navi-summary__item" id="summaryLoanType">대출종류: -</span>
+              </div>
+
+              <!-- 대출종류별 폼: JS가 표시/숨김 제어 -->
+              <div id="loanFormContainer">
+
+                <!-- 일반담보대출 폼 -->
+                <div class="navi-loan-form" data-loan-form="일반담보대출">
+                  <h3 class="navi-loan-form__title">[일반담보대출] 기본정보</h3>
+                  <div class="navi-form-grid">
+                    <label class="admin-field">
+                      시세 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="marketPrice" />
+                    </label>
+
+                    <div class="admin-field">
+                      거주형태
+                      <div class="navi-chip-row">
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="본인거주">본인거주</button>
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="임대중">임대중</button>
+                      </div>
+                    </div>
+
+                    <label class="admin-field">
+                      선순위 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorLoanAmount" />
+                    </label>
+
+                    <label class="admin-field" data-conditional="occupancy=임대중">
+                      임대보증금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="depositAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      필요 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="requestedAmount" />
+                      <span class="navi-input-help" data-min-amount-hint></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 임대보증금반환대출 폼 -->
+                <div class="navi-loan-form" data-loan-form="임대보증금반환대출">
+                  <h3 class="navi-loan-form__title">[임대보증금반환대출] 기본정보</h3>
+                  <div class="navi-form-grid">
+                    <label class="admin-field">
+                      시세 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="marketPrice" />
+                    </label>
+
+                    <label class="admin-field">
+                      반환할 임대보증금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="depositAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      필요 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="requestedAmount" />
+                      <span class="navi-input-help" data-min-amount-hint></span>
+                      <span class="navi-input-warning" data-warning="deposit-lower" style="display:none;">
+                        주의: 반환할 임대보증금액보다 낮습니다.
+                      </span>
+                    </label>
+
+                    <div class="admin-field">
+                      선순위대출 여부
+                      <div class="navi-chip-row">
+                        <button type="button" class="navi-chip" data-navi-input="hasSeniorLoan" data-navi-value="yes">있음</button>
+                        <button type="button" class="navi-chip" data-navi-input="hasSeniorLoan" data-navi-value="no">없음</button>
+                      </div>
+                    </div>
+
+                    <label class="admin-field" data-conditional="hasSeniorLoan=yes">
+                      선순위 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorLoanAmount" />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 지분대출 폼 -->
+                <div class="navi-loan-form" data-loan-form="지분대출">
+                  <h3 class="navi-loan-form__title">[지분대출] 기본정보</h3>
+                  <div class="navi-form-grid">
+                    <label class="admin-field">
+                      시세 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="marketPrice" />
+                    </label>
+
+                    <label class="admin-field">
+                      지분율 (%)
+                      <input type="number" class="admin-input" min="1" max="100" step="1" data-navi-input="shareRatio" />
+                    </label>
+
+                    <div class="admin-field">
+                      거주형태
+                      <div class="navi-chip-row">
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="본인거주">본인거주</button>
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="임대중">임대중</button>
+                      </div>
+                    </div>
+
+                    <label class="admin-field">
+                      선순위 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorLoanAmount" />
+                    </label>
+
+                    <label class="admin-field" data-conditional="occupancy=임대중">
+                      임대보증금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="depositAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      필요 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="requestedAmount" />
+                      <span class="navi-input-help" data-min-amount-hint></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 경락잔금대출 폼 -->
+                <div class="navi-loan-form" data-loan-form="경락잔금대출">
+                  <h3 class="navi-loan-form__title">[경락잔금대출] 기본정보</h3>
+                  <p class="navi-step-desc" style="font-size:12px;color:#9ca3af;margin-bottom:6px;">
+                    시세: 감정가와 낙찰가 중 더 낮은 금액을 입력해주세요.
+                  </p>
+                  <div class="navi-form-grid">
+                    <label class="admin-field">
+                      시세 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="marketPrice" />
+                    </label>
+
+                    <div class="admin-field">
+                      거주여부
+                      <div class="navi-chip-row">
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="본인거주예정">본인거주(예정)</button>
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="임대예정">임대(예정)</button>
+                      </div>
+                    </div>
+
+                    <label class="admin-field">
+                      선순위금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorLoanAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      필요 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="requestedAmount" />
+                      <span class="navi-input-help" data-min-amount-hint></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 대환대출 폼 -->
+                <div class="navi-loan-form" data-loan-form="대환대출">
+                  <h3 class="navi-loan-form__title">[대환대출] 기본정보</h3>
+                  <div class="navi-form-grid">
+                    <label class="admin-field">
+                      시세 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="marketPrice" />
+                    </label>
+
+                    <div class="admin-field">
+                      거주형태
+                      <div class="navi-chip-row">
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="본인거주">본인거주</button>
+                        <button type="button" class="navi-chip" data-navi-input="occupancy" data-navi-value="임대중">임대중</button>
+                      </div>
+                    </div>
+
+                    <label class="admin-field">
+                      선순위 - 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorLoanAmount" />
+                    </label>
+
+                    <label class="admin-field" data-conditional="occupancy=임대중">
+                      선순위 - 임대보증금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="seniorDepositAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      선순위(대출+임대보증금) 중 상환할 금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="refinancePayoffAmount" />
+                    </label>
+
+                    <label class="admin-field">
+                      필요 대출금액 (원)
+                      <input type="text" class="admin-input" data-type="money" data-navi-input="requestedAmount" />
+                      <span class="navi-input-help" data-min-amount-hint></span>
+                      <span class="navi-input-warning" data-warning="refinance-lower" style="display:none;">
+                        주의: 상환할 금액보다 낮은 금액을 입력하셨습니다.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>다음 (자동 계산)</button>
+              </div>
+            </section>
+
+            <!-- STEP 6. 자동 계산 요약 -->
+            <section class="navi-step-panel" data-step-panel="6">
+              <h2 class="navi-step-title">6. 자동 계산 결과 요약</h2>
+              <p class="navi-step-desc">
+                입력하신 정보를 바탕으로 담보가치와 대출금액을 자동 계산했습니다.
+              </p>
+
+              <div class="navi-summary-card">
+                <div class="navi-summary-row">
+                  <span class="navi-summary-label">담보인정 시세 기준 금액</span>
+                  <span class="navi-summary-value" id="calcEffectiveCollateral">-</span>
+                </div>
+                <div class="navi-summary-row">
+                  <span class="navi-summary-label">선순위 + 임대보증금 합계</span>
+                  <span class="navi-summary-value" id="calcSeniorTotal">-</span>
+                </div>
+                <div class="navi-summary-row">
+                  <span class="navi-summary-label">필요 대출금액</span>
+                  <span class="navi-summary-value" id="calcRequestedAmount">-</span>
+                </div>
+                <div class="navi-summary-row">
+                  <span class="navi-summary-label">예상 총 LTV (선순위 + 필요대출)</span>
+                  <span class="navi-summary-value" id="calcTotalLtv">-</span>
+                </div>
+              </div>
+
+              <p class="navi-step-desc" style="font-size:12px;color:#9ca3af;">
+                ※ 실제 온투업체별 LTV·금리 기준은 관리자 페이지에서 설정된 값에 따라 달라집니다.
+              </p>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>추가 정보 입력 (선택)</button>
+              </div>
+            </section>
+
+            <!-- STEP 6-1. 차주 추가정보 -->
+            <section class="navi-step-panel" data-step-panel="6-1">
+              <h2 class="navi-step-title">6-1. 차주 추가정보 (선택)</h2>
+              <p class="navi-step-desc">
+                아래 정보를 모두 입력할 필요는 없습니다. 다만 <strong>모두 입력해주시면 보다 정확하게 온투업체를 안내</strong>할 수 있습니다.
+              </p>
+
+              <div class="navi-pill-hint">
+                선택하지 않아도 됩니다. 단, 많이 선택할수록 <strong>정확한 매칭</strong>이 가능해집니다.
+              </div>
+
+              <!-- 소득유형 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">1) 소득유형</h3>
+                <div class="navi-chip-row navi-chip-row--wrap" data-navi-group="incomeType">
+                  <button type="button" class="navi-chip" data-navi-multi="income" data-navi-value="근로소득">근로소득</button>
+                  <button type="button" class="navi-chip" data-navi-multi="income" data-navi-value="근로외증빙소득">근로외 증빙소득</button>
+                  <button type="button" class="navi-chip" data-navi-multi="income" data-navi-value="증빙소득없음">증빙소득 없음</button>
+                  <button type="button" class="navi-chip" data-navi-multi="income" data-navi-value="무증빙_이자납입가능">무증빙·이자납입 가능</button>
+                </div>
+              </div>
+
+              <!-- 신용점수 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">2) 신용점수 구간</h3>
+                <div class="navi-chip-row" data-navi-group="creditBand">
+                  <button type="button" class="navi-chip" data-navi-field="creditBand" data-navi-value="600미만">600점 미만</button>
+                  <button type="button" class="navi-chip" data-navi-field="creditBand" data-navi-value="600이상">600점 이상</button>
+                </div>
+              </div>
+
+              <!-- 상환계획 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">3) 상환계획</h3>
+                <div class="navi-chip-row navi-chip-row--wrap">
+                  <button type="button" class="navi-chip" data-navi-multi="term" data-navi-value="short">3개월 내</button>
+                  <button type="button" class="navi-chip" data-navi-multi="term" data-navi-value="mid">3개월 이상~1년 미만</button>
+                  <button type="button" class="navi-chip" data-navi-multi="term" data-navi-value="long">1년 이상</button>
+                </div>
+              </div>
+
+              <!-- 대출금 필요시기 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">4) 대출금 필요시기</h3>
+                <div class="navi-chip-row navi-chip-row--wrap">
+                  <button type="button" class="navi-chip" data-navi-multi="timing" data-navi-value="sameDay">당일</button>
+                  <button type="button" class="navi-chip" data-navi-multi="timing" data-navi-value="withinWeek">1주일 내</button>
+                  <button type="button" class="navi-chip" data-navi-multi="timing" data-navi-value="withinMonth">한달 이내</button>
+                </div>
+              </div>
+
+              <!-- 기타사항 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">5) 기타사항</h3>
+                <div class="navi-chip-row navi-chip-row--wrap">
+                  <button type="button" class="navi-chip" data-navi-multi="risk" data-navi-value="세금체납">세금체납 이력 있음</button>
+                  <button type="button" class="navi-chip" data-navi-multi="risk" data-navi-value="연체기록">연체기록 있음</button>
+                  <button type="button" class="navi-chip" data-navi-multi="risk" data-navi-value="압류·가압류">압류·가압류</button>
+                  <button type="button" class="navi-chip" data-navi-multi="risk" data-navi-value="개인회생">개인회생 이력</button>
+                </div>
+              </div>
+
+              <!-- 온투업 공통 취급 불가사항 안내 -->
+              <div class="navi-subsection">
+                <h3 class="navi-subsection__title">※ 온투업 공통 취급 불가사항</h3>
+                <div class="navi-pill-block">
+                  <span class="navi-pill">임차인·무상거주자 동의 불가</span>
+                  <span class="navi-pill">맹지</span>
+                  <span class="navi-pill">법인 소유자</span>
+                  <span class="navi-pill">시세 1억 미만</span>
+                </div>
+              </div>
+
+              <div class="navi-step-footer">
+                <button type="button" class="navi-btn navi-btn--secondary" data-navi-prev>이전</button>
+                <button type="button" class="navi-btn navi-btn--primary" data-navi-next>결과 보기</button>
+              </div>
+            </section>
+
+            <!-- STEP 7. 결과 화면 (실제 표시 자체는 모달로) -->
+            <section class="navi-step-panel" data-step-panel="7" style="display:none;">
+              <!-- 이 섹션 내용은 모달 내부와 공유되며, 직접 노출되진 않습니다. -->
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 결과 모달 -->
+  <div id="naviResultModal" class="navi-modal navi-modal--hidden" aria-hidden="true">
+    <div class="navi-modal__backdrop"></div>
+    <div class="navi-modal__dialog">
+      <header class="navi-modal__header">
+        <h2 class="navi-modal__title">네비게이션 결과</h2>
+        <button type="button" class="navi-modal__close" data-navi-close-modal aria-label="닫기">×</button>
+      </header>
+
+      <div class="navi-modal__body" id="naviResultCaptureArea">
+        <!-- 상단 요약 -->
+        <section class="navi-result-section">
+          <h3 class="navi-result-section__title">요약 정보</h3>
+          <div class="navi-summary-card">
+            <div class="navi-summary-row">
+              <span class="navi-summary-label">지역</span>
+              <span class="navi-summary-value" id="resultRegion">-</span>
+            </div>
+            <div class="navi-summary-row">
+              <span class="navi-summary-label">부동산 유형</span>
+              <span class="navi-summary-value" id="resultPropertyType">-</span>
+            </div>
+            <div class="navi-summary-row">
+              <span class="navi-summary-label">대출종류</span>
+              <span class="navi-summary-value" id="resultLoanType">-</span>
+            </div>
+            <div class="navi-summary-row">
+              <span class="navi-summary-label">필요 대출금액</span>
+              <span class="navi-summary-value" id="resultRequestedAmount">-</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 추천 온투업체 리스트 -->
+        <section class="navi-result-section" id="naviResultListSection">
+          <h3 class="navi-result-section__title">추천 온투업체</h3>
+          <p class="navi-result-helper" id="naviResultHelperText">
+            아래 온투업체는 입력하신 조건과 관리자에 등록된 기준을 바탕으로 선별되었습니다.
+          </p>
+
+          <div id="naviRecommendedList" class="navi-lender-list">
+            <!-- JS에서 카드 렌더링 -->
+          </div>
+
+          <!-- 추천이 없을 때 -->
+          <div id="naviNoMatchPanel" class="navi-empty-panel" style="display:none;">
+            <p class="navi-empty-title">현재 조건에 부합하는 온투업체를 찾지 못했습니다.</p>
+            <p class="navi-empty-text">
+              대출금액 등 조건을 조정하면 가능한 온투업체가 있습니다.<br />
+              아래 TIP을 참고하여 조건을 조정한 후 다시 시도해보세요.
+            </p>
+            <ul class="navi-tip-list">
+              <li>필요 대출금액을 조금 줄여보기</li>
+              <li>선순위 상환금액(대환대출)의 일부만 상환하는 구조로 변경</li>
+              <li>시세 기준을 보수적으로 입력</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- TIP: 조건 조정 & 제휴업체 안내 -->
+        <section class="navi-result-section">
+          <h3 class="navi-result-section__title">안내 및 TIP</h3>
+          <p class="navi-result-helper">
+            · <strong>제휴 온투업체</strong>는 &ldquo;후추&rdquo;와 제휴된 유료 광고 파트너로, <strong>비제휴업체 대비 낮은 비용</strong>이 발생할 수 있습니다.<br />
+            · 온투업체별 실제 승인 여부는 각 회사의 심사 기준에 따라 달라질 수 있습니다.
+          </p>
+        </section>
+      </div>
+
+      <footer class="navi-modal__footer">
+        <div class="navi-modal__footer-left">
+          <button type="button" class="navi-btn navi-btn--ghost" data-navi-adjust-conditions>
+            조건 조정하기
+          </button>
+        </div>
+        <div class="navi-modal__footer-right">
+          <button type="button" class="navi-btn navi-btn--secondary" data-navi-close-modal>
+            닫기
+          </button>
+          <button type="button" class="navi-btn navi-btn--primary" id="naviShareImageBtn">
+            결과 이미지 저장/공유
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <footer class="beta-footer" role="contentinfo">
+    <div class="beta-footer__top">
+      <a href="/company.html">회사소개</a>
+      <a href="/terms.html">서비스이용약관</a>
+      <a href="/privacy.html">개인정보 취급방침</a>
+    </div>
+    <div class="beta-footer__bottom">
+      <div class="beta-footer__brand">
+        <img src="/assets/logo/huchu-logo-white.png"
+             alt="HUCHU 로고"
+             class="beta-footer__logo-img" />
+        <span class="beta-footer__logo-text">HUCHU</span>
+      </div>
+      <div class="beta-footer__info">
+        <p>상호: (예시) 후추랩 | 대표: 장현성</p>
+        <p>주소: (예시) 경기도 고양시 일산동구 00로 00</p>
+        <p>E-MAIL: huchudb01@gmail.com | 사업자번호: 000-00-00000</p>
+        <p>2025 © HUCHU. ALL RIGHTS RESERVED.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
