@@ -1296,7 +1296,19 @@ body.beta-body button{width:auto;}
   text-align:right;
   font-size:18px;
   font-weight:800;
-  line-height:1.4;
+  line-height:1.3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+@media (max-width: 768px){
+  .beta-loanstatus-item__value{
+    font-size:clamp(14px, 3.5vw, 16px);
+  }
+  .beta-loanstatus-item__label{
+    font-size:12px;
+  }
 }
 
 /* 홈 전용 상품유형 섹션 래퍼 */
@@ -2000,6 +2012,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
