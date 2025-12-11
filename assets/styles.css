@@ -1415,8 +1415,8 @@ body.beta-body button{width:auto;}
   background:#ffffff;
   border-radius:18px;
   border:1px solid #e5e7eb;
-  padding:14px 20px 12px 24px;
-  min-height:88px;
+  padding:10px 20px 8px 24px;
+  min-height:72px;
   display:flex;
   flex-direction:column;
   justify-content:center;
@@ -1991,6 +1991,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
