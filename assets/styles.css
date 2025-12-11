@@ -1214,7 +1214,9 @@ body.beta-body button{width:auto;}
   background:transparent;
 }
 @media(max-width:768px){
-  .beta-hero-right--empty{display:none;}
+  .beta-hero-banner{
+    display:block !important;
+  }
 }
 
 /* ======================= 홈: 대출현황 + 상품유형 대시보드 (통합 타이틀 + 5카드) ======================= */
@@ -1991,6 +1993,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
