@@ -1271,10 +1271,18 @@ body.beta-body button{width:auto;}
 }
 
 /* 모바일 & 작은 화면: 대출현황 2x2 카드 배치 */
-@media (max-width: 768px){
+@media (max-width: 900px){
   .beta-loanstatus-grid{
     grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:10px;
+  }
+
+  .beta-loanstatus-item__value{
+    font-size:clamp(14px, 3.6vw, 16px);
+  }
+
+  .beta-loanstatus-item__label{
+    font-size:12px;
   }
 }
 
@@ -2012,6 +2020,7 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   .beta-subinfo__left,
   .beta-subinfo__right{flex:0 0 auto;}
 }
+
 
 
 
