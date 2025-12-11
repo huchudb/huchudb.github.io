@@ -1,0 +1,301 @@
+/* =========================================================
+   Huchu Admin (Beta) — 관리자 전용 CSS
+   독립 파일로 사용하며, beta 사이트의 styles.css와 충돌하지 않게 설계됨.
+   prefix: .admin- / .lender- / .ontu-admin-
+========================================================= */
+
+/* 전체 구조 */
+.admin-page {
+  max-width: 1200px;
+  margin: 24px auto 40px;
+  padding: 0 20px;
+  font-family: Arial, sans-serif;
+  color: #111827;
+}
+
+/* 타이틀 */
+.admin-title {
+  margin: 0 0 18px;
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* 탭 버튼 영역 */
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.admin-tab-btn {
+  border: 0;
+  padding: 10px 16px;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.admin-tab-btn.is-active {
+  background: #111827;
+  color: #ffffff;
+}
+
+/* 패널 숨김 */
+.admin-tab-panel.hide {
+  display: none;
+}
+
+/* 공통 카드 */
+.admin-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  margin-bottom: 22px;
+}
+
+/* 구분 그룹 */
+.admin-field-group {
+  margin-bottom: 26px;
+}
+.admin-field-title {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.admin-note {
+  margin: 6px 0 12px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* 입력 필드 */
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+.admin-field label {
+  font-weight: 700;
+}
+.admin-input {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+.admin-input:focus {
+  outline: 2px solid #60a5fa;
+}
+
+/* 2~3컬럼 그리드 */
+.admin-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* 체크칩 형태 */
+.admin-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-chip-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.admin-chip-check input {
+  accent-color: #111827;
+}
+
+/* 스위치 */
+.admin-switch-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-switch-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+.admin-switch input[type="checkbox"] {
+  appearance: none;
+  width: 38px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-switch input[type="checkbox"]::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: 0.2s;
+}
+.admin-switch input[type="checkbox"]:checked {
+  background: #111827;
+}
+.admin-switch input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
+
+/* 소타이틀 박스 */
+.admin-subbox {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  border-radius: 12px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+}
+.admin-subbox-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.admin-subbox-help {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* LTV/금리 박스 */
+.admin-loantype-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-loantype-row {
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px dashed #d1d5db;
+}
+.admin-loantype-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+.admin-loantype-label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 온투업체 카드 리스트 */
+.lender-card {
+  margin-bottom: 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+.lender-toggle {
+  width: 100%;
+  text-align: left;
+  padding: 14px 18px;
+  background: #f3f4f6;
+  border: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.lender-toggle:hover {
+  background: #e5e7eb;
+}
+
+.lender-toggle__name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* 배지 */
+.lender-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+.lender-badge--partner {
+  background: #facc15;
+  color: #000;
+}
+.lender-badge--active {
+  background: #16a34a;
+  color: #ffffff;
+}
+.lender-badge.is-off {
+  opacity: 0.35;
+}
+
+/* 펼침 패널 */
+.lender-panel {
+  padding: 0 0 16px;
+  background: #ffffff;
+}
+.lender-panel.hide {
+  display: none;
+}
+.lender-panel__inner {
+  padding: 16px 20px;
+}
+
+/* 저장 버튼 */
+.admin-save-btn {
+  padding: 12px 20px;
+  background: #111827;
+  border-radius: 10px;
+  border: 0;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 14px;
+}
+.admin-save-btn:hover {
+  background: #000;
+}
+
+.admin-save-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #059669;
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+  .admin-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-loantype-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
