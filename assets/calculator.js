@@ -1,6 +1,3 @@
-calculator.js
-
-
 import { onlyDigits, toNumber, formatKoreanCurrency } from './shared.js';
 
 /* LTV 한도 */
