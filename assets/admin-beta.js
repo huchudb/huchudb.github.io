@@ -1,36 +1,13 @@
-// /assets/admin-beta.js
+// /assets/admin-beta.js  (온투업 베타 관리자 스크립트)
+console.log("✅ admin-beta.js loaded");
 
 // ------------------------------------------------------
-// 공통 상수 / 유틸
+// 공통 유틸
 // ------------------------------------------------------
+const STATS_LOCAL_KEY   = "huchu_ontu_stats_beta_v2";      // 기존 통계용
+const LENDERS_LOCAL_KEY = "huchu_lenders_config_beta_v1";  // 온투업체 설정용
 
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const LOAN_LOCAL_KEY = "huchu_loan_config_beta";
-const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
-const LENDERS_LOCAL_KEY = "huchu_lenders_config_beta";
-
-const REGIONS = ["서울", "경기", "인천", "충청", "전라", "경상", "강원", "제주"];
-const PROPERTY_TYPES = ["아파트", "오피스텔", "빌라·연립", "단독·다가구", "토지·임야", "근린생활시설"];
-const MORTGAGE_LOAN_TYPES = ["일반담보대출", "임대보증금반환대출", "지분대출", "경락잔금대출", "대환대출"];
-const PRODUCT_GROUPS = [
-  "부동산담보대출",
-  "개인신용대출",
-  "스탁론",
-  "법인신용대출",
-  "매출채권유동화",
-  "의료사업자대출",
-  "온라인선정산",
-  "전자어음"
-];
-
-// 샘플 온투업체 마스터(나중에 49개로 확장)
-const LENDERS_MASTER = [
-  { id: "f-funding", nameKo: "F펀딩" },
-  { id: "terra-funding", nameKo: "테라펀딩" },
-  { id: "8percent", nameKo: "8퍼센트" }
-];
-
-// 숫자 유틸
+// 숫자 관련 유틸
 function stripNonDigits(str) {
   return (str || "").replace(/[^\d]/g, "");
 }
@@ -45,9 +22,10 @@ function getMoneyValue(inputEl) {
   return digits ? Number(digits) : 0;
 }
 
-// 금액 input(텍스트)에 3자리 쉼표 자동
-function setupMoneyInputs() {
-  const moneyInputs = document.querySelectorAll('input[data-type="money"]');
+// 금액 input에 3자리 쉼표 자동 적용
+function setupMoneyInputs(root) {
+  const scope = root || document;
+  const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
   moneyInputs.forEach((input) => {
     input.addEventListener("input", (e) => {
       const v = e.target.value;
@@ -59,12 +37,10 @@ function setupMoneyInputs() {
   });
 }
 
-// ------------------------------------------------------
-// 상단 MENU
-// ------------------------------------------------------
+// 상단 MENU 드롭다운
 function setupBetaMenu() {
   const toggle = document.getElementById("betaMenuToggle");
-  const panel = document.getElementById("betaMenuPanel");
+  const panel  = document.getElementById("betaMenuPanel");
   if (!toggle || !panel) return;
 
   toggle.addEventListener("click", (e) => {
@@ -90,182 +66,11 @@ function setupBetaMenu() {
 }
 
 // ------------------------------------------------------
-// 상단 관리자 탭 전환
-// ------------------------------------------------------
-function setupAdminTabs() {
-  const tabButtons = document.querySelectorAll(".admin-tab-btn");
-  const panels = document.querySelectorAll(".admin-tab-panel");
-  if (!tabButtons.length || !panels.length) return;
-
-  tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.getAttribute("data-admin-tab");
-      if (!target) return;
-
-      tabButtons.forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
-
-      panels.forEach((p) => {
-        if (p.id === "adminTabStats" && target === "stats") {
-          p.classList.add("is-active");
-        } else if (p.id === "adminTabLenders" && target === "lenders") {
-          p.classList.add("is-active");
-        } else {
-          p.classList.remove("is-active");
-        }
-      });
-    });
-  });
-}
-
-// ------------------------------------------------------
-// 1. LTV / 금리 설정 (지역별 기본값)
-// ------------------------------------------------------
-
-let loanConfigData = {
-  byRegion: {} // { "서울": { "아파트": {maxLtv, rateMin, rateMax}, ... }, ... }
-};
-let currentRegion = "서울";
-
-function loadLoanConfigFromStorage() {
-  try {
-    const raw = localStorage.getItem(LOAN_LOCAL_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && parsed.byRegion) {
-      loanConfigData = parsed;
-    }
-  } catch (e) {
-    console.warn("loan-config load error:", e);
-  }
-}
-
-function saveLoanConfigToStorage() {
-  try {
-    localStorage.setItem(LOAN_LOCAL_KEY, JSON.stringify(loanConfigData));
-  } catch (e) {
-    console.warn("loan-config save error:", e);
-  }
-}
-
-// 현재 region의 폼값 -> loanConfigData에 반영 (메모리)
-function captureLoanConfigFromForm(region) {
-  const tbody = document.getElementById("loanConfigBody");
-  if (!tbody) return;
-
-  const regionCfg = loanConfigData.byRegion[region] || {};
-
-  PROPERTY_TYPES.forEach((prop) => {
-    const row = tbody.querySelector(`tr[data-prop="${prop}"]`);
-    if (!row) return;
-
-    const maxLtvEl = row.querySelector('input[data-field="maxLtv"]');
-    const rateMinEl = row.querySelector('input[data-field="rateMin"]');
-    const rateMaxEl = row.querySelector('input[data-field="rateMax"]');
-
-    const maxLtvPct = maxLtvEl && maxLtvEl.value !== "" ? Number(maxLtvEl.value) : NaN;
-    const rateMinPct = rateMinEl && rateMinEl.value !== "" ? Number(rateMinEl.value) : NaN;
-    const rateMaxPct = rateMaxEl && rateMaxEl.value !== "" ? Number(rateMaxEl.value) : NaN;
-
-    if (isNaN(maxLtvPct) && isNaN(rateMinPct) && isNaN(rateMaxPct)) {
-      delete regionCfg[prop];
-      return;
-    }
-
-    const cfg = regionCfg[prop] || {};
-    if (!isNaN(maxLtvPct)) cfg.maxLtv = maxLtvPct / 100;
-    if (!isNaN(rateMinPct)) cfg.rateMin = rateMinPct / 100;
-    if (!isNaN(rateMaxPct)) cfg.rateMax = rateMaxPct / 100;
-
-    regionCfg[prop] = cfg;
-  });
-
-  loanConfigData.byRegion[region] = regionCfg;
-}
-
-// loanConfigData에 저장된 값 → 폼에 채우기
-function fillLoanConfigForm(region) {
-  const tbody = document.getElementById("loanConfigBody");
-  if (!tbody) return;
-
-  const regionCfg = loanConfigData.byRegion[region] || {};
-
-  PROPERTY_TYPES.forEach((prop) => {
-    const row = tbody.querySelector(`tr[data-prop="${prop}"]`);
-    if (!row) return;
-
-    const cfg = regionCfg[prop] || {};
-
-    const maxLtvEl = row.querySelector('input[data-field="maxLtv"]');
-    const rateMinEl = row.querySelector('input[data-field="rateMin"]');
-    const rateMaxEl = row.querySelector('input[data-field="rateMax"]');
-
-    if (maxLtvEl) {
-      maxLtvEl.value =
-        typeof cfg.maxLtv === "number" ? String(Math.round(cfg.maxLtv * 1000) / 10) : "";
-    }
-    if (rateMinEl) {
-      rateMinEl.value =
-        typeof cfg.rateMin === "number" ? String(Math.round(cfg.rateMin * 1000) / 10) : "";
-    }
-    if (rateMaxEl) {
-      rateMaxEl.value =
-        typeof cfg.rateMax === "number" ? String(Math.round(cfg.rateMax * 1000) / 10) : "";
-    }
-  });
-}
-
-// 지역 버튼 클릭
-function setupRegionTabs() {
-  const container = document.getElementById("loanRegionTabs");
-  if (!container) return;
-
-  const buttons = container.querySelectorAll(".admin-region-btn");
-
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const region = btn.getAttribute("data-region");
-      if (!region || region === currentRegion) return;
-
-      captureLoanConfigFromForm(currentRegion);
-
-      buttons.forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
-      currentRegion = region;
-
-      fillLoanConfigForm(currentRegion);
-    });
-  });
-}
-
-// LTV / 금리 설정 저장 버튼
-function setupLoanConfigSaveButton() {
-  const btn = document.getElementById("loanConfigSaveBtn");
-  const statusEl = document.getElementById("loanConfigStatus");
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
-    captureLoanConfigFromForm(currentRegion);
-    saveLoanConfigToStorage();
-
-    if (statusEl) {
-      statusEl.textContent = "LTV/금리 설정이 브라우저(localStorage)에 저장되었습니다.";
-      setTimeout(() => {
-        if (statusEl.textContent.includes("저장되었습니다")) {
-          statusEl.textContent = "";
-        }
-      }, 3000);
-    }
-
-    alert("LTV/금리 설정이 저장되었습니다.\n(브라우저 localStorage 기준)");
-  });
-}
-
-// ------------------------------------------------------
-// 2. 온투업 통계 (ontu-stats)
+// 1. 온투업 통계(기존 ontu-stats) 관리자
 // ------------------------------------------------------
 
 let statsRoot = {
+  // byMonth: { "2025-11": { summary:{...}, products:{...} } }
   byMonth: {}
 };
 
@@ -313,7 +118,7 @@ function clearStatsForm() {
   amounts.forEach((el) => (el.value = ""));
 }
 
-// stats 객체 → 폼 세팅
+// stats 객체 → 폼에 세팅
 function fillStatsForm(stat) {
   if (!stat) {
     clearStatsForm();
@@ -323,17 +128,17 @@ function fillStatsForm(stat) {
   const s = stat.summary || {};
   const p = stat.products || {};
 
-  const regEl = document.getElementById("statsRegisteredFirms");
-  const dataEl = document.getElementById("statsDataFirms");
-  const tlEl = document.getElementById("statsTotalLoan");
-  const trEl = document.getElementById("statsTotalRepaid");
-  const balEl = document.getElementById("statsBalance");
+  const regEl   = document.getElementById("statsRegisteredFirms");
+  const dataEl  = document.getElementById("statsDataFirms");
+  const tlEl    = document.getElementById("statsTotalLoan");
+  const trEl    = document.getElementById("statsTotalRepaid");
+  const balEl   = document.getElementById("statsBalance");
 
   if (regEl) regEl.value = s.registeredFirms ?? "";
   if (dataEl) dataEl.value = s.dataFirms ?? "";
-  if (tlEl) tlEl.value = s.totalLoan ? formatWithCommas(String(s.totalLoan)) : "";
-  if (trEl) trEl.value = s.totalRepaid ? formatWithCommas(String(s.totalRepaid)) : "";
-  if (balEl) balEl.value = s.balance ? formatWithCommas(String(s.balance)) : "";
+  if (tlEl)   tlEl.value   = s.totalLoan ? formatWithCommas(String(s.totalLoan)) : "";
+  if (trEl)   trEl.value   = s.totalRepaid ? formatWithCommas(String(s.totalRepaid)) : "";
+  if (balEl)  balEl.value  = s.balance ? formatWithCommas(String(s.balance)) : "";
 
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
@@ -342,9 +147,9 @@ function fillStatsForm(stat) {
   rows.forEach((row) => {
     const key = row.getAttribute("data-key");
     const cfg = p[key] || {};
-    const ratioEl = row.querySelector(".js-ratio");
+    const ratioEl  = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
-    if (ratioEl) ratioEl.value = cfg.ratioPercent != null ? cfg.ratioPercent : "";
+    if (ratioEl)  ratioEl.value  = cfg.ratioPercent != null ? cfg.ratioPercent : "";
     if (amountEl) amountEl.value = cfg.amount != null ? formatWithCommas(String(cfg.amount)) : "";
   });
 }
@@ -354,18 +159,18 @@ function collectStatsFormData() {
   const monthKey = getCurrentMonthKey();
   if (!monthKey) return null;
 
-  const regEl = document.getElementById("statsRegisteredFirms");
-  const dataEl = document.getElementById("statsDataFirms");
-  const tlEl = document.getElementById("statsTotalLoan");
-  const trEl = document.getElementById("statsTotalRepaid");
-  const balEl = document.getElementById("statsBalance");
+  const regEl   = document.getElementById("statsRegisteredFirms");
+  const dataEl  = document.getElementById("statsDataFirms");
+  const tlEl    = document.getElementById("statsTotalLoan");
+  const trEl    = document.getElementById("statsTotalRepaid");
+  const balEl   = document.getElementById("statsBalance");
 
   const summary = {
     registeredFirms: regEl ? Number(regEl.value || 0) : 0,
-    dataFirms: dataEl ? Number(dataEl.value || 0) : 0,
-    totalLoan: getMoneyValue(tlEl),
-    totalRepaid: getMoneyValue(trEl),
-    balance: getMoneyValue(balEl)
+    dataFirms:      dataEl ? Number(dataEl.value || 0) : 0,
+    totalLoan:      getMoneyValue(tlEl),
+    totalRepaid:    getMoneyValue(trEl),
+    balance:        getMoneyValue(balEl)
   };
 
   const products = {};
@@ -373,11 +178,11 @@ function collectStatsFormData() {
   rows.forEach((row) => {
     const key = row.getAttribute("data-key");
     if (!key) return;
-    const ratioEl = row.querySelector(".js-ratio");
+    const ratioEl  = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
 
     const ratioPercent = ratioEl && ratioEl.value !== "" ? Number(ratioEl.value) : 0;
-    const amount = getMoneyValue(amountEl);
+    const amount       = getMoneyValue(amountEl);
 
     if (ratioPercent === 0 && amount === 0) return;
 
@@ -390,7 +195,7 @@ function collectStatsFormData() {
   return { monthKey, summary, products };
 }
 
-// 비율 입력 or 잔액 변경 → 금액 자동계산
+// 비율/잔액 → 상품별 금액 자동계산
 function recalcProductAmounts() {
   const balEl = document.getElementById("statsBalance");
   if (!balEl) return;
@@ -398,7 +203,7 @@ function recalcProductAmounts() {
   const rows = document.querySelectorAll("#productRows tr[data-key]");
 
   rows.forEach((row) => {
-    const ratioEl = row.querySelector(".js-ratio");
+    const ratioEl  = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
     if (!ratioEl || !amountEl) return;
 
@@ -423,7 +228,7 @@ function setupStatsInteractions() {
       }
       const stat = statsRoot.byMonth[m] || null;
       fillStatsForm(stat);
-      setupMoneyInputs();
+      setupMoneyInputs(); // 포맷 재적용
       recalcProductAmounts();
     });
   }
@@ -456,7 +261,8 @@ function setupStatsInteractions() {
       const { monthKey, summary, products } = payload;
 
       try {
-        const res = await fetch(`${API_BASE}/api/ontu-stats`, {
+        // 1) 서버 저장
+        const res = await fetch("https://huchudb-github-io.vercel.app/api/ontu-stats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ monthKey, summary, products })
@@ -467,9 +273,10 @@ function setupStatsInteractions() {
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
 
-        const json = await res.json();
+        const json = await res.json().catch(() => null);
         console.log("ontu-stats saved:", json);
 
+        // 2) localStorage 백업
         statsRoot.byMonth[monthKey] = { summary, products };
         saveStatsToStorage();
 
@@ -492,7 +299,7 @@ function setupStatsInteractions() {
 }
 
 // ------------------------------------------------------
-// 3. 온투업체 설정 (lendersConfig)
+// 2. 온투업체 정보 등록 (lendersConfig)
 // ------------------------------------------------------
 
 let lendersConfig = {
@@ -501,724 +308,900 @@ let lendersConfig = {
   lenders: []
 };
 
-function buildDefaultLendersConfig() {
-  const lenders = LENDERS_MASTER.map((info, idx) => {
-    return {
-      id: info.id,
-      nameKo: info.nameKo,
-      enabledNewLoan: true,
-      isPartner: idx === 0 || info.id === "8percent", // 예시로 일부 제휴 표시
-      hidden: false,
-      sortOrder: (idx + 1) * 10,
-      productGroups: {
-        부동산담보대출: info.id !== "8percent",
-        개인신용대출: info.id !== "terra-funding",
-        스탁론: info.id === "8percent",
-        법인신용대출: false,
-        매출채권유동화: false,
-        의료사업자대출: false,
-        온라인선정산: false,
-        전자어음: false
-      },
-      mortgageConfig: {
-        enabled: info.id !== "8percent",
-        regions: ["서울", "경기", "인천"],
-        propertyMatrix: {},
-        minAmounts: {},
-        ltvOverrides: {},
-        notes: ""
-      },
-      nonMortgageConfig: {},
-      conditions: {
-        income: {
-          "근로소득": true,
-          "근로외증빙소득": true,
-          "증빙소득없음": false,
-          "무증빙_이자납입가능": false
-        },
-        credit: {
-          minScore: 600,
-          allowBelow600: false
-        },
-        term: {
-          short: true,
-          mid: true,
-          long: true
-        },
-        timing: {
-          sameDay: true,
-          withinWeek: true,
-          withinMonth: true
-        },
-        riskFlags: {
-          "세금체납": false,
-          "연체기록": false,
-          "압류·가압류": false,
-          "개인회생": false
-        }
-      },
-      amountRules: {},
-      contacts: {
-        phone: "",
-        kakaoUrl: ""
-      },
-      meta: {
-        adminNote: "",
-        tags: []
-      }
-    };
-  });
-
-  lenders.forEach((l) => {
-    if (!l.mortgageConfig.propertyMatrix) l.mortgageConfig.propertyMatrix = {};
-    PROPERTY_TYPES.forEach((pt) => {
-      if (!l.mortgageConfig.propertyMatrix[pt]) {
-        l.mortgageConfig.propertyMatrix[pt] = {};
-      }
-    });
-    if (!l.mortgageConfig.minAmounts) {
-      l.mortgageConfig.minAmounts = {
-        "아파트": 10000000,
-        "오피스텔": 10000000,
-        "빌라·연립": 30000000,
-        "단독·다가구": 30000000,
-        "토지·임야": 30000000,
-        "근린생활시설": 30000000
-      };
-    }
-  });
-
+// 초깃값 템플릿용 (새 온투업체 추가 시)
+function createEmptyLender() {
   return {
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    lenders
-  };
-}
-
-async function loadLendersConfig() {
-  // 1) localStorage 우선
-  try {
-    const rawLocal = localStorage.getItem(LENDERS_LOCAL_KEY);
-    if (rawLocal) {
-      const parsed = JSON.parse(rawLocal);
-      if (parsed && Array.isArray(parsed.lenders)) {
-        lendersConfig = parsed;
-        console.log("lendersConfig loaded from localStorage");
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("lendersConfig local load error:", e);
-  }
-
-  // 2) 서버에서 가져오기 (실제 구현 전까지 실패해도 무시)
-  try {
-    const res = await fetch(`${API_BASE}/api/lenders-config`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json && Array.isArray(json.lenders)) {
-        lendersConfig = json;
-        console.log("lendersConfig loaded from server");
-        localStorage.setItem(LENDERS_LOCAL_KEY, JSON.stringify(lendersConfig));
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("lendersConfig server load error:", e);
-  }
-
-  // 3) 전부 실패하면 기본값 생성
-  lendersConfig = buildDefaultLendersConfig();
-  localStorage.setItem(LENDERS_LOCAL_KEY, JSON.stringify(lendersConfig));
-}
-
-function saveLendersConfigLocal() {
-  try {
-    lendersConfig.updatedAt = new Date().toISOString();
-    localStorage.setItem(LENDERS_LOCAL_KEY, JSON.stringify(lendersConfig));
-  } catch (e) {
-    console.warn("lendersConfig local save error:", e);
-  }
-}
-
-async function saveLendersConfigToServer() {
-  const statusEl = document.getElementById("lendersSaveStatus");
-  try {
-    const res = await fetch(`${API_BASE}/api/lenders-config`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lendersConfig)
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
-    }
-    const json = await res.json();
-    console.log("lenders-config saved:", json);
-    if (statusEl) {
-      statusEl.textContent = "온투업체 설정이 서버에 저장되었습니다.";
-      setTimeout(() => {
-        if (statusEl.textContent.includes("저장되었습니다")) {
-          statusEl.textContent = "";
-        }
-      }, 3000);
-    }
-    alert("온투업체 설정이 서버에 저장되었습니다.");
-  } catch (e) {
-    console.error("saveLendersConfig error:", e);
-    alert("온투업체 설정 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
-  }
-}
-
-// --------- 온투업체 리스트 렌더링 ---------
-
-function createLenderRow(lender) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "admin-lender-item";
-  wrapper.dataset.lenderId = lender.id;
-
-  wrapper.innerHTML = `
-    <div class="admin-lender-item__header">
-      <div class="admin-lender-item__title">
-        <span class="admin-lender-name">${lender.nameKo}</span>
-        <span class="admin-lender-id">(${lender.id})</span>
-        <span class="admin-lender-partner-badge ${lender.isPartner ? "" : "is-hidden"}">제휴</span>
-      </div>
-      <div class="admin-lender-item__toggles">
-        <label class="admin-toggle-label">
-          신규대출취급
-          <input type="checkbox" class="js-lender-enabled" ${lender.enabledNewLoan ? "checked" : ""} />
-        </label>
-        <label class="admin-toggle-label">
-          제휴업체
-          <input type="checkbox" class="js-lender-partner" ${lender.isPartner ? "checked" : ""} />
-        </label>
-        <label class="admin-toggle-label">
-          숨기기
-          <input type="checkbox" class="js-lender-hidden" ${lender.hidden ? "checked" : ""} />
-        </label>
-        <label class="admin-toggle-label">
-          우선순위
-          <input type="number" class="admin-input js-lender-sort" value="${lender.sortOrder ?? ""}" style="width:70px;" />
-        </label>
-        <button type="button" class="admin-lender-toggle-btn" aria-expanded="false">상세 ▼</button>
-      </div>
-    </div>
-    <div class="admin-lender-item__body" hidden>
-      <div class="admin-lender-section">
-        <h3 class="admin-subtitle">[1] 취급 상품군</h3>
-        <div class="admin-chip-row js-product-groups"></div>
-      </div>
-
-      <div class="admin-lender-section">
-        <h3 class="admin-subtitle">[2] 부동산 담보대출 설정</h3>
-        <label class="admin-toggle-label">
-          부동산 담보대출 취급
-          <input type="checkbox" class="js-mortgage-enabled" ${lender.mortgageConfig?.enabled ? "checked" : ""} />
-        </label>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">취급 지역</div>
-          <div class="admin-chip-row js-mortgage-regions"></div>
-        </div>
-
-        <div class="admin-lender-subsection">
-          <div class="admin-label">부동산유형 × 대출종류</div>
-          <div class="admin-lender-matrix js-mortgage-matrix"></div>
-        </div>
-
-        <div class="admin-lender-subsection">
-          <div class="admin-label">부동산유형별 최소 대출금액</div>
-          <div class="admin-lender-minamounts js-mortgage-minamounts"></div>
-        </div>
-      </div>
-
-      <div class="admin-lender-section">
-        <h3 class="admin-subtitle">[3] 차주 조건 (6-1 매핑)</h3>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">소득유형</div>
-          <div class="admin-chip-row js-income-conditions"></div>
-        </div>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">신용점수 기준</div>
-          <div class="admin-inline-row">
-            <label>최소 신용점수
-              <input type="number" class="admin-input js-credit-minScore" value="${lender.conditions?.credit?.minScore ?? ""}" />
-            </label>
-            <label class="admin-toggle-label">
-              600점 미만도 취급 가능
-              <input type="checkbox" class="js-credit-allowBelow600" ${lender.conditions?.credit?.allowBelow600 ? "checked" : ""} />
-            </label>
-          </div>
-        </div>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">상환계획</div>
-          <div class="admin-chip-row js-term-conditions"></div>
-        </div>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">대출금 필요시기</div>
-          <div class="admin-chip-row js-timing-conditions"></div>
-        </div>
-        <div class="admin-lender-subsection">
-          <div class="admin-label">기타 리스크 허용</div>
-          <div class="admin-chip-row js-risk-conditions"></div>
-        </div>
-      </div>
-
-      <div class="admin-lender-section">
-        <h3 class="admin-subtitle">[4] 상담 채널</h3>
-        <div class="admin-inline-row">
-          <label style="flex:1;">
-            유선상담 전화번호
-            <input type="text" class="admin-input js-contact-phone" value="${lender.contacts?.phone ?? ""}" />
-          </label>
-          <label style="flex:2;">
-            채팅상담(카카오톡) URL
-            <input type="text" class="admin-input js-contact-kakao" value="${lender.contacts?.kakaoUrl ?? ""}" />
-          </label>
-        </div>
-      </div>
-
-      <div class="admin-lender-section">
-        <h3 class="admin-subtitle">[5] 내부 메모</h3>
-        <textarea class="admin-textarea js-meta-note" rows="2" placeholder="내부용 메모">${lender.meta?.adminNote ?? ""}</textarea>
-      </div>
-    </div>
-  `;
-
-  return wrapper;
-}
-
-// chip-like checkbox UI
-function createChip(label, checked) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "admin-chip" + (checked ? " is-selected" : "");
-  btn.textContent = label;
-  btn.dataset.value = label;
-  return btn;
-}
-
-function toggleChip(btn) {
-  btn.classList.toggle("is-selected");
-}
-
-// lender detail 내부 서브UI 채우기
-function populateLenderDetailUI(lender, wrapper) {
-  // 상품군
-  const pgWrap = wrapper.querySelector(".js-product-groups");
-  if (pgWrap) {
-    pgWrap.innerHTML = "";
-    PRODUCT_GROUPS.forEach((pg) => {
-      const selected = lender.productGroups?.[pg] ?? false;
-      const chip = createChip(pg, selected);
-      chip.addEventListener("click", () => {
-        toggleChip(chip);
-      });
-      pgWrap.appendChild(chip);
-    });
-  }
-
-  // 부동산 담보 - 지역
-  const regWrap = wrapper.querySelector(".js-mortgage-regions");
-  if (regWrap) {
-    regWrap.innerHTML = "";
-    const regions = lender.mortgageConfig?.regions || [];
-    REGIONS.forEach((r) => {
-      const selected = regions.includes(r);
-      const chip = createChip(r, selected);
-      chip.addEventListener("click", () => toggleChip(chip));
-      regWrap.appendChild(chip);
-    });
-  }
-
-  // 부동산 담보 - matrix
-  const matrixWrap = wrapper.querySelector(".js-mortgage-matrix");
-  if (matrixWrap) {
-    matrixWrap.innerHTML = "";
-    const pm = lender.mortgageConfig?.propertyMatrix || {};
-    PROPERTY_TYPES.forEach((pt) => {
-      const rowDiv = document.createElement("div");
-      rowDiv.className = "admin-matrix-row";
-      const title = document.createElement("div");
-      title.className = "admin-matrix-row__title";
-      title.textContent = pt;
-      rowDiv.appendChild(title);
-
-      const cellWrap = document.createElement("div");
-      cellWrap.className = "admin-matrix-row__cells";
-
-      MORTGAGE_LOAN_TYPES.forEach((lt) => {
-        const key = `${pt}__${lt}`;
-        const selected = pm?.[pt]?.[lt] ?? false;
-        const chip = createChip(lt, selected);
-        chip.dataset.pt = pt;
-        chip.dataset.lt = lt;
-        chip.addEventListener("click", () => toggleChip(chip));
-        cellWrap.appendChild(chip);
-      });
-
-      rowDiv.appendChild(cellWrap);
-      matrixWrap.appendChild(rowDiv);
-    });
-  }
-
-  // 부동산 담보 - 최소금액
-  const minWrap = wrapper.querySelector(".js-mortgage-minamounts");
-  if (minWrap) {
-    minWrap.innerHTML = "";
-    const m = lender.mortgageConfig?.minAmounts || {};
-    PROPERTY_TYPES.forEach((pt) => {
-      const value = m[pt] ?? (pt === "아파트" || pt === "오피스텔" ? 10000000 : 30000000);
-      const row = document.createElement("div");
-      row.className = "admin-inline-row";
-      row.innerHTML = `
-        <label style="flex:1;">
-          ${pt}
-          <input type="text" class="admin-input js-minAmount" data-ptype="${pt}" data-type="money" value="${formatWithCommas(String(value))}" />
-        </label>
-      `;
-      minWrap.appendChild(row);
-    });
-  }
-
-  // 소득유형
-  const incomeWrap = wrapper.querySelector(".js-income-conditions");
-  if (incomeWrap) {
-    incomeWrap.innerHTML = "";
-    const incomeCfg = lender.conditions?.income || {};
-    const keys = ["근로소득", "근로외증빙소득", "증빙소득없음", "무증빙_이자납입가능"];
-    keys.forEach((k) => {
-      const label = k === "무증빙_이자납입가능" ? "무증빙+이자납입가능" : k;
-      const selected = incomeCfg[k] ?? false;
-      const chip = createChip(label, selected);
-      chip.dataset.key = k;
-      chip.addEventListener("click", () => toggleChip(chip));
-      incomeWrap.appendChild(chip);
-    });
-  }
-
-  // 상환계획
-  const termWrap = wrapper.querySelector(".js-term-conditions");
-  if (termWrap) {
-    termWrap.innerHTML = "";
-    const termCfg = lender.conditions?.term || {};
-    const entries = [
-      { key: "short", label: "3개월 내" },
-      { key: "mid", label: "3~12개월" },
-      { key: "long", label: "1년 이상" }
-    ];
-    entries.forEach((e) => {
-      const chip = createChip(e.label, termCfg[e.key] ?? false);
-      chip.dataset.key = e.key;
-      chip.addEventListener("click", () => toggleChip(chip));
-      termWrap.appendChild(chip);
-    });
-  }
-
-  // 필요시기
-  const timingWrap = wrapper.querySelector(".js-timing-conditions");
-  if (timingWrap) {
-    timingWrap.innerHTML = "";
-    const timingCfg = lender.conditions?.timing || {};
-    const entries = [
-      { key: "sameDay", label: "당일" },
-      { key: "withinWeek", label: "1주일 내" },
-      { key: "withinMonth", label: "한달 이내" }
-    ];
-    entries.forEach((e) => {
-      const chip = createChip(e.label, timingCfg[e.key] ?? false);
-      chip.dataset.key = e.key;
-      chip.addEventListener("click", () => toggleChip(chip));
-      timingWrap.appendChild(chip);
-    });
-  }
-
-  // 리스크
-  const riskWrap = wrapper.querySelector(".js-risk-conditions");
-  if (riskWrap) {
-    riskWrap.innerHTML = "";
-    const riskCfg = lender.conditions?.riskFlags || {};
-    const keys = ["세금체납", "연체기록", "압류·가압류", "개인회생"];
-    keys.forEach((k) => {
-      const chip = createChip(k, riskCfg[k] ?? false);
-      chip.dataset.key = k;
-      chip.addEventListener("click", () => toggleChip(chip));
-      riskWrap.appendChild(chip);
-    });
-  }
-
-  // 금액 포맷
-  setupMoneyInputs();
-}
-
-function renderLendersList() {
-  const container = document.getElementById("lenderListContainer");
-  if (!container) return;
-
-  const searchInput = document.getElementById("lenderSearchInput");
-  const keyword = (searchInput?.value || "").trim();
-
-  let list = [...(lendersConfig.lenders || [])];
-
-  if (keyword) {
-    list = list.filter((l) => l.nameKo.includes(keyword) || l.id.includes(keyword));
-  }
-
-  // 정렬: partner 먼저, sortOrder
-  list.sort((a, b) => {
-    if (a.isPartner && !b.isPartner) return -1;
-    if (!a.isPartner && b.isPartner) return 1;
-    const sa = a.sortOrder ?? 9999;
-    const sb = b.sortOrder ?? 9999;
-    return sa - sb;
-  });
-
-  container.innerHTML = "";
-  if (!list.length) {
-    const empty = document.createElement("p");
-    empty.style.fontSize = "13px";
-    empty.style.color = "#6b7280";
-    empty.textContent = "등록된 온투업체가 없습니다. (또는 검색 결과 없음)";
-    container.appendChild(empty);
-    return;
-  }
-
-  list.forEach((lender) => {
-    const row = createLenderRow(lender);
-    container.appendChild(row);
-    populateLenderDetailUI(lender, row);
-  });
-
-  // 상세 토글
-  container.querySelectorAll(".admin-lender-toggle-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const item = btn.closest(".admin-lender-item");
-      if (!item) return;
-      const body = item.querySelector(".admin-lender-item__body");
-      if (!body) return;
-      const expanded = btn.getAttribute("aria-expanded") === "true";
-      if (expanded) {
-        body.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-        btn.textContent = "상세 ▼";
-      } else {
-        body.hidden = false;
-        btn.setAttribute("aria-expanded", "true");
-        btn.textContent = "상세 ▲";
-      }
-    });
-  });
-}
-
-// 폼에서 lendersConfig로 값 반영
-function captureLendersFromForm() {
-  const container = document.getElementById("lenderListContainer");
-  if (!container) return;
-  const items = container.querySelectorAll(".admin-lender-item");
-  const mapById = {};
-  lendersConfig.lenders.forEach((l) => (mapById[l.id] = l));
-
-  items.forEach((item) => {
-    const id = item.dataset.lenderId;
-    const lender = mapById[id];
-    if (!lender) return;
-
-    const enabledEl = item.querySelector(".js-lender-enabled");
-    const partnerEl = item.querySelector(".js-lender-partner");
-    const hiddenEl = item.querySelector(".js-lender-hidden");
-    const sortEl = item.querySelector(".js-lender-sort");
-    lender.enabledNewLoan = !!(enabledEl && enabledEl.checked);
-    lender.isPartner = !!(partnerEl && partnerEl.checked);
-    lender.hidden = !!(hiddenEl && hiddenEl.checked);
-    lender.sortOrder = sortEl && sortEl.value !== "" ? Number(sortEl.value) : null;
-
-    // 상품군
-    const pgWrap = item.querySelector(".js-product-groups");
-    if (pgWrap) {
-      const chips = pgWrap.querySelectorAll(".admin-chip");
-      lender.productGroups = lender.productGroups || {};
-      chips.forEach((chip) => {
-        const pg = chip.dataset.value;
-        lender.productGroups[pg] = chip.classList.contains("is-selected");
-      });
-    }
-
-    // mortgage
-    lender.mortgageConfig = lender.mortgageConfig || {
+    id: "",
+    nameKo: "",
+    enabledNewLoan: true,
+    isPartner: false,
+    hidden: false,
+    sortOrder: 100,
+    productGroups: {
+      "부동산담보대출": false,
+      "개인신용대출": false,
+      "스탁론": false,
+      "법인신용대출": false,
+      "매출채권유동화": false,
+      "의료사업자대출": false,
+      "온라인선정산": false,
+      "전자어음": false
+    },
+    mortgageConfig: {
       enabled: false,
       regions: [],
       propertyMatrix: {},
       minAmounts: {},
       ltvOverrides: {},
       notes: ""
-    };
-    const mCfg = lender.mortgageConfig;
-
-    const mEnabledEl = item.querySelector(".js-mortgage-enabled");
-    mCfg.enabled = !!(mEnabledEl && mEnabledEl.checked);
-
-    const regWrap = item.querySelector(".js-mortgage-regions");
-    if (regWrap) {
-      const chips = regWrap.querySelectorAll(".admin-chip");
-      mCfg.regions = [];
-      chips.forEach((chip) => {
-        if (chip.classList.contains("is-selected")) {
-          mCfg.regions.push(chip.dataset.value);
-        }
-      });
+    },
+    nonMortgageConfig: {},
+    conditions: {
+      income: {
+        "근로소득": true,
+        "근로외증빙소득": true,
+        "증빙소득없음": false,
+        "무증빙_이자납입가능": false
+      },
+      credit: {
+        minScore: 600,
+        allowBelow600: false
+      },
+      term: {
+        short: true,
+        mid: true,
+        long: true
+      },
+      timing: {
+        sameDay: true,
+        withinWeek: true,
+        withinMonth: true
+      },
+      riskFlags: {
+        "세금체납": false,
+        "연체기록": false,
+        "압류·가압류": false,
+        "개인회생": false
+      }
+    },
+    amountRules: {},
+    contacts: {
+      phone: "",
+      kakaoUrl: ""
+    },
+    meta: {
+      adminNote: "",
+      tags: []
     }
-
-    const matrixWrap = item.querySelector(".js-mortgage-matrix");
-    if (matrixWrap) {
-      mCfg.propertyMatrix = {};
-      PROPERTY_TYPES.forEach((pt) => {
-        mCfg.propertyMatrix[pt] = {};
-      });
-
-      const chips = matrixWrap.querySelectorAll(".admin-chip");
-      chips.forEach((chip) => {
-        const pt = chip.dataset.pt;
-        const lt = chip.dataset.lt;
-        if (!pt || !lt) return;
-        if (!mCfg.propertyMatrix[pt]) mCfg.propertyMatrix[pt] = {};
-        mCfg.propertyMatrix[pt][lt] = chip.classList.contains("is-selected");
-      });
-    }
-
-    const minWrap = item.querySelector(".js-mortgage-minamounts");
-    if (minWrap) {
-      const inputs = minWrap.querySelectorAll(".js-minAmount");
-      mCfg.minAmounts = {};
-      inputs.forEach((inp) => {
-        const pt = inp.dataset.ptype;
-        if (!pt) return;
-        mCfg.minAmounts[pt] = getMoneyValue(inp);
-      });
-    }
-
-    // conditions
-    lender.conditions = lender.conditions || {
-      income: {},
-      credit: {},
-      term: {},
-      timing: {},
-      riskFlags: {}
-    };
-    const cond = lender.conditions;
-
-    // income
-    const incomeWrap = item.querySelector(".js-income-conditions");
-    if (incomeWrap) {
-      cond.income = {};
-      const chips = incomeWrap.querySelectorAll(".admin-chip");
-      chips.forEach((chip) => {
-        const key = chip.dataset.key;
-        if (!key) return;
-        cond.income[key] = chip.classList.contains("is-selected");
-      });
-    }
-
-    // credit
-    const minScoreEl = item.querySelector(".js-credit-minScore");
-    const allowBelowEl = item.querySelector(".js-credit-allowBelow600");
-    cond.credit = {
-      minScore: minScoreEl && minScoreEl.value !== "" ? Number(minScoreEl.value) : null,
-      allowBelow600: !!(allowBelowEl && allowBelowEl.checked)
-    };
-
-    // term
-    const termWrap = item.querySelector(".js-term-conditions");
-    if (termWrap) {
-      cond.term = {};
-      const chips = termWrap.querySelectorAll(".admin-chip");
-      chips.forEach((chip) => {
-        const key = chip.dataset.key;
-        if (!key) return;
-        cond.term[key] = chip.classList.contains("is-selected");
-      });
-    }
-
-    // timing
-    const timingWrap = item.querySelector(".js-timing-conditions");
-    if (timingWrap) {
-      cond.timing = {};
-      const chips = timingWrap.querySelectorAll(".admin-chip");
-      chips.forEach((chip) => {
-        const key = chip.dataset.key;
-        if (!key) return;
-        cond.timing[key] = chip.classList.contains("is-selected");
-      });
-    }
-
-    // risk
-    const riskWrap = item.querySelector(".js-risk-conditions");
-    if (riskWrap) {
-      cond.riskFlags = {};
-      const chips = riskWrap.querySelectorAll(".admin-chip");
-      chips.forEach((chip) => {
-        const key = chip.dataset.key;
-        if (!key) return;
-        cond.riskFlags[key] = chip.classList.contains("is-selected");
-      });
-    }
-
-    // contacts
-    lender.contacts = lender.contacts || {};
-    const phoneEl = item.querySelector(".js-contact-phone");
-    const kakaoEl = item.querySelector(".js-contact-kakao");
-    lender.contacts.phone = phoneEl ? phoneEl.value.trim() : "";
-    lender.contacts.kakaoUrl = kakaoEl ? kakaoEl.value.trim() : "";
-
-    // meta
-    lender.meta = lender.meta || {};
-    const noteEl = item.querySelector(".js-meta-note");
-    lender.meta.adminNote = noteEl ? noteEl.value.trim() : "";
-  });
-
-  lendersConfig.updatedAt = new Date().toISOString();
+  };
 }
 
-// 온투업체 탭 초기화
-async function setupLendersAdmin() {
-  await loadLendersConfig();
-  renderLendersList();
+function loadLendersFromStorage() {
+  try {
+    const raw = localStorage.getItem(LENDERS_LOCAL_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.lenders)) {
+      lendersConfig = parsed;
+    }
+  } catch (e) {
+    console.warn("lendersConfig load error:", e);
+  }
+}
 
-  const searchInput = document.getElementById("lenderSearchInput");
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
+function saveLendersToStorage() {
+  try {
+    lendersConfig.updatedAt = new Date().toISOString();
+    localStorage.setItem(LENDERS_LOCAL_KEY, JSON.stringify(lendersConfig));
+  } catch (e) {
+    console.warn("lendersConfig save error:", e);
+  }
+}
+
+// 리스트에서 id로 lender 찾기
+function findLenderById(id) {
+  return lendersConfig.lenders.find((l) => l.id === id) || null;
+}
+
+// 리스트 재렌더링
+function renderLendersList() {
+  const listEl = document.getElementById("lendersList");
+  const detailEl = document.getElementById("lenderDetailPanel");
+  if (!listEl || !detailEl) return;
+
+  listEl.innerHTML = "";
+  detailEl.innerHTML = "";
+
+  lendersConfig.lenders
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    .forEach((lender) => {
+      const row = document.createElement("div");
+      row.className = "lender-row";
+      row.dataset.lenderId = lender.id;
+
+      row.innerHTML = `
+        <div class="lender-row__main">
+          <div class="lender-row__name">
+            <span class="lender-row__name-text">${lender.nameKo || "(이름 미입력)"}</span>
+            ${lender.isPartner ? '<span class="lender-row__badge lender-row__badge--partner">제휴</span>' : ""}
+            ${lender.hidden ? '<span class="lender-row__badge lender-row__badge--hidden">숨김</span>' : ""}
+          </div>
+          <div class="lender-row__meta">
+            <label class="lender-row__toggle">
+              <input type="checkbox" class="js-lender-enabled" ${lender.enabledNewLoan ? "checked" : ""} />
+              <span>신규대출취급</span>
+            </label>
+            <label class="lender-row__toggle">
+              <input type="checkbox" class="js-lender-partner" ${lender.isPartner ? "checked" : ""} />
+              <span>제휴업체</span>
+            </label>
+            <label class="lender-row__sort">
+              <span>정렬순서</span>
+              <input type="number" class="admin-input js-lender-sort" value="${lender.sortOrder ?? ""}" />
+            </label>
+          </div>
+        </div>
+        <button type="button" class="lender-row__expand-btn">상세 설정</button>
+      `;
+
+      listEl.appendChild(row);
+
+      // 상세 패널 생성
+      const detail = document.createElement("div");
+      detail.className = "lender-detail";
+      detail.dataset.lenderId = lender.id;
+      detail.innerHTML = createLenderDetailHTML(lender);
+      detailEl.appendChild(detail);
+
+      // 이벤트 바인딩
+      bindLenderRowEvents(row, detail, lender.id);
+      bindLenderDetailEvents(detail, lender.id);
+    });
+}
+
+// 상세 패널 HTML 생성
+function createLenderDetailHTML(lender) {
+  const pg = lender.productGroups || {};
+  const mc = lender.mortgageConfig || {};
+  const cond = lender.conditions || {};
+  const amtRules = lender.amountRules || {};
+  const contacts = lender.contacts || {};
+  const meta = lender.meta || {};
+
+  const income = cond.income || {};
+  const credit = cond.credit || {};
+  const term = cond.term || {};
+  const timing = cond.timing || {};
+  const risk = cond.riskFlags || {};
+
+  const mr = mc.regions || [];
+  const minAmt = mc.minAmounts || {};
+  const ltvOverrides = mc.ltvOverrides || {};
+
+  const pgKeys = [
+    "부동산담보대출",
+    "개인신용대출",
+    "스탁론",
+    "법인신용대출",
+    "매출채권유동화",
+    "의료사업자대출",
+    "온라인선정산",
+    "전자어음"
+  ];
+
+  const regionsAll = ["서울", "경기", "인천", "충청", "전라", "경상", "강원", "제주"];
+  const propertyTypes = ["아파트", "오피스텔", "빌라·연립", "단독·다가구", "토지·임야", "근린생활시설"];
+  const loanTypes = ["일반담보대출", "임대보증금반환대출", "지분대출", "경락잔금대출", "대환대출"];
+
+  function isCheckedProductGroup(key) {
+    return pg[key] ? "checked" : "";
+  }
+  function isCheckedRegion(key) {
+    return mr.includes(key) ? "checked" : "";
+  }
+  function getMinAmount(prop) {
+    return minAmt[prop] != null ? formatWithCommas(String(minAmt[prop])) : "";
+  }
+  function getLtvOverride(prop) {
+    return ltvOverrides[prop] != null ? String(Math.round(ltvOverrides[prop] * 1000) / 10) : "";
+  }
+
+  // propertyMatrix는 디테일 패널에서 체크박스로 렌더링
+  const pm = mc.propertyMatrix || {};
+
+  const propertyMatrixHTML = propertyTypes
+    .map((pt) => {
+      const rowCfg = pm[pt] || {};
+      const cells = loanTypes
+        .map((lt) => {
+          const checked = rowCfg[lt] ? "checked" : "";
+          return `
+            <td class="lender-matrix-cell">
+              <label class="lender-checkbox">
+                <input type="checkbox"
+                       class="js-mortgage-matrix"
+                       data-prop="${pt}"
+                       data-loan-type="${lt}"
+                       ${checked} />
+                <span></span>
+              </label>
+            </td>
+          `;
+        })
+        .join("");
+
+      return `
+        <tr>
+          <th class="lender-matrix-prop">${pt}</th>
+          ${cells}
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="lender-detail__inner">
+      <h3 class="lender-detail__title">[${lender.nameKo || "신규 온투업체"}] 상세 설정</h3>
+
+      <!-- 기본 정보 -->
+      <section class="lender-section">
+        <h4 class="lender-section__title">1. 기본 정보</h4>
+        <div class="lender-grid">
+          <label class="admin-field">
+            온투업체 ID (영문/숫자)
+            <input type="text" class="admin-input js-lender-id" value="${lender.id || ""}" />
+          </label>
+          <label class="admin-field">
+            온투업체명(표시용)
+            <input type="text" class="admin-input js-lender-name" value="${lender.nameKo || ""}" />
+          </label>
+        </div>
+      </section>
+
+      <!-- 상품군 선택 -->
+      <section class="lender-section">
+        <h4 class="lender-section__title">2. 취급 대출상품군</h4>
+        <div class="lender-chip-row">
+          ${pgKeys
+            .map(
+              (k) => `
+            <label class="lender-chip">
+              <input type="checkbox" class="js-pg" data-pg="${k}" ${isCheckedProductGroup(k)} />
+              <span>${k}</span>
+            </label>
+          `
+            )
+            .join("")}
+        </div>
+        <p class="lender-help-text">
+          · 부동산담보대출에 체크하면 아래 부동산 유형/대출종류 매트릭스를 설정할 수 있습니다.<br />
+          · 개인신용대출, 스탁론 등 비부동산 상품군은 현재 취급 여부만으로 네비게이션에 노출됩니다.
+        </p>
+      </section>
+
+      <!-- 부동산담보 설정 -->
+      <section class="lender-section">
+        <h4 class="lender-section__title">3. 부동산담보 설정</h4>
+        <label class="lender-row__toggle" style="margin-bottom:8px;">
+          <input type="checkbox" class="js-mortgage-enabled" ${mc.enabled ? "checked" : ""} />
+          <span>부동산담보대출 실제로 취급함</span>
+        </label>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">3-1. 취급 지역</h5>
+          <div class="lender-chip-row">
+            ${regionsAll
+              .map(
+                (r) => `
+              <label class="lender-chip">
+                <input type="checkbox" class="js-region" data-region="${r}" ${isCheckedRegion(r)} />
+                <span>${r}</span>
+              </label>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">3-2. 부동산 유형 × 대출종류 매트릭스</h5>
+          <div class="lender-table-wrap">
+            <table class="admin-table lender-matrix-table">
+              <thead>
+                <tr>
+                  <th>부동산 유형</th>
+                  ${loanTypes.map((lt) => `<th>${lt}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${propertyMatrixHTML}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">3-3. 부동산 유형별 최소 대출금액</h5>
+          <div class="lender-grid">
+            ${propertyTypes
+              .map(
+                (pt) => `
+              <label class="admin-field">
+                ${pt} 최소금액(원)
+                <input type="text"
+                       class="admin-input js-min-amount"
+                       data-prop="${pt}"
+                       data-type="money"
+                       value="${getMinAmount(pt)}" />
+              </label>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">3-4. 부동산 유형별 개별 최대 LTV(선택)</h5>
+          <div class="lender-grid">
+            ${propertyTypes
+              .map(
+                (pt) => `
+              <label class="admin-field">
+                ${pt} 최대 LTV (%, 예: 78)
+                <input type="number"
+                       class="admin-input js-ltv-override"
+                       data-prop="${pt}"
+                       step="0.1"
+                       min="0"
+                       max="100"
+                       value="${getLtvOverride(pt)}" />
+              </label>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">3-5. 메모</h5>
+          <textarea class="admin-textarea js-mortgage-notes" rows="2">${
+            mc.notes || ""
+          }</textarea>
+        </div>
+      </section>
+
+      <!-- 차주 조건(6-1과 매핑) -->
+      <section class="lender-section">
+        <h4 class="lender-section__title">4. 차주 추가정보 조건(6-1 매핑)</h4>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">4-1. 소득유형</h5>
+          <div class="lender-chip-row">
+            <label class="lender-chip">
+              <input type="checkbox" class="js-income" data-key="근로소득" ${
+                income["근로소득"] ? "checked" : ""
+              } />
+              <span>근로소득</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-income" data-key="근로외증빙소득" ${
+                income["근로외증빙소득"] ? "checked" : ""
+              } />
+              <span>근로외 증빙소득</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-income" data-key="증빙소득없음" ${
+                income["증빙소득없음"] ? "checked" : ""
+              } />
+              <span>증빙소득 없음</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-income" data-key="무증빙_이자납입가능" ${
+                income["무증빙_이자납입가능"] ? "checked" : ""
+              } />
+              <span>무증빙+이자납입 가능</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">4-2. 신용점수</h5>
+          <div class="lender-grid">
+            <label class="admin-field">
+              최소 신용점수 (예: 600)
+              <input type="number"
+                     class="admin-input js-credit-min"
+                     value="${credit.minScore != null ? credit.minScore : ""}" />
+            </label>
+            <label class="lender-row__toggle" style="margin-top:22px;">
+              <input type="checkbox" class="js-credit-below600" ${
+                credit.allowBelow600 ? "checked" : ""
+              } />
+              <span>600점 미만도 예외적으로 취급 가능</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">4-3. 상환계획</h5>
+          <div class="lender-chip-row">
+            <label class="lender-chip">
+              <input type="checkbox" class="js-term" data-key="short" ${
+                term.short ? "checked" : ""
+              } />
+              <span>3개월 내</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-term" data-key="mid" ${
+                term.mid ? "checked" : ""
+              } />
+              <span>3개월 이상 ~ 1년 미만</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-term" data-key="long" ${
+                term.long ? "checked" : ""
+              } />
+              <span>1년 이상</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">4-4. 대출금 필요시기</h5>
+          <div class="lender-chip-row">
+            <label class="lender-chip">
+              <input type="checkbox" class="js-timing" data-key="sameDay" ${
+                timing.sameDay ? "checked" : ""
+              } />
+              <span>당일</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-timing" data-key="withinWeek" ${
+                timing.withinWeek ? "checked" : ""
+              } />
+              <span>1주일 내</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-timing" data-key="withinMonth" ${
+                timing.withinMonth ? "checked" : ""
+              } />
+              <span>한달 이내</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">4-5. 기타사항(리스크)</h5>
+          <div class="lender-chip-row">
+            <label class="lender-chip">
+              <input type="checkbox" class="js-risk" data-key="세금체납" ${
+                risk["세금체납"] ? "checked" : ""
+              } />
+              <span>세금체납 취급 가능</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-risk" data-key="연체기록" ${
+                risk["연체기록"] ? "checked" : ""
+              } />
+              <span>연체기록 취급 가능</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-risk" data-key="압류·가압류" ${
+                risk["압류·가압류"] ? "checked" : ""
+              } />
+              <span>압류·가압류 취급 가능</span>
+            </label>
+            <label class="lender-chip">
+              <input type="checkbox" class="js-risk" data-key="개인회생" ${
+                risk["개인회생"] ? "checked" : ""
+              } />
+              <span>개인회생 이력 취급 가능</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 상담채널 / 메타 -->
+      <section class="lender-section">
+        <h4 class="lender-section__title">5. 상담 채널 & 메타 정보</h4>
+        <div class="lender-grid">
+          <label class="admin-field">
+            유선상담 전화번호
+            <input type="text" class="admin-input js-phone" value="${contacts.phone || ""}" />
+          </label>
+          <label class="admin-field">
+            채팅상담(카카오톡) URL
+            <input type="text" class="admin-input js-kakao" value="${contacts.kakaoUrl || ""}" />
+          </label>
+        </div>
+        <div class="lender-subsection">
+          <h5 class="lender-subsection__title">관리자 메모</h5>
+          <textarea class="admin-textarea js-admin-note" rows="2">${
+            meta.adminNote || ""
+          }</textarea>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+// 리스트 행 이벤트
+function bindLenderRowEvents(row, detail, lenderId) {
+  const enabledChk = row.querySelector(".js-lender-enabled");
+  const partnerChk = row.querySelector(".js-lender-partner");
+  const sortInput  = row.querySelector(".js-lender-sort");
+  const expandBtn  = row.querySelector(".lender-row__expand-btn");
+
+  const lender = findLenderById(lenderId);
+  if (!lender) return;
+
+  if (enabledChk) {
+    enabledChk.addEventListener("change", () => {
+      lender.enabledNewLoan = !!enabledChk.checked;
+      saveLendersToStorage();
+    });
+  }
+  if (partnerChk) {
+    partnerChk.addEventListener("change", () => {
+      lender.isPartner = !!partnerChk.checked;
+      saveLendersToStorage();
+      renderLendersList(); // 뱃지 갱신
+    });
+  }
+  if (sortInput) {
+    sortInput.addEventListener("input", () => {
+      lender.sortOrder = sortInput.value === "" ? null : Number(sortInput.value);
+      saveLendersToStorage();
+    });
+  }
+  if (expandBtn) {
+    expandBtn.addEventListener("click", () => {
+      const isOpen = detail.classList.contains("is-open");
+      document.querySelectorAll(".lender-detail").forEach((el) => el.classList.remove("is-open"));
+      if (!isOpen) {
+        detail.classList.add("is-open");
+        // 상세에 money input 포맷 적용
+        setupMoneyInputs(detail);
+      }
+    });
+  }
+}
+
+// 상세 패널 이벤트
+function bindLenderDetailEvents(detail, lenderId) {
+  const lender = findLenderById(lenderId);
+  if (!lender) return;
+
+  // 기본 정보
+  const idInput   = detail.querySelector(".js-lender-id");
+  const nameInput = detail.querySelector(".js-lender-name");
+  if (idInput) {
+    idInput.addEventListener("input", () => {
+      lender.id = (idInput.value || "").trim();
+      // 리스트 row dataset 갱신 필요 시 다시 렌더
+      saveLendersToStorage();
+      renderLendersList();
+    });
+  }
+  if (nameInput) {
+    nameInput.addEventListener("input", () => {
+      lender.nameKo = nameInput.value || "";
+      saveLendersToStorage();
       renderLendersList();
     });
   }
 
-  const saveBtn = document.getElementById("saveLendersConfigBtn");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", async () => {
-      captureLendersFromForm();
-      saveLendersConfigLocal();
-      await saveLendersConfigToServer();
+  // 상품군
+  detail.querySelectorAll(".js-pg").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const key = chk.getAttribute("data-pg");
+      if (!key) return;
+      if (!lender.productGroups) lender.productGroups = {};
+      lender.productGroups[key] = !!chk.checked;
+      saveLendersToStorage();
+    });
+  });
+
+  // 부동산담보 enabled
+  const mcEnabled = detail.querySelector(".js-mortgage-enabled");
+  if (mcEnabled) {
+    mcEnabled.addEventListener("change", () => {
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      lender.mortgageConfig.enabled = !!mcEnabled.checked;
+      saveLendersToStorage();
     });
   }
+
+  // 취급 지역
+  detail.querySelectorAll(".js-region").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      let regions = lender.mortgageConfig.regions || [];
+      const region = chk.getAttribute("data-region");
+      if (!region) return;
+      if (chk.checked) {
+        if (!regions.includes(region)) regions.push(region);
+      } else {
+        regions = regions.filter((r) => r !== region);
+      }
+      lender.mortgageConfig.regions = regions;
+      saveLendersToStorage();
+    });
+  });
+
+  // propertyMatrix
+  detail.querySelectorAll(".js-mortgage-matrix").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const prop = chk.getAttribute("data-prop");
+      const lt   = chk.getAttribute("data-loan-type");
+      if (!prop || !lt) return;
+
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      if (!lender.mortgageConfig.propertyMatrix) lender.mortgageConfig.propertyMatrix = {};
+      const pm = lender.mortgageConfig.propertyMatrix;
+
+      if (!pm[prop]) pm[prop] = {};
+      pm[prop][lt] = !!chk.checked;
+
+      saveLendersToStorage();
+    });
+  });
+
+  // minAmounts
+  detail.querySelectorAll(".js-min-amount").forEach((input) => {
+    input.addEventListener("input", () => {
+      const prop = input.getAttribute("data-prop");
+      if (!prop) return;
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      if (!lender.mortgageConfig.minAmounts) lender.mortgageConfig.minAmounts = {};
+      const v = getMoneyValue(input);
+      if (v > 0) {
+        lender.mortgageConfig.minAmounts[prop] = v;
+      } else {
+        delete lender.mortgageConfig.minAmounts[prop];
+      }
+      saveLendersToStorage();
+    });
+  });
+
+  // LTV overrides
+  detail.querySelectorAll(".js-ltv-override").forEach((input) => {
+    input.addEventListener("input", () => {
+      const prop = input.getAttribute("data-prop");
+      if (!prop) return;
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      if (!lender.mortgageConfig.ltvOverrides) lender.mortgageConfig.ltvOverrides = {};
+      const val = input.value === "" ? null : Number(input.value);
+      if (val != null && !isNaN(val)) {
+        lender.mortgageConfig.ltvOverrides[prop] = val / 100; // 78 → 0.78
+      } else {
+        delete lender.mortgageConfig.ltvOverrides[prop];
+      }
+      saveLendersToStorage();
+    });
+  });
+
+  // mortgage notes
+  const notesEl = detail.querySelector(".js-mortgage-notes");
+  if (notesEl) {
+    notesEl.addEventListener("input", () => {
+      if (!lender.mortgageConfig) lender.mortgageConfig = {};
+      lender.mortgageConfig.notes = notesEl.value || "";
+      saveLendersToStorage();
+    });
+  }
+
+  // income
+  detail.querySelectorAll(".js-income").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const key = chk.getAttribute("data-key");
+      if (!key) return;
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.income) lender.conditions.income = {};
+      lender.conditions.income[key] = !!chk.checked;
+      saveLendersToStorage();
+    });
+  });
+
+  // credit
+  const creditMinEl = detail.querySelector(".js-credit-min");
+  const creditBelowEl = detail.querySelector(".js-credit-below600");
+  if (creditMinEl) {
+    creditMinEl.addEventListener("input", () => {
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.credit) lender.conditions.credit = {};
+      lender.conditions.credit.minScore =
+        creditMinEl.value === "" ? null : Number(creditMinEl.value);
+      saveLendersToStorage();
+    });
+  }
+  if (creditBelowEl) {
+    creditBelowEl.addEventListener("change", () => {
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.credit) lender.conditions.credit = {};
+      lender.conditions.credit.allowBelow600 = !!creditBelowEl.checked;
+      saveLendersToStorage();
+    });
+  }
+
+  // term
+  detail.querySelectorAll(".js-term").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const key = chk.getAttribute("data-key");
+      if (!key) return;
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.term) lender.conditions.term = {};
+      lender.conditions.term[key] = !!chk.checked;
+      saveLendersToStorage();
+    });
+  });
+
+  // timing
+  detail.querySelectorAll(".js-timing").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const key = chk.getAttribute("data-key");
+      if (!key) return;
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.timing) lender.conditions.timing = {};
+      lender.conditions.timing[key] = !!chk.checked;
+      saveLendersToStorage();
+    });
+  });
+
+  // riskFlags
+  detail.querySelectorAll(".js-risk").forEach((chk) => {
+    chk.addEventListener("change", () => {
+      const key = chk.getAttribute("data-key");
+      if (!key) return;
+      if (!lender.conditions) lender.conditions = {};
+      if (!lender.conditions.riskFlags) lender.conditions.riskFlags = {};
+      lender.conditions.riskFlags[key] = !!chk.checked;
+      saveLendersToStorage();
+    });
+  });
+
+  // contacts
+  const phoneEl = detail.querySelector(".js-phone");
+  const kakaoEl = detail.querySelector(".js-kakao");
+  if (phoneEl) {
+    phoneEl.addEventListener("input", () => {
+      if (!lender.contacts) lender.contacts = {};
+      lender.contacts.phone = phoneEl.value || "";
+      saveLendersToStorage();
+    });
+  }
+  if (kakaoEl) {
+    kakaoEl.addEventListener("input", () => {
+      if (!lender.contacts) lender.contacts = {};
+      lender.contacts.kakaoUrl = kakaoEl.value || "";
+      saveLendersToStorage();
+    });
+  }
+
+  // admin note
+  const noteEl = detail.querySelector(".js-admin-note");
+  if (noteEl) {
+    noteEl.addEventListener("input", () => {
+      if (!lender.meta) lender.meta = {};
+      lender.meta.adminNote = noteEl.value || "";
+      saveLendersToStorage();
+    });
+  }
+}
+
+// 새 온투업체 추가
+function setupAddLenderButton() {
+  const btn = document.getElementById("addLenderBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    const l = createEmptyLender();
+    // 임시 ID/이름
+    const baseId = "lender";
+    let idx = lendersConfig.lenders.length + 1;
+    let newId = `${baseId}${idx}`;
+    while (lendersConfig.lenders.some((x) => x.id === newId)) {
+      idx += 1;
+      newId = `${baseId}${idx}`;
+    }
+    l.id = newId;
+    l.nameKo = `온투업체${idx}`;
+
+    lendersConfig.lenders.push(l);
+    saveLendersToStorage();
+    renderLendersList();
+  });
+}
+
+// 온투업체 설정 저장 버튼 (서버로 전송)
+function setupLendersSaveButton() {
+  const btn = document.getElementById("saveLendersBtn");
+  const statusEl = document.getElementById("lendersSaveStatus");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    try {
+      lendersConfig.updatedAt = new Date().toISOString();
+
+      // 1) localStorage 저장
+      saveLendersToStorage();
+
+      // 2) 서버로 전송 (API 엔드포인트는 필요 시 조정)
+      const res = await fetch("https://huchudb-github-io.vercel.app/api/lenders-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lendersConfig)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
+      }
+
+      const json = await res.json().catch(() => null);
+      console.log("lenders-config saved:", json);
+
+      if (statusEl) {
+        statusEl.textContent = "온투업체 설정이 서버에 저장되었습니다.";
+        setTimeout(() => {
+          if (statusEl.textContent.includes("저장되었습니다")) {
+            statusEl.textContent = "";
+          }
+        }, 3000);
+      }
+
+      alert("온투업체 설정이 저장되었습니다.\n(서버 + localStorage)");
+    } catch (e) {
+      console.error("saveLendersBtn error:", e);
+      alert("온투업체 설정 저장 중 오류가 발생했습니다.\nAPI 준비 전이라면 localStorage만 사용됩니다.");
+    }
+  });
+}
+
+// ------------------------------------------------------
+// 3. 탭 전환 (온투업 통계 / 온투업체 정보등록)
+// ------------------------------------------------------
+function setupAdminTabs() {
+  const tabButtons = document.querySelectorAll("[data-admin-tab-target]");
+  const tabPanels  = document.querySelectorAll("[data-admin-tab-panel]");
+
+  if (!tabButtons.length || !tabPanels.length) return;
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-admin-tab-target");
+      if (!target) return;
+
+      tabButtons.forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+
+      tabPanels.forEach((panel) => {
+        const name = panel.getAttribute("data-admin-tab-panel");
+        if (name === target) {
+          panel.classList.remove("hide");
+        } else {
+          panel.classList.add("hide");
+        }
+      });
+    });
+  });
 }
 
 // ------------------------------------------------------
 // 초기화
 // ------------------------------------------------------
-
 document.addEventListener("DOMContentLoaded", () => {
   setupBetaMenu();
-  setupAdminTabs();
-  setupMoneyInputs();
 
-  // LTV/금리 설정
-  loadLoanConfigFromStorage();
-  setupRegionTabs();
-  fillLoanConfigForm(currentRegion);
-  setupLoanConfigSaveButton();
-
-  // 통계
+  // 1) 온투업 통계
   loadStatsFromStorage();
   setupStatsInteractions();
+  setupMoneyInputs();
 
-  // 온투업체 설정
-  setupLendersAdmin();
+  // 2) 온투업체 정보 등록
+  loadLendersFromStorage();
+  renderLendersList();
+  setupAddLenderButton();
+  setupLendersSaveButton();
+  setupAdminTabs();
 });
