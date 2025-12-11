@@ -38,9 +38,9 @@ const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
 const toNumber   = (s) => Number(onlyDigits(s)) || 0;
 
 /**
- * '조/억/만원' + HTML(span) 포맷
- * - 숫자는 .money-number
- * - 단위(조·억·만원·원)는 .money-unit
+ * '조/억/만원/원'을 HTML(span)로 포맷
+ * - 숫자: .money-number
+ * - 단위: .money-unit
  */
 function formatKoreanCurrencyJo(num) {
   const n = Math.max(0, Math.floor(num));
@@ -78,7 +78,7 @@ function formatKoreanCurrencyJo(num) {
     return parts.join(" ");
   }
 
-  // 1만원 미만 ~ 1원 이상: '원' 단위
+  // 1만원 미만 ~ 1원 이상: '원'
   if (n > 0) {
     return (
       `<span class="money-number">${n.toLocaleString("ko-KR")}</span>` +
@@ -92,6 +92,7 @@ function formatKoreanCurrencyJo(num) {
     `<span class="money-unit">원</span>`
   );
 }
+
 
 // 'YYYY-MM' → 'YYYY년 M월'
 function formatMonthLabel(ym) {
