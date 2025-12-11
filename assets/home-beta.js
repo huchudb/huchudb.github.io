@@ -101,6 +101,28 @@ function formatMonthLabel(ym) {
   return `${y}년 ${Number(m)}월`;
 }
 
+// ───────── 대출현황 금액 텍스트 자동 폰트 축소 ─────────
+function autoFitLoanStatusText() {
+  const els = document.querySelectorAll(".beta-loanstatus-item__value .loan-amount-text");
+  els.forEach((el) => {
+    const parent = el.parentElement;
+    if (!parent) return;
+
+    // 기본 폰트 크기와 최소 폰트 크기 설정
+    let fontSize = 18;   // 기본값 (현재 쓰는 크기와 맞춰도 됨)
+    const minSize = 12;  // 이 이하로는 줄이지 않기
+
+    el.style.fontSize = fontSize + "px";
+    el.style.whiteSpace = "nowrap";
+
+    // 부모 폭을 넘어가는 동안만 폰트 크기 1px씩 줄이기
+    while (el.scrollWidth > parent.clientWidth && fontSize > minSize) {
+      fontSize -= 1;
+      el.style.fontSize = fontSize + "px";
+    }
+  });
+}
+
 // ───────── 기본 샘플 통계 (2025년 10월) ─────────
 const DEFAULT_ONTU_STATS = {
   month: "2025-10",
@@ -182,7 +204,6 @@ async function fetchOntuStats() {
   }
 }
 
-// ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
   const container = document.getElementById("ontuLoanStatus");
   const monthEl   = document.getElementById("dashboardMonth");
@@ -230,13 +251,18 @@ function renderLoanStatus(summary, monthStr) {
           (it) => `
         <div class="beta-loanstatus-item">
           <div class="beta-loanstatus-item__label">${it.label}</div>
-          <div class="beta-loanstatus-item__value">${it.value}</div>
+          <div class="beta-loanstatus-item__value">
+            <span class="loan-amount-text">${it.value}</span>
+          </div>
         </div>
       `
         )
         .join("")}
     </div>
   `;
+
+  // 🔹 카드 렌더 후, 자동 폰트 축소 적용
+  autoFitLoanStatusText();
 }
 
 // ───────── 상품유형별 대출잔액 렌더 ─────────
