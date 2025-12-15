@@ -281,64 +281,31 @@
   background:#ffffff;
 }
 
-/* ✅ 새 헤더 구조 */
+/* ✅ 헤더: 한 줄 + 컴팩트 + 클릭으로 펼침 */
 .lender-head{
-  padding:14px 16px;
+  width:100%;
+  padding:10px 12px;           /* 기존보다 축소 */
   background:var(--admin-soft);
   display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:14px;
-}
-.lender-head__left{
-  min-width:220px;
-}
-.lender-head__topline{
-  display:flex;
   align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
+  gap:10px;                    /* 기존 여백 축소 */
+  cursor:pointer;
 }
+.lender-head:hover{ background:#eaeef3; }
+
 .lender-name{
-  font-size:15px;
+  font-size:14px;
   font-weight:900;
   color:var(--admin-text);
   letter-spacing:-0.01em;
+  white-space:nowrap;
 }
-.lender-head__right{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.lender-switch-row{
-  display:flex;
+
+.lender-badges{
+  display:inline-flex;
   align-items:center;
-  justify-content:flex-end;
-  gap:16px;
-  flex-wrap:wrap;
+  gap:6px;
 }
-.lender-switch-item{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-size:12px;
-  font-weight:900;
-  color:#374151;
-}
-.lender-switch-item .admin-switch{ display:inline-flex; }
-.lender-expand-btn{
-  border:0;
-  background:#fff;
-  border-radius:999px;
-  padding:8px 12px;
-  font-weight:900;
-  cursor:pointer;
-  border:1px solid #e5e7eb;
-  color:#111827;
-  align-self:flex-end;
-}
-.lender-expand-btn:hover{ background:#f9fafb; }
 
 /* 배지 */
 .lender-badge{
@@ -348,8 +315,8 @@
   font-size:11px;
   font-weight:900;
   border-radius:999px;
-  margin-left:0;
   border:1px solid rgba(0,0,0,0.06);
+  white-space:nowrap;
 }
 .lender-badge--partner{
   background:var(--admin-accent);
@@ -359,8 +326,64 @@
   background:var(--admin-good);
   color:#ffffff;
 }
-.lender-badge.is-off{
-  opacity:0.35;
+.lender-badge.is-off{ opacity:0.35; }
+
+/* 헤더 스위치 묶음 */
+.lender-switches{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-left:auto; /* 오른쪽으로 밀기 */
+}
+.lender-switch-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+}
+.lender-switch-item span{
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+
+/* 제휴 순서 */
+.lender-order{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+}
+.lender-order__title{
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+
+/* 순서 칩(원형) */
+.admin-order-chips{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.admin-order-chip{
+  width:26px;
+  height:26px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#fff;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+  line-height:1;
+}
+.admin-order-chip:hover{
+  background:#f3f4f6;
+}
+.admin-order-chip.is-active{
+  background:var(--admin-primary);
+  border-color:var(--admin-primary);
+  color:#fff;
 }
 
 /* 펼침 패널 */
@@ -372,6 +395,134 @@
 
 .lender-panel__inner{
   padding:16px 18px;
+}
+
+/* 카드별 저장 */
+.lender-save-row{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:10px;
+}
+.lender-save-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 16px;
+  border-radius:999px;
+  border:0;
+  background:#111827;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+.lender-save-btn:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
+}
+
+/* --------------------------
+   ✅ (B) 지역 탭 + 매트릭스
+-------------------------- */
+.admin-region-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0 12px;
+}
+.admin-region-tab{
+  padding:7px 10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.admin-region-tab.is-active{
+  background:#111827;
+  border-color:#111827;
+  color:#fff;
+}
+
+.admin-matrix{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:hidden;
+}
+.admin-matrix thead th{
+  padding:10px 10px;
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+  background:#f9fafb;
+  border-bottom:1px solid #e5e7eb;
+}
+.admin-matrix tbody td{
+  padding:10px 10px;
+  border-top:1px solid #f1f5f9;
+  vertical-align:middle;
+  font-size:12px;
+}
+.cell-center{ text-align:center; }
+
+/* LTV 입력 */
+.admin-ltv-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.admin-mini-input{
+  width:90px;
+  padding:8px 10px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-size:13px;
+}
+.admin-mini-input:disabled{
+  background:#f3f4f6;
+  color:#9ca3af;
+}
+.admin-ltv-pct{
+  font-weight:900;
+  color:#6b7280;
+}
+
+/* 취급 칩 토글 */
+.admin-chip-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#fff;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+  min-width:76px;
+}
+.admin-chip-toggle.is-on{
+  background:#111827;
+  border-color:#111827;
+  color:#fff;
+}
+
+/* 대출종류 칩: 더 촘촘하게 */
+.admin-chip-row--tight{
+  gap:6px;
+}
+.admin-chip-check--tiny{
+  padding:6px 9px;
+  font-size:11px;
+}
+.admin-chip-check--tiny span{
+  font-weight:900;
+}
+.admin-chip-row.is-disabled{
+  opacity:0.45;
 }
 
 /* --------------------------
@@ -404,137 +555,18 @@
 @media (max-width:600px){
   .admin-page{ padding:0 14px; }
   .admin-field-grid{ grid-template-columns:1fr; }
-  .lender-head{ flex-direction:column; }
-  .lender-head__left{ min-width:unset; width:100%; }
-  .lender-switch-row{ justify-content:flex-start; }
-  .lender-expand-btn{ align-self:flex-start; }
+
+  /* 헤더는 모바일에서 줄바꿈 허용 */
+  .lender-head{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .lender-switches{
+    margin-left:0;
+  }
 }
 
-/* ===== (NEW) Partner order chips (제휴 ON일 때만 노출) ===== */
-.admin-order-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-}
-.admin-order-title{
-  font-size:12px;
-  font-weight:900;
-  color:#374151;
-}
-.admin-order-chips{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.admin-order-chip{
-  width:30px;
-  height:30px;
-  border-radius:999px;
-  border:1px solid #e5e7eb;
-  background:#fff;
-  cursor:pointer;
-  font-weight:900;
-  font-size:12px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-.admin-order-chip.is-active{
-  background:#a7f3d0;
-  border-color:#6ee7b7;
-  color:#064e3b;
-}
-
-/* ===== (NEW) Region Tabs + Matrix ===== */
-.admin-region-tabs{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin:10px 0 10px;
-}
-.admin-region-tab{
-  border:1px solid #e5e7eb;
-  background:#ffffff;
-  padding:8px 12px;
-  border-radius:10px;
-  font-weight:900;
-  font-size:12px;
-  cursor:pointer;
-}
-.admin-region-tab.is-active{
-  background:#111827;
-  color:#fff;
-  border-color:#111827;
-}
-
-.admin-matrix{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  overflow:hidden;
-}
-.admin-matrix th,
-.admin-matrix td{
-  border-bottom:1px solid #eef2f7;
-  padding:10px 10px;
-  vertical-align:middle;
-  font-size:12px;
-}
-.admin-matrix thead th{
-  background:#f9fafb;
-  font-weight:900;
-  color:#374151;
-}
-.admin-matrix .cell-center{ text-align:center; }
-.admin-matrix .cell-right{ text-align:right; }
-
-.admin-mini-input{
-  width:84px;
-  padding:8px 10px;
-  border:1px solid #d1d5db;
-  border-radius:10px;
-  font-size:12px;
-}
-.admin-mini-input:focus{
-  outline:2px solid rgba(37,99,235,0.25);
-  border-color:#93c5fd;
-}
-
-.admin-chip-row--tight{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  justify-content:flex-start;
-}
-.admin-chip-check--tiny{
-  padding:6px 8px;
-  font-size:11px;
-}
-
-/* ===== (NEW) per-card save ===== */
-.lender-save-row{
-  display:flex;
-  justify-content:flex-end;
-  margin-top:14px;
-}
-.lender-save-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:10px 16px;
-  border-radius:12px;
-  border:0;
-  background:#111827;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-.lender-save-btn:hover{ background:#020617; }
-
+/* ===== 검색 결과 없음 ===== */
 .admin-empty{
   padding:14px 12px;
   border:1px dashed #d1d5db;
