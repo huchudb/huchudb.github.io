@@ -198,31 +198,79 @@
   border-top:1px dashed #e5e7eb;
 }
 
-/* 체크칩 형태 */
+/* =========================================================
+   ✅ 납작한 토글 버튼(칩) 스타일
+   - 취급 상품군 설정(부동산담보대출 등)
+   - 취급 대출 종류(일반담보대출 등)
+========================================================= */
 .admin-chip-row{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
 }
+
+/* label은 컨테이너 역할만 */
 .admin-chip-check{
   display:inline-flex;
-  align-items:center;
-  gap:8px;
-  background:#ffffff;
-  border:1px solid var(--admin-line);
-  padding:8px 10px;
-  border-radius:999px;
-  font-size:12px;
+  position:relative;
   cursor:pointer;
   user-select:none;
-  box-shadow:0 2px 6px rgba(15,23,42,0.04);
 }
+
+/* 체크박스는 시각적으로 숨김 (접근성 유지) */
 .admin-chip-check input{
-  accent-color:var(--admin-primary);
+  position:absolute;
+  opacity:0;
+  width:1px;
+  height:1px;
+  pointer-events:none;
 }
+
+/* span을 “납작한 버튼”으로 */
 .admin-chip-check span{
-  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 12px;
+  border-radius:10px;                 /* ✅ 알약(999px) → 납작 */
+  border:1px solid var(--admin-line);
+  background:#ffffff;
+  font-size:12px;
+  font-weight:900;
   color:#374151;
+  line-height:1;
+}
+
+/* ON */
+.admin-chip-check input:checked + span{
+  background:var(--admin-primary);
+  border-color:var(--admin-primary);
+  color:#ffffff;
+}
+
+/* 포커스(키보드) */
+.admin-chip-check input:focus + span{
+  outline:2px solid rgba(37,99,235,0.25);
+  outline-offset:2px;
+}
+
+/* hover */
+.admin-chip-check:hover span{
+  background:#f3f4f6;
+}
+.admin-chip-check:hover input:checked + span{
+  background:var(--admin-primary-hover);
+  border-color:var(--admin-primary-hover);
+}
+
+/* ✅ “대출종류”용 더 촘촘한 버전 */
+.admin-chip-row--tight{
+  gap:6px;
+}
+.admin-chip-check--tiny span{
+  padding:6px 10px;
+  border-radius:10px;
+  font-size:11px;
 }
 
 /* 스위치 */
@@ -284,11 +332,11 @@
 /* ✅ 헤더: 한 줄 + 컴팩트 + 클릭으로 펼침 */
 .lender-head{
   width:100%;
-  padding:10px 12px;           /* 기존보다 축소 */
+  padding:10px 12px;
   background:var(--admin-soft);
   display:flex;
   align-items:center;
-  gap:10px;                    /* 기존 여백 축소 */
+  gap:10px;
   cursor:pointer;
 }
 .lender-head:hover{ background:#eaeef3; }
@@ -333,7 +381,7 @@
   display:flex;
   align-items:center;
   gap:10px;
-  margin-left:auto; /* 오른쪽으로 밀기 */
+  margin-left:auto;
 }
 .lender-switch-item{
   display:flex;
@@ -510,17 +558,6 @@
   color:#fff;
 }
 
-/* 대출종류 칩: 더 촘촘하게 */
-.admin-chip-row--tight{
-  gap:6px;
-}
-.admin-chip-check--tiny{
-  padding:6px 9px;
-  font-size:11px;
-}
-.admin-chip-check--tiny span{
-  font-weight:900;
-}
 .admin-chip-row.is-disabled{
   opacity:0.45;
 }
