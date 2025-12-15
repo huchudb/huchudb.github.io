@@ -1,8 +1,41 @@
 // /assets/admin-beta.js
 console.log("✅ admin-beta.js loaded");
 
-const API_BASE =
-  (typeof window !== "undefined" && window.API_BASE) ? String(window.API_BASE) : "";
+/* =========================================================
+   ✅ API_BASE 해석 (핵심 패치)
+   - window.API_BASE가 있으면 그걸 사용
+   - 없으면 기본값으로 Vercel Functions를 사용
+   - localhost에서는 상대경로(/api/...) 유지
+========================================================= */
+function resolveApiBase() {
+  try {
+    const w = (typeof window !== "undefined") ? window : null;
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+
+    // 1) window.API_BASE가 없으면: 환경별 기본값
+    if (!base) {
+      const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+      const isLocal =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host.endsWith(".local");
+
+      // 로컬은 프록시/로컬 API를 쓸 수 있으니 상대경로 유지
+      if (isLocal) base = "";
+      // 운영/정적호스팅에서는 Vercel Functions로 기본 연결
+      else base = "https://huchudb-github-io.vercel.app";
+    }
+
+    // 2) 뒤 슬래시 제거
+    base = base.replace(/\/+$/, "");
+    return base;
+  } catch {
+    return "https://huchudb-github-io.vercel.app";
+  }
+}
+
+const API_BASE = resolveApiBase();
+console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
 /* ---------------- 공통/유틸 ---------------- */
 function setupBetaMenu() {
@@ -409,7 +442,6 @@ function ensureLenderDeepDefaults(lender) {
   });
 }
 
-// preview는 잦은 업데이트 대비
 let _previewRAF = 0;
 function schedulePreviewUpdate() {
   if (_previewRAF) return;
@@ -491,7 +523,6 @@ function getActiveRegionFor(id) {
 }
 
 function setPartnerOrderUnique(targetId, orderNum) {
-  // 같은 숫자를 다른 제휴업체가 쓰고 있으면 0으로 해제
   Object.values(lendersConfig.lenders || {}).forEach((l) => {
     if (!l || l.id === targetId) return;
     if (l.partnerOrder === orderNum) l.partnerOrder = 0;
@@ -550,7 +581,6 @@ function renderLendersList() {
     const card = document.createElement("div");
     card.className = "lender-card";
 
-    /* ---------- 헤더: 업체명+뱃지 + 스위치 + (제휴ON)표시순서 ---------- */
     const head = document.createElement("div");
     head.className = "lender-head";
 
@@ -585,7 +615,6 @@ function renderLendersList() {
     const switchRow = document.createElement("div");
     switchRow.className = "lender-switch-row";
 
-    // 신규대출 스위치
     const activeItem = document.createElement("div");
     activeItem.className = "lender-switch-item";
     const activeText = document.createElement("span");
@@ -599,7 +628,6 @@ function renderLendersList() {
     activeItem.appendChild(activeText);
     activeItem.appendChild(activeSwitchWrap);
 
-    // 제휴 스위치
     const partnerItem = document.createElement("div");
     partnerItem.className = "lender-switch-item";
     const partnerText = document.createElement("span");
@@ -616,13 +644,11 @@ function renderLendersList() {
     switchRow.appendChild(activeItem);
     switchRow.appendChild(partnerItem);
 
-    // 펼치기 버튼 (스위치 클릭과 충돌 방지용)
     const expandBtn = document.createElement("button");
     expandBtn.type = "button";
     expandBtn.className = "lender-expand-btn";
     expandBtn.textContent = lenderUiState.openIds.has(lender.id) ? "접기" : "상세";
 
-    // 이벤트
     activeInput.addEventListener("change", () => {
       const next = !!activeInput.checked;
       activeBadge.classList.toggle("is-off", !next);
@@ -633,17 +659,13 @@ function renderLendersList() {
       const next = !!partnerInput.checked;
       partnerBadge.classList.toggle("is-off", !next);
 
-      // 제휴 OFF로 바꾸면 표시순서 0으로 정리
       const patch = { isPartner: next };
       if (!next) patch.partnerOrder = 0;
 
       updateLenderState(lender.id, patch);
-
-      // 헤더에 표시순서 UI가 있어서, 토글 후 즉시 UI 반영 필요 → 재렌더
       renderLendersList();
     });
 
-    // (제휴 ON일 때만) 표시순서 칩
     const orderRow = document.createElement("div");
     orderRow.className = "admin-order-row";
     orderRow.style.display = lender.isPartner ? "flex" : "none";
@@ -655,7 +677,7 @@ function renderLendersList() {
     const orderChips = document.createElement("div");
     orderChips.className = "admin-order-chips";
 
-    const N = Math.max(5, LENDERS_MASTER.length); // 최소 5개는 보이게
+    const N = Math.max(5, LENDERS_MASTER.length);
     for (let i = 1; i <= N; i++) {
       const chip = document.createElement("button");
       chip.type = "button";
@@ -681,7 +703,6 @@ function renderLendersList() {
     head.appendChild(left);
     head.appendChild(right);
 
-    /* ---------- 패널 ---------- */
     const panel = document.createElement("div");
     panel.className = "lender-panel";
     panel.classList.toggle("hide", !lenderUiState.openIds.has(lender.id));
@@ -698,7 +719,6 @@ function renderLendersList() {
       expandBtn.textContent = isOpen ? "상세" : "접기";
     });
 
-    /* ---------- 1) 상품군 ---------- */
     const productsBox = document.createElement("div");
     productsBox.className = "admin-subbox";
 
@@ -742,7 +762,6 @@ function renderLendersList() {
     productsBox.appendChild(chipRow);
     inner.appendChild(productsBox);
 
-    /* ---------- 2) 지역/유형/LTV/대출종류 ---------- */
     const matrixBox = document.createElement("div");
     matrixBox.className = "admin-subbox";
 
@@ -769,7 +788,6 @@ function renderLendersList() {
       btn.addEventListener("click", () => {
         lenderUiState.activeRegionById[lender.id] = r.key;
         renderLendersList();
-        // 펼친 상태 유지
         lenderUiState.openIds.add(lender.id);
       });
 
@@ -794,15 +812,11 @@ function renderLendersList() {
 
     PROPERTY_TYPES.forEach((pt) => {
       const tr = document.createElement("tr");
-
-      // data
       const cell = lender.regions[activeRegion][pt.key];
 
-      // 부동산 유형
       const tdType = document.createElement("td");
       tdType.textContent = pt.label;
 
-      // 취급여부
       const tdEnable = document.createElement("td");
       tdEnable.className = "cell-center";
       const enable = document.createElement("input");
@@ -815,7 +829,6 @@ function renderLendersList() {
       });
       tdEnable.appendChild(enable);
 
-      // LTV
       const tdLtv = document.createElement("td");
       const ltvWrap = document.createElement("div");
       ltvWrap.style.display = "flex";
@@ -857,7 +870,6 @@ function renderLendersList() {
       ltvWrap.appendChild(pct);
       tdLtv.appendChild(ltvWrap);
 
-      // 대출 종류 칩
       const tdLoans = document.createElement("td");
       const loanRow = document.createElement("div");
       loanRow.className = "admin-chip-row admin-chip-row--tight";
@@ -908,7 +920,6 @@ function renderLendersList() {
     matrixBox.appendChild(table);
     inner.appendChild(matrixBox);
 
-    /* ---------- 3) 상담채널 ---------- */
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
 
@@ -959,7 +970,6 @@ function renderLendersList() {
     contactBox.appendChild(contactGrid);
     inner.appendChild(contactBox);
 
-    /* ---------- 4) 카드별 저장 ---------- */
     const saveRow = document.createElement("div");
     saveRow.className = "lender-save-row";
     const saveBtn = document.createElement("button");
