@@ -1,9 +1,30 @@
+/* /assets/admin-beta.css?v=20251215-admin */
 /* =========================================================
    Huchu Admin (Beta) — 관리자 전용 CSS (B 스타일)
-   파일: /assets/admin-beta.css
-   목적: 관리자 UI 전용. beta 공통 styles.css와 충돌 최소화.
-   prefix: .admin- / .lender-
+   - beta 공통 styles.css와 "충돌 최소화" 목적
+   - prefix: .admin- / .lender-
 ========================================================= */
+
+:root{
+  --admin-bg:#ffffff;
+  --admin-card:#ffffff;
+  --admin-line:#e5e7eb;
+  --admin-text:#111827;
+  --admin-muted:#6b7280;
+  --admin-strong:#0f172a;
+
+  --admin-primary:#111827;
+  --admin-primary-hover:#020617;
+
+  --admin-soft:#f3f4f6;
+  --admin-soft2:#f9fafb;
+
+  --admin-accent:#facc15;
+  --admin-good:#16a34a;
+  --admin-info:#2563eb;
+
+  --admin-radius:16px;
+}
 
 /* 전체 구조 */
 .admin-page{
@@ -11,67 +32,74 @@
   margin:24px auto 40px;
   padding:0 20px;
   font-family:Arial,sans-serif;
-  color:#111827;
+  color:var(--admin-text);
 }
 
 /* 타이틀 */
 .admin-title{
-  margin:0 0 18px;
+  margin:0 0 10px;
   font-size:26px;
-  font-weight:800;
-  color:#0f172a;
+  font-weight:900;
+  color:var(--admin-strong);
+  letter-spacing:-0.02em;
 }
-
-/* 공통 노트 */
 .admin-note{
-  margin:6px 0 12px;
+  margin:6px 0 18px;
   font-size:13px;
-  color:#6b7280;
-  line-height:1.5;
+  color:var(--admin-muted);
+  line-height:1.55;
 }
 
-/* 탭 버튼 영역 */
+/* 탭 버튼 */
 .admin-tabs{
   display:flex;
   gap:10px;
-  margin-bottom:24px;
+  margin:10px 0 18px;
+  flex-wrap:wrap;
 }
 .admin-tab-btn{
-  border:0;
-  padding:10px 16px;
-  background:#e5e7eb;
+  border:1px solid var(--admin-line);
+  padding:10px 14px;
+  background:var(--admin-soft);
   color:#374151;
   border-radius:999px;
   cursor:pointer;
-  font-weight:800;
+  font-weight:900;
   font-size:13px;
   width:auto;
+  transition:transform .08s ease, background .12s ease;
+}
+.admin-tab-btn:hover{
+  background:#eaeef3;
+  transform:translateY(-1px);
 }
 .admin-tab-btn.is-active{
-  background:#111827;
+  background:var(--admin-primary);
+  border-color:var(--admin-primary);
   color:#ffffff;
 }
 
 /* 패널 숨김 */
-.admin-tab-panel.hide{display:none}
+.admin-tab-panel.hide{ display:none; }
 
 /* 공통 카드 */
 .admin-card{
-  background:#ffffff;
-  border-radius:18px;
+  background:var(--admin-card);
+  border-radius:var(--admin-radius);
   padding:18px 20px;
-  border:1px solid #e5e7eb;
-  box-shadow:0 6px 16px rgba(15,23,42,.08);
+  border:1px solid var(--admin-line);
+  box-shadow:0 6px 16px rgba(15,23,42,0.06);
   margin-bottom:22px;
 }
 
-/* 구분 그룹 */
-.admin-field-group{margin-bottom:26px}
+/* 섹션 그룹 */
+.admin-field-group{ margin-bottom:24px; }
 .admin-field-title{
-  margin:0 0 10px;
+  margin:0 0 8px;
   font-size:17px;
   font-weight:900;
-  color:#0f172a;
+  color:var(--admin-strong);
+  letter-spacing:-0.01em;
 }
 
 /* 입력 필드 */
@@ -82,26 +110,92 @@
 }
 .admin-field label{
   font-weight:800;
-  color:#111827;
+  color:#1f2937;
+  margin-bottom:6px;
 }
 .admin-input{
-  margin-top:6px;
   padding:10px 12px;
   border:1px solid #d1d5db;
-  border-radius:12px;
+  border-radius:10px;
   font-size:14px;
   background:#fff;
 }
 .admin-input:focus{
-  outline:2px solid #60a5fa;
-  outline-offset:1px;
+  outline:2px solid rgba(37,99,235,0.25);
+  border-color:#93c5fd;
 }
 
-/* 2~3컬럼 그리드 */
+/* 그리드 */
 .admin-field-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
   gap:14px;
+}
+
+/* 소타이틀 박스 */
+.admin-subbox{
+  background:var(--admin-soft2);
+  border:1px solid var(--admin-line);
+  padding:16px;
+  border-radius:14px;
+  margin-top:12px;
+  margin-bottom:14px;
+}
+.admin-subbox-title{
+  margin:0 0 8px;
+  font-size:14px;
+  font-weight:900;
+  color:var(--admin-strong);
+}
+.admin-subbox-help{
+  margin:0 0 12px;
+  font-size:13px;
+  color:var(--admin-muted);
+  line-height:1.55;
+}
+
+/* 저장 버튼 */
+.admin-save-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:12px 18px;
+  background:var(--admin-primary);
+  border-radius:999px;
+  border:0;
+  color:#ffffff;
+  font-weight:900;
+  cursor:pointer;
+  font-size:14px;
+  width:auto;
+  box-shadow:0 10px 20px rgba(2,6,23,0.18);
+}
+.admin-save-btn:hover{ background:var(--admin-primary-hover); }
+.admin-save-status{
+  margin-top:10px;
+  font-size:13px;
+  color:#059669;
+  font-weight:700;
+}
+
+/* 상품유형 테이블 */
+.admin-table{
+  width:100%;
+  border-collapse:collapse;
+}
+.admin-table th,
+.admin-table td{
+  padding:6px 4px;
+}
+.admin-table thead th{
+  color:#374151;
+  font-size:12px;
+  font-weight:900;
+  border-bottom:1px solid var(--admin-line);
+}
+.admin-table tbody tr + tr{
+  border-top:1px dashed #e5e7eb;
 }
 
 /* 체크칩 형태 */
@@ -114,15 +208,22 @@
   display:inline-flex;
   align-items:center;
   gap:8px;
-  background:#f3f4f6;
-  border:1px solid #e5e7eb;
-  padding:7px 12px;
+  background:#ffffff;
+  border:1px solid var(--admin-line);
+  padding:8px 10px;
   border-radius:999px;
   font-size:12px;
   cursor:pointer;
   user-select:none;
+  box-shadow:0 2px 6px rgba(15,23,42,0.04);
 }
-.admin-chip-check input{accent-color:#111827}
+.admin-chip-check input{
+  accent-color:var(--admin-primary);
+}
+.admin-chip-check span{
+  font-weight:800;
+  color:#374151;
+}
 
 /* 스위치 */
 .admin-switch-field{
@@ -130,120 +231,75 @@
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:10px 12px;
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  background:#f9fafb;
 }
 .admin-switch-label{
   font-size:13px;
   font-weight:900;
-  color:#111827;
+  color:#374151;
 }
+
+/* iOS/크롬 공통 토글 */
 .admin-switch input[type="checkbox"]{
   appearance:none;
-  width:44px;
-  height:24px;
+  width:42px;
+  height:22px;
   background:#d1d5db;
   border-radius:999px;
   position:relative;
   cursor:pointer;
-  transition:background .2s;
+  transition:background 0.2s;
+  border:1px solid #cbd5e1;
 }
 .admin-switch input[type="checkbox"]::after{
   content:"";
   width:18px;
   height:18px;
-  background:white;
+  background:#ffffff;
   border-radius:50%;
   position:absolute;
-  top:3px;
-  left:3px;
-  transition:.2s;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
+  top:1px;
+  left:1px;
+  transition:transform .2s ease;
+  box-shadow:0 2px 6px rgba(15,23,42,0.18);
 }
-.admin-switch input[type="checkbox"]:checked{background:#111827}
-.admin-switch input[type="checkbox"]:checked::after{transform:translateX(20px)}
-
-/* 소타이틀 박스 */
-.admin-subbox{
-  background:#f9fafb;
-  border:1px solid #e5e7eb;
-  padding:16px;
-  border-radius:16px;
-  margin-top:12px;
-  margin-bottom:20px;
+.admin-switch input[type="checkbox"]:checked{
+  background:var(--admin-primary);
+  border-color:var(--admin-primary);
 }
-.admin-subbox-title{
-  margin:0 0 8px;
-  font-size:14px;
-  font-weight:900;
-  color:#0f172a;
-}
-.admin-subbox-help{
-  margin:0 0 12px;
-  font-size:13px;
-  color:#6b7280;
+.admin-switch input[type="checkbox"]:checked::after{
+  transform:translateX(20px);
 }
 
-/* 저장 버튼 */
-.admin-save-btn{
-  padding:12px 20px;
-  background:#111827;
-  border-radius:14px;
-  border:0;
-  color:#ffffff;
-  font-weight:900;
-  cursor:pointer;
-  font-size:14px;
-  width:auto;
-}
-.admin-save-btn:hover{background:#000}
-
-.admin-save-status{
-  margin-top:8px;
-  font-size:13px;
-  color:#059669;
-}
-
-/* TAB2 액션 영역 */
-.admin-actions{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-/* 온투업체 카드 리스트 */
+/* --------------------------
+   온투업체 카드 리스트
+-------------------------- */
 .lender-card{
-  margin-bottom:16px;
+  margin-bottom:14px;
   border-radius:18px;
   overflow:hidden;
-  border:1px solid #e5e7eb;
-  box-shadow:0 4px 12px rgba(15,23,42,.06);
+  border:1px solid var(--admin-line);
+  background:#ffffff;
 }
 
-/* 카드 헤더(토글) */
+/* 접기/펼치기 버튼 */
 .lender-toggle{
   width:100%;
   text-align:left;
-  padding:14px 18px;
-  background:#111827;
+  padding:14px 16px;
+  background:var(--admin-soft);
   border:0;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:12px;
   cursor:pointer;
-  color:#fff;
+  gap:10px;
 }
-.lender-toggle:hover{background:#0b1220}
+.lender-toggle:hover{ background:#eaeef3; }
 
 .lender-toggle__name{
   font-size:15px;
   font-weight:900;
-  color:#ffffff;
+  color:var(--admin-text);
   letter-spacing:-0.01em;
 }
 
@@ -251,32 +307,108 @@
 .lender-badge{
   display:inline-flex;
   align-items:center;
-  padding:3px 10px;
+  padding:3px 8px;
   font-size:11px;
   font-weight:900;
   border-radius:999px;
   margin-left:6px;
-  border:1px solid rgba(255,255,255,.18);
+  border:1px solid rgba(0,0,0,0.06);
 }
 .lender-badge--partner{
-  background:#facc15;
+  background:var(--admin-accent);
   color:#111827;
 }
 .lender-badge--active{
-  background:#16a34a;
+  background:var(--admin-good);
   color:#ffffff;
 }
-.lender-badge.is-off{opacity:.35}
+.lender-badge.is-off{
+  opacity:0.35;
+}
 
 /* 펼침 패널 */
-.lender-panel{padding:0 0 16px;background:#ffffff}
-.lender-panel.hide{display:none}
-.lender-panel__inner{padding:16px 20px}
+.lender-panel{
+  padding:0 0 16px;
+  background:#ffffff;
+}
+.lender-panel.hide{ display:none; }
 
-/* 카드 내부: 구역 간격 */
-.lender-panel .admin-subbox{margin-top:14px}
+.lender-panel__inner{
+  padding:16px 18px;
+}
+
+/* --------------------------
+   작은 도움 UI
+-------------------------- */
+.admin-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--admin-line);
+  background:#ffffff;
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+.admin-pill.info{
+  border-color:#bfdbfe;
+  background:#eff6ff;
+  color:#1e40af;
+}
+.admin-pill.warn{
+  border-color:#fde68a;
+  background:#fffbeb;
+  color:#92400e;
+}
 
 /* 반응형 */
 @media (max-width:600px){
-  .admin-field-grid{grid-template-columns:1fr}
+  .admin-page{ padding:0 14px; }
+  .admin-field-grid{ grid-template-columns:1fr; }
+  .lender-toggle{ flex-direction:column; align-items:flex-start; }
+}
+
+/* ===== (C) Lenders Controls (검색/필터) ===== */
+.admin-lenders-controls__grid{
+  align-items:end;
+}
+
+.admin-filter-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:6px;
+}
+
+.admin-filter-check{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.admin-filter-check input{
+  accent-color:#111827;
+}
+
+/* 상품군 필터 칩은 '필터용'임을 살짝 구분 */
+.admin-chip-check--filter{
+  background:#eef2ff;
+  border-color:#e0e7ff;
+}
+
+.admin-empty{
+  padding:14px 12px;
+  border:1px dashed #d1d5db;
+  border-radius:12px;
+  background:#fafafa;
+  color:#6b7280;
+  font-size:13px;
 }
