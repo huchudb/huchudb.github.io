@@ -256,8 +256,6 @@
 
 /* =========================================================
    ✅ 납작한 토글 버튼(칩) 스타일
-   - 취급 상품군 설정(부동산담보대출 등)
-   - 취급 대출 종류(일반담보대출 등)
 ========================================================= */
 .admin-chip-row{
   display:flex;
@@ -288,7 +286,7 @@
   align-items:center;
   justify-content:center;
   padding:8px 12px;
-  border-radius:10px;                 /* ✅ 알약(999px) → 납작 */
+  border-radius:10px;
   border:1px solid var(--admin-line);
   background:#ffffff;
   font-size:12px;
@@ -484,7 +482,7 @@
   border-radius:999px;
   border:1px solid #d1d5db;
   background:#fff;
-  color:#111827;   /* ✅ 추가 */
+  color:#111827;
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -547,7 +545,7 @@
   border-radius:10px;
   border:1px solid #e5e7eb;
   background:#fff;
-  color:#111827;   /* ✅ 추가 */
+  color:#111827;
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -613,7 +611,7 @@
   border-radius:999px;
   border:1px solid #d1d5db;
   background:#fff;
-  color:#111827;   /* ✅ 추가 */
+  color:#111827;
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -627,32 +625,6 @@
 
 .admin-chip-row.is-disabled{
   opacity:0.45;
-}
-
-/* --------------------------
-   작은 도움 UI
--------------------------- */
-.admin-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 10px;
-  border-radius:999px;
-  border:1px solid var(--admin-line);
-  background:#ffffff;
-  font-size:12px;
-  font-weight:900;
-  color:#374151;
-}
-.admin-pill.info{
-  border-color:#bfdbfe;
-  background:#eff6ff;
-  color:#1e40af;
-}
-.admin-pill.warn{
-  border-color:#fde68a;
-  background:#fffbeb;
-  color:#92400e;
 }
 
 /* 반응형 */
