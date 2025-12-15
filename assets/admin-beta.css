@@ -154,6 +154,62 @@
   line-height:1.55;
 }
 
+/* ===== 추가: 부동산담보 섹션 안내문 우측 '최저대출금액' ===== */
+.admin-subbox-headrow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.admin-subbox-headrow .admin-subbox-help{
+  margin:0;
+  flex:1;
+}
+
+.admin-minloan{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--admin-line);
+  background:#ffffff;
+  border-radius:12px;
+  white-space:nowrap;
+  box-shadow:0 2px 6px rgba(15,23,42,0.04);
+}
+.admin-minloan__label{
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+.admin-minloan__unit{
+  font-size:12px;
+  font-weight:900;
+  color:#6b7280;
+}
+
+/* admin-mini-input이 파일에 없을 수도 있어서 안전하게 정의 */
+.admin-mini-input{
+  padding:8px 10px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-size:13px;
+  background:#fff;
+}
+.admin-minloan__input{
+  width:90px;
+}
+
+@media (max-width:600px){
+  .admin-subbox-headrow{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .admin-minloan{
+    align-self:flex-end;
+  }
+}
+
 /* 저장 버튼 */
 .admin-save-btn{
   display:inline-flex;
