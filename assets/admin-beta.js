@@ -336,7 +336,7 @@ const PRODUCT_GROUPS = [
   { key: "매출채권유동화", label: "매출채권유동화" },
   { key: "의료사업자대출", label: "의료사업자대출" },
 
-  // '온라인선정산' → 표시명만 '선정산' (기존 저장 데이터 호환)
+  // 기존 저장 키 호환 유지: key는 그대로 "온라인선정산"
   { key: "온라인선정산", label: "선정산" },
 
   { key: "전자어음", label: "전자어음" },
@@ -380,7 +380,7 @@ const LOAN_TYPES_APTVILLA = [
   { key: "매입잔금_분양", label: "매입잔금(분양)" }
 ];
 
-/* ✅ 마스터: 네가 준 순서 그대로 + 홈페이지 URL */
+/* ✅ 마스터: 네가 준 순서 그대로 + 홈페이지 URL(homepage) */
 const LENDERS_MASTER = [
   { id: "hifunding", name: "하이펀딩", homepage: "https://hifunding.co.kr/" },
   { id: "cple", name: "피에프씨테크놀로지스", homepage: "https://www.cple.co.kr/" },
@@ -455,10 +455,11 @@ function ensureLender(id) {
     lendersConfig.lenders[id] = {
       id,
       name: id,
+      homepage: "",
       isActive: false,
       isPartner: false,
       partnerOrder: 0,
-      // ✅ 추가: 부동산담보대출 최소금액(만원)
+      // ✅ 부동산담보대출 최소금액(만원) - “부동산 담보대출” 선택 시에만 의미 있음
       realEstateMinLoanAmount: "",
       products: [],
       phoneNumber: "",
@@ -472,11 +473,15 @@ function ensureLender(id) {
 function ensureLenderDeepDefaults(lender) {
   if (!lender) return;
 
+  // name/homepage 기본
+  if (typeof lender.name !== "string") lender.name = String(lender.name || lender.id || "");
+  if (typeof lender.homepage !== "string") lender.homepage = String(lender.homepage || lender.homepageUrl || "");
+
   if (typeof lender.partnerOrder !== "number") lender.partnerOrder = 0;
-  // ✅ 1~10만 허용, 이외는 0으로 정리
+  // ✅ 1~10만 허용
   if (lender.partnerOrder < 0 || lender.partnerOrder > 10) lender.partnerOrder = 0;
 
-  // ✅ 추가 필드 기본값
+  // ✅ 최소금액 기본
   if (typeof lender.realEstateMinLoanAmount !== "string" && typeof lender.realEstateMinLoanAmount !== "number") {
     lender.realEstateMinLoanAmount = "";
   }
@@ -484,9 +489,10 @@ function ensureLenderDeepDefaults(lender) {
   if (!Array.isArray(lender.products)) lender.products = [];
   lender.products = uniq(lender.products);
 
-     // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
+  // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
   const hasRealEstate = lender.products.includes("부동산담보대출");
   if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
+
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
   REGIONS.forEach((r) => {
@@ -521,29 +527,31 @@ function updateLenderState(id, patch) {
 }
 
 function mergeLendersWithMaster() {
-  const current = (lendersConfig && lendersConfig.lenders) ? lendersConfig.lenders : {};
-  const merged = { ...current }; // ✅ 기존 키 보존(절대 버리지 않음)
+  // ✅ 핵심: 서버에서 내려온 lendersConfig.lenders의 모든 key를 “절대 삭제하지 않음”
+  const current = (lendersConfig && lendersConfig.lenders && typeof lendersConfig.lenders === "object")
+    ? lendersConfig.lenders
+    : {};
 
-  // ✅ 마스터에 있는 항목은 name/기본값 보정만
+  const merged = { ...current }; // ✅ 기존 key 그대로 보존
+
+  // ✅ 마스터에 있는 업체는 name/homepage 기본값만 보정(기존 값 우선)
   LENDERS_MASTER.forEach((m) => {
     const existing = current[m.id] || {};
     merged[m.id] = {
       id: m.id,
-      name: m.name,
-      homepageUrl: existing.homepageUrl || m.homepageUrl || "",
+      name: (typeof existing.name === "string" && existing.name.trim()) ? existing.name : m.name,
+      // homepage 호환: existing.homepage > existing.homepageUrl > master.homepage
+      homepage: (existing.homepage || existing.homepageUrl || m.homepage || ""),
       isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
+      realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
       kakaoUrl: existing.kakaoUrl || "",
       regions: (existing.regions && typeof existing.regions === "object") ? existing.regions : {}
     };
   });
-
-  lendersConfig.lenders = merged;
-  Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
-}
 
   lendersConfig.lenders = merged;
   Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
@@ -570,6 +578,7 @@ async function loadLendersConfigFromServer() {
 }
 
 function updateLendersConfigPreview() {
+  // (미리보기 엘리먼트가 없으면 그냥 스킵)
   const pre = document.getElementById("lendersConfigPreview");
   if (!pre) return;
   try { pre.textContent = JSON.stringify(lendersConfig, null, 2); }
@@ -624,6 +633,12 @@ async function postLendersConfigToServer(successText) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
+   - 헤더 클릭 = 펼침/접기
+   - 헤더 한줄 컴팩트
+   - (부동산 담보대출 선택 시에만) 지역/유형/LTV/대출종류 + 최저대출금액
+   - 제휴 표시순서: 1~10
+   - 업체명 클릭 → 홈페이지 이동(새탭)
+   - 표시 순서: (1) 마스터 순서대로 있는 id, (2) 서버에만 있는 id 뒤에 붙임
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -631,10 +646,8 @@ function renderLendersList() {
   container.innerHTML = "";
 
   const cfg = lendersConfig.lenders || {};
-  const visibleMasters = LENDERS_MASTER.filter((m) => {
-    const cfg = lendersConfig.lenders || {};
 
-  // ✅ 표시 순서: (1) 마스터 순서대로 존재하는 id 먼저, (2) 나머지 서버 id 뒤에 붙이기
+  // ✅ 표시 순서 구성
   const orderedIds = [];
   const seen = new Set();
 
@@ -657,16 +670,63 @@ function renderLendersList() {
     return lender && passesSearch(lender);
   });
 
-  if (visibleIds.length === 0) { ... }
+  if (visibleIds.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "admin-empty";
+    empty.textContent = "검색 조건에 맞는 온투업체가 없습니다.";
+    container.appendChild(empty);
+    return;
+  }
 
   visibleIds.forEach((id) => {
     const lender = cfg[id];
-    ...
-  });
+    if (!lender) return;
 
-    const name = document.createElement("span");
-    name.className = "lender-name";
-    name.textContent = lender.name;
+    const isOpen = lenderUiState.openIds.has(lender.id);
+
+    const card = document.createElement("div");
+    card.className = "lender-card";
+
+    // ---------- Header (click to toggle) ----------
+    const head = document.createElement("div");
+    head.className = "lender-head";
+    head.setAttribute("role", "button");
+    head.setAttribute("tabindex", "0");
+    head.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+    head.addEventListener("click", () => {
+      if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
+      else lenderUiState.openIds.add(lender.id);
+      renderLendersList();
+    });
+
+    head.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
+        else lenderUiState.openIds.add(lender.id);
+        renderLendersList();
+      }
+    });
+
+    // 업체명(홈페이지 링크)
+    let nameEl;
+    const homepage = (lender.homepage || "").trim();
+    if (homepage) {
+      const a = document.createElement("a");
+      a.className = "lender-name lender-name-link";
+      a.href = homepage;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = lender.name;
+      a.addEventListener("click", (e) => e.stopPropagation()); // 헤더 토글 방지
+      nameEl = a;
+    } else {
+      const span = document.createElement("span");
+      span.className = "lender-name";
+      span.textContent = lender.name;
+      nameEl = span;
+    }
 
     const badges = document.createElement("span");
     badges.className = "lender-badges";
@@ -759,8 +819,7 @@ function renderLendersList() {
     const orderChips = document.createElement("div");
     orderChips.className = "admin-order-chips";
 
-    const N = 10; // ✅ 1~10만
-    for (let i = 1; i <= N; i++) {
+    for (let i = 1; i <= 10; i++) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "admin-order-chip";
@@ -780,7 +839,7 @@ function renderLendersList() {
     order.appendChild(orderTitle);
     order.appendChild(orderChips);
 
-    head.appendChild(name);
+    head.appendChild(nameEl);
     head.appendChild(badges);
     head.appendChild(switches);
     head.appendChild(order);
@@ -823,7 +882,6 @@ function renderLendersList() {
         else set.delete(pg.key);
 
         updateLenderState(lender.id, { products: Array.from(set) });
-
         lenderUiState.openIds.add(lender.id);
         renderLendersList();
       });
@@ -841,7 +899,7 @@ function renderLendersList() {
     productsBox.appendChild(chipRow);
     inner.appendChild(productsBox);
 
-    // ✅ 섹션 조건부 노출: 부동산 담보대출 선택 시에만
+    // ✅ 부동산 담보대출 선택 시에만 노출
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
     if (hasRealEstate) {
@@ -852,7 +910,7 @@ function renderLendersList() {
       mTitle.className = "admin-subbox-title";
       mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
 
-      // ✅ 안내문 + 우측 '최저대출금액(만원)' 입력
+      // ✅ 안내문 + 우측 '최저대출금액(만원)' 입력 (1개만)
       const helpRow = document.createElement("div");
       helpRow.className = "admin-subbox-headrow";
 
@@ -875,6 +933,7 @@ function renderLendersList() {
       minInput.step = "1";
       minInput.placeholder = "예) 500";
       minInput.value = (lender.realEstateMinLoanAmount ?? "");
+
       minInput.addEventListener("input", () => {
         updateLenderState(lender.id, { realEstateMinLoanAmount: minInput.value });
       });
@@ -934,6 +993,7 @@ function renderLendersList() {
         const tdType = document.createElement("td");
         tdType.textContent = pt.label;
 
+        // 취급 칩
         const tdEnable = document.createElement("td");
         tdEnable.className = "cell-center";
 
@@ -1030,7 +1090,7 @@ function renderLendersList() {
       table.appendChild(tbody);
 
       matrixBox.appendChild(mTitle);
-      matrixBox.appendChild(helpRow); // ✅ 여기로 교체됨
+      matrixBox.appendChild(helpRow);
       matrixBox.appendChild(regionTabs);
       matrixBox.appendChild(table);
 
@@ -1096,14 +1156,15 @@ function renderLendersList() {
     saveBtn.className = "lender-save-btn";
     saveBtn.textContent = "저장";
 
-    saveBtn.addEventListener("click", async () => {
+    saveBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       try {
         saveBtn.disabled = true;
         saveBtn.textContent = "저장중...";
         await postLendersConfigToServer("저장되었습니다.");
         alert(`${lender.name} 설정이 저장되었습니다.`);
-      } catch (e) {
-        console.error("per-card save error:", e);
+      } catch (err) {
+        console.error("per-card save error:", err);
         alert("저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
       } finally {
         saveBtn.disabled = false;
@@ -1173,10 +1234,13 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStatsFromStorage();
   setupStatsInteractions();
 
+  // 초기 랜더(비어 있어도 OK)
   mergeLendersWithMaster();
   setupLendersControls();
   renderLendersList();
   updateLendersConfigPreview();
   setupLendersSaveButton();
+
+  // 서버 로드 후 재렌더
   loadLendersConfigFromServer();
 });
