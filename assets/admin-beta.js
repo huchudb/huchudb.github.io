@@ -12,7 +12,6 @@ function resolveApiBase() {
     const w = (typeof window !== "undefined") ? window : null;
     let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
 
-    // 1) window.API_BASE가 없으면: 환경별 기본값
     if (!base) {
       const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
       const isLocal =
@@ -20,13 +19,10 @@ function resolveApiBase() {
         host === "127.0.0.1" ||
         host.endsWith(".local");
 
-      // 로컬은 프록시/로컬 API를 쓸 수 있으니 상대경로 유지
       if (isLocal) base = "";
-      // 운영/정적호스팅에서는 Vercel Functions로 기본 연결
       else base = "https://huchudb-github-io.vercel.app";
     }
 
-    // 2) 뒤 슬래시 제거
     base = base.replace(/\/+$/, "");
     return base;
   } catch {
@@ -335,7 +331,7 @@ function setupStatsInteractions() {
   }
 }
 
-/* ---------------- 2) 온투업체 설정 (필터 삭제, 검색만 유지) ---------------- */
+/* ---------------- 2) 온투업체 설정 (검색만 유지) ---------------- */
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
@@ -347,7 +343,6 @@ const PRODUCT_GROUPS = [
   { key: "전자어음", label: "전자어음" }
 ];
 
-// ===== 상세 설정: 지역/유형/대출종류 =====
 const REGIONS = [
   { key: "seoul", label: "서울" },
   { key: "gyeonggi", label: "경기" },
@@ -361,7 +356,7 @@ const REGIONS = [
 
 const PROPERTY_TYPES = [
   { key: "apt", label: "아파트", loanSet: "aptv" },
-  { key: "villa", label: "다세대/연립", loanSet: "aptv" }, // ✅ 아파트/빌라만 7종 적용
+  { key: "villa", label: "다세대/연립", loanSet: "aptv" },
   { key: "officetel", label: "오피스텔", loanSet: "base" },
   { key: "detached", label: "단독·다가구", loanSet: "base" },
   { key: "land", label: "토지·임야", loanSet: "base" },
@@ -391,11 +386,10 @@ const LENDERS_MASTER = [
 
 let lendersConfig = { lenders: {} };
 
-// ✅ 검색 + 펼침 유지 + 지역 탭 상태
 let lenderUiState = {
   q: "",
   openIds: new Set(),
-  activeRegionById: {} // { [lenderId]: regionKey }
+  activeRegionById: {}
 };
 
 function uniq(arr) {
@@ -434,8 +428,10 @@ function ensureLenderDeepDefaults(lender) {
       const prev = lender.regions[r.key][pt.key] || {};
       lender.regions[r.key][pt.key] = {
         enabled: !!prev.enabled,
-        ltvMin: prev.ltvMin ?? "",
+        // ✅ LTV는 최대만 사용
         ltvMax: prev.ltvMax ?? "",
+        // (하위호환) 혹시 기존 데이터에 남아있어도 무시됨
+        ltvMin: prev.ltvMin ?? "",
         loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
       };
     });
@@ -767,11 +763,11 @@ function renderLendersList() {
 
     const mTitle = document.createElement("h3");
     mTitle.className = "admin-subbox-title";
-    mTitle.textContent = "지역/유형별 취급여부 + LTV + 취급 대출 종류";
+    mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
 
     const mHelp = document.createElement("p");
     mHelp.className = "admin-subbox-help";
-    mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부/최소~최대 LTV/취급 대출 종류를 설정하세요.";
+    mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부 / LTV 최대(%) / 취급 대출 종류를 설정하세요.";
 
     const regionTabs = document.createElement("div");
     regionTabs.className = "admin-region-tabs";
@@ -802,7 +798,7 @@ function renderLendersList() {
       <tr>
         <th style="width:160px;">부동산 유형</th>
         <th class="cell-center" style="width:90px;">취급여부</th>
-        <th style="width:230px;">LTV 설정</th>
+        <th style="width:200px;">LTV 최대(%)</th>
         <th>취급 대출 종류</th>
       </tr>
     `;
@@ -829,26 +825,13 @@ function renderLendersList() {
       });
       tdEnable.appendChild(enable);
 
+      // ✅ LTV 최대만
       const tdLtv = document.createElement("td");
       const ltvWrap = document.createElement("div");
       ltvWrap.style.display = "flex";
       ltvWrap.style.alignItems = "center";
       ltvWrap.style.gap = "8px";
       ltvWrap.style.flexWrap = "wrap";
-
-      const min = document.createElement("input");
-      min.type = "number";
-      min.className = "admin-mini-input";
-      min.placeholder = "최소";
-      min.value = cell.ltvMin ?? "";
-      min.addEventListener("input", () => {
-        const cur = ensureLender(lender.id);
-        cur.regions[activeRegion][pt.key].ltvMin = min.value;
-        schedulePreviewUpdate();
-      });
-
-      const mid = document.createElement("span");
-      mid.textContent = "% ~";
 
       const max = document.createElement("input");
       max.type = "number";
@@ -864,8 +847,6 @@ function renderLendersList() {
       const pct = document.createElement("span");
       pct.textContent = "%";
 
-      ltvWrap.appendChild(min);
-      ltvWrap.appendChild(mid);
       ltvWrap.appendChild(max);
       ltvWrap.appendChild(pct);
       tdLtv.appendChild(ltvWrap);
