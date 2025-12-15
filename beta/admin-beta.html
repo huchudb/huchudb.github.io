@@ -9,17 +9,17 @@
   <!-- 기존 베타 공통 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
   <!-- 관리자 전용 스타일 -->
-  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251215-r1" />
+  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251215-admin" />
 
   <!-- 관리자 전용 스크립트 -->
-  <script type="module" src="/assets/admin-beta.js?v=20251215-r1"></script>
+  <script type="module" src="/assets/admin-beta.js?v=20251215-admin"></script>
 </head>
-
 <body class="beta-body">
 
   <!-- ===== 상단 헤더 (베타 공통) ===== -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
+      <!-- 로고 -->
       <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
         <span class="logo-fallback">
@@ -28,6 +28,7 @@
         </span>
       </a>
 
+      <!-- MENU + 드롭다운 -->
       <button id="betaMenuToggle"
               class="beta-menu-toggle"
               type="button"
@@ -82,6 +83,7 @@
               </div>
             </div>
 
+            <!-- 대출현황 summary -->
             <div class="admin-field-group">
               <h2 class="admin-field-title">2. 온투업 대출현황 요약</h2>
               <p class="admin-note">
@@ -100,29 +102,35 @@
                 </div>
                 <div class="admin-field">
                   <label for="statsTotalLoan">누적대출금액 (원)</label>
-                  <input type="text" id="statsTotalLoan" class="admin-input" data-type="money" placeholder="예) 18358007760000" />
+                  <input type="text" id="statsTotalLoan" class="admin-input" data-type="money"
+                         placeholder="예) 18358007760000" />
                 </div>
                 <div class="admin-field">
                   <label for="statsTotalRepaid">누적상환금액 (원)</label>
-                  <input type="text" id="statsTotalRepaid" class="admin-input" data-type="money" placeholder="예) 16924144010000" />
+                  <input type="text" id="statsTotalRepaid" class="admin-input" data-type="money"
+                         placeholder="예) 16924144010000" />
                 </div>
                 <div class="admin-field">
                   <label for="statsBalance">대출잔액 (원)</label>
-                  <input type="text" id="statsBalance" class="admin-input" data-type="money" placeholder="예) 1433867500000" />
+                  <input type="text" id="statsBalance" class="admin-input" data-type="money"
+                         placeholder="예) 1433867500000" />
                 </div>
               </div>
             </div>
 
+            <!-- 상품유형별 대출잔액 -->
             <div class="admin-field-group">
               <h2 class="admin-field-title">3. 상품유형별 대출잔액</h2>
               <p class="admin-note">
                 전체 대출잔액 대비 <strong>비율(%)</strong>을 입력하면 금액(원)은 자동 계산됩니다.
+                (베타 통계 페이지에서는 조/억/만원 단위로 자동 포맷됩니다.)
               </p>
 
               <div class="admin-subbox">
                 <h3 class="admin-subbox-title">상품유형별 잔액 입력</h3>
                 <p class="admin-subbox-help">
-                  비율을 입력하면 잔액(원) 칸이 자동으로 채워집니다.
+                  비율을 입력하면 잔액(원) 칸이 자동으로 채워집니다. 잔액 칸을 직접 수정하면
+                  비율과 일치하지 않을 수 있으니 가급적 비율 기준으로 입력하세요.
                 </p>
 
                 <table class="admin-table" style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -137,68 +145,75 @@
                     <tr data-key="부동산담보">
                       <td style="padding:6px 4px;">부동산담보</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="부동산담보" min="0" max="100" step="0.1" placeholder="예) 43" />
+                        <input type="number" class="admin-input js-ratio" data-key="부동산담보"
+                               min="0" max="100" step="0.1" placeholder="예) 43" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="부동산담보" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="부동산담보"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                     <tr data-key="부동산PF">
                       <td style="padding:6px 4px;">부동산PF</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="부동산PF" min="0" max="100" step="0.1" />
+                        <input type="number" class="admin-input js-ratio" data-key="부동산PF"
+                               min="0" max="100" step="0.1" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="부동산PF" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="부동산PF"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                     <tr data-key="어음·매출채권담보">
                       <td style="padding:6px 4px;">어음·매출채권담보</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="어음·매출채권담보" min="0" max="100" step="0.1" />
+                        <input type="number" class="admin-input js-ratio" data-key="어음·매출채권담보"
+                               min="0" max="100" step="0.1" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="어음·매출채권담보" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="어음·매출채권담보"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                     <tr data-key="기타담보(주식 등)">
                       <td style="padding:6px 4px;">기타담보(주식 등)</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="기타담보(주식 등)" min="0" max="100" step="0.1" />
+                        <input type="number" class="admin-input js-ratio" data-key="기타담보(주식 등)"
+                               min="0" max="100" step="0.1" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="기타담보(주식 등)" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="기타담보(주식 등)"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                     <tr data-key="개인신용">
                       <td style="padding:6px 4px;">개인신용</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="개인신용" min="0" max="100" step="0.1" />
+                        <input type="number" class="admin-input js-ratio" data-key="개인신용"
+                               min="0" max="100" step="0.1" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="개인신용" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="개인신용"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                     <tr data-key="법인신용">
                       <td style="padding:6px 4px;">법인신용</td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="number" class="admin-input js-ratio" data-key="법인신용" min="0" max="100" step="0.1" />
+                        <input type="number" class="admin-input js-ratio" data-key="법인신용"
+                               min="0" max="100" step="0.1" />
                       </td>
                       <td style="padding:6px 4px;text-align:right;">
-                        <input type="text" class="admin-input js-amount" data-key="법인신용" data-type="money" readonly />
+                        <input type="text" class="admin-input js-amount" data-key="법인신용"
+                               data-type="money" readonly />
                       </td>
                     </tr>
-
                   </tbody>
                 </table>
               </div>
             </div>
 
+            <!-- 저장 버튼 -->
             <div class="admin-field-group">
               <button type="button" id="saveOntuStatsBtn" class="admin-save-btn">
                 온투업 통계 데이터 저장
@@ -213,52 +228,50 @@
           <div class="admin-card">
 
             <div class="admin-field-group">
-              <h2 class="admin-field-title">온투업체 정보 등록</h2>
+              <h2 class="admin-field-title">1. 온투업체 기본 설정</h2>
               <p class="admin-note">
-                · 업체별 접기/펼치기 유지<br />
-                · <strong>제휴 ON인 업체만</strong> 입력 가능<br />
-                · “취급 대출 종류”는 <strong>시안 기준 5개 enum 고정</strong> (부동산 유형별 하위 카테고리)
+                온투업체별 <strong>신규대출 취급여부 / 제휴업체 여부</strong>,
+                <strong>취급 상품군</strong>, <strong>부동산 담보대출 세부조건</strong> 등을 등록합니다.<br />
+                <strong>제휴 ON</strong>인 업체만 입력/저장이 가능합니다.
               </p>
             </div>
 
-            <!-- ✅ 검색창: 시안 위치용 -->
+            <!-- (a) 검색창: 이번에 "위치만" 조정 -->
             <div class="admin-field-group">
               <div class="admin-field">
-                <label for="lendersSearchInput">온투업체 검색</label>
+                <label for="lendersSearch">온투업체 검색</label>
                 <input
-                  id="lendersSearchInput"
                   type="text"
+                  id="lendersSearch"
                   class="admin-input"
-                  placeholder="업체명 검색 (예: FM, 에잇, 피플...)"
+                  placeholder="예) FM, 에잇퍼센트, 피플펀드…"
                   autocomplete="off"
                 />
               </div>
+              <p class="admin-note" style="margin-top:-6px;">
+                검색은 표시만 필터링합니다. (저장 데이터에는 영향 없음)
+              </p>
             </div>
 
-            <!-- ✅ 액션바(전체 저장/상태): 시안의 ‘2번 구조’ 구현을 위해 자리 확보 -->
-            <div class="admin-actionbar" id="lendersActionBar">
-              <div class="admin-actionbar__left">
-                <span class="admin-actionbar__title">저장</span>
-                <span class="admin-actionbar__hint">업체별 저장 또는 전체 저장을 선택하세요.</span>
-              </div>
-              <div class="admin-actionbar__right">
-                <button type="button" id="saveLendersConfigBtn" class="admin-save-btn">
-                  전체 저장
-                </button>
-              </div>
-            </div>
-            <div id="lendersSaveStatus" class="admin-save-status"></div>
-
-            <!-- ✅ 온투업체 리스트 (JS가 자동 생성) -->
+            <!-- 온투업체 리스트 (JS가 자동 생성) -->
             <div id="lendersList" class="admin-field-group">
-              <!-- admin-beta.js에서 동적으로 렌더링 -->
+              <!-- admin-beta.js에서 LENDERS_MASTER 기준으로 lender-card들을 동적으로 렌더링 -->
             </div>
 
-            <!-- ✅ 디버그용 JSON 뷰 -->
+            <!-- 저장 버튼 영역(전체 저장) -->
+            <div class="admin-field-group admin-actions">
+              <!-- ✅ 업체별 저장 버튼은 각 카드 안에 배치(다음 JS에서 연결) -->
+              <button type="button" id="saveLendersConfigBtn" class="admin-save-btn">
+                전체 설정 저장
+              </button>
+              <div id="lendersSaveStatus" class="admin-save-status"></div>
+            </div>
+
+            <!-- 디버그용 JSON 뷰 (옵션) -->
             <div class="admin-subbox">
               <h3 class="admin-subbox-title">현재 설정 요약 (읽기전용)</h3>
               <p class="admin-subbox-help">
-                브라우저에 로드된 <code>lendersConfig</code>를 확인합니다.
+                관리자 테스트용으로, 브라우저에 로드된 <code>lendersConfig</code> 내용을 확인할 수 있습니다.
               </p>
               <pre id="lendersConfigPreview"
                    style="margin:0;font-size:11px;white-space:pre-wrap;word-break:break-all;color:#4b5563;background:#f9fafb;border-radius:8px;padding:10px;border:1px solid #e5e7eb;">
@@ -281,7 +294,9 @@
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img src="/assets/logo/huchu-logo-white.png" alt="HUCHU 로고" class="beta-footer__logo-img" />
+        <img src="/assets/logo/huchu-logo-white.png"
+             alt="HUCHU 로고"
+             class="beta-footer__logo-img" />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
