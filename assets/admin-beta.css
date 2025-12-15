@@ -355,6 +355,14 @@
   gap:6px;
 }
 
+.lender-name-link{
+  color:inherit;
+  text-decoration:none;
+}
+.lender-name-link:hover{
+  text-decoration:underline;
+}
+
 /* 배지 */
 .lender-badge{
   display:inline-flex;
