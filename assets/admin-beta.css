@@ -1,109 +1,94 @@
 /* =========================================================
-   Huchu Admin (Beta) — 관리자 전용 CSS (B style)
+   Huchu Admin (Beta) — 관리자 전용 CSS (B 스타일)
    파일: /assets/admin-beta.css
-   목적:
-   - beta 사이트 공통 styles.css와 분리
-   - 온투업체 정보등록(제휴업체 중심) UI 가독성 강화
-   - 접기/펼치기, 검색, 업체별/전체 저장 버튼 레이아웃 지원
+   목적: 관리자 UI 전용. beta 공통 styles.css와 충돌 최소화.
+   prefix: .admin- / .lender-
 ========================================================= */
-
-:root{
-  --admin-bg:#ffffff;
-  --admin-card:#ffffff;
-  --admin-line:#e5e7eb;
-  --admin-muted:#6b7280;
-  --admin-text:#111827;
-
-  --admin-dark:#111827;
-  --admin-dark-2:#0b1220;
-
-  --admin-chip:#f3f4f6;
-  --admin-chip-line:#e5e7eb;
-
-  --admin-warn:#f59e0b;
-  --admin-ok:#16a34a;
-  --admin-blue:#2563eb;
-
-  --admin-shadow:0 6px 16px rgba(15,23,42,.08);
-}
 
 /* 전체 구조 */
 .admin-page{
   max-width:1200px;
   margin:24px auto 40px;
   padding:0 20px;
-  color:var(--admin-text);
   font-family:Arial,sans-serif;
+  color:#111827;
 }
+
+/* 타이틀 */
 .admin-title{
-  margin:0 0 10px;
+  margin:0 0 18px;
   font-size:26px;
   font-weight:800;
   color:#0f172a;
 }
+
+/* 공통 노트 */
 .admin-note{
-  margin:6px 0 16px;
+  margin:6px 0 12px;
   font-size:13px;
-  color:var(--admin-muted);
-  line-height:1.55;
+  color:#6b7280;
+  line-height:1.5;
 }
 
-/* 상단 탭 */
+/* 탭 버튼 영역 */
 .admin-tabs{
   display:flex;
   gap:10px;
-  margin:16px 0 22px;
-  flex-wrap:wrap;
+  margin-bottom:24px;
 }
 .admin-tab-btn{
   border:0;
   padding:10px 16px;
   background:#e5e7eb;
   color:#374151;
-  border-radius:10px;
+  border-radius:999px;
   cursor:pointer;
   font-weight:800;
   font-size:13px;
+  width:auto;
 }
 .admin-tab-btn.is-active{
-  background:var(--admin-dark);
-  color:#fff;
+  background:#111827;
+  color:#ffffff;
 }
 
 /* 패널 숨김 */
-.admin-tab-panel.hide{display:none;}
+.admin-tab-panel.hide{display:none}
 
 /* 공통 카드 */
 .admin-card{
-  background:var(--admin-card);
+  background:#ffffff;
   border-radius:18px;
   padding:18px 20px;
-  border:1px solid var(--admin-line);
-  box-shadow:var(--admin-shadow);
+  border:1px solid #e5e7eb;
+  box-shadow:0 6px 16px rgba(15,23,42,.08);
   margin-bottom:22px;
 }
 
 /* 구분 그룹 */
-.admin-field-group{margin-bottom:22px;}
+.admin-field-group{margin-bottom:26px}
 .admin-field-title{
   margin:0 0 10px;
   font-size:17px;
-  font-weight:800;
+  font-weight:900;
   color:#0f172a;
 }
 
-/* 입력 */
+/* 입력 필드 */
 .admin-field{
   display:flex;
   flex-direction:column;
   margin-bottom:14px;
 }
-.admin-field label{font-weight:800;}
+.admin-field label{
+  font-weight:800;
+  color:#111827;
+}
 .admin-input{
   margin-top:6px;
   padding:10px 12px;
   border:1px solid #d1d5db;
-  border-radius:10px;
+  border-radius:12px;
   font-size:14px;
   background:#fff;
 }
@@ -112,21 +97,82 @@
   outline-offset:1px;
 }
 
-/* 그리드 */
+/* 2~3컬럼 그리드 */
 .admin-field-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
   gap:14px;
 }
 
-/* 서브박스 */
+/* 체크칩 형태 */
+.admin-chip-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.admin-chip-check{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+  user-select:none;
+}
+.admin-chip-check input{accent-color:#111827}
+
+/* 스위치 */
+.admin-switch-field{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  background:#f9fafb;
+}
+.admin-switch-label{
+  font-size:13px;
+  font-weight:900;
+  color:#111827;
+}
+.admin-switch input[type="checkbox"]{
+  appearance:none;
+  width:44px;
+  height:24px;
+  background:#d1d5db;
+  border-radius:999px;
+  position:relative;
+  cursor:pointer;
+  transition:background .2s;
+}
+.admin-switch input[type="checkbox"]::after{
+  content:"";
+  width:18px;
+  height:18px;
+  background:white;
+  border-radius:50%;
+  position:absolute;
+  top:3px;
+  left:3px;
+  transition:.2s;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+.admin-switch input[type="checkbox"]:checked{background:#111827}
+.admin-switch input[type="checkbox"]:checked::after{transform:translateX(20px)}
+
+/* 소타이틀 박스 */
 .admin-subbox{
   background:#f9fafb;
-  border:1px solid var(--admin-line);
+  border:1px solid #e5e7eb;
   padding:16px;
-  border-radius:14px;
+  border-radius:16px;
   margin-top:12px;
-  margin-bottom:18px;
+  margin-bottom:20px;
 }
 .admin-subbox-title{
   margin:0 0 8px;
@@ -137,270 +183,100 @@
 .admin-subbox-help{
   margin:0 0 12px;
   font-size:13px;
-  color:var(--admin-muted);
-  line-height:1.5;
-}
-
-/* 체크칩 */
-.admin-chip-row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-.admin-chip-check{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  background:var(--admin-chip);
-  border:1px solid var(--admin-chip-line);
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  cursor:pointer;
-  user-select:none;
-}
-.admin-chip-check input{accent-color:var(--admin-dark);}
-
-/* 스위치 */
-.admin-switch-field{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:12px 14px;
-  border:1px solid var(--admin-line);
-  border-radius:14px;
-  background:#fff;
-}
-.admin-switch-label{
-  font-size:13px;
-  font-weight:900;
-  color:#374151;
-}
-.admin-switch input[type="checkbox"]{
-  appearance:none;
-  width:40px;
-  height:22px;
-  background:#d1d5db;
-  border-radius:999px;
-  position:relative;
-  cursor:pointer;
-  transition:background .2s ease;
-}
-.admin-switch input[type="checkbox"]::after{
-  content:"";
-  width:18px;
-  height:18px;
-  background:#fff;
-  border-radius:50%;
-  position:absolute;
-  top:2px;
-  left:2px;
-  transition:transform .2s ease;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-}
-.admin-switch input[type="checkbox"]:checked{
-  background:var(--admin-dark);
-}
-.admin-switch input[type="checkbox"]:checked::after{
-  transform:translateX(18px);
+  color:#6b7280;
 }
 
 /* 저장 버튼 */
 .admin-save-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  padding:12px 18px;
-  background:var(--admin-dark);
-  border-radius:12px;
+  padding:12px 20px;
+  background:#111827;
+  border-radius:14px;
   border:0;
-  color:#fff;
+  color:#ffffff;
   font-weight:900;
   cursor:pointer;
   font-size:14px;
   width:auto;
 }
-.admin-save-btn:hover{background:#000;}
+.admin-save-btn:hover{background:#000}
+
 .admin-save-status{
   margin-top:8px;
   font-size:13px;
   color:#059669;
 }
 
-/* ---------------------------
-   온투업체 정보등록 전용 레이아웃
----------------------------- */
-
-/* 상단 툴바: 검색 + 저장 버튼 영역 */
-.admin-lenders-toolbar{
+/* TAB2 액션 영역 */
+.admin-actions{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-end;
   gap:12px;
   flex-wrap:wrap;
-  margin:10px 0 16px;
-}
-.admin-lenders-search{
-  flex:1 1 360px;
-  min-width:260px;
-}
-.admin-lenders-actions{
-  display:flex;
-  gap:10px;
-  flex:0 0 auto;
 }
 
-/* 업체별 저장 버튼(카드 안쪽) */
-.admin-mini-save-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:9px 14px;
-  border-radius:999px;
-  border:1px solid var(--admin-line);
-  background:#fff;
-  color:#111827;
-  font-weight:900;
-  font-size:12px;
-  cursor:pointer;
-}
-.admin-mini-save-btn:hover{
-  background:#f3f4f6;
-}
-
-/* 전체 저장(상단) 강조 */
-.admin-save-btn--primary{
-  border-radius:999px;
-  padding:10px 16px;
-}
-
-/* 업체 리스트 */
+/* 온투업체 카드 리스트 */
 .lender-card{
-  margin-bottom:14px;
+  margin-bottom:16px;
   border-radius:18px;
   overflow:hidden;
-  border:1px solid var(--admin-line);
-  background:#fff;
+  border:1px solid #e5e7eb;
+  box-shadow:0 4px 12px rgba(15,23,42,.06);
 }
 
-/* 헤더(접기/펼치기) */
+/* 카드 헤더(토글) */
 .lender-toggle{
   width:100%;
   text-align:left;
-  padding:14px 16px;
-  background:#f3f4f6;
+  padding:14px 18px;
+  background:#111827;
   border:0;
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:12px;
   cursor:pointer;
+  color:#fff;
 }
-.lender-toggle:hover{background:#e5e7eb;}
+.lender-toggle:hover{background:#0b1220}
+
 .lender-toggle__name{
   font-size:15px;
   font-weight:900;
-  color:#111827;
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
+  color:#ffffff;
+  letter-spacing:-0.01em;
 }
 
 /* 배지 */
 .lender-badge{
   display:inline-flex;
   align-items:center;
-  padding:3px 9px;
+  padding:3px 10px;
   font-size:11px;
   font-weight:900;
   border-radius:999px;
   margin-left:6px;
-  border:1px solid transparent;
-  white-space:nowrap;
+  border:1px solid rgba(255,255,255,.18);
 }
 .lender-badge--partner{
   background:#facc15;
   color:#111827;
-  border-color:#fbbf24;
 }
 .lender-badge--active{
   background:#16a34a;
-  color:#fff;
-  border-color:#15803d;
+  color:#ffffff;
 }
-.lender-badge.is-off{
-  opacity:.28;
-  filter:grayscale(1);
-}
+.lender-badge.is-off{opacity:.35}
 
 /* 펼침 패널 */
-.lender-panel{background:#fff;}
-.lender-panel.hide{display:none;}
-.lender-panel__inner{padding:16px 18px 18px;}
+.lender-panel{padding:0 0 16px;background:#ffffff}
+.lender-panel.hide{display:none}
+.lender-panel__inner{padding:16px 20px}
 
-/* 섹션 구분 라인 */
-.lender-divider{
-  height:1px;
-  background:#eef2f7;
-  margin:14px 0;
-}
-
-/* 제휴 ON만 입력 가능 UX */
-.partner-only-note{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 12px;
-  border-radius:12px;
-  background:#fffbeb;
-  border:1px solid #fde68a;
-  color:#92400e;
-  font-size:12px;
-  font-weight:800;
-  margin-bottom:12px;
-}
-.partner-only-note .dot{
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:#f59e0b;
-}
-
-/* 비제휴 업체: 입력영역 비활성 느낌 */
-.lender-panel.is-locked{
-  opacity:.55;
-}
-.lender-panel.is-locked input,
-.lender-panel.is-locked textarea,
-.lender-panel.is-locked select{
-  pointer-events:none;
-  background:#f3f4f6 !important;
-}
-
-/* 상담 채널 버튼용(미리보기/가이드 용) */
-.admin-channel-row{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.admin-channel-pill{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:8px 12px;
-  border-radius:999px;
-  background:#f1f5f9;
-  border:1px solid #e2e8f0;
-  font-size:12px;
-  font-weight:900;
-}
+/* 카드 내부: 구역 간격 */
+.lender-panel .admin-subbox{margin-top:14px}
 
 /* 반응형 */
 @media (max-width:600px){
-  .admin-field-grid{grid-template-columns:1fr;}
-  .admin-lenders-toolbar{gap:10px;}
-  .admin-lenders-actions{width:100%;}
-  .admin-lenders-actions .admin-save-btn{width:100%;}
+  .admin-field-grid{grid-template-columns:1fr}
 }
