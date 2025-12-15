@@ -1,24 +1,10 @@
 // /assets/admin-beta.js
-// 후추 베타 관리자 스크립트
-// - 탭 전환
-// - 온투 통계 저장 (/api/ontu-stats)
-// - 온투업체 네비게이션 설정 (/api/loan-config)
-
 console.log("✅ admin-beta.js loaded");
 
-// ------------------------------------------------------
-// ✅ API BASE (필수)
-// - 같은 오리진이면 ""(빈 문자열)로 두는 게 가장 안전
-// - 필요 시 window.API_BASE로 덮어쓰면 됨
-// ------------------------------------------------------
 const API_BASE =
   (typeof window !== "undefined" && window.API_BASE) ? String(window.API_BASE) : "";
 
-// ------------------------------------------------------
-// 공통: 메뉴 토글, 숫자 유틸, 금액 포맷
-// ------------------------------------------------------
-
-// 상단 MENU 드롭다운
+/* ---------------- 공통/유틸 ---------------- */
 function setupBetaMenu() {
   const toggle = document.getElementById("betaMenuToggle");
   const panel = document.getElementById("betaMenuPanel");
@@ -27,13 +13,8 @@ function setupBetaMenu() {
   toggle.addEventListener("click", (e) => {
     e.stopPropagation();
     const isHidden = panel.classList.contains("hide");
-    if (isHidden) {
-      panel.classList.remove("hide");
-      toggle.setAttribute("aria-expanded", "true");
-    } else {
-      panel.classList.add("hide");
-      toggle.setAttribute("aria-expanded", "false");
-    }
+    panel.classList.toggle("hide", !isHidden);
+    toggle.setAttribute("aria-expanded", isHidden ? "true" : "false");
   });
 
   document.addEventListener("click", (e) => {
@@ -46,7 +27,6 @@ function setupBetaMenu() {
   });
 }
 
-// 탭 전환 (온투업 통계 저장 / 온투업체 정보 등록)
 function setupAdminTabs() {
   const tabButtons = document.querySelectorAll(".admin-tab-btn");
   const panelStats = document.getElementById("admin-tab-stats");
@@ -60,21 +40,13 @@ function setupAdminTabs() {
       tabButtons.forEach((b) => b.classList.remove("is-active"));
       btn.classList.add("is-active");
 
-      if (tab === "stats") {
-        panelStats.classList.remove("hide");
-        panelLenders.classList.add("hide");
-      } else if (tab === "lenders") {
-        panelLenders.classList.remove("hide");
-        panelStats.classList.add("hide");
-      }
+      panelStats.classList.toggle("hide", tab !== "stats");
+      panelLenders.classList.toggle("hide", tab !== "lenders");
     });
   });
 }
 
-// 숫자 유틸
-function stripNonDigits(str) {
-  return (str || "").replace(/[^\d]/g, "");
-}
+function stripNonDigits(str) { return (str || "").replace(/[^\d]/g, ""); }
 function formatWithCommas(str) {
   const digits = stripNonDigits(str);
   if (!digits) return "";
@@ -85,8 +57,6 @@ function getMoneyValue(inputEl) {
   const digits = stripNonDigits(inputEl.value);
   return digits ? Number(digits) : 0;
 }
-
-// 금액 input(텍스트)에 3자리 쉼표 자동
 function setupMoneyInputs(root) {
   const scope = root || document;
   const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
@@ -98,12 +68,8 @@ function setupMoneyInputs(root) {
   });
 }
 
-// ------------------------------------------------------
-// 1. 온투업 통계 저장 (ontu-stats)
-// ------------------------------------------------------
-
+/* ---------------- 1) 온투 통계 ---------------- */
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
-
 let statsRoot = { byMonth: {} };
 
 function loadStatsFromStorage() {
@@ -111,52 +77,28 @@ function loadStatsFromStorage() {
     const raw = localStorage.getItem(STATS_LOCAL_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && parsed.byMonth) {
-      statsRoot = parsed;
-    }
+    if (parsed && typeof parsed === "object" && parsed.byMonth) statsRoot = parsed;
   } catch (e) {
     console.warn("ontu-stats load error:", e);
   }
 }
 function saveStatsToStorage() {
-  try {
-    localStorage.setItem(STATS_LOCAL_KEY, JSON.stringify(statsRoot));
-  } catch (e) {
-    console.warn("ontu-stats save error:", e);
-  }
+  try { localStorage.setItem(STATS_LOCAL_KEY, JSON.stringify(statsRoot)); }
+  catch (e) { console.warn("ontu-stats save error:", e); }
 }
-
 function getCurrentMonthKey() {
   const m = document.getElementById("statsMonth");
   return m ? (m.value || "").trim() : "";
 }
-
 function clearStatsForm() {
-  const ids = [
-    "statsRegisteredFirms",
-    "statsDataFirms",
-    "statsTotalLoan",
-    "statsTotalRepaid",
-    "statsBalance"
-  ];
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
+  ["statsRegisteredFirms","statsDataFirms","statsTotalLoan","statsTotalRepaid","statsBalance"]
+    .forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
 
-  const ratios = document.querySelectorAll("#productRows .js-ratio");
-  const amounts = document.querySelectorAll("#productRows .js-amount");
-  ratios.forEach((el) => (el.value = ""));
-  amounts.forEach((el) => (el.value = ""));
+  document.querySelectorAll("#productRows .js-ratio").forEach((el) => (el.value = ""));
+  document.querySelectorAll("#productRows .js-amount").forEach((el) => (el.value = ""));
 }
-
-// stats 객체 → 폼 세팅
 function fillStatsForm(stat) {
-  if (!stat) {
-    clearStatsForm();
-    return;
-  }
-
+  if (!stat) { clearStatsForm(); return; }
   const s = stat.summary || {};
   const p = stat.products || {};
 
@@ -175,8 +117,7 @@ function fillStatsForm(stat) {
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
 
-  const rows = tbody.querySelectorAll("tr[data-key]");
-  rows.forEach((row) => {
+  tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
     const cfg = p[key] || {};
     const ratioEl = row.querySelector(".js-ratio");
@@ -185,8 +126,6 @@ function fillStatsForm(stat) {
     if (amountEl) amountEl.value = cfg.amount != null ? formatWithCommas(String(cfg.amount)) : "";
   });
 }
-
-// 폼 → stats 객체
 function collectStatsFormData() {
   const monthKey = getCurrentMonthKey();
   if (!monthKey) return null;
@@ -206,13 +145,10 @@ function collectStatsFormData() {
   };
 
   const products = {};
-  const rows = document.querySelectorAll("#productRows tr[data-key]");
-  rows.forEach((row) => {
+  document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
-    if (!key) return;
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
-
     const ratioPercent = ratioEl && ratioEl.value !== "" ? Number(ratioEl.value) : 0;
     const amount = getMoneyValue(amountEl);
 
@@ -222,49 +158,89 @@ function collectStatsFormData() {
 
   return { monthKey, summary, products };
 }
-
-// 비율 입력 → 금액 자동계산
 function recalcProductAmounts() {
   const balEl = document.getElementById("statsBalance");
   if (!balEl) return;
   const balance = getMoneyValue(balEl);
-  const rows = document.querySelectorAll("#productRows tr[data-key]");
 
-  rows.forEach((row) => {
+  document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
     if (!ratioEl || !amountEl) return;
 
     const ratio = ratioEl.value !== "" ? parseFloat(ratioEl.value) : NaN;
-    if (!balance || isNaN(ratio)) {
-      amountEl.value = "";
-      return;
-    }
+    if (!balance || isNaN(ratio)) { amountEl.value = ""; return; }
+
     const amt = Math.round(balance * (ratio / 100));
     amountEl.value = formatWithCommas(String(amt));
   });
 }
 
-// ✅ 서버에서 월별 통계 로드 (서버가 과거 데이터 갖고 있다면 반드시 필요)
+/**
+ * ✅ 서버 응답 형태가 달라도 살아남는 “강건 로더”
+ * 가능한 형태:
+ * 1) { summary, products }
+ * 2) { monthKey, summary, products }
+ * 3) { byMonth: { "2025-11": {summary, products}, ... } }
+ * 4) [ { monthKey, summary, products }, ... ]
+ */
+function normalizeOntuStatsResponseToMonth(json, monthKey) {
+  if (!json) return null;
+
+  // (3) byMonth
+  if (json.byMonth && typeof json.byMonth === "object") {
+    const hit = json.byMonth[monthKey];
+    if (hit && typeof hit === "object") {
+      return { summary: hit.summary || {}, products: hit.products || {} };
+    }
+  }
+
+  // (4) array
+  if (Array.isArray(json)) {
+    const found = json.find((x) => x && typeof x === "object" && x.monthKey === monthKey);
+    if (found) return { summary: found.summary || {}, products: found.products || {} };
+  }
+
+  // (1)(2)
+  if (typeof json === "object") {
+    if (json.summary || json.products) {
+      return { summary: json.summary || {}, products: json.products || {} };
+    }
+    // 혹시 { data:{summary,products} } 같은 래핑
+    if (json.data && (json.data.summary || json.data.products)) {
+      return { summary: json.data.summary || {}, products: json.data.products || {} };
+    }
+  }
+
+  return null;
+}
+
 async function loadOntuStatsFromServer(monthKey) {
   if (!monthKey) return null;
+
+  // 1차: monthKey 쿼리로 시도
   try {
-    // 기본: /api/ontu-stats?monthKey=YYYY-MM
     const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
     const res = await fetch(url, { method: "GET" });
-    if (!res.ok) return null;
-    const json = await res.json().catch(() => null);
-    // 기대 형태: { monthKey, summary, products } 또는 { summary, products }
-    if (!json || typeof json !== "object") return null;
-
-    // 형태 보정
-    const summary = json.summary || null;
-    const products = json.products || null;
-    if (!summary && !products) return null;
-
-    return { summary: summary || {}, products: products || {} };
+    if (res.ok) {
+      const json = await res.json().catch(() => null);
+      const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
+      if (normalized) return normalized;
+    }
   } catch (e) {
-    console.warn("ontu-stats server load error:", e);
+    console.warn("ontu-stats server load (query) error:", e);
+  }
+
+  // 2차: 전체 GET으로 fallback (서버가 전체를 주는 방식일 수도 있으니)
+  try {
+    const urlAll = `${API_BASE}/api/ontu-stats`;
+    const resAll = await fetch(urlAll, { method: "GET" });
+    if (!resAll.ok) return null;
+    const jsonAll = await resAll.json().catch(() => null);
+    const normalized = normalizeOntuStatsResponseToMonth(jsonAll, monthKey);
+    return normalized || null;
+  } catch (e) {
+    console.warn("ontu-stats server load (all) error:", e);
     return null;
   }
 }
@@ -274,20 +250,16 @@ function setupStatsInteractions() {
   if (monthInput) {
     monthInput.addEventListener("change", async () => {
       const m = getCurrentMonthKey();
-      if (!m) {
-        clearStatsForm();
-        return;
-      }
+      if (!m) { clearStatsForm(); return; }
 
-      // ✅ 서버 우선 로드 → 없으면 localStorage
+      // ✅ 서버 우선 → 로컬 fallback
       const serverStat = await loadOntuStatsFromServer(m);
       if (serverStat) {
         fillStatsForm(serverStat);
-        statsRoot.byMonth[m] = serverStat; // 로컬에도 캐싱
+        statsRoot.byMonth[m] = serverStat;
         saveStatsToStorage();
       } else {
-        const localStat = statsRoot.byMonth[m] || null;
-        fillStatsForm(localStat);
+        fillStatsForm(statsRoot.byMonth[m] || null);
       }
 
       setupMoneyInputs();
@@ -303,18 +275,15 @@ function setupStatsInteractions() {
     });
   }
 
-  const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
-  ratioInputs.forEach((el) => el.addEventListener("input", recalcProductAmounts));
+  document.querySelectorAll("#productRows .js-ratio")
+    .forEach((el) => el.addEventListener("input", recalcProductAmounts));
 
   const saveBtn = document.getElementById("saveOntuStatsBtn");
   const statusEl = document.getElementById("statsSaveStatus");
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       const payload = collectStatsFormData();
-      if (!payload) {
-        alert("먼저 조회년월을 선택해주세요.");
-        return;
-      }
+      if (!payload) { alert("먼저 조회년월을 선택해주세요."); return; }
 
       const { monthKey, summary, products } = payload;
 
@@ -324,12 +293,10 @@ function setupStatsInteractions() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ monthKey, summary, products })
         });
-
         if (!res.ok) {
           const errText = await res.text().catch(() => "");
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
-
         await res.json().catch(() => null);
 
         statsRoot.byMonth[monthKey] = { summary, products };
@@ -341,7 +308,6 @@ function setupStatsInteractions() {
             if (statusEl.textContent.includes("저장되었습니다")) statusEl.textContent = "";
           }, 3000);
         }
-
         alert(`통계 데이터가 ${monthKey} 기준으로 서버에 저장되었습니다.`);
       } catch (e) {
         console.error("saveOntuStats error:", e);
@@ -351,10 +317,7 @@ function setupStatsInteractions() {
   }
 }
 
-// ------------------------------------------------------
-// 2. 온투업체 네비게이션 설정 (loan-config)
-// ------------------------------------------------------
-
+/* ---------------- 2) 온투업체 설정 + (C) 검색/필터 ---------------- */
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
@@ -375,30 +338,13 @@ const LENDERS_MASTER = [
 
 let lendersConfig = { lenders: {} };
 
-// ✅ 서버 → lendersConfig 로드 (경로 통일: /api/loan-config)
-async function loadLendersConfigFromServer() {
-  try {
-    const res = await fetch(`${API_BASE}/api/loan-config`, { method: "GET" });
-    if (!res.ok) {
-      console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
-      lendersConfig = { lenders: {} };
-    } else {
-      const json = await res.json().catch(() => null);
-      if (json && typeof json === "object" && json.lenders) {
-        lendersConfig = json;
-      } else {
-        lendersConfig = { lenders: {} };
-      }
-    }
-  } catch (e) {
-    console.warn("loan-config fetch error:", e);
-    lendersConfig = { lenders: {} };
-  }
-
-  mergeLendersWithMaster();
-  renderLendersList();
-  updateLendersConfigPreview();
-}
+// ✅ 검색/필터 상태
+let lenderUiState = {
+  q: "",
+  onlyActive: false,
+  onlyPartner: false,
+  productFilters: new Set() // key set
+};
 
 function mergeLendersWithMaster() {
   const merged = {};
@@ -420,6 +366,80 @@ function mergeLendersWithMaster() {
   lendersConfig.lenders = merged;
 }
 
+async function loadLendersConfigFromServer() {
+  try {
+    const res = await fetch(`${API_BASE}/api/loan-config`, { method: "GET" });
+    if (!res.ok) {
+      console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
+      lendersConfig = { lenders: {} };
+    } else {
+      const json = await res.json().catch(() => null);
+      lendersConfig = (json && typeof json === "object" && json.lenders) ? json : { lenders: {} };
+    }
+  } catch (e) {
+    console.warn("loan-config fetch error:", e);
+    lendersConfig = { lenders: {} };
+  }
+
+  mergeLendersWithMaster();
+  renderLendersList();
+  updateLendersConfigPreview();
+}
+
+function updateLendersConfigPreview() {
+  const pre = document.getElementById("lendersConfigPreview");
+  if (!pre) return;
+  try { pre.textContent = JSON.stringify(lendersConfig, null, 2); }
+  catch { pre.textContent = "(미리보기 생성 중 오류)"; }
+}
+
+// (C) 상품군 필터 UI 렌더
+function renderProductFilterRow() {
+  const wrap = document.getElementById("productFilterRow");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  PRODUCT_GROUPS.forEach((pg) => {
+    const label = document.createElement("label");
+    label.className = "admin-chip-check admin-chip-check--filter";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = lenderUiState.productFilters.has(pg.key);
+
+    cb.addEventListener("change", () => {
+      if (cb.checked) lenderUiState.productFilters.add(pg.key);
+      else lenderUiState.productFilters.delete(pg.key);
+      renderLendersList();
+    });
+
+    const span = document.createElement("span");
+    span.textContent = pg.label;
+
+    label.appendChild(cb);
+    label.appendChild(span);
+    wrap.appendChild(label);
+  });
+}
+
+function passesFilters(lender) {
+  const q = (lenderUiState.q || "").trim().toLowerCase();
+  if (q) {
+    const hay = `${lender.name} ${lender.id}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  if (lenderUiState.onlyActive && !lender.isActive) return false;
+  if (lenderUiState.onlyPartner && !lender.isPartner) return false;
+
+  if (lenderUiState.productFilters.size > 0) {
+    const has = (lender.products || []);
+    // 필터는 OR로 동작 (선택한 것 중 하나라도 포함)
+    const ok = [...lenderUiState.productFilters].some((k) => has.includes(k));
+    if (!ok) return false;
+  }
+  return true;
+}
+
 function renderLendersList() {
   const container = document.getElementById("lendersList");
   if (!container) return;
@@ -427,7 +447,22 @@ function renderLendersList() {
 
   const cfg = lendersConfig.lenders || {};
 
-  LENDERS_MASTER.forEach((m) => {
+  // 필터 적용된 마스터만
+  const visibleMasters = LENDERS_MASTER.filter((m) => {
+    const lender = cfg[m.id];
+    if (!lender) return false;
+    return passesFilters(lender);
+  });
+
+  if (visibleMasters.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "admin-empty";
+    empty.textContent = "조건에 맞는 온투업체가 없습니다. (검색/필터를 조정해 주세요)";
+    container.appendChild(empty);
+    return;
+  }
+
+  visibleMasters.forEach((m) => {
     const lender = cfg[m.id];
     if (!lender) return;
 
@@ -499,7 +534,6 @@ function renderLendersList() {
     fieldPartner.appendChild(partnerLabel);
     fieldPartner.appendChild(partnerSwitchWrap);
 
-    // ✅ 스위치 변경 시 상단 배지 즉시 반영 (UX 개선 + 테스트 쉬움)
     activeInput.addEventListener("change", () => {
       activeBadge.classList.toggle("is-off", !activeInput.checked);
     });
@@ -518,18 +552,18 @@ function renderLendersList() {
     pTitle.textContent = "취급 상품군 설정";
     const pHelp = document.createElement("p");
     pHelp.className = "admin-subbox-help";
-    pHelp.textContent =
-      "후추 네비게이션 첫 화면에서 선택 가능한 상품군입니다. 해당 온투업체가 실제로 취급하는 상품만 체크해주세요.";
+    pHelp.textContent = "네비게이션 첫 화면에서 선택 가능한 상품군입니다. 실제 취급 상품만 체크하세요.";
     const chipRow = document.createElement("div");
     chipRow.className = "admin-chip-row";
 
-    (PRODUCT_GROUPS || []).forEach((pg) => {
+    PRODUCT_GROUPS.forEach((pg) => {
       const label = document.createElement("label");
       label.className = "admin-chip-check";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.id = `lender-product-${lender.id}-${pg.key}`;
       cb.checked = Array.isArray(lender.products) ? lender.products.includes(pg.key) : false;
+
       const span = document.createElement("span");
       span.textContent = pg.label;
       label.appendChild(cb);
@@ -550,8 +584,7 @@ function renderLendersList() {
     const cHelp = document.createElement("p");
     cHelp.className = "admin-subbox-help";
     cHelp.innerHTML =
-      "유선상담 / 카카오톡 채팅상담 등 실제로 연결할 채널 정보를 입력해주세요.<br />" +
-      "네비게이션 결과 화면에서 온투업체 카드에 버튼으로 노출됩니다.";
+      "유선상담 / 카카오톡 채팅상담 등 실제 연결할 정보를 입력하세요.<br />결과 화면에서 버튼으로 노출됩니다.";
 
     const contactGrid = document.createElement("div");
     contactGrid.className = "admin-field-grid";
@@ -594,9 +627,7 @@ function renderLendersList() {
 
     panel.appendChild(inner);
 
-    headerBtn.addEventListener("click", () => {
-      panel.classList.toggle("hide");
-    });
+    headerBtn.addEventListener("click", () => panel.classList.toggle("hide"));
 
     card.appendChild(headerBtn);
     card.appendChild(panel);
@@ -636,16 +667,6 @@ function collectLendersConfigFromForm() {
   return result;
 }
 
-function updateLendersConfigPreview() {
-  const pre = document.getElementById("lendersConfigPreview");
-  if (!pre) return;
-  try {
-    pre.textContent = JSON.stringify(lendersConfig, null, 2);
-  } catch (e) {
-    pre.textContent = "(미리보기 생성 중 오류)";
-  }
-}
-
 function setupLendersSaveButton() {
   const btn = document.getElementById("saveLendersConfigBtn");
   const statusEl = document.getElementById("lendersSaveStatus");
@@ -653,9 +674,7 @@ function setupLendersSaveButton() {
 
   btn.addEventListener("click", async () => {
     const payload = collectLendersConfigFromForm();
-
     try {
-      // ✅ 경로 통일: /api/loan-config
       const res = await fetch(`${API_BASE}/api/loan-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -668,12 +687,7 @@ function setupLendersSaveButton() {
       }
 
       const json = await res.json().catch(() => null);
-
-      if (json && typeof json === "object" && json.lenders) {
-        lendersConfig = json;
-      } else {
-        lendersConfig = payload;
-      }
+      lendersConfig = (json && typeof json === "object" && json.lenders) ? json : payload;
 
       mergeLendersWithMaster();
       updateLendersConfigPreview();
@@ -684,7 +698,6 @@ function setupLendersSaveButton() {
           if (statusEl.textContent.includes("저장되었습니다")) statusEl.textContent = "";
         }, 3000);
       }
-
       alert("온투업체 설정이 저장되었습니다.");
     } catch (e) {
       console.error("saveLendersConfig error:", e);
@@ -693,20 +706,45 @@ function setupLendersSaveButton() {
   });
 }
 
-// ------------------------------------------------------
-// 초기화
-// ------------------------------------------------------
+// (C) 검색/필터 이벤트 연결
+function setupLendersControls() {
+  renderProductFilterRow();
+
+  const search = document.getElementById("lenderSearchInput");
+  const onlyActive = document.getElementById("filterOnlyActive");
+  const onlyPartner = document.getElementById("filterOnlyPartner");
+
+  if (search) {
+    search.addEventListener("input", () => {
+      lenderUiState.q = search.value || "";
+      renderLendersList();
+    });
+  }
+  if (onlyActive) {
+    onlyActive.addEventListener("change", () => {
+      lenderUiState.onlyActive = !!onlyActive.checked;
+      renderLendersList();
+    });
+  }
+  if (onlyPartner) {
+    onlyPartner.addEventListener("change", () => {
+      lenderUiState.onlyPartner = !!onlyPartner.checked;
+      renderLendersList();
+    });
+  }
+}
+
+/* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
 
-  // 통계
   loadStatsFromStorage();
   setupStatsInteractions();
 
-  // 온투업체
   mergeLendersWithMaster();
+  setupLendersControls();
   renderLendersList();
   updateLendersConfigPreview();
   setupLendersSaveButton();
