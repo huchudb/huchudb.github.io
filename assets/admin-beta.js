@@ -178,16 +178,10 @@ function recalcProductAmounts() {
 
 /**
  * ✅ 서버 응답 형태가 달라도 살아남는 “강건 로더”
- * 가능한 형태:
- * 1) { summary, products }
- * 2) { monthKey, summary, products }
- * 3) { byMonth: { "2025-11": {summary, products}, ... } }
- * 4) [ { monthKey, summary, products }, ... ]
  */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
 
-  // (3) byMonth
   if (json.byMonth && typeof json.byMonth === "object") {
     const hit = json.byMonth[monthKey];
     if (hit && typeof hit === "object") {
@@ -195,18 +189,15 @@ function normalizeOntuStatsResponseToMonth(json, monthKey) {
     }
   }
 
-  // (4) array
   if (Array.isArray(json)) {
     const found = json.find((x) => x && typeof x === "object" && x.monthKey === monthKey);
     if (found) return { summary: found.summary || {}, products: found.products || {} };
   }
 
-  // (1)(2)
   if (typeof json === "object") {
     if (json.summary || json.products) {
       return { summary: json.summary || {}, products: json.products || {} };
     }
-    // 혹시 { data:{summary,products} } 같은 래핑
     if (json.data && (json.data.summary || json.data.products)) {
       return { summary: json.data.summary || {}, products: json.data.products || {} };
     }
@@ -218,7 +209,6 @@ function normalizeOntuStatsResponseToMonth(json, monthKey) {
 async function loadOntuStatsFromServer(monthKey) {
   if (!monthKey) return null;
 
-  // 1차: monthKey 쿼리로 시도
   try {
     const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
     const res = await fetch(url, { method: "GET" });
@@ -231,7 +221,6 @@ async function loadOntuStatsFromServer(monthKey) {
     console.warn("ontu-stats server load (query) error:", e);
   }
 
-  // 2차: 전체 GET으로 fallback (서버가 전체를 주는 방식일 수도 있으니)
   try {
     const urlAll = `${API_BASE}/api/ontu-stats`;
     const resAll = await fetch(urlAll, { method: "GET" });
@@ -252,7 +241,6 @@ function setupStatsInteractions() {
       const m = getCurrentMonthKey();
       if (!m) { clearStatsForm(); return; }
 
-      // ✅ 서버 우선 → 로컬 fallback
       const serverStat = await loadOntuStatsFromServer(m);
       if (serverStat) {
         fillStatsForm(serverStat);
@@ -338,13 +326,67 @@ const LENDERS_MASTER = [
 
 let lendersConfig = { lenders: {} };
 
-// ✅ 검색/필터 상태
+// ✅ 검색/필터 + UI 상태(열림 유지 포함)
 let lenderUiState = {
   q: "",
   onlyActive: false,
   onlyPartner: false,
-  productFilters: new Set() // key set
+  productFilters: new Set(), // key set
+  openIds: new Set()         // 펼쳐진 카드 id 유지
 };
+
+function ensureLender(id) {
+  if (!lendersConfig.lenders) lendersConfig.lenders = {};
+  if (!lendersConfig.lenders[id]) {
+    lendersConfig.lenders[id] = {
+      id,
+      name: id,
+      isActive: false,
+      isPartner: false,
+      products: [],
+      phoneNumber: "",
+      kakaoUrl: ""
+    };
+  }
+  return lendersConfig.lenders[id];
+}
+
+function uniq(arr) {
+  return Array.from(new Set(Array.isArray(arr) ? arr : []));
+}
+
+// ✅ preview는 잦은 업데이트 대비해서 프레임 단위로 합침
+let _previewRAF = 0;
+function schedulePreviewUpdate() {
+  if (_previewRAF) return;
+  _previewRAF = requestAnimationFrame(() => {
+    _previewRAF = 0;
+    updateLendersConfigPreview();
+  });
+}
+
+// ✅ 상태 갱신 헬퍼 (해결책 A 핵심)
+function updateLenderState(id, patch) {
+  const lender = ensureLender(id);
+  Object.assign(lender, patch);
+  schedulePreviewUpdate();
+}
+
+// 필터가 켜져있을 때, 상태 변경이 가시 목록에 영향을 주면 다시 렌더
+function maybeRerenderBecauseFiltersChanged(changedId) {
+  // active/partner 필터
+  if (lenderUiState.onlyActive || lenderUiState.onlyPartner) {
+    renderLendersList();
+    return;
+  }
+  // 상품군 필터
+  if (lenderUiState.productFilters.size > 0) {
+    renderLendersList();
+    return;
+  }
+  // 검색어는 상태 변경과 직접 연관이 적어서 패스
+  // (단, name/id는 여기서 수정 안 하므로)
+}
 
 function mergeLendersWithMaster() {
   const merged = {};
@@ -357,7 +399,7 @@ function mergeLendersWithMaster() {
       name: m.name,
       isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
-      products: Array.isArray(existing.products) ? existing.products : [],
+      products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
       kakaoUrl: existing.kakaoUrl || ""
     };
@@ -433,7 +475,6 @@ function passesFilters(lender) {
 
   if (lenderUiState.productFilters.size > 0) {
     const has = (lender.products || []);
-    // 필터는 OR로 동작 (선택한 것 중 하나라도 포함)
     const ok = [...lenderUiState.productFilters].some((k) => has.includes(k));
     if (!ok) return false;
   }
@@ -447,7 +488,6 @@ function renderLendersList() {
 
   const cfg = lendersConfig.lenders || {};
 
-  // 필터 적용된 마스터만
   const visibleMasters = LENDERS_MASTER.filter((m) => {
     const lender = cfg[m.id];
     if (!lender) return false;
@@ -481,12 +521,12 @@ function renderLendersList() {
 
     const partnerBadge = document.createElement("span");
     partnerBadge.className = "lender-badge lender-badge--partner";
-    if (!lender.isPartner) partnerBadge.classList.add("is-off");
+    partnerBadge.classList.toggle("is-off", !lender.isPartner);
     partnerBadge.textContent = "제휴업체";
 
     const activeBadge = document.createElement("span");
     activeBadge.className = "lender-badge lender-badge--active";
-    if (!lender.isActive) activeBadge.classList.add("is-off");
+    activeBadge.classList.toggle("is-off", !lender.isActive);
     activeBadge.textContent = "신규대출취급";
 
     badgesWrap.appendChild(partnerBadge);
@@ -496,7 +536,9 @@ function renderLendersList() {
     headerBtn.appendChild(badgesWrap);
 
     const panel = document.createElement("div");
-    panel.className = "lender-panel hide";
+    panel.className = "lender-panel";
+    // ✅ 열림 상태 유지
+    panel.classList.toggle("hide", !lenderUiState.openIds.has(lender.id));
 
     const inner = document.createElement("div");
     inner.className = "lender-panel__inner";
@@ -504,6 +546,7 @@ function renderLendersList() {
     const switchGroup = document.createElement("div");
     switchGroup.className = "admin-field-grid";
 
+    // 신규대출 취급여부
     const fieldActive = document.createElement("div");
     fieldActive.className = "admin-field admin-switch-field";
     const activeLabel = document.createElement("span");
@@ -519,6 +562,7 @@ function renderLendersList() {
     fieldActive.appendChild(activeLabel);
     fieldActive.appendChild(activeSwitchWrap);
 
+    // 제휴업체 여부
     const fieldPartner = document.createElement("div");
     fieldPartner.className = "admin-field admin-switch-field";
     const partnerLabel = document.createElement("span");
@@ -534,17 +578,25 @@ function renderLendersList() {
     fieldPartner.appendChild(partnerLabel);
     fieldPartner.appendChild(partnerSwitchWrap);
 
+    // ✅ 상태 중심 업데이트 (DOM 수집 없음)
     activeInput.addEventListener("change", () => {
-      activeBadge.classList.toggle("is-off", !activeInput.checked);
+      const next = !!activeInput.checked;
+      activeBadge.classList.toggle("is-off", !next);
+      updateLenderState(lender.id, { isActive: next });
+      maybeRerenderBecauseFiltersChanged(lender.id);
     });
     partnerInput.addEventListener("change", () => {
-      partnerBadge.classList.toggle("is-off", !partnerInput.checked);
+      const next = !!partnerInput.checked;
+      partnerBadge.classList.toggle("is-off", !next);
+      updateLenderState(lender.id, { isPartner: next });
+      maybeRerenderBecauseFiltersChanged(lender.id);
     });
 
     switchGroup.appendChild(fieldActive);
     switchGroup.appendChild(fieldPartner);
     inner.appendChild(switchGroup);
 
+    // 상품군 설정
     const productsBox = document.createElement("div");
     productsBox.className = "admin-subbox";
     const pTitle = document.createElement("h3");
@@ -564,6 +616,15 @@ function renderLendersList() {
       cb.id = `lender-product-${lender.id}-${pg.key}`;
       cb.checked = Array.isArray(lender.products) ? lender.products.includes(pg.key) : false;
 
+      cb.addEventListener("change", () => {
+        const cur = ensureLender(lender.id);
+        const set = new Set(Array.isArray(cur.products) ? cur.products : []);
+        if (cb.checked) set.add(pg.key);
+        else set.delete(pg.key);
+        updateLenderState(lender.id, { products: Array.from(set) });
+        maybeRerenderBecauseFiltersChanged(lender.id);
+      });
+
       const span = document.createElement("span");
       span.textContent = pg.label;
       label.appendChild(cb);
@@ -576,6 +637,7 @@ function renderLendersList() {
     productsBox.appendChild(chipRow);
     inner.appendChild(productsBox);
 
+    // 상담 채널 정보
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
     const cTitle = document.createElement("h3");
@@ -617,6 +679,21 @@ function renderLendersList() {
     kakaoField.appendChild(kakaoLabel);
     kakaoField.appendChild(kakaoInput);
 
+    // ✅ 입력 즉시 state 반영 (재렌더 없음)
+    phoneInput.addEventListener("input", () => {
+      updateLenderState(lender.id, { phoneNumber: phoneInput.value });
+    });
+    phoneInput.addEventListener("blur", () => {
+      updateLenderState(lender.id, { phoneNumber: phoneInput.value.trim() });
+    });
+
+    kakaoInput.addEventListener("input", () => {
+      updateLenderState(lender.id, { kakaoUrl: kakaoInput.value });
+    });
+    kakaoInput.addEventListener("blur", () => {
+      updateLenderState(lender.id, { kakaoUrl: kakaoInput.value.trim() });
+    });
+
     contactGrid.appendChild(phoneField);
     contactGrid.appendChild(kakaoField);
 
@@ -627,44 +704,18 @@ function renderLendersList() {
 
     panel.appendChild(inner);
 
-    headerBtn.addEventListener("click", () => panel.classList.toggle("hide"));
+    // ✅ 카드 열림/닫힘 상태도 state로 유지
+    headerBtn.addEventListener("click", () => {
+      const isOpen = lenderUiState.openIds.has(lender.id);
+      if (isOpen) lenderUiState.openIds.delete(lender.id);
+      else lenderUiState.openIds.add(lender.id);
+      panel.classList.toggle("hide", isOpen);
+    });
 
     card.appendChild(headerBtn);
     card.appendChild(panel);
     container.appendChild(card);
   });
-}
-
-function collectLendersConfigFromForm() {
-  const result = { lenders: {} };
-
-  LENDERS_MASTER.forEach((m) => {
-    const id = m.id;
-    const name = m.name;
-
-    const activeInput = document.getElementById(`lender-active-${id}`);
-    const partnerInput = document.getElementById(`lender-partner-${id}`);
-    const phoneInput = document.getElementById(`lender-phone-${id}`);
-    const kakaoInput = document.getElementById(`lender-kakao-${id}`);
-
-    const products = [];
-    PRODUCT_GROUPS.forEach((pg) => {
-      const cb = document.getElementById(`lender-product-${id}-${pg.key}`);
-      if (cb && cb.checked) products.push(pg.key);
-    });
-
-    result.lenders[id] = {
-      id,
-      name,
-      isActive: !!(activeInput && activeInput.checked),
-      isPartner: !!(partnerInput && partnerInput.checked),
-      products,
-      phoneNumber: phoneInput ? phoneInput.value.trim() : "",
-      kakaoUrl: kakaoInput ? kakaoInput.value.trim() : ""
-    };
-  });
-
-  return result;
 }
 
 function setupLendersSaveButton() {
@@ -673,7 +724,9 @@ function setupLendersSaveButton() {
   if (!btn) return;
 
   btn.addEventListener("click", async () => {
-    const payload = collectLendersConfigFromForm();
+    // ✅ 해결책 A: DOM 수집 금지, state 그대로 저장
+    const payload = lendersConfig;
+
     try {
       const res = await fetch(`${API_BASE}/api/loan-config`, {
         method: "POST",
@@ -690,6 +743,7 @@ function setupLendersSaveButton() {
       lendersConfig = (json && typeof json === "object" && json.lenders) ? json : payload;
 
       mergeLendersWithMaster();
+      renderLendersList();
       updateLendersConfigPreview();
 
       if (statusEl) {
