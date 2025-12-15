@@ -373,11 +373,61 @@ const LOAN_TYPES_APTVILLA = [
   { key: "매입잔금_분양", label: "매입잔금(분양)" }
 ];
 
+/* ✅ 마스터: 네가 준 순서 그대로 + 홈페이지 URL */
 const LENDERS_MASTER = [
-  { id: "fmfunding", name: "FM펀딩" },
-  { id: "8percent", name: "에잇퍼센트" },
-  { id: "peoplefund", name: "피플펀드" }
-  // TODO: 49개 확장
+  { id: "hifunding", name: "하이펀딩", homepage: "https://hifunding.co.kr/" },
+  { id: "cple", name: "피에프씨테크놀로지스", homepage: "https://www.cple.co.kr/" },
+  { id: "8percent", name: "에잇퍼센트", homepage: "https://8percent.kr/" },
+  { id: "crossfinancekorea", name: "크로스파이낸스코리아", homepage: "https://www.fss.or.kr/" },
+  { id: "niceabc", name: "NICE비즈니스플랫폼", homepage: "https://www.niceabc.co.kr/" },
+  { id: "profit", name: "프로핏", homepage: "https://www.pro-fit.co.kr/" },
+  { id: "honestfund", name: "어니스트에이아이", homepage: "https://www.honestfund.kr/" },
+  { id: "leadingplus", name: "리딩플러스", homepage: "https://www.leadingplusfunding.com/index" },
+  { id: "cocktailfunding", name: "트리거파트너스", homepage: "https://v2.cocktailfunding.com/" },
+  { id: "loanpoint", name: "론포인트", homepage: "https://www.loanpoint.co.kr/" },
+  { id: "funding119", name: "펀딩119", homepage: "https://funding119.com/" },
+  { id: "dailyfunding", name: "데일리펀딩", homepage: "https://new.daily-funding.com/" },
+  { id: "namofunding", name: "나모펀딩", homepage: "https://namofunding.co.kr/" },
+  { id: "yfund", name: "와이펀드", homepage: "https://www.yfund.co.kr/" },
+  { id: "funfunding", name: "베네핏소셜", homepage: "https://www.funfunding.co.kr/" },
+  { id: "presdaq", name: "프리스닥", homepage: "https://presdaqfunding.co.kr/index" },
+  { id: "solarbridge", name: "솔라브리지", homepage: "https://solarbridge.kr/" },
+  { id: "zoomfund", name: "줌펀드", homepage: "https://www.zoomfund.co.kr/" },
+  { id: "fmfunding", name: "에프엠펀딩", homepage: "https://fmfunding.co.kr/" },
+  { id: "together", name: "투게더앱스", homepage: "https://www.together.co.kr/" },
+  { id: "moneymove", name: "머니무브", homepage: "https://moneymove.ai/" },
+  { id: "rootenergy", name: "루트인프라금융", homepage: "https://www.rootenergy.co.kr/" },
+  { id: "wefunding", name: "위펀딩", homepage: "https://www.wefunding.com/" },
+  { id: "oasisfund", name: "오아시스펀드", homepage: "https://oasisfund.kr/" },
+  { id: "titaninvest", name: "타이탄인베스트", homepage: "https://www.titaninvest.co.kr/index" },
+  { id: "mouda", name: "모우다", homepage: "https://mouda.kr/" },
+  { id: "cocofunding", name: "코코펀딩", homepage: "" },
+  { id: "theassetfund", name: "디에셋핀테크", homepage: "https://www.theassetfund/" },
+  { id: "vfunding", name: "브이핀테크", homepage: "https://www.vfunding.co.kr/" },
+  { id: "benefitplus", name: "비플러스", homepage: "https://benefitplus.kr/" },
+  { id: "acefunding", name: "에이스펀딩", homepage: "https://acefunding.co.kr/" },
+  { id: "herbfund", name: "허브펀드", homepage: "" },
+  { id: "nurifunding", name: "누리펀딩", homepage: "https://www.nurifunding.co.kr/" },
+  { id: "miraclefunding", name: "미라클핀테크", homepage: "https://www.miraclefunding.co.kr/" },
+  { id: "funda", name: "펀다", homepage: "https://www.funda.kr/" },
+  { id: "graphfunding", name: "그래프펀딩", homepage: "https://www.graphfunding.com/" },
+  { id: "daonfunding", name: "다온핀테크", homepage: "https://www.daonfunding.com/" },
+  { id: "winkstone", name: "윙크스톤", homepage: "https://loanone.winkstone.com/" },
+  { id: "hellofunding", name: "헬로핀테크", homepage: "https://www.hellofunding.co.kr/" },
+  { id: "trustfund", name: "앱솔브트러스트", homepage: "https://trustfund.co.kr/" },
+  { id: "firstonline", name: "퍼스트온라인투자금융", homepage: "https://www.firstonline.kr/" },
+  { id: "jhplus", name: "제이에이치플러스", homepage: "" },
+  { id: "apfunding", name: "에이피펀딩", homepage: "https://www.apfunding.co.kr/" },
+  { id: "campusfund", name: "레드로켓", homepage: "https://campusfund.net/" },
+  { id: "oceanfunding", name: "오션펀딩", homepage: "https://www.oceanfunding.co.kr/" },
+  { id: "sugarfunding", name: "슈가펀딩주식회사", homepage: "" },
+  { id: "grayzip", name: "브릭베이스", homepage: "https://grayzip.com/" },
+  { id: "ontwo", name: "온투인", homepage: "https://www.ontwo.co.kr/" },
+  { id: "tgsfinance", name: "티지에스파이낸스", homepage: "" },
+  { id: "hnr", name: "에이치엔알", homepage: "" },
+  { id: "lendit", name: "렌딧", homepage: "https://www.lendit.co.kr/" },
+  { id: "modufintech", name: "모두의핀테크", homepage: "" },
+  { id: "bidfunding", name: "비드펀딩", homepage: "" }
 ];
 
 let lendersConfig = { lenders: {} };
@@ -398,6 +448,7 @@ function ensureLender(id) {
     lendersConfig.lenders[id] = {
       id,
       name: id,
+      homepage: "",
       isActive: false,
       isPartner: false,
       partnerOrder: 0,
@@ -458,6 +509,7 @@ function mergeLendersWithMaster() {
     merged[m.id] = {
       id: m.id,
       name: m.name,
+      homepage: (m.homepage || existing.homepage || ""), // ✅ 추가
       isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
@@ -547,10 +599,6 @@ async function postLendersConfigToServer(successText) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
-   - 헤더 클릭 = 펼침/접기
-   - 헤더 한줄 컴팩트
-   - (부동산 담보대출 선택 시에만) 지역/유형/LTV/대출종류 노출
-   - 유형 취급여부: 체크박스 → 칩 토글
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -603,9 +651,23 @@ function renderLendersList() {
       }
     });
 
-    const name = document.createElement("span");
-    name.className = "lender-name";
-    name.textContent = lender.name;
+    // ✅ 업체명: 홈페이지 있으면 링크(a)로 (헤더 토글 충돌 방지)
+    let nameEl;
+    if (lender.homepage && String(lender.homepage).trim()) {
+      const a = document.createElement("a");
+      a.className = "lender-name";
+      a.href = String(lender.homepage).trim();
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = lender.name;
+      a.addEventListener("click", (e) => e.stopPropagation()); // 헤더 토글 방지
+      nameEl = a;
+    } else {
+      const s = document.createElement("span");
+      s.className = "lender-name";
+      s.textContent = lender.name;
+      nameEl = s;
+    }
 
     const badges = document.createElement("span");
     badges.className = "lender-badges";
@@ -721,7 +783,7 @@ function renderLendersList() {
     order.appendChild(orderChips);
 
     // 구성: 한 줄
-    head.appendChild(name);
+    head.appendChild(nameEl);
     head.appendChild(badges);
     head.appendChild(switches);
     head.appendChild(order);
@@ -765,7 +827,6 @@ function renderLendersList() {
 
         updateLenderState(lender.id, { products: Array.from(set) });
 
-        // ✅ 부동산 담보대출 토글 시, 아래 섹션 노출/숨김을 즉시 반영
         lenderUiState.openIds.add(lender.id);
         renderLendersList();
       });
@@ -858,7 +919,6 @@ function renderLendersList() {
           cur.regions[activeRegion][pt.key].enabled = next;
           schedulePreviewUpdate();
 
-          // UI 반영(입력 disable/칩 disable까지 같이)
           lenderUiState.openIds.add(lender.id);
           renderLendersList();
         });
@@ -925,7 +985,6 @@ function renderLendersList() {
           loanRow.appendChild(label);
         });
 
-        // 미취급일 땐 전체를 흐리게
         if (!cell.enabled) loanRow.classList.add("is-disabled");
 
         tdLoans.appendChild(loanRow);
