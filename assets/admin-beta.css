@@ -420,6 +420,7 @@
   border-radius:999px;
   border:1px solid #d1d5db;
   background:#fff;
+  color:#111827;   /* ✅ 추가 */
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -482,6 +483,7 @@
   border-radius:10px;
   border:1px solid #e5e7eb;
   background:#fff;
+  color:#111827;   /* ✅ 추가 */
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -547,6 +549,7 @@
   border-radius:999px;
   border:1px solid #d1d5db;
   background:#fff;
+  color:#111827;   /* ✅ 추가 */
   font-size:12px;
   font-weight:900;
   cursor:pointer;
