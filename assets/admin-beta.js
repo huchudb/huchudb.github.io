@@ -2,10 +2,7 @@
 console.log("✅ admin-beta.js loaded");
 
 /* =========================================================
-   ✅ API_BASE 해석 (핵심 패치)
-   - window.API_BASE가 있으면 그걸 사용
-   - 없으면 기본값으로 Vercel Functions를 사용
-   - localhost에서는 상대경로(/api/...) 유지
+   ✅ API_BASE 해석
 ========================================================= */
 function resolveApiBase() {
   try {
@@ -29,7 +26,6 @@ function resolveApiBase() {
     return "https://huchudb-github-io.vercel.app";
   }
 }
-
 const API_BASE = resolveApiBase();
 console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
@@ -331,7 +327,7 @@ function setupStatsInteractions() {
   }
 }
 
-/* ---------------- 2) 온투업체 설정 (검색만 유지) ---------------- */
+/* ---------------- 2) 온투업체 설정 ---------------- */
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
@@ -428,9 +424,8 @@ function ensureLenderDeepDefaults(lender) {
       const prev = lender.regions[r.key][pt.key] || {};
       lender.regions[r.key][pt.key] = {
         enabled: !!prev.enabled,
-        // ✅ LTV는 최대만 사용
         ltvMax: prev.ltvMax ?? "",
-        // (하위호환) 혹시 기존 데이터에 남아있어도 무시됨
+        // 하위호환: 남아 있어도 UI/판정에 사용 안함
         ltvMin: prev.ltvMin ?? "",
         loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
       };
@@ -550,6 +545,13 @@ async function postLendersConfigToServer(successText) {
   return successText || "저장되었습니다.";
 }
 
+/* =========================================================
+   ✅ 렌더: 업체 카드
+   - 헤더 클릭 = 펼침/접기
+   - 헤더 한줄 컴팩트
+   - (부동산 담보대출 선택 시에만) 지역/유형/LTV/대출종류 노출
+   - 유형 취급여부: 체크박스 → 칩 토글
+========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
   if (!container) return;
@@ -574,82 +576,96 @@ function renderLendersList() {
     const lender = cfg[m.id];
     if (!lender) return;
 
+    const isOpen = lenderUiState.openIds.has(lender.id);
+
     const card = document.createElement("div");
     card.className = "lender-card";
 
+    // ---------- Header (click to toggle) ----------
     const head = document.createElement("div");
     head.className = "lender-head";
+    head.setAttribute("role", "button");
+    head.setAttribute("tabindex", "0");
+    head.setAttribute("aria-expanded", isOpen ? "true" : "false");
 
-    const left = document.createElement("div");
-    left.className = "lender-head__left";
+    head.addEventListener("click", () => {
+      if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
+      else lenderUiState.openIds.add(lender.id);
+      renderLendersList();
+    });
 
-    const topline = document.createElement("div");
-    topline.className = "lender-head__topline";
+    head.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
+        else lenderUiState.openIds.add(lender.id);
+        renderLendersList();
+      }
+    });
 
     const name = document.createElement("span");
     name.className = "lender-name";
     name.textContent = lender.name;
 
+    const badges = document.createElement("span");
+    badges.className = "lender-badges";
+
     const partnerBadge = document.createElement("span");
     partnerBadge.className = "lender-badge lender-badge--partner";
     partnerBadge.classList.toggle("is-off", !lender.isPartner);
-    partnerBadge.textContent = "제휴업체";
+    partnerBadge.textContent = "제휴";
 
     const activeBadge = document.createElement("span");
     activeBadge.className = "lender-badge lender-badge--active";
     activeBadge.classList.toggle("is-off", !lender.isActive);
-    activeBadge.textContent = "신규대출취급";
+    activeBadge.textContent = "신규";
 
-    topline.appendChild(name);
-    topline.appendChild(partnerBadge);
-    topline.appendChild(activeBadge);
-    left.appendChild(topline);
+    badges.appendChild(partnerBadge);
+    badges.appendChild(activeBadge);
 
-    const right = document.createElement("div");
-    right.className = "lender-head__right";
+    const switches = document.createElement("div");
+    switches.className = "lender-switches";
 
-    const switchRow = document.createElement("div");
-    switchRow.className = "lender-switch-row";
-
-    const activeItem = document.createElement("div");
-    activeItem.className = "lender-switch-item";
-    const activeText = document.createElement("span");
-    activeText.textContent = "신규대출 취급여부";
-    const activeSwitchWrap = document.createElement("label");
-    activeSwitchWrap.className = "admin-switch";
+    // 신규
+    const swActive = document.createElement("div");
+    swActive.className = "lender-switch-item";
+    const swActiveLabel = document.createElement("span");
+    swActiveLabel.textContent = "신규";
+    const swActiveWrap = document.createElement("label");
+    swActiveWrap.className = "admin-switch";
     const activeInput = document.createElement("input");
     activeInput.type = "checkbox";
     activeInput.checked = !!lender.isActive;
-    activeSwitchWrap.appendChild(activeInput);
-    activeItem.appendChild(activeText);
-    activeItem.appendChild(activeSwitchWrap);
 
-    const partnerItem = document.createElement("div");
-    partnerItem.className = "lender-switch-item";
-    const partnerText = document.createElement("span");
-    partnerText.textContent = "제휴업체 여부";
-    const partnerSwitchWrap = document.createElement("label");
-    partnerSwitchWrap.className = "admin-switch";
-    const partnerInput = document.createElement("input");
-    partnerInput.type = "checkbox";
-    partnerInput.checked = !!lender.isPartner;
-    partnerSwitchWrap.appendChild(partnerInput);
-    partnerItem.appendChild(partnerText);
-    partnerItem.appendChild(partnerSwitchWrap);
-
-    switchRow.appendChild(activeItem);
-    switchRow.appendChild(partnerItem);
-
-    const expandBtn = document.createElement("button");
-    expandBtn.type = "button";
-    expandBtn.className = "lender-expand-btn";
-    expandBtn.textContent = lenderUiState.openIds.has(lender.id) ? "접기" : "상세";
+    // 헤더 토글 방지
+    activeInput.addEventListener("click", (e) => e.stopPropagation());
+    swActiveWrap.addEventListener("click", (e) => e.stopPropagation());
+    swActive.addEventListener("click", (e) => e.stopPropagation());
 
     activeInput.addEventListener("change", () => {
       const next = !!activeInput.checked;
       activeBadge.classList.toggle("is-off", !next);
       updateLenderState(lender.id, { isActive: next });
     });
+
+    swActiveWrap.appendChild(activeInput);
+    swActive.appendChild(swActiveLabel);
+    swActive.appendChild(swActiveWrap);
+
+    // 제휴
+    const swPartner = document.createElement("div");
+    swPartner.className = "lender-switch-item";
+    const swPartnerLabel = document.createElement("span");
+    swPartnerLabel.textContent = "제휴";
+    const swPartnerWrap = document.createElement("label");
+    swPartnerWrap.className = "admin-switch";
+    const partnerInput = document.createElement("input");
+    partnerInput.type = "checkbox";
+    partnerInput.checked = !!lender.isPartner;
+
+    partnerInput.addEventListener("click", (e) => e.stopPropagation());
+    swPartnerWrap.addEventListener("click", (e) => e.stopPropagation());
+    swPartner.addEventListener("click", (e) => e.stopPropagation());
 
     partnerInput.addEventListener("change", () => {
       const next = !!partnerInput.checked;
@@ -659,16 +675,26 @@ function renderLendersList() {
       if (!next) patch.partnerOrder = 0;
 
       updateLenderState(lender.id, patch);
+      lenderUiState.openIds.add(lender.id);
       renderLendersList();
     });
 
-    const orderRow = document.createElement("div");
-    orderRow.className = "admin-order-row";
-    orderRow.style.display = lender.isPartner ? "flex" : "none";
+    swPartnerWrap.appendChild(partnerInput);
+    swPartner.appendChild(swPartnerLabel);
+    swPartner.appendChild(swPartnerWrap);
+
+    switches.appendChild(swActive);
+    switches.appendChild(swPartner);
+
+    // 제휴 표시순서 (제휴 ON일 때만)
+    const order = document.createElement("div");
+    order.className = "lender-order";
+    order.style.display = lender.isPartner ? "flex" : "none";
+    order.addEventListener("click", (e) => e.stopPropagation());
 
     const orderTitle = document.createElement("span");
-    orderTitle.className = "admin-order-title";
-    orderTitle.textContent = "제휴업체 표시순서";
+    orderTitle.className = "lender-order__title";
+    orderTitle.textContent = "순서";
 
     const orderChips = document.createElement("div");
     orderChips.className = "admin-order-chips";
@@ -681,40 +707,34 @@ function renderLendersList() {
       chip.textContent = String(i);
       chip.classList.toggle("is-active", lender.partnerOrder === i);
 
-      chip.addEventListener("click", () => {
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
         setPartnerOrderUnique(lender.id, i);
+        lenderUiState.openIds.add(lender.id);
         renderLendersList();
       });
 
       orderChips.appendChild(chip);
     }
 
-    orderRow.appendChild(orderTitle);
-    orderRow.appendChild(orderChips);
+    order.appendChild(orderTitle);
+    order.appendChild(orderChips);
 
-    right.appendChild(switchRow);
-    right.appendChild(orderRow);
-    right.appendChild(expandBtn);
+    // 구성: 한 줄
+    head.appendChild(name);
+    head.appendChild(badges);
+    head.appendChild(switches);
+    head.appendChild(order);
 
-    head.appendChild(left);
-    head.appendChild(right);
-
+    // ---------- Panel ----------
     const panel = document.createElement("div");
     panel.className = "lender-panel";
-    panel.classList.toggle("hide", !lenderUiState.openIds.has(lender.id));
+    panel.classList.toggle("hide", !isOpen);
 
     const inner = document.createElement("div");
     inner.className = "lender-panel__inner";
 
-    expandBtn.addEventListener("click", () => {
-      const isOpen = lenderUiState.openIds.has(lender.id);
-      if (isOpen) lenderUiState.openIds.delete(lender.id);
-      else lenderUiState.openIds.add(lender.id);
-
-      panel.classList.toggle("hide", isOpen);
-      expandBtn.textContent = isOpen ? "상세" : "접기";
-    });
-
+    // 1) 상품군
     const productsBox = document.createElement("div");
     productsBox.className = "admin-subbox";
 
@@ -742,7 +762,12 @@ function renderLendersList() {
         const set = new Set(Array.isArray(cur.products) ? cur.products : []);
         if (cb.checked) set.add(pg.key);
         else set.delete(pg.key);
+
         updateLenderState(lender.id, { products: Array.from(set) });
+
+        // ✅ 부동산 담보대출 토글 시, 아래 섹션 노출/숨김을 즉시 반영
+        lenderUiState.openIds.add(lender.id);
+        renderLendersList();
       });
 
       const span = document.createElement("span");
@@ -758,149 +783,172 @@ function renderLendersList() {
     productsBox.appendChild(chipRow);
     inner.appendChild(productsBox);
 
-    const matrixBox = document.createElement("div");
-    matrixBox.className = "admin-subbox";
+    // ✅ (1) [B] 섹션 조건부 노출: 부동산 담보대출 선택 시에만
+    const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
-    const mTitle = document.createElement("h3");
-    mTitle.className = "admin-subbox-title";
-    mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
+    if (hasRealEstate) {
+      const matrixBox = document.createElement("div");
+      matrixBox.className = "admin-subbox";
 
-    const mHelp = document.createElement("p");
-    mHelp.className = "admin-subbox-help";
-    mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부 / LTV 최대(%) / 취급 대출 종류를 설정하세요.";
+      const mTitle = document.createElement("h3");
+      mTitle.className = "admin-subbox-title";
+      mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
 
-    const regionTabs = document.createElement("div");
-    regionTabs.className = "admin-region-tabs";
+      const mHelp = document.createElement("p");
+      mHelp.className = "admin-subbox-help";
+      mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부(칩) / LTV 최대(%) / 취급 대출 종류를 설정하세요.";
 
-    const activeRegion = getActiveRegionFor(lender.id);
+      const regionTabs = document.createElement("div");
+      regionTabs.className = "admin-region-tabs";
 
-    REGIONS.forEach((r) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "admin-region-tab";
-      btn.textContent = r.label;
-      btn.classList.toggle("is-active", activeRegion === r.key);
+      const activeRegion = getActiveRegionFor(lender.id);
 
-      btn.addEventListener("click", () => {
-        lenderUiState.activeRegionById[lender.id] = r.key;
-        renderLendersList();
-        lenderUiState.openIds.add(lender.id);
+      REGIONS.forEach((r) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "admin-region-tab";
+        btn.textContent = r.label;
+        btn.classList.toggle("is-active", activeRegion === r.key);
+
+        btn.addEventListener("click", () => {
+          lenderUiState.activeRegionById[lender.id] = r.key;
+          lenderUiState.openIds.add(lender.id);
+          renderLendersList();
+        });
+
+        regionTabs.appendChild(btn);
       });
 
-      regionTabs.appendChild(btn);
-    });
+      const table = document.createElement("table");
+      table.className = "admin-matrix";
 
-    const table = document.createElement("table");
-    table.className = "admin-matrix";
+      const thead = document.createElement("thead");
+      thead.innerHTML = `
+        <tr>
+          <th style="width:160px;">부동산 유형</th>
+          <th class="cell-center" style="width:110px;">취급</th>
+          <th style="width:190px;">LTV 최대(%)</th>
+          <th>취급 대출 종류</th>
+        </tr>
+      `;
+      table.appendChild(thead);
 
-    const thead = document.createElement("thead");
-    thead.innerHTML = `
-      <tr>
-        <th style="width:160px;">부동산 유형</th>
-        <th class="cell-center" style="width:90px;">취급여부</th>
-        <th style="width:200px;">LTV 최대(%)</th>
-        <th>취급 대출 종류</th>
-      </tr>
-    `;
-    table.appendChild(thead);
+      const tbody = document.createElement("tbody");
 
-    const tbody = document.createElement("tbody");
+      PROPERTY_TYPES.forEach((pt) => {
+        const tr = document.createElement("tr");
+        const cell = lender.regions[activeRegion][pt.key];
 
-    PROPERTY_TYPES.forEach((pt) => {
-      const tr = document.createElement("tr");
-      const cell = lender.regions[activeRegion][pt.key];
+        const tdType = document.createElement("td");
+        tdType.textContent = pt.label;
 
-      const tdType = document.createElement("td");
-      tdType.textContent = pt.label;
+        // ✅ (2) 취급여부: 체크박스 → 칩 토글
+        const tdEnable = document.createElement("td");
+        tdEnable.className = "cell-center";
 
-      const tdEnable = document.createElement("td");
-      tdEnable.className = "cell-center";
-      const enable = document.createElement("input");
-      enable.type = "checkbox";
-      enable.checked = !!cell.enabled;
-      enable.addEventListener("change", () => {
-        const cur = ensureLender(lender.id);
-        cur.regions[activeRegion][pt.key].enabled = !!enable.checked;
-        schedulePreviewUpdate();
-      });
-      tdEnable.appendChild(enable);
+        const enableChip = document.createElement("button");
+        enableChip.type = "button";
+        enableChip.className = "admin-chip-toggle";
+        enableChip.classList.toggle("is-on", !!cell.enabled);
+        enableChip.textContent = cell.enabled ? "취급" : "미취급";
 
-      // ✅ LTV 최대만
-      const tdLtv = document.createElement("td");
-      const ltvWrap = document.createElement("div");
-      ltvWrap.style.display = "flex";
-      ltvWrap.style.alignItems = "center";
-      ltvWrap.style.gap = "8px";
-      ltvWrap.style.flexWrap = "wrap";
-
-      const max = document.createElement("input");
-      max.type = "number";
-      max.className = "admin-mini-input";
-      max.placeholder = "최대";
-      max.value = cell.ltvMax ?? "";
-      max.addEventListener("input", () => {
-        const cur = ensureLender(lender.id);
-        cur.regions[activeRegion][pt.key].ltvMax = max.value;
-        schedulePreviewUpdate();
-      });
-
-      const pct = document.createElement("span");
-      pct.textContent = "%";
-
-      ltvWrap.appendChild(max);
-      ltvWrap.appendChild(pct);
-      tdLtv.appendChild(ltvWrap);
-
-      const tdLoans = document.createElement("td");
-      const loanRow = document.createElement("div");
-      loanRow.className = "admin-chip-row admin-chip-row--tight";
-
-      const loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
-
-      loanTypes.forEach((lt) => {
-        const label = document.createElement("label");
-        label.className = "admin-chip-check admin-chip-check--tiny";
-
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = Array.isArray(cell.loanTypes) ? cell.loanTypes.includes(lt.key) : false;
-
-        cb.addEventListener("change", () => {
+        enableChip.addEventListener("click", () => {
           const cur = ensureLender(lender.id);
-          const arr = cur.regions[activeRegion][pt.key].loanTypes || [];
-          const set = new Set(arr);
-          if (cb.checked) set.add(lt.key);
-          else set.delete(lt.key);
-          cur.regions[activeRegion][pt.key].loanTypes = Array.from(set);
+          const next = !cur.regions[activeRegion][pt.key].enabled;
+          cur.regions[activeRegion][pt.key].enabled = next;
+          schedulePreviewUpdate();
+
+          // UI 반영(입력 disable/칩 disable까지 같이)
+          lenderUiState.openIds.add(lender.id);
+          renderLendersList();
+        });
+
+        tdEnable.appendChild(enableChip);
+
+        // LTV 최대
+        const tdLtv = document.createElement("td");
+        const ltvWrap = document.createElement("div");
+        ltvWrap.className = "admin-ltv-wrap";
+
+        const max = document.createElement("input");
+        max.type = "number";
+        max.className = "admin-mini-input";
+        max.placeholder = "최대";
+        max.value = cell.ltvMax ?? "";
+        max.disabled = !cell.enabled;
+
+        max.addEventListener("input", () => {
+          const cur = ensureLender(lender.id);
+          cur.regions[activeRegion][pt.key].ltvMax = max.value;
           schedulePreviewUpdate();
         });
 
-        const span = document.createElement("span");
-        span.textContent = lt.label;
+        const pct = document.createElement("span");
+        pct.className = "admin-ltv-pct";
+        pct.textContent = "%";
 
-        label.appendChild(cb);
-        label.appendChild(span);
-        loanRow.appendChild(label);
+        ltvWrap.appendChild(max);
+        ltvWrap.appendChild(pct);
+        tdLtv.appendChild(ltvWrap);
+
+        // 대출종류
+        const tdLoans = document.createElement("td");
+        const loanRow = document.createElement("div");
+        loanRow.className = "admin-chip-row admin-chip-row--tight";
+
+        const loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
+
+        loanTypes.forEach((lt) => {
+          const label = document.createElement("label");
+          label.className = "admin-chip-check admin-chip-check--tiny";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = Array.isArray(cell.loanTypes) ? cell.loanTypes.includes(lt.key) : false;
+          cb.disabled = !cell.enabled;
+
+          cb.addEventListener("change", () => {
+            const cur = ensureLender(lender.id);
+            const arr = cur.regions[activeRegion][pt.key].loanTypes || [];
+            const set = new Set(arr);
+            if (cb.checked) set.add(lt.key);
+            else set.delete(lt.key);
+            cur.regions[activeRegion][pt.key].loanTypes = Array.from(set);
+            schedulePreviewUpdate();
+          });
+
+          const span = document.createElement("span");
+          span.textContent = lt.label;
+
+          label.appendChild(cb);
+          label.appendChild(span);
+          loanRow.appendChild(label);
+        });
+
+        // 미취급일 땐 전체를 흐리게
+        if (!cell.enabled) loanRow.classList.add("is-disabled");
+
+        tdLoans.appendChild(loanRow);
+
+        tr.appendChild(tdType);
+        tr.appendChild(tdEnable);
+        tr.appendChild(tdLtv);
+        tr.appendChild(tdLoans);
+
+        tbody.appendChild(tr);
       });
 
-      tdLoans.appendChild(loanRow);
+      table.appendChild(tbody);
 
-      tr.appendChild(tdType);
-      tr.appendChild(tdEnable);
-      tr.appendChild(tdLtv);
-      tr.appendChild(tdLoans);
+      matrixBox.appendChild(mTitle);
+      matrixBox.appendChild(mHelp);
+      matrixBox.appendChild(regionTabs);
+      matrixBox.appendChild(table);
 
-      tbody.appendChild(tr);
-    });
+      inner.appendChild(matrixBox);
+    }
 
-    table.appendChild(tbody);
-
-    matrixBox.appendChild(mTitle);
-    matrixBox.appendChild(mHelp);
-    matrixBox.appendChild(regionTabs);
-    matrixBox.appendChild(table);
-    inner.appendChild(matrixBox);
-
+    // 3) 상담채널
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
 
@@ -951,6 +999,7 @@ function renderLendersList() {
     contactBox.appendChild(contactGrid);
     inner.appendChild(contactBox);
 
+    // 카드별 저장
     const saveRow = document.createElement("div");
     saveRow.className = "lender-save-row";
     const saveBtn = document.createElement("button");
