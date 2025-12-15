@@ -1,14 +1,35 @@
 // /assets/admin-beta.js
-// 후추 베타 관리자 스크립트
+// 후추 베타 관리자 스크립트 (admin-beta.html에서 type="module"로 로드)
 // - 탭 전환
-// - 온투 통계 저장 (/api/ontu-stats)
-// - 온투업체 네비게이션 설정 (/api/loan-config)
+// - 온투 통계 저장/불러오기 (/api/ontu-stats)
+// - 온투업체 네비 설정 저장/불러오기 (/api/loan-config)
 
 console.log("✅ admin-beta.js loaded");
 
 // ------------------------------------------------------
 // 공통: 메뉴 토글, 숫자 유틸, 금액 포맷
 // ------------------------------------------------------
+
+// ✅ API는 동일 도메인 기준으로 상대경로 사용
+const API = {
+  ontuStats: "/api/ontu-stats",
+  loanConfig: "/api/loan-config"
+};
+
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+async function safeText(res) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
 
 // 상단 MENU 드롭다운
 function setupBetaMenu() {
@@ -48,6 +69,7 @@ function setupAdminTabs() {
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.getAttribute("data-tab");
+
       // 버튼 active 토글
       tabButtons.forEach((b) => b.classList.remove("is-active"));
       btn.classList.add("is-active");
@@ -88,14 +110,12 @@ function setupMoneyInputs(root) {
       const v = e.target.value;
       e.target.value = formatWithCommas(v);
     });
-    if (input.value) {
-      input.value = formatWithCommas(input.value);
-    }
+    if (input.value) input.value = formatWithCommas(input.value);
   });
 }
 
 // ------------------------------------------------------
-// 1. 온투업 통계 저장 (ontu-stats)
+// 1. 온투업 통계 저장/불러오기 (ontu-stats)
 // ------------------------------------------------------
 
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
@@ -217,16 +237,13 @@ function collectStatsFormData() {
 
     if (ratioPercent === 0 && amount === 0) return;
 
-    products[key] = {
-      ratioPercent,
-      amount
-    };
+    products[key] = { ratioPercent, amount };
   });
 
   return { monthKey, summary, products };
 }
 
-// 비율 입력 or 잔액 변경 → 금액 자동계산
+// 비율 입력 → 금액 자동계산
 function recalcProductAmounts() {
   const balEl = document.getElementById("statsBalance");
   if (!balEl) return;
@@ -248,18 +265,85 @@ function recalcProductAmounts() {
   });
 }
 
+/**
+ * ✅ 서버에서 특정 월 통계 불러오기 시도
+ * - 1차: /api/ontu-stats?monthKey=YYYY-MM
+ * - 2차: /api/ontu-stats (전체) 응답이 byMonth 구조면 거기서 monthKey를 찾음
+ * - 실패하면 null
+ */
+async function loadOntuStatsFromServer(monthKey) {
+  if (!monthKey) return null;
+
+  // 1) monthKey 쿼리 방식
+  try {
+    const res = await fetch(`${API.ontuStats}?monthKey=${encodeURIComponent(monthKey)}`, { method: "GET" });
+    if (res.ok) {
+      const json = await safeJson(res);
+      if (json && typeof json === "object") {
+        // 케이스A: { monthKey, summary, products }
+        if (json.summary || json.products) {
+          return { summary: json.summary || {}, products: json.products || {} };
+        }
+        // 케이스B: { byMonth: { "YYYY-MM": {...} } }
+        if (json.byMonth && json.byMonth[monthKey]) {
+          return json.byMonth[monthKey];
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("ontu-stats GET (monthKey) error:", e);
+  }
+
+  // 2) 전체 GET fallback
+  try {
+    const res = await fetch(API.ontuStats, { method: "GET" });
+    if (!res.ok) return null;
+
+    const json = await safeJson(res);
+    if (json && typeof json === "object") {
+      if (json.byMonth && json.byMonth[monthKey]) {
+        return json.byMonth[monthKey];
+      }
+      // 혹시 배열 형태면 탐색
+      if (Array.isArray(json.items)) {
+        const found = json.items.find((x) => x && x.monthKey === monthKey);
+        if (found) return { summary: found.summary || {}, products: found.products || {} };
+      }
+    }
+  } catch (e) {
+    console.warn("ontu-stats GET (all) error:", e);
+  }
+
+  return null;
+}
+
 function setupStatsInteractions() {
   const monthInput = document.getElementById("statsMonth");
   if (monthInput) {
-    monthInput.addEventListener("change", () => {
+    monthInput.addEventListener("change", async () => {
       const m = getCurrentMonthKey();
       if (!m) {
         clearStatsForm();
         return;
       }
-      const stat = statsRoot.byMonth[m] || null;
+
+      // ✅ 서버 우선 로드 시도
+      let stat = null;
+      try {
+        stat = await loadOntuStatsFromServer(m);
+        if (stat) {
+          // 서버에서 불러오면 로컬 캐시에도 반영
+          statsRoot.byMonth[m] = stat;
+          saveStatsToStorage();
+        }
+      } catch (e) {
+        console.warn("ontu-stats server load error:", e);
+      }
+
+      // 서버에 없으면 로컬 fallback
+      if (!stat) stat = statsRoot.byMonth[m] || null;
+
       fillStatsForm(stat);
-      // money 포맷 재적용
       setupMoneyInputs();
       recalcProductAmounts();
     });
@@ -275,9 +359,7 @@ function setupStatsInteractions() {
 
   const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
   ratioInputs.forEach((el) => {
-    el.addEventListener("input", () => {
-      recalcProductAmounts();
-    });
+    el.addEventListener("input", () => recalcProductAmounts());
   });
 
   const saveBtn = document.getElementById("saveOntuStatsBtn");
@@ -294,36 +376,28 @@ function setupStatsInteractions() {
 
       try {
         // 1) 서버로 저장
-        const res = await fetch("/api/ontu-stats", {
+        const res = await fetch(API.ontuStats, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            monthKey,
-            summary,
-            products
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ monthKey, summary, products })
         });
 
         if (!res.ok) {
-          const errText = await res.text().catch(() => "");
+          const errText = await safeText(res);
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
 
-        const json = await res.json().catch(() => null);
+        const json = await safeJson(res);
         console.log("ontu-stats saved:", json);
 
-        // 2) localStorage에도 저장
+        // 2) localStorage에도 저장(캐시)
         statsRoot.byMonth[monthKey] = { summary, products };
         saveStatsToStorage();
 
         if (statusEl) {
           statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
           setTimeout(() => {
-            if (statusEl.textContent.includes("저장되었습니다")) {
-              statusEl.textContent = "";
-            }
+            if (statusEl.textContent.includes("저장되었습니다")) statusEl.textContent = "";
           }, 3000);
         }
 
@@ -338,7 +412,10 @@ function setupStatsInteractions() {
 
 // ------------------------------------------------------
 // 2. 온투업체 네비게이션 설정 (loan-config)
-//   : 최소 스펙 = 신규대출취급, 제휴업체, 취급 상품군, 연락처
+//   - 신규대출취급여부 on/off
+//   - 제휴업체 on/off (추천 우선순위는 네비에서 적용)
+//   - 취급 상품군 체크
+//   - 상담채널(유선 / 카카오)
 // ------------------------------------------------------
 
 // 네비 첫 화면에서 선택하는 상품군 키와 동일하게 맞춤
@@ -353,31 +430,24 @@ const PRODUCT_GROUPS = [
   { key: "전자어음", label: "전자어음" }
 ];
 
-// 기본 온투업체 목록 (id는 영문 고정키, name은 화면 표시용)
-// → 나중에 여기 배열만 늘려도 UI 자동 생성됨
+// 기본 온투업체 목록 (TODO: 49개로 확장)
 const LENDERS_MASTER = [
   { id: "fmfunding", name: "FM펀딩" },
   { id: "8percent", name: "에잇퍼센트" },
   { id: "peoplefund", name: "피플펀드" }
-  // TODO: 나중에 실제 49개 목록으로 확장
 ];
 
-let lendersConfig = {
-  // lenders: {
-  //   fmfunding: { id, name, isActive, isPartner, products:[], phoneNumber, kakaoUrl }
-  // }
-  lenders: {}
-};
+let lendersConfig = { lenders: {} };
 
-// 서버 → lendersConfig 로드
+// ✅ 서버 → lendersConfig 로드 (GET /api/loan-config)
 async function loadLendersConfigFromServer() {
   try {
-    const res = await fetch(`${API_BASE}/api/lenders-config`, { method: "GET" });
+    const res = await fetch(API.loanConfig, { method: "GET" });
     if (!res.ok) {
       console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
       lendersConfig = { lenders: {} };
     } else {
-      const json = await res.json().catch(() => null);
+      const json = await safeJson(res);
       if (json && typeof json === "object" && json.lenders) {
         lendersConfig = json;
       } else {
@@ -441,13 +511,11 @@ function renderLendersList() {
 
     const badgesWrap = document.createElement("span");
 
-    // 제휴업체 배지
     const partnerBadge = document.createElement("span");
     partnerBadge.className = "lender-badge lender-badge--partner";
     if (!lender.isPartner) partnerBadge.classList.add("is-off");
     partnerBadge.textContent = "제휴업체";
 
-    // 신규대출취급 배지
     const activeBadge = document.createElement("span");
     activeBadge.className = "lender-badge lender-badge--active";
     if (!lender.isActive) activeBadge.classList.add("is-off");
@@ -502,7 +570,6 @@ function renderLendersList() {
 
     switchGroup.appendChild(fieldActive);
     switchGroup.appendChild(fieldPartner);
-
     inner.appendChild(switchGroup);
 
     // 2) 취급 상품군 체크박스
@@ -518,15 +585,13 @@ function renderLendersList() {
     const chipRow = document.createElement("div");
     chipRow.className = "admin-chip-row";
 
-    (PRODUCT_GROUPS || []).forEach((pg) => {
+    PRODUCT_GROUPS.forEach((pg) => {
       const label = document.createElement("label");
       label.className = "admin-chip-check";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.id = `lender-product-${lender.id}-${pg.key}`;
-      cb.checked = Array.isArray(lender.products)
-        ? lender.products.includes(pg.key)
-        : false;
+      cb.checked = Array.isArray(lender.products) ? lender.products.includes(pg.key) : false;
       const span = document.createElement("span");
       span.textContent = pg.label;
       label.appendChild(cb);
@@ -588,24 +653,17 @@ function renderLendersList() {
     contactBox.appendChild(cTitle);
     contactBox.appendChild(cHelp);
     contactBox.appendChild(contactGrid);
-
     inner.appendChild(contactBox);
 
     panel.appendChild(inner);
 
     // 토글 이벤트
     headerBtn.addEventListener("click", () => {
-      const isHidden = panel.classList.contains("hide");
-      if (isHidden) {
-        panel.classList.remove("hide");
-      } else {
-        panel.classList.add("hide");
-      }
+      panel.classList.toggle("hide");
     });
 
     card.appendChild(headerBtn);
     card.appendChild(panel);
-
     container.appendChild(card);
   });
 }
@@ -649,12 +707,12 @@ function updateLendersConfigPreview() {
   if (!pre) return;
   try {
     pre.textContent = JSON.stringify(lendersConfig, null, 2);
-  } catch (e) {
+  } catch {
     pre.textContent = "(미리보기 생성 중 오류)";
   }
 }
 
-// 저장 버튼 핸들러
+// 저장 버튼 핸들러 (POST /api/loan-config)
 function setupLendersSaveButton() {
   const btn = document.getElementById("saveLendersConfigBtn");
   const statusEl = document.getElementById("lendersSaveStatus");
@@ -664,23 +722,20 @@ function setupLendersSaveButton() {
     const payload = collectLendersConfigFromForm();
 
     try {
-      const res = await fetch(`${API_BASE}/api/loan-config`;, {
+      const res = await fetch(API.loanConfig, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
-        const errText = await res.text().catch(() => "");
+        const errText = await safeText(res);
         throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
       }
 
-      const json = await res.json().catch(() => null);
+      const json = await safeJson(res);
       console.log("loan-config saved:", json);
 
-      // 서버 응답이 lenders 구조를 돌려주면 반영
       if (json && typeof json === "object" && json.lenders) {
         lendersConfig = json;
       } else {
@@ -693,9 +748,7 @@ function setupLendersSaveButton() {
       if (statusEl) {
         statusEl.textContent = "온투업체 설정이 서버에 저장되었습니다.";
         setTimeout(() => {
-          if (statusEl.textContent.includes("저장되었습니다")) {
-            statusEl.textContent = "";
-          }
+          if (statusEl.textContent.includes("저장되었습니다")) statusEl.textContent = "";
         }, 3000);
       }
 
@@ -722,8 +775,13 @@ document.addEventListener("DOMContentLoaded", () => {
   setupStatsInteractions();
 
   // 온투업체 설정
-  renderLendersList(); // 서버 로드 전, 빈 상태라도 기본 구조만 만들어두기
-  updateLendersConfigPreview();
-  setupLendersSaveButton();
-  loadLendersConfigFromServer();
+  try {
+    mergeLendersWithMaster(); // 기본 구조 먼저
+    renderLendersList();
+    updateLendersConfigPreview();
+    setupLendersSaveButton();
+    loadLendersConfigFromServer(); // 서버 로드 후 갱신
+  } catch (e) {
+    console.error("lenders init error:", e);
+  }
 });
