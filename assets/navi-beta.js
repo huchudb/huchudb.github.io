@@ -6,6 +6,7 @@
 
 const API_BASE = "https://huchudb-github-io.vercel.app";
 const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
+const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
 const NAVI_LOAN_CONFIG_LOCAL_KEY = "huchu_navi_loan_config_v1";
 
 // 숫자 유틸
@@ -34,6 +35,27 @@ function setupMoneyInputs() {
       input.value = formatWithCommas(input.value);
     }
   });
+}
+
+async function loadLendersConfig() {
+  try {
+    const res = await fetch(LENDERS_CONFIG_API, { method: "GET" });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`lenders-config GET 실패: HTTP ${res.status} ${t}`);
+    }
+    const json = await res.json();
+    console.log("✅ lendersConfig loaded from server:", json);
+    return json;
+  } catch (e) {
+    console.warn("⚠️ lenders-config API 실패, localStorage 대체:", e);
+    try {
+      const raw = localStorage.getItem("huchu_lenders_config_beta");
+      return raw ? JSON.parse(raw) : { lenders: [] };
+    } catch {
+      return { lenders: [] };
+    }
+  }
 }
 
 // chip helpers
@@ -810,4 +832,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 첫 계산
   recalcAndUpdateSummary();
+
+    const lendersConfig = await loadLendersConfig();
+  window.__LENDERS_CONFIG__ = lendersConfig; // 디버깅용(임시)
 });
