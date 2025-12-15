@@ -521,27 +521,29 @@ function updateLenderState(id, patch) {
 }
 
 function mergeLendersWithMaster() {
-  const merged = {};
-  const current = (lendersConfig && lendersConfig.lenders) || {};
+  const current = (lendersConfig && lendersConfig.lenders) ? lendersConfig.lenders : {};
+  const merged = { ...current }; // ✅ 기존 키 보존(절대 버리지 않음)
 
+  // ✅ 마스터에 있는 항목은 name/기본값 보정만
   LENDERS_MASTER.forEach((m) => {
     const existing = current[m.id] || {};
     merged[m.id] = {
       id: m.id,
       name: m.name,
+      homepageUrl: existing.homepageUrl || m.homepageUrl || "",
       isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
-      // ✅ 추가 필드 반영
-      realEstateMinLoanAmount: (typeof existing.realEstateMinLoanAmount === "string" || typeof existing.realEstateMinLoanAmount === "number")
-        ? existing.realEstateMinLoanAmount
-        : "",
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
       kakaoUrl: existing.kakaoUrl || "",
       regions: (existing.regions && typeof existing.regions === "object") ? existing.regions : {}
     };
   });
+
+  lendersConfig.lenders = merged;
+  Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
+}
 
   lendersConfig.lenders = merged;
   Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
@@ -630,49 +632,37 @@ function renderLendersList() {
 
   const cfg = lendersConfig.lenders || {};
   const visibleMasters = LENDERS_MASTER.filter((m) => {
-    const lender = cfg[m.id];
-    if (!lender) return false;
-    return passesSearch(lender);
+    const cfg = lendersConfig.lenders || {};
+
+  // ✅ 표시 순서: (1) 마스터 순서대로 존재하는 id 먼저, (2) 나머지 서버 id 뒤에 붙이기
+  const orderedIds = [];
+  const seen = new Set();
+
+  LENDERS_MASTER.forEach((m) => {
+    if (cfg[m.id] && !seen.has(m.id)) {
+      orderedIds.push(m.id);
+      seen.add(m.id);
+    }
   });
 
-  if (visibleMasters.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "admin-empty";
-    empty.textContent = "검색 조건에 맞는 온투업체가 없습니다.";
-    container.appendChild(empty);
-    return;
-  }
+  Object.keys(cfg).forEach((id) => {
+    if (!seen.has(id)) {
+      orderedIds.push(id);
+      seen.add(id);
+    }
+  });
 
-  visibleMasters.forEach((m) => {
-    const lender = cfg[m.id];
-    if (!lender) return;
+  const visibleIds = orderedIds.filter((id) => {
+    const lender = cfg[id];
+    return lender && passesSearch(lender);
+  });
 
-    const isOpen = lenderUiState.openIds.has(lender.id);
+  if (visibleIds.length === 0) { ... }
 
-    const card = document.createElement("div");
-    card.className = "lender-card";
-
-    // ---------- Header (click to toggle) ----------
-    const head = document.createElement("div");
-    head.className = "lender-head";
-    head.setAttribute("role", "button");
-    head.setAttribute("tabindex", "0");
-    head.setAttribute("aria-expanded", isOpen ? "true" : "false");
-
-    head.addEventListener("click", () => {
-      if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
-      else lenderUiState.openIds.add(lender.id);
-      renderLendersList();
-    });
-
-    head.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        if (lenderUiState.openIds.has(lender.id)) lenderUiState.openIds.delete(lender.id);
-        else lenderUiState.openIds.add(lender.id);
-        renderLendersList();
-      }
-    });
+  visibleIds.forEach((id) => {
+    const lender = cfg[id];
+    ...
+  });
 
     const name = document.createElement("span");
     name.className = "lender-name";
