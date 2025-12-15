@@ -372,7 +372,7 @@ let lendersConfig = {
 // 서버 → lendersConfig 로드
 async function loadLendersConfigFromServer() {
   try {
-    const res = await fetch(`${API_BASE}/api/lenders-config`;, { method: "GET" });
+    const res = await fetch(`${API_BASE}/api/lenders-config`, { method: "GET" });
     if (!res.ok) {
       console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
       lendersConfig = { lenders: {} };
