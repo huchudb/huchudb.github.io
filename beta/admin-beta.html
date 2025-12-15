@@ -9,10 +9,10 @@
   <!-- 기존 베타 공통 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
   <!-- 관리자 전용 스타일 -->
-  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251215-a1" />
+  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251215-a2" />
 
   <!-- 관리자 전용 스크립트 -->
-  <script type="module" src="/assets/admin-beta.js?v=20251215-a1"></script>
+  <script type="module" src="/assets/admin-beta.js?v=20251215-a2"></script>
 </head>
 <body class="beta-body">
 
@@ -271,54 +271,34 @@
         <!-- ================== TAB 2: 온투업체 정보 등록 ================== -->
         <section id="admin-tab-lenders" class="admin-tab-panel hide">
           <div class="admin-card">
+
             <div class="admin-field-group">
               <h2 class="admin-field-title">1. 온투업체 기본 설정</h2>
               <p class="admin-note">
                 온투업체별 <strong>신규대출 취급여부 / 제휴업체 여부</strong>,
-                <strong>취급 상품군</strong>, <strong>상담 채널</strong> 등을 등록합니다.<br />
-                이 설정값은 <strong>후추 네비게이션(베타)</strong>에서 추천 리스트 계산에 사용됩니다.
+                <strong>취급 상품군</strong>, <strong>지역/유형별 LTV/대출종류</strong>,
+                <strong>상담 채널</strong> 등을 등록합니다.
               </p>
             </div>
 
-            <!-- ✅ (C) 검색/필터 컨트롤 -->
-            <div class="admin-field-group admin-lenders-controls">
-              <div class="admin-field-grid admin-lenders-controls__grid">
-                <div class="admin-field">
-                  <label for="lenderSearchInput">온투업체 검색</label>
-                  <input id="lenderSearchInput"
-                         type="text"
-                         class="admin-input"
-                         placeholder="예) FM펀딩, 에잇퍼센트, 피플펀드..." />
-                </div>
-
-                <div class="admin-field">
-                  <label>필터</label>
-                  <div class="admin-filter-row">
-                    <label class="admin-filter-check">
-                      <input type="checkbox" id="filterOnlyActive" />
-                      <span>신규대출취급만</span>
-                    </label>
-                    <label class="admin-filter-check">
-                      <input type="checkbox" id="filterOnlyPartner" />
-                      <span>제휴업체만</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="admin-field" style="margin-top:10px;">
-                <label>상품군 필터</label>
-                <div id="productFilterRow" class="admin-chip-row"></div>
+            <!-- ✅ 검색만 유지 (필터 삭제) -->
+            <div class="admin-field-group">
+              <div class="admin-field">
+                <label for="lenderSearchInput">온투업체 검색</label>
+                <input id="lenderSearchInput"
+                       type="text"
+                       class="admin-input"
+                       placeholder="예) FM펀딩, 에잇퍼센트, 피플펀드..." />
               </div>
             </div>
 
             <!-- 온투업체 리스트 (JS가 자동 생성) -->
             <div id="lendersList" class="admin-field-group"></div>
 
-            <!-- 저장 버튼 -->
+            <!-- ✅ 전체 저장 버튼 (페이지 하단) -->
             <div class="admin-field-group">
               <button type="button" id="saveLendersConfigBtn" class="admin-save-btn">
-                온투업체 네비게이션 설정 저장
+                전체 저장
               </button>
               <div id="lendersSaveStatus" class="admin-save-status"></div>
             </div>
@@ -333,6 +313,7 @@
                    style="margin:0;font-size:11px;white-space:pre-wrap;word-break:break-all;color:#4b5563;background:#f9fafb;border-radius:8px;padding:10px;border:1px solid #e5e7eb;">
 (아직 불러온 설정이 없습니다.)</pre>
             </div>
+
           </div>
         </section>
 
