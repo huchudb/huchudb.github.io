@@ -281,27 +281,64 @@
   background:#ffffff;
 }
 
-/* 접기/펼치기 버튼 */
-.lender-toggle{
-  width:100%;
-  text-align:left;
+/* ✅ 새 헤더 구조 */
+.lender-head{
   padding:14px 16px;
   background:var(--admin-soft);
-  border:0;
   display:flex;
+  align-items:flex-start;
   justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
-  gap:10px;
+  gap:14px;
 }
-.lender-toggle:hover{ background:#eaeef3; }
-
-.lender-toggle__name{
+.lender-head__left{
+  min-width:220px;
+}
+.lender-head__topline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.lender-name{
   font-size:15px;
   font-weight:900;
   color:var(--admin-text);
   letter-spacing:-0.01em;
 }
+.lender-head__right{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.lender-switch-row{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.lender-switch-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+.lender-switch-item .admin-switch{ display:inline-flex; }
+.lender-expand-btn{
+  border:0;
+  background:#fff;
+  border-radius:999px;
+  padding:8px 12px;
+  font-weight:900;
+  cursor:pointer;
+  border:1px solid #e5e7eb;
+  color:#111827;
+  align-self:flex-end;
+}
+.lender-expand-btn:hover{ background:#f9fafb; }
 
 /* 배지 */
 .lender-badge{
@@ -311,7 +348,7 @@
   font-size:11px;
   font-weight:900;
   border-radius:999px;
-  margin-left:6px;
+  margin-left:0;
   border:1px solid rgba(0,0,0,0.06);
 }
 .lender-badge--partner{
@@ -367,42 +404,136 @@
 @media (max-width:600px){
   .admin-page{ padding:0 14px; }
   .admin-field-grid{ grid-template-columns:1fr; }
-  .lender-toggle{ flex-direction:column; align-items:flex-start; }
+  .lender-head{ flex-direction:column; }
+  .lender-head__left{ min-width:unset; width:100%; }
+  .lender-switch-row{ justify-content:flex-start; }
+  .lender-expand-btn{ align-self:flex-start; }
 }
 
-/* ===== (C) Lenders Controls (검색/필터) ===== */
-.admin-lenders-controls__grid{
-  align-items:end;
-}
-
-.admin-filter-row{
+/* ===== (NEW) Partner order chips (제휴 ON일 때만 노출) ===== */
+.admin-order-row{
   display:flex;
-  flex-wrap:wrap;
+  align-items:center;
   gap:10px;
-  margin-top:6px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
-
-.admin-filter-check{
+.admin-order-title{
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+.admin-order-chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.admin-order-chip{
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  cursor:pointer;
+  font-weight:900;
+  font-size:12px;
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  background:#f3f4f6;
+  justify-content:center;
+}
+.admin-order-chip.is-active{
+  background:#a7f3d0;
+  border-color:#6ee7b7;
+  color:#064e3b;
+}
+
+/* ===== (NEW) Region Tabs + Matrix ===== */
+.admin-region-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0 10px;
+}
+.admin-region-tab{
   border:1px solid #e5e7eb;
-  padding:8px 10px;
-  border-radius:999px;
+  background:#ffffff;
+  padding:8px 12px;
+  border-radius:10px;
+  font-weight:900;
   font-size:12px;
   cursor:pointer;
 }
-
-.admin-filter-check input{
-  accent-color:#111827;
+.admin-region-tab.is-active{
+  background:#111827;
+  color:#fff;
+  border-color:#111827;
 }
 
-/* 상품군 필터 칩은 '필터용'임을 살짝 구분 */
-.admin-chip-check--filter{
-  background:#eef2ff;
-  border-color:#e0e7ff;
+.admin-matrix{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:hidden;
 }
+.admin-matrix th,
+.admin-matrix td{
+  border-bottom:1px solid #eef2f7;
+  padding:10px 10px;
+  vertical-align:middle;
+  font-size:12px;
+}
+.admin-matrix thead th{
+  background:#f9fafb;
+  font-weight:900;
+  color:#374151;
+}
+.admin-matrix .cell-center{ text-align:center; }
+.admin-matrix .cell-right{ text-align:right; }
+
+.admin-mini-input{
+  width:84px;
+  padding:8px 10px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-size:12px;
+}
+.admin-mini-input:focus{
+  outline:2px solid rgba(37,99,235,0.25);
+  border-color:#93c5fd;
+}
+
+.admin-chip-row--tight{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:flex-start;
+}
+.admin-chip-check--tiny{
+  padding:6px 8px;
+  font-size:11px;
+}
+
+/* ===== (NEW) per-card save ===== */
+.lender-save-row{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+.lender-save-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 16px;
+  border-radius:12px;
+  border:0;
+  background:#111827;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+.lender-save-btn:hover{ background:#020617; }
 
 .admin-empty{
   padding:14px 12px;
