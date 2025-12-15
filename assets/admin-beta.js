@@ -434,6 +434,9 @@ function ensureLenderDeepDefaults(lender) {
   if (!Array.isArray(lender.products)) lender.products = [];
   lender.products = uniq(lender.products);
 
+     // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
+  const hasRealEstate = lender.products.includes("부동산담보대출");
+  if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
   REGIONS.forEach((r) => {
