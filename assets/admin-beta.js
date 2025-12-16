@@ -31,21 +31,27 @@ console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
 /* =========================================================
    ✅ fetch 304 무력화 유틸 (cache-bust + no-store)
+   - CORS preflight를 유발하는 Cache-Control/Pragma 헤더를
+     기본으로 주입하지 않음 (서버 우선 로드 안정화)
 ========================================================= */
 async function fetchJsonNoCache(url, options = {}) {
   const sep = url.includes("?") ? "&" : "?";
   const bustUrl = `${url}${sep}_ts=${Date.now()}`;
 
-  const res = await fetch(bustUrl, {
+  // ✅ 기본적으로 "비-단순 요청"이 되지 않게 커스텀 헤더를 주입하지 않는다.
+  //    (Cache-Control/Pragma 같은 요청 헤더를 넣으면 CORS preflight에서 막힐 수 있음)
+  const fetchOptions = {
     ...options,
     method: options.method || "GET",
-    cache: "no-store",
-    headers: {
-      ...(options.headers || {}),
-      "Cache-Control": "no-cache",
-      "Pragma": "no-cache"
-    }
-  });
+    cache: "no-store"
+  };
+
+  // ✅ 호출자가 headers를 명시한 경우에만 그대로 전달
+  if (options.headers) {
+    fetchOptions.headers = { ...(options.headers || {}) };
+  }
+
+  const res = await fetch(bustUrl, fetchOptions);
 
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
@@ -1024,7 +1030,6 @@ function renderExtraConditionsBox(lender) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
-   (이 아래는 네가 보낸 원본 그대로 — 중간 생략 없이 붙여넣기)
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -1063,7 +1068,6 @@ function renderLendersList() {
     return;
   }
 
-  /* -------------- 이하 너 원본 render 로직 그대로 -------------- */
   visibleIds.forEach((id) => {
     const lender = cfg[id];
     if (!lender) return;
