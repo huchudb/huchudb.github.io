@@ -31,19 +31,19 @@ console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
 /* =========================================================
    ✅ fetch 304 무력화 유틸 (cache-bust + no-store)
+   - CORS preflight 유발하던 Cache-Control/Pragma 헤더 주입 제거
 ========================================================= */
 async function fetchJsonNoCache(url, options = {}) {
   const sep = url.includes("?") ? "&" : "?";
   const bustUrl = `${url}${sep}_ts=${Date.now()}`;
 
+  // ✅ 중요: 불필요한 커스텀 헤더를 넣지 않는다 (CORS preflight 방지)
   const res = await fetch(bustUrl, {
     ...options,
     method: options.method || "GET",
     cache: "no-store",
     headers: {
-      ...(options.headers || {}),
-      "Cache-Control": "no-cache",
-      "Pragma": "no-cache"
+      ...(options.headers || {})
     }
   });
 
@@ -1038,7 +1038,6 @@ function renderExtraConditionsBox(lender) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
-   (이 아래는 네가 보낸 원본 그대로 — 중간 생략 없이 붙여넣기)
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -1077,7 +1076,6 @@ function renderLendersList() {
     return;
   }
 
-  /* -------------- 이하 너 원본 render 로직 그대로 -------------- */
   visibleIds.forEach((id) => {
     const lender = cfg[id];
     if (!lender) return;
