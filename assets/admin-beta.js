@@ -31,27 +31,21 @@ console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
 /* =========================================================
    ✅ fetch 304 무력화 유틸 (cache-bust + no-store)
-   - CORS preflight를 유발하는 Cache-Control/Pragma 헤더를
-     기본으로 주입하지 않음 (서버 우선 로드 안정화)
 ========================================================= */
 async function fetchJsonNoCache(url, options = {}) {
   const sep = url.includes("?") ? "&" : "?";
   const bustUrl = `${url}${sep}_ts=${Date.now()}`;
 
-  // ✅ 기본적으로 "비-단순 요청"이 되지 않게 커스텀 헤더를 주입하지 않는다.
-  //    (Cache-Control/Pragma 같은 요청 헤더를 넣으면 CORS preflight에서 막힐 수 있음)
-  const fetchOptions = {
+  const res = await fetch(bustUrl, {
     ...options,
     method: options.method || "GET",
-    cache: "no-store"
-  };
-
-  // ✅ 호출자가 headers를 명시한 경우에만 그대로 전달
-  if (options.headers) {
-    fetchOptions.headers = { ...(options.headers || {}) };
-  }
-
-  const res = await fetch(bustUrl, fetchOptions);
+    cache: "no-store",
+    headers: {
+      ...(options.headers || {}),
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    }
+  });
 
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
@@ -369,7 +363,11 @@ function setupStatsInteractions() {
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
-  { key: "스탁론", label: "스탁론" },
+
+  // ✅ 변경/추가: 기존 '스탁론' → '스탁론(상장)', 그리고 '스탁론(비상장)' 추가(우측)
+  { key: "스탁론(상장)", label: "스탁론(상장)" },
+  { key: "스탁론(비상장)", label: "스탁론(비상장)" },
+
   { key: "법인신용대출", label: "법인신용대출" },
   { key: "매출채권유동화", label: "매출채권유동화" },
   { key: "의료사업자대출", label: "의료사업자대출" },
@@ -618,6 +616,16 @@ function uniq(arr) {
   return Array.from(new Set(Array.isArray(arr) ? arr : []));
 }
 
+/* ✅ (중요) 기존 저장 데이터 호환: "스탁론" → "스탁론(상장)" 자동 변환 */
+function migrateProducts(products) {
+  let arr = uniq(Array.isArray(products) ? products : []);
+  if (arr.includes("스탁론")) {
+    arr = arr.filter((x) => x !== "스탁론");
+    if (!arr.includes("스탁론(상장)")) arr.push("스탁론(상장)");
+  }
+  return arr;
+}
+
 function ensureLender(id) {
   if (!lendersConfig.lenders) lendersConfig.lenders = {};
   if (!lendersConfig.lenders[id]) {
@@ -655,7 +663,7 @@ function ensureLenderDeepDefaults(lender) {
   }
 
   if (!Array.isArray(lender.products)) lender.products = [];
-  lender.products = uniq(lender.products);
+  lender.products = migrateProducts(lender.products); // ✅ 여기만 변경됨
 
   // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
   const hasRealEstate = lender.products.includes("부동산담보대출");
@@ -1030,6 +1038,7 @@ function renderExtraConditionsBox(lender) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
+   (이 아래는 네가 보낸 원본 그대로 — 중간 생략 없이 붙여넣기)
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -1068,6 +1077,7 @@ function renderLendersList() {
     return;
   }
 
+  /* -------------- 이하 너 원본 render 로직 그대로 -------------- */
   visibleIds.forEach((id) => {
     const lender = cfg[id];
     if (!lender) return;
