@@ -445,6 +445,148 @@ let lenderUiState = {
   activeRegionById: {}
 };
 
+/* =========================================================
+   ✅ (A) loan-config 로컬 자동 백업/복구 + 다운로드/업로드
+========================================================= */
+const LOANCFG_LOCAL_KEY = "huchu_loan_config_backup_v1";
+
+function _safeJsonParse(raw) {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function _extractLoanConfig(obj) {
+  // 지원 형태:
+  // 1) { lenders: {...} }
+  // 2) { ts, data: { lenders: {...} } }
+  if (!obj || typeof obj !== "object") return null;
+
+  if (obj.lenders && typeof obj.lenders === "object") return obj;
+  if (obj.data && obj.data.lenders && typeof obj.data.lenders === "object") return obj.data;
+
+  return null;
+}
+
+function loadLoanConfigBackup() {
+  try {
+    const raw = localStorage.getItem(LOANCFG_LOCAL_KEY);
+    if (!raw) return null;
+    const parsed = _safeJsonParse(raw);
+    return _extractLoanConfig(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function setBackupStatus(msg, tone) {
+  const el = document.getElementById("lendersBackupStatus");
+  if (!el) return;
+  el.textContent = msg || "";
+  if (tone === "warn") el.style.color = "#b45309";
+  else if (tone === "error") el.style.color = "#dc2626";
+  else el.style.color = "#059669";
+}
+
+function saveLoanConfigBackup() {
+  try {
+    const payload = { ts: Date.now(), data: lendersConfig };
+    localStorage.setItem(LOANCFG_LOCAL_KEY, JSON.stringify(payload));
+    setBackupStatus(`로컬 백업 저장됨 · ${new Date(payload.ts).toLocaleString()}`, "ok");
+  } catch (e) {
+    console.warn("loan-config backup save error:", e);
+    setBackupStatus("로컬 백업 저장 실패(브라우저 저장공간/권한 확인)", "warn");
+  }
+}
+
+let _loanCfgBackupTimer = 0;
+function scheduleLoanConfigBackup() {
+  if (_loanCfgBackupTimer) clearTimeout(_loanCfgBackupTimer);
+  _loanCfgBackupTimer = setTimeout(() => {
+    _loanCfgBackupTimer = 0;
+    saveLoanConfigBackup();
+  }, 600);
+}
+
+function normalizeLoanConfigResponse(json) {
+  // 서버/파일 응답이 {lenders:{...}} 형태인지 확인
+  const cfg = _extractLoanConfig(json);
+  if (!cfg) return null;
+  if (!cfg.lenders || typeof cfg.lenders !== "object") return null;
+  return cfg;
+}
+
+function setupLoanConfigBackupUI() {
+  const btnDown = document.getElementById("downloadLoanConfigBtn");
+  const btnUp = document.getElementById("uploadLoanConfigBtn");
+  const fileInput = document.getElementById("loanConfigFileInput");
+
+  if (btnDown) {
+    btnDown.addEventListener("click", () => {
+      try {
+        const json = JSON.stringify(lendersConfig, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        a.href = url;
+        a.download = `huchu-loan-config-backup-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setBackupStatus("백업 파일 다운로드 완료", "ok");
+      } catch (e) {
+        console.error("backup download error:", e);
+        alert("백업 다운로드 중 오류가 발생했습니다.");
+      }
+    });
+  }
+
+  if (btnUp && fileInput) {
+    btnUp.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = ""; // 같은 파일 재선택 가능하게
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = _safeJsonParse(text);
+        const cfg = normalizeLoanConfigResponse(parsed);
+
+        if (!cfg) {
+          alert("업로드한 JSON 형식이 올바르지 않습니다.\n{ lenders: { ... } } 형태인지 확인해주세요.");
+          return;
+        }
+
+        lendersConfig = cfg;
+        mergeLendersWithMaster();
+        renderLendersList();
+        updateLendersConfigPreview();
+        saveLoanConfigBackup();
+
+        alert("백업 업로드로 설정을 복구했습니다.");
+      } catch (e) {
+        console.error("backup upload error:", e);
+        alert("백업 업로드 중 오류가 발생했습니다.");
+      }
+    });
+  }
+
+  const existing = loadLoanConfigBackup();
+  if (existing) {
+    setBackupStatus("로컬 백업 있음 (필요 시 자동 복구에 사용)", "ok");
+  } else {
+    const el = document.getElementById("lendersBackupStatus");
+    if (el) {
+      el.textContent = "로컬 백업 없음 (변경하면 자동으로 생성됩니다)";
+      el.style.color = "#6b7280";
+    }
+  }
+}
+
 function uniq(arr) {
   return Array.from(new Set(Array.isArray(arr) ? arr : []));
 }
@@ -516,6 +658,7 @@ function schedulePreviewUpdate() {
   _previewRAF = requestAnimationFrame(() => {
     _previewRAF = 0;
     updateLendersConfigPreview();
+    scheduleLoanConfigBackup(); // ✅ (A) 변경사항 로컬 자동 백업
   });
 }
 
@@ -558,23 +701,43 @@ function mergeLendersWithMaster() {
 }
 
 async function loadLendersConfigFromServer() {
+  const backup = loadLoanConfigBackup();
+  const backupCount = backup && backup.lenders ? Object.keys(backup.lenders).length : 0;
+
   try {
     const res = await fetch(`${API_BASE}/api/loan-config`, { method: "GET" });
-    if (!res.ok) {
-      console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
-      lendersConfig = { lenders: {} };
+    if (!res.ok) throw new Error(`GET 실패: ${res.status}`);
+
+    const json = await res.json().catch(() => null);
+    const normalized = normalizeLoanConfigResponse(json);
+    if (!normalized) throw new Error("응답 형식이 올바르지 않음");
+
+    const serverCount = normalized.lenders ? Object.keys(normalized.lenders).length : 0;
+
+    // ✅ 서버가 "빈 lenders"를 주는 경우: 로컬 백업이 있으면 그걸 우선 사용(덮어쓰기 사고 방지)
+    if (serverCount === 0 && backupCount > 0) {
+      lendersConfig = backup;
+      setBackupStatus("서버 응답이 비어있어 로컬 백업으로 복구했습니다.", "warn");
     } else {
-      const json = await res.json().catch(() => null);
-      lendersConfig = (json && typeof json === "object" && json.lenders) ? json : { lenders: {} };
+      lendersConfig = normalized;
+      setBackupStatus("서버에서 설정을 불러왔습니다. (로컬에도 백업됨)", "ok");
     }
   } catch (e) {
     console.warn("loan-config fetch error:", e);
-    lendersConfig = { lenders: {} };
+
+    if (backup) {
+      lendersConfig = backup;
+      setBackupStatus("서버 로드 실패 → 로컬 백업으로 복구했습니다.", "warn");
+    } else {
+      lendersConfig = { lenders: {} };
+      setBackupStatus("서버 로드 실패 + 로컬 백업 없음 (초기값으로 시작)", "error");
+    }
   }
 
   mergeLendersWithMaster();
   renderLendersList();
   updateLendersConfigPreview();
+  saveLoanConfigBackup(); // ✅ 최종 상태를 로컬에 확정 저장
 }
 
 function updateLendersConfigPreview() {
@@ -627,18 +790,13 @@ async function postLendersConfigToServer(successText) {
   mergeLendersWithMaster();
   renderLendersList();
   updateLendersConfigPreview();
+  saveLoanConfigBackup(); // ✅ 서버 저장 성공 상태를 로컬에도 저장
 
   return successText || "저장되었습니다.";
 }
 
 /* =========================================================
    ✅ 렌더: 업체 카드
-   - 헤더 클릭 = 펼침/접기
-   - 헤더 한줄 컴팩트
-   - (부동산 담보대출 선택 시에만) 지역/유형/LTV/대출종류 + 최저대출금액
-   - 제휴 표시순서: 1~10
-   - 업체명 클릭 → 홈페이지 이동(새탭)
-   - 표시 순서: (1) 마스터 순서대로 있는 id, (2) 서버에만 있는 id 뒤에 붙임
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -1230,6 +1388,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
+
+  setupLoanConfigBackupUI(); // ✅ (A) 백업 UI/상태
 
   loadStatsFromStorage();
   setupStatsInteractions();
