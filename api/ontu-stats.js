@@ -104,34 +104,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ---------------- GET: 통계 조회 ----------------
-    if (req.method === "GET") {
-      const monthParam = req.query?.month || req.query?.Month || "";
+// ---------------- GET: 통계 조회 ----------------
+if (req.method === "GET") {
+  // ✅ monthKey(프론트/관리자에서 사용) + month(서버 주석에 적힌 기존 파라미터) 모두 지원
+  const monthParam =
+    req.query?.monthKey ||
+    req.query?.month ||
+    req.query?.Month ||
+    "";
 
-      // month 파라미터 있으면 그 월, 없으면 latest 키 사용
-      let monthKey = (monthParam || "").trim();
+  let monthKey = String(monthParam || "").trim();
 
-      if (!monthKey) {
-        const latest = await getValue("ontu-stats:latest");
-        if (!latest) {
-          // 아무 데이터도 없을 때 빈 응답
-          for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-          return res.status(200).json({ month: null, summary: null, byType: {} });
-        }
-        monthKey = latest;
-      }
-
-      const raw = await getValue(`ontu-stats:${monthKey}`);
-      if (!raw) {
-        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-        return res.status(404).json({ error: "해당 월 데이터 없음", month: monthKey });
-      }
-
-      const parsed = JSON.parse(raw);
-
+  // month 파라미터 없으면 latest 키 사용
+  if (!monthKey) {
+    const latest = await getValue("ontu-stats:latest");
+    if (!latest) {
       for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-      return res.status(200).json(parsed);
+      return res.status(200).json({ month: null, summary: null, byType: {} });
     }
+    monthKey = latest;
+  }
+
+  const raw = await getValue(`ontu-stats:${monthKey}`);
+  if (!raw) {
+    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+    return res.status(404).json({ error: "해당 월 데이터 없음", month: monthKey });
+  }
+
+  const parsed = JSON.parse(raw);
+
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+  return res.status(200).json(parsed);
+}
+
 
     // ---------------- POST: 관리자 저장 ----------------
     if (req.method === "POST") {
