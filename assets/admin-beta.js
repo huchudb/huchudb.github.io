@@ -29,7 +29,9 @@ function resolveApiBase() {
 const API_BASE = resolveApiBase();
 console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
-/* ---------------- 공통/유틸 ---------------- */
+/* =========================================================
+   공통/유틸
+========================================================= */
 function setupBetaMenu() {
   const toggle = document.getElementById("betaMenuToggle");
   const panel = document.getElementById("betaMenuPanel");
@@ -93,7 +95,9 @@ function setupMoneyInputs(root) {
   });
 }
 
-/* ---------------- 1) 온투 통계 ---------------- */
+/* =========================================================
+   1) 온투 통계
+========================================================= */
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
 let statsRoot = { byMonth: {} };
 
@@ -327,7 +331,9 @@ function setupStatsInteractions() {
   }
 }
 
-/* ---------------- 2) 온투업체 설정 ---------------- */
+/* =========================================================
+   2) 온투업체 설정
+========================================================= */
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
@@ -335,13 +341,8 @@ const PRODUCT_GROUPS = [
   { key: "법인신용대출", label: "법인신용대출" },
   { key: "매출채권유동화", label: "매출채권유동화" },
   { key: "의료사업자대출", label: "의료사업자대출" },
-
-  // 기존 저장 키 호환 유지: key는 그대로 "온라인선정산"
-  { key: "온라인선정산", label: "선정산" },
-
+  { key: "온라인선정산", label: "선정산" }, // 저장 키 호환 유지
   { key: "전자어음", label: "전자어음" },
-
-  // 추가 상품군
   { key: "경매배당금담보대출", label: "경매배당금 담보대출" },
   { key: "미술품담보대출", label: "미술품 담보대출" }
 ];
@@ -381,107 +382,140 @@ const LOAN_TYPES_APTVILLA = [
 ];
 
 /* =========================================================
-   ✅ 추가조건(선택) - EXTRA_CONDITIONS (ADMIN 저장용 KEY)
-   - 저장 형태: lender.extraConditions: string[]
-   - Navi에서 유저가 고른 조건 key를 이 배열과 매칭하면 됨
+   ✅ 추가조건(선택) — 정의서(단일 소스)
+   - 저장은 lender.extraConditions: string[] (옵션 key 배열)
 ========================================================= */
-const EXTRA_CONDITION_GROUPS = [
-  {
-    groupKey: "borrower",
-    title: "추가조건(차주관련) — 부동산담보대출 전체 공통",
-    help: "부동산 담보대출의 모든 부동산유형/취급대출종류에 공통 적용되는 차주 조건입니다. (선택사항)",
-    sections: [
-      {
-        title: "나이",
-        options: [
-          { key: "borrower_age_20_69", label: "20~70세미만" },
-          { key: "borrower_age_70_plus", label: "70세 이상" }
-        ]
-      },
-      {
-        title: "소득유형",
-        options: [
-          { key: "borrower_income_wage", label: "근로소득" },
-          { key: "borrower_income_other", label: "근로외 소득" },
-          { key: "borrower_income_none", label: "증빙소득 없음" },
-          { key: "borrower_income_none_but_pay_interest", label: "증빙소득 없으나 이자 납입가능" }
-        ]
-      },
-      {
-        title: "신용점수 구간",
-        options: [
-          { key: "borrower_credit_nice_lt600", label: "NICE 600점 미만" },
-          { key: "borrower_credit_nice_gte600", label: "NICE 600점 이상" },
-          { key: "borrower_credit_kcb_lt454", label: "KCB 454점 미만" },
-          { key: "borrower_credit_kcb_gte454", label: "KCB 454점 이상" }
-        ]
-      },
-      {
-        title: "상환계획(예정)",
-        options: [
-          { key: "borrower_repay_within_3m", label: "3개월내" },
-          { key: "borrower_repay_3m_to_1y", label: "3개월 초과~1년 미만" },
-          { key: "borrower_repay_1y_plus", label: "1년이상" }
-        ]
-      },
-      {
-        title: "대출금 필요시기",
-        options: [
-          { key: "borrower_need_today", label: "당일" },
-          { key: "borrower_need_within_1w", label: "1주일내" },
-          { key: "borrower_need_within_1m", label: "한달이내" }
-        ]
-      },
-      {
-        title: "기타사항",
-        options: [
-          { key: "borrower_issue_tax_arrears", label: "세금체납중" },
-          { key: "borrower_issue_loan_interest_overdue", label: "대출이자연체중" },
-          { key: "borrower_issue_card_overdue", label: "카드연체중" },
-          { key: "borrower_issue_seizure", label: "압류·가압류중" },
-          { key: "borrower_issue_personal_rehab", label: "개인회생이력" },
-          { key: "borrower_issue_bankruptcy", label: "파산이력" },
-          { key: "borrower_issue_credit_recovery", label: "신용회복이력" }
-        ]
-      }
-    ]
-  },
-  {
-    groupKey: "property_all",
-    title: "추가조건(부동산 전체 유형) — 부동산담보대출 전체 공통",
-    help: "부동산 담보대출의 모든 부동산유형/취급대출종류에 공통 적용되는 물건 조건입니다. (선택사항)",
-    sections: [
-      {
-        title: "물건 공통",
-        options: [
-          { key: "prop_foreign_owned", label: "외국인소유" },
-          { key: "prop_corporate_owned", label: "법인소유" },
-          { key: "prop_trust", label: "신탁물건" },
-          { key: "prop_tenant_no_consent", label: "임차인 동의불가" },
-          { key: "prop_free_occupant_no_consent", label: "무상거주인 동의불가" },
-          { key: "prop_inherited_gifted_lt10y", label: "증여·상속된지 10년 미만" },
-          { key: "prop_title_transfer_lt3m", label: "소유권이전 3개월 미만" }
-        ]
-      }
-    ]
-  },
-  {
-    groupKey: "apt_only",
-    title: "추가조건(아파트관련) — 아파트 선택 시 적용",
-    help: "부동산 유형이 ‘아파트’일 때만 적용되는 조건입니다. (선택사항)",
-    sections: [
-      {
-        title: "아파트 조건",
-        options: [
-          { key: "apt_under_100_units", label: "100세대 미만" },
-          { key: "apt_single_complex", label: "나홀로아파트" },
-          { key: "apt_no_kb_price", label: "KB시세 미등재" },
-          { key: "apt_private_rental", label: "민간임대주택" }
-        ]
-      }
-    ]
-  }
-];
+const EXTRA_CONDITIONS = {
+  version: "v1",
+  groups: [
+    {
+      key: "borrower",
+      label: "추가조건-차주관련",
+      appliesTo: "realEstateAll",
+      sections: [
+        {
+          key: "age",
+          label: "나이",
+          options: [
+            { key: "borrower_age_20_69", label: "20~70세 미만" },
+            { key: "borrower_age_70_plus", label: "70세 이상" }
+          ]
+        },
+        {
+          key: "income_type",
+          label: "소득유형",
+          options: [
+            { key: "borrower_income_wage", label: "근로소득" },
+            { key: "borrower_income_nonwage", label: "근로외 소득" },
+            { key: "borrower_income_none", label: "증빙소득 없음" },
+            { key: "borrower_income_none_but_pay", label: "증빙소득 없으나 이자 납입가능" }
+          ]
+        },
+        {
+          key: "credit_bucket",
+          label: "신용점수 구간",
+          options: [
+            { key: "borrower_credit_nice_lt_600", label: "NICE 600점 미만" },
+            { key: "borrower_credit_nice_gte_600", label: "NICE 600점 이상" },
+            { key: "borrower_credit_kcb_lt_454", label: "KCB 454점 미만" },
+            { key: "borrower_credit_kcb_gte_454", label: "KCB 454점 이상" }
+          ]
+        },
+        {
+          key: "repay_plan",
+          label: "상환계획(예정)",
+          options: [
+            { key: "borrower_repay_within_3m", label: "3개월 내" },
+            { key: "borrower_repay_3m_to_1y", label: "3개월 초과~1년 미만" },
+            { key: "borrower_repay_gte_1y", label: "1년 이상" }
+          ]
+        },
+        {
+          key: "need_timing",
+          label: "대출금 필요시기",
+          options: [
+            { key: "borrower_need_today", label: "당일" },
+            { key: "borrower_need_within_1w", label: "1주일 내" },
+            { key: "borrower_need_within_1m", label: "한달 이내" }
+          ]
+        },
+        {
+          key: "other_flags",
+          label: "기타사항",
+          options: [
+            { key: "borrower_flag_tax_arrears", label: "세금체납중" },
+            { key: "borrower_flag_interest_overdue", label: "대출이자연체중" },
+            { key: "borrower_flag_card_overdue", label: "카드연체중" },
+            { key: "borrower_flag_seizure", label: "압류·가압류중" },
+            { key: "borrower_flag_rehab", label: "개인회생이력" },
+            { key: "borrower_flag_bankruptcy", label: "파산이력" },
+            { key: "borrower_flag_credit_recovery", label: "신용회복이력" }
+          ]
+        }
+      ]
+    },
+
+    {
+      key: "property_common",
+      label: "추가조건-부동산 전체 유형",
+      appliesTo: "realEstateAll",
+      sections: [
+        {
+          key: "property_flags",
+          label: "부동산 공통 조건",
+          options: [
+            { key: "property_foreigner_owned", label: "외국인소유" },
+            { key: "property_corporate_owned", label: "법인소유" },
+            { key: "property_trust_property", label: "신탁물건" },
+            { key: "property_tenant_no_consent", label: "임차인 동의불가" },
+            { key: "property_free_occupant_no_consent", label: "무상거주인 동의불가" },
+            { key: "property_gift_inherit_lt_10y", label: "증여·상속된지 10년 미만" },
+            { key: "property_title_transfer_lt_3m", label: "소유권이전 3개월 미만" }
+          ]
+        }
+      ]
+    },
+
+    {
+      key: "apt_only",
+      label: "추가조건-아파트관련",
+      appliesTo: "aptOnly",
+      sections: [
+        {
+          key: "apt_flags",
+          label: "아파트 조건",
+          options: [
+            { key: "apt_lt_100_units", label: "100세대 미만" },
+            { key: "apt_single_complex", label: "나홀로아파트" },
+            { key: "apt_kb_not_listed", label: "KB시세 미등재" },
+            { key: "apt_private_rental", label: "민간임대주택" }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+function buildExtraConditionIndex(def) {
+  const map = {};
+  (def?.groups || []).forEach((g) => {
+    (g.sections || []).forEach((s) => {
+      (s.options || []).forEach((o) => {
+        map[o.key] = {
+          key: o.key,
+          label: o.label,
+          groupKey: g.key,
+          groupLabel: g.label,
+          sectionKey: s.key,
+          sectionLabel: s.label,
+          appliesTo: g.appliesTo
+        };
+      });
+    });
+  });
+  return map;
+}
+const EXTRA_CONDITION_INDEX = buildExtraConditionIndex(EXTRA_CONDITIONS);
 
 /* ✅ 마스터: 네가 준 순서 그대로 + 홈페이지 URL(homepage) */
 const LENDERS_MASTER = [
@@ -562,13 +596,10 @@ function ensureLender(id) {
       isActive: false,
       isPartner: false,
       partnerOrder: 0,
-
       // ✅ 부동산담보대출 최소금액(만원)
       realEstateMinLoanAmount: "",
-
-      // ✅ 추가조건(선택): string[] (key 목록 저장)
+      // ✅ 추가조건(선택) - 옵션 key 배열
       extraConditions: [],
-
       products: [],
       phoneNumber: "",
       kakaoUrl: "",
@@ -581,7 +612,6 @@ function ensureLender(id) {
 function ensureLenderDeepDefaults(lender) {
   if (!lender) return;
 
-  // name/homepage 기본
   if (typeof lender.name !== "string") lender.name = String(lender.name || lender.id || "");
   if (typeof lender.homepage !== "string") lender.homepage = String(lender.homepage || lender.homepageUrl || "");
 
@@ -595,16 +625,18 @@ function ensureLenderDeepDefaults(lender) {
   if (!Array.isArray(lender.products)) lender.products = [];
   lender.products = uniq(lender.products);
 
-  // ✅ extraConditions 기본
-  if (!Array.isArray(lender.extraConditions)) lender.extraConditions = [];
-  lender.extraConditions = uniq(lender.extraConditions);
-
   // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
   const hasRealEstate = lender.products.includes("부동산담보대출");
-  if (!hasRealEstate) {
-    lender.realEstateMinLoanAmount = "";
-    lender.extraConditions = []; // ✅ 같이 비움
+  if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
+
+  // ✅ 추가조건(선택) 기본/정리
+  if (!Array.isArray(lender.extraConditions)) {
+    const legacy = lender.extraConditionsKeys || lender.extraConditionKeys || [];
+    lender.extraConditions = Array.isArray(legacy) ? legacy.slice() : [];
   }
+  lender.extraConditions = uniq(lender.extraConditions)
+    .filter((k) => typeof k === "string" && !!EXTRA_CONDITION_INDEX[k]);
+  if (!hasRealEstate) lender.extraConditions = []; // 부동산담보대출 아니면 의미 없으니 비움
 
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
@@ -615,6 +647,7 @@ function ensureLenderDeepDefaults(lender) {
       lender.regions[r.key][pt.key] = {
         enabled: !!prev.enabled,
         ltvMax: prev.ltvMax ?? "",
+        // 하위호환: 남아 있어도 UI/판정에 사용 안함
         ltvMin: prev.ltvMin ?? "",
         loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
       };
@@ -628,6 +661,7 @@ function schedulePreviewUpdate() {
   _previewRAF = requestAnimationFrame(() => {
     _previewRAF = 0;
     updateLendersConfigPreview();
+    scheduleLoanConfigBackupSave(); // ✅ A안: 변경 시 디바운스 로컬 백업
   });
 }
 
@@ -643,7 +677,7 @@ function mergeLendersWithMaster() {
     ? lendersConfig.lenders
     : {};
 
-  const merged = { ...current };
+  const merged = { ...current }; // ✅ 기존 key 그대로 보존
 
   LENDERS_MASTER.forEach((m) => {
     const existing = current[m.id] || {};
@@ -655,7 +689,7 @@ function mergeLendersWithMaster() {
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
       realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
-      extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [], // ✅ 추가
+      extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [], // ✅ 추가조건 보존
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
       kakaoUrl: existing.kakaoUrl || "",
@@ -667,24 +701,273 @@ function mergeLendersWithMaster() {
   Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
 }
 
+/* =========================================================
+   ✅ A안: loan-config 로컬 자동백업/복구 + 다운로드/업로드 + 서버 빈 lenders 시 로컬 우선
+========================================================= */
+const LOANCFG_LOCAL_KEY = "huchu_loan_config_backup_v1";
+let _loanBackupTimer = 0;
+
+function safeJsonParse(raw) {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function loadLoanConfigBackupFromStorage() {
+  try {
+    const raw = localStorage.getItem(LOANCFG_LOCAL_KEY);
+    if (!raw) return null;
+    const parsed = safeJsonParse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.lenders || typeof parsed.lenders !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveLoanConfigBackupToStorageNow() {
+  try {
+    const payload = (lendersConfig && typeof lendersConfig === "object" && lendersConfig.lenders)
+      ? { lenders: lendersConfig.lenders }
+      : { lenders: {} };
+    localStorage.setItem(LOANCFG_LOCAL_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn("loan-config backup save error:", e);
+  }
+}
+
+function scheduleLoanConfigBackupSave() {
+  if (_loanBackupTimer) clearTimeout(_loanBackupTimer);
+  _loanBackupTimer = setTimeout(() => {
+    _loanBackupTimer = 0;
+    saveLoanConfigBackupToStorageNow();
+  }, 450); // 디바운스
+}
+
+function downloadJson(filename, obj) {
+  try {
+    const json = JSON.stringify(obj, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert("다운로드 생성 중 오류가 발생했습니다.");
+    console.warn(e);
+  }
+}
+
+async function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
+    fr.onerror = () => reject(fr.error || new Error("File read error"));
+    fr.readAsText(file);
+  });
+}
+
+function normalizeLoanConfigShape(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  if (obj.lenders && typeof obj.lenders === "object") return { lenders: obj.lenders };
+  if (obj.data && obj.data.lenders && typeof obj.data.lenders === "object") return { lenders: obj.data.lenders };
+  return null;
+}
+
+// (선택) UI가 HTML에 없을 수 있으니, 있으면 연결 / 없으면 생성
+function setupLoanConfigToolsUI() {
+  const lendersPanel = document.getElementById("admin-tab-lenders");
+  if (!lendersPanel) return;
+
+  let host = document.getElementById("loanConfigTools");
+  if (!host) {
+    // 자동 생성 (레이아웃 영향 최소)
+    host = document.createElement("div");
+    host.id = "loanConfigTools";
+    host.className = "admin-subbox";
+    host.style.marginTop = "14px";
+
+    const title = document.createElement("h3");
+    title.className = "admin-subbox-title";
+    title.textContent = "설정 백업/복구 (로컬)";
+
+    const help = document.createElement("p");
+    help.className = "admin-subbox-help";
+    help.textContent = "서버 저장과 별개로, 브라우저에 자동 백업됩니다. 필요 시 다운로드/업로드로 옮길 수 있어요.";
+
+    const row = document.createElement("div");
+    row.className = "admin-chip-row";
+
+    const btnDownload = document.createElement("button");
+    btnDownload.type = "button";
+    btnDownload.className = "admin-save-btn";
+    btnDownload.style.padding = "10px 14px";
+    btnDownload.style.boxShadow = "none";
+    btnDownload.textContent = "다운로드(JSON)";
+
+    const btnRestore = document.createElement("button");
+    btnRestore.type = "button";
+    btnRestore.className = "admin-save-btn";
+    btnRestore.style.padding = "10px 14px";
+    btnRestore.style.boxShadow = "none";
+    btnRestore.textContent = "로컬백업 복구";
+
+    const uploadLabel = document.createElement("label");
+    uploadLabel.className = "admin-save-btn";
+    uploadLabel.style.padding = "10px 14px";
+    uploadLabel.style.boxShadow = "none";
+    uploadLabel.style.cursor = "pointer";
+    uploadLabel.textContent = "업로드(JSON)";
+
+    const uploadInput = document.createElement("input");
+    uploadInput.type = "file";
+    uploadInput.accept = "application/json";
+    uploadInput.style.display = "none";
+    uploadLabel.appendChild(uploadInput);
+
+    row.appendChild(btnDownload);
+    row.appendChild(btnRestore);
+    row.appendChild(uploadLabel);
+
+    host.appendChild(title);
+    host.appendChild(help);
+    host.appendChild(row);
+
+    // 탭 내부 적절한 위치(리스트 위쪽)에 삽입
+    const list = document.getElementById("lendersList");
+    if (list && list.parentElement) list.parentElement.insertBefore(host, list);
+    else lendersPanel.appendChild(host);
+
+    // 이벤트 연결
+    btnDownload.addEventListener("click", () => {
+      downloadJson("huchu-loan-config.json", { lenders: lendersConfig.lenders || {} });
+    });
+
+    btnRestore.addEventListener("click", () => {
+      const backup = loadLoanConfigBackupFromStorage();
+      if (!backup) { alert("로컬 백업이 없습니다."); return; }
+      lendersConfig = { lenders: backup.lenders || {} };
+      mergeLendersWithMaster();
+      renderLendersList();
+      updateLendersConfigPreview();
+      alert("로컬 백업으로 복구했습니다.");
+    });
+
+    uploadInput.addEventListener("change", async () => {
+      const file = uploadInput.files && uploadInput.files[0];
+      if (!file) return;
+      try {
+        const txt = await readFileAsText(file);
+        const parsed = safeJsonParse(txt);
+        const normalized = normalizeLoanConfigShape(parsed);
+        if (!normalized) throw new Error("형식 오류: lenders가 없습니다.");
+        lendersConfig = { lenders: normalized.lenders || {} };
+        mergeLendersWithMaster();
+        renderLendersList();
+        updateLendersConfigPreview();
+        saveLoanConfigBackupToStorageNow();
+        alert("업로드한 설정을 적용했고 로컬에도 백업했습니다.");
+      } catch (e) {
+        console.error(e);
+        alert("업로드 파일 처리 중 오류가 발생했습니다.\n(형식이 맞는 JSON인지 확인해주세요.)");
+      } finally {
+        uploadInput.value = "";
+      }
+    });
+
+    return;
+  }
+
+  // HTML에 이미 도구 UI가 있다면(선택), 아래는 필요한 ID가 있을 때만 연결
+  const btnDownload = document.getElementById("loanConfigDownloadBtn");
+  const btnRestore = document.getElementById("loanConfigRestoreBtn");
+  const uploadInput = document.getElementById("loanConfigUploadInput");
+
+  if (btnDownload) {
+    btnDownload.addEventListener("click", () => {
+      downloadJson("huchu-loan-config.json", { lenders: lendersConfig.lenders || {} });
+    });
+  }
+  if (btnRestore) {
+    btnRestore.addEventListener("click", () => {
+      const backup = loadLoanConfigBackupFromStorage();
+      if (!backup) { alert("로컬 백업이 없습니다."); return; }
+      lendersConfig = { lenders: backup.lenders || {} };
+      mergeLendersWithMaster();
+      renderLendersList();
+      updateLendersConfigPreview();
+      alert("로컬 백업으로 복구했습니다.");
+    });
+  }
+  if (uploadInput) {
+    uploadInput.addEventListener("change", async () => {
+      const file = uploadInput.files && uploadInput.files[0];
+      if (!file) return;
+      try {
+        const txt = await readFileAsText(file);
+        const parsed = safeJsonParse(txt);
+        const normalized = normalizeLoanConfigShape(parsed);
+        if (!normalized) throw new Error("형식 오류: lenders가 없습니다.");
+        lendersConfig = { lenders: normalized.lenders || {} };
+        mergeLendersWithMaster();
+        renderLendersList();
+        updateLendersConfigPreview();
+        saveLoanConfigBackupToStorageNow();
+        alert("업로드한 설정을 적용했고 로컬에도 백업했습니다.");
+      } catch (e) {
+        console.error(e);
+        alert("업로드 파일 처리 중 오류가 발생했습니다.\n(형식이 맞는 JSON인지 확인해주세요.)");
+      } finally {
+        uploadInput.value = "";
+      }
+    });
+  }
+}
+
 async function loadLendersConfigFromServer() {
+  // ✅ 로컬 백업 준비
+  const localBackup = loadLoanConfigBackupFromStorage();
+
   try {
     const res = await fetch(`${API_BASE}/api/loan-config`, { method: "GET" });
     if (!res.ok) {
-      console.warn("loan-config GET 실패, 빈 설정으로 시작:", res.status);
-      lendersConfig = { lenders: {} };
+      console.warn("loan-config GET 실패:", res.status);
+      // 서버 실패 시 로컬 우선
+      if (localBackup) {
+        lendersConfig = { lenders: localBackup.lenders || {} };
+      } else {
+        lendersConfig = { lenders: {} };
+      }
     } else {
       const json = await res.json().catch(() => null);
-      lendersConfig = (json && typeof json === "object" && json.lenders) ? json : { lenders: {} };
+      const serverCfg = (json && typeof json === "object" && json.lenders && typeof json.lenders === "object")
+        ? json
+        : { lenders: {} };
+
+      const serverCount = Object.keys(serverCfg.lenders || {}).length;
+
+      // ✅ 서버 lenders가 "비어있으면" 로컬 백업 우선
+      if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
+        console.warn("loan-config 서버가 비어있어 로컬 백업을 우선 복구합니다.");
+        lendersConfig = { lenders: localBackup.lenders || {} };
+      } else {
+        lendersConfig = serverCfg;
+      }
     }
   } catch (e) {
     console.warn("loan-config fetch error:", e);
-    lendersConfig = { lenders: {} };
+    // 네트워크 오류면 로컬 우선
+    if (localBackup) lendersConfig = { lenders: localBackup.lenders || {} };
+    else lendersConfig = { lenders: {} };
   }
 
   mergeLendersWithMaster();
   renderLendersList();
   updateLendersConfigPreview();
+  saveLoanConfigBackupToStorageNow(); // 현재 상태를 로컬에도 반영
 }
 
 function updateLendersConfigPreview() {
@@ -737,84 +1020,53 @@ async function postLendersConfigToServer(successText) {
   renderLendersList();
   updateLendersConfigPreview();
 
+  saveLoanConfigBackupToStorageNow(); // ✅ 저장 성공 시 로컬 백업도 확정
+
   return successText || "저장되었습니다.";
 }
 
 /* =========================================================
-   ✅ 추가조건 UI 유틸
+   ✅ 추가조건(선택) UI 렌더
 ========================================================= */
-function lenderHasEnabledPropertyType(lender, ptKey) {
-  try {
-    return REGIONS.some((r) => !!(lender?.regions?.[r.key]?.[ptKey]?.enabled));
-  } catch {
-    return false;
-  }
-}
-
-function toggleExtraCondition(lenderId, key, isOn) {
-  const cur = ensureLender(lenderId);
-  const set = new Set(Array.isArray(cur.extraConditions) ? cur.extraConditions : []);
-  if (isOn) set.add(key);
-  else set.delete(key);
-  updateLenderState(lenderId, { extraConditions: Array.from(set) });
-  lenderUiState.openIds.add(lenderId);
-  renderLendersList();
-}
-
-function buildExtraConditionsBox(lender) {
+function renderExtraConditionsBox(lender) {
   const box = document.createElement("div");
   box.className = "admin-subbox";
-  box.addEventListener("click", (e) => e.stopPropagation());
 
   const title = document.createElement("h3");
   title.className = "admin-subbox-title";
-  title.textContent = "추가조건(선택) 설정";
+  title.textContent = "추가조건(선택)";
 
   const help = document.createElement("p");
   help.className = "admin-subbox-help";
-  help.textContent = "유저가 네비게이션에서 추가조건을 선택한 경우에만 매칭됩니다. (유저가 선택 안 하면 필터링 없음)";
+  help.textContent = "사용자가 네비게이션에서 선택할 수 있는 추가조건입니다. 업체가 수용 가능한 조건만 체크하세요. (필수 아님)";
 
   box.appendChild(title);
   box.appendChild(help);
 
   const selected = new Set(Array.isArray(lender.extraConditions) ? lender.extraConditions : []);
 
-  EXTRA_CONDITION_GROUPS.forEach((grp) => {
-    // apt_only는 “아파트 취급이 전혀 없으면” 안내만(그래도 설정은 가능하게 두자)
-    const isAptOnly = grp.groupKey === "apt_only";
-    const hasAnyApt = lenderHasEnabledPropertyType(lender, "apt");
+  EXTRA_CONDITIONS.groups.forEach((g) => {
+    const gTitle = document.createElement("div");
+    gTitle.style.marginTop = "10px";
+    gTitle.style.fontWeight = "900";
+    gTitle.style.fontSize = "13px";
+    gTitle.style.color = "#111827";
+    gTitle.textContent = g.label;
+    box.appendChild(gTitle);
 
-    const grpTitle = document.createElement("div");
-    grpTitle.style.margin = "10px 0 6px";
-    grpTitle.style.fontWeight = "900";
-    grpTitle.style.fontSize = "13px";
-    grpTitle.style.color = "#111827";
-    grpTitle.textContent = grp.title;
-
-    const grpHelp = document.createElement("div");
-    grpHelp.style.margin = "0 0 10px";
-    grpHelp.style.fontSize = "12px";
-    grpHelp.style.color = "#6b7280";
-    grpHelp.style.lineHeight = "1.45";
-    grpHelp.textContent = isAptOnly && !hasAnyApt
-      ? `${grp.help} (참고: 현재 이 업체는 ‘아파트 취급’이 꺼져있어서, 실제 매칭은 아파트가 켜진 뒤에 의미가 있어.)`
-      : grp.help;
-
-    box.appendChild(grpTitle);
-    box.appendChild(grpHelp);
-
-    grp.sections.forEach((sec) => {
-      const secTitle = document.createElement("div");
-      secTitle.style.margin = "10px 0 6px";
-      secTitle.style.fontWeight = "900";
-      secTitle.style.fontSize = "12px";
-      secTitle.style.color = "#374151";
-      secTitle.textContent = sec.title;
+    (g.sections || []).forEach((s) => {
+      const sTitle = document.createElement("div");
+      sTitle.style.marginTop = "8px";
+      sTitle.style.fontWeight = "900";
+      sTitle.style.fontSize = "12px";
+      sTitle.style.color = "#374151";
+      sTitle.textContent = `- ${s.label}`;
+      box.appendChild(sTitle);
 
       const row = document.createElement("div");
       row.className = "admin-chip-row admin-chip-row--tight";
 
-      sec.options.forEach((opt) => {
+      (s.options || []).forEach((opt) => {
         const label = document.createElement("label");
         label.className = "admin-chip-check admin-chip-check--tiny";
 
@@ -823,7 +1075,14 @@ function buildExtraConditionsBox(lender) {
         cb.checked = selected.has(opt.key);
 
         cb.addEventListener("change", () => {
-          toggleExtraCondition(lender.id, opt.key, cb.checked);
+          const cur = ensureLender(lender.id);
+          const set = new Set(Array.isArray(cur.extraConditions) ? cur.extraConditions : []);
+          if (cb.checked) set.add(opt.key);
+          else set.delete(opt.key);
+
+          updateLenderState(lender.id, { extraConditions: Array.from(set) });
+          lenderUiState.openIds.add(lender.id);
+          renderLendersList();
         });
 
         const span = document.createElement("span");
@@ -834,7 +1093,6 @@ function buildExtraConditionsBox(lender) {
         row.appendChild(label);
       });
 
-      box.appendChild(secTitle);
       box.appendChild(row);
     });
   });
@@ -852,6 +1110,7 @@ function renderLendersList() {
 
   const cfg = lendersConfig.lenders || {};
 
+  // 표시 순서 구성
   const orderedIds = [];
   const seen = new Set();
 
@@ -891,6 +1150,7 @@ function renderLendersList() {
     const card = document.createElement("div");
     card.className = "lender-card";
 
+    // Header
     const head = document.createElement("div");
     head.className = "lender-head";
     head.setAttribute("role", "button");
@@ -912,6 +1172,7 @@ function renderLendersList() {
       }
     });
 
+    // 업체명(홈페이지 링크)
     let nameEl;
     const homepage = (lender.homepage || "").trim();
     if (homepage) {
@@ -1008,7 +1269,7 @@ function renderLendersList() {
     switches.appendChild(swActive);
     switches.appendChild(swPartner);
 
-    // 제휴 표시순서 (제휴 ON일 때만)
+    // 제휴 표시순서 (제휴 ON일 때만) — 1~10
     const order = document.createElement("div");
     order.className = "lender-order";
     order.style.display = lender.isPartner ? "flex" : "none";
@@ -1046,7 +1307,7 @@ function renderLendersList() {
     head.appendChild(switches);
     head.appendChild(order);
 
-    // ---------- Panel ----------
+    // Panel
     const panel = document.createElement("div");
     panel.className = "lender-panel";
     panel.classList.toggle("hide", !isOpen);
@@ -1105,6 +1366,10 @@ function renderLendersList() {
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
     if (hasRealEstate) {
+      // ✅ 추가조건(선택)
+      inner.appendChild(renderExtraConditionsBox(lender));
+
+      // 기존 matrixBox
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
@@ -1112,7 +1377,7 @@ function renderLendersList() {
       mTitle.className = "admin-subbox-title";
       mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
 
-      // ✅ 안내문 + 우측 '최저대출금액(만원)' 입력
+      // 안내문 + 우측 최저대출금액(만원)
       const helpRow = document.createElement("div");
       helpRow.className = "admin-subbox-headrow";
 
@@ -1297,9 +1562,6 @@ function renderLendersList() {
       matrixBox.appendChild(table);
 
       inner.appendChild(matrixBox);
-
-      // ✅ 추가조건(선택) 설정 박스
-      inner.appendChild(buildExtraConditionsBox(lender));
     }
 
     // 3) 상담채널
@@ -1439,6 +1701,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStatsFromStorage();
   setupStatsInteractions();
 
+  // ✅ loan-config 도구 UI (있으면 연결, 없으면 생성)
+  setupLoanConfigToolsUI();
+
   // 초기 랜더(비어 있어도 OK)
   mergeLendersWithMaster();
   setupLendersControls();
@@ -1446,6 +1711,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updateLendersConfigPreview();
   setupLendersSaveButton();
 
-  // 서버 로드 후 재렌더
+  // 서버 로드 후 재렌더 (서버 empty면 로컬백업 우선 복구)
   loadLendersConfigFromServer();
 });
