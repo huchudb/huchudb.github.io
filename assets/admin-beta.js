@@ -30,6 +30,32 @@ const API_BASE = resolveApiBase();
 console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
 
 /* =========================================================
+   ✅ fetch 304 무력화 유틸 (cache-bust + no-store)
+========================================================= */
+async function fetchJsonNoCache(url, options = {}) {
+  const sep = url.includes("?") ? "&" : "?";
+  const bustUrl = `${url}${sep}_ts=${Date.now()}`;
+
+  const res = await fetch(bustUrl, {
+    ...options,
+    method: options.method || "GET",
+    cache: "no-store",
+    headers: {
+      ...(options.headers || {}),
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    }
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${txt}`);
+  }
+
+  return await res.json().catch(() => null);
+}
+
+/* =========================================================
    공통/유틸
 ========================================================= */
 function setupBetaMenu() {
@@ -661,7 +687,7 @@ function schedulePreviewUpdate() {
   _previewRAF = requestAnimationFrame(() => {
     _previewRAF = 0;
     updateLendersConfigPreview();
-    scheduleLoanConfigBackupSave(); // ✅ A안: 변경 시 디바운스 로컬 백업
+    scheduleLoanConfigBackupSave(); // ✅ 변경 시 디바운스 로컬 백업
   });
 }
 
@@ -702,7 +728,7 @@ function mergeLendersWithMaster() {
 }
 
 /* =========================================================
-   ✅ A안: loan-config 로컬 자동백업/복구 + 다운로드/업로드 + 서버 빈 lenders 시 로컬 우선
+   ✅ loan-config 로컬 자동백업/복구 + 다운로드/업로드 (UI는 HTML만)
 ========================================================= */
 const LOANCFG_LOCAL_KEY = "huchu_loan_config_backup_v1";
 let _loanBackupTimer = 0;
@@ -777,189 +803,85 @@ function normalizeLoanConfigShape(obj) {
   return null;
 }
 
-// (선택) UI가 HTML에 없을 수 있으니, 있으면 연결 / 없으면 생성
+/* ✅ UI는 HTML에만: 이벤트만 연결 */
+let __loanCfgUiBound = false;
 function setupLoanConfigToolsUI() {
-  const lendersPanel = document.getElementById("admin-tab-lenders");
-  if (!lendersPanel) return;
+  if (__loanCfgUiBound) return;
+  __loanCfgUiBound = true;
 
-  let host = document.getElementById("loanConfigTools");
-  if (!host) {
-    // 자동 생성 (레이아웃 영향 최소)
-    host = document.createElement("div");
-    host.id = "loanConfigTools";
-    host.className = "admin-subbox";
-    host.style.marginTop = "14px";
+  const btnDownload = document.getElementById("downloadLoanConfigBtn");
+  const btnUpload = document.getElementById("uploadLoanConfigBtn");
+  const fileInput = document.getElementById("loanConfigFileInput");
+  const statusEl = document.getElementById("lendersBackupStatus");
 
-    const title = document.createElement("h3");
-    title.className = "admin-subbox-title";
-    title.textContent = "설정 백업/복구 (로컬)";
-
-    const help = document.createElement("p");
-    help.className = "admin-subbox-help";
-    help.textContent = "서버 저장과 별개로, 브라우저에 자동 백업됩니다. 필요 시 다운로드/업로드로 옮길 수 있어요.";
-
-    const row = document.createElement("div");
-    row.className = "admin-chip-row";
-
-    const btnDownload = document.createElement("button");
-    btnDownload.type = "button";
-    btnDownload.className = "admin-save-btn";
-    btnDownload.style.padding = "10px 14px";
-    btnDownload.style.boxShadow = "none";
-    btnDownload.textContent = "다운로드(JSON)";
-
-    const btnRestore = document.createElement("button");
-    btnRestore.type = "button";
-    btnRestore.className = "admin-save-btn";
-    btnRestore.style.padding = "10px 14px";
-    btnRestore.style.boxShadow = "none";
-    btnRestore.textContent = "로컬백업 복구";
-
-    const uploadLabel = document.createElement("label");
-    uploadLabel.className = "admin-save-btn";
-    uploadLabel.style.padding = "10px 14px";
-    uploadLabel.style.boxShadow = "none";
-    uploadLabel.style.cursor = "pointer";
-    uploadLabel.textContent = "업로드(JSON)";
-
-    const uploadInput = document.createElement("input");
-    uploadInput.type = "file";
-    uploadInput.accept = "application/json";
-    uploadInput.style.display = "none";
-    uploadLabel.appendChild(uploadInput);
-
-    row.appendChild(btnDownload);
-    row.appendChild(btnRestore);
-    row.appendChild(uploadLabel);
-
-    host.appendChild(title);
-    host.appendChild(help);
-    host.appendChild(row);
-
-    // 탭 내부 적절한 위치(리스트 위쪽)에 삽입
-    const list = document.getElementById("lendersList");
-    if (list && list.parentElement) list.parentElement.insertBefore(host, list);
-    else lendersPanel.appendChild(host);
-
-    // 이벤트 연결
-    btnDownload.addEventListener("click", () => {
-      downloadJson("huchu-loan-config.json", { lenders: lendersConfig.lenders || {} });
-    });
-
-    btnRestore.addEventListener("click", () => {
-      const backup = loadLoanConfigBackupFromStorage();
-      if (!backup) { alert("로컬 백업이 없습니다."); return; }
-      lendersConfig = { lenders: backup.lenders || {} };
-      mergeLendersWithMaster();
-      renderLendersList();
-      updateLendersConfigPreview();
-      alert("로컬 백업으로 복구했습니다.");
-    });
-
-    uploadInput.addEventListener("change", async () => {
-      const file = uploadInput.files && uploadInput.files[0];
-      if (!file) return;
-      try {
-        const txt = await readFileAsText(file);
-        const parsed = safeJsonParse(txt);
-        const normalized = normalizeLoanConfigShape(parsed);
-        if (!normalized) throw new Error("형식 오류: lenders가 없습니다.");
-        lendersConfig = { lenders: normalized.lenders || {} };
-        mergeLendersWithMaster();
-        renderLendersList();
-        updateLendersConfigPreview();
-        saveLoanConfigBackupToStorageNow();
-        alert("업로드한 설정을 적용했고 로컬에도 백업했습니다.");
-      } catch (e) {
-        console.error(e);
-        alert("업로드 파일 처리 중 오류가 발생했습니다.\n(형식이 맞는 JSON인지 확인해주세요.)");
-      } finally {
-        uploadInput.value = "";
-      }
-    });
-
-    return;
-  }
-
-  // HTML에 이미 도구 UI가 있다면(선택), 아래는 필요한 ID가 있을 때만 연결
-  const btnDownload = document.getElementById("loanConfigDownloadBtn");
-  const btnRestore = document.getElementById("loanConfigRestoreBtn");
-  const uploadInput = document.getElementById("loanConfigUploadInput");
+  const setStatus = (msg) => {
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+  };
 
   if (btnDownload) {
     btnDownload.addEventListener("click", () => {
       downloadJson("huchu-loan-config.json", { lenders: lendersConfig.lenders || {} });
+      setStatus("백업 파일을 다운로드했습니다.");
+      setTimeout(() => { if (statusEl && statusEl.textContent.includes("다운로드")) statusEl.textContent = ""; }, 2500);
     });
   }
-  if (btnRestore) {
-    btnRestore.addEventListener("click", () => {
-      const backup = loadLoanConfigBackupFromStorage();
-      if (!backup) { alert("로컬 백업이 없습니다."); return; }
-      lendersConfig = { lenders: backup.lenders || {} };
-      mergeLendersWithMaster();
-      renderLendersList();
-      updateLendersConfigPreview();
-      alert("로컬 백업으로 복구했습니다.");
-    });
+
+  if (btnUpload && fileInput) {
+    btnUpload.addEventListener("click", () => fileInput.click());
   }
-  if (uploadInput) {
-    uploadInput.addEventListener("change", async () => {
-      const file = uploadInput.files && uploadInput.files[0];
+
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
       if (!file) return;
+
       try {
         const txt = await readFileAsText(file);
         const parsed = safeJsonParse(txt);
         const normalized = normalizeLoanConfigShape(parsed);
         if (!normalized) throw new Error("형식 오류: lenders가 없습니다.");
+
         lendersConfig = { lenders: normalized.lenders || {} };
         mergeLendersWithMaster();
         renderLendersList();
         updateLendersConfigPreview();
         saveLoanConfigBackupToStorageNow();
+
+        setStatus("업로드한 백업을 적용했고, 로컬 백업에도 저장했습니다.");
+        setTimeout(() => { if (statusEl && statusEl.textContent.includes("업로드")) statusEl.textContent = ""; }, 3000);
         alert("업로드한 설정을 적용했고 로컬에도 백업했습니다.");
       } catch (e) {
         console.error(e);
+        setStatus("업로드 처리 중 오류가 발생했습니다. (JSON 형식 확인)");
         alert("업로드 파일 처리 중 오류가 발생했습니다.\n(형식이 맞는 JSON인지 확인해주세요.)");
       } finally {
-        uploadInput.value = "";
+        fileInput.value = "";
       }
     });
   }
 }
 
+/* ✅ 304 무력화 적용: loan-config 서버 로드 */
 async function loadLendersConfigFromServer() {
-  // ✅ 로컬 백업 준비
   const localBackup = loadLoanConfigBackupFromStorage();
 
   try {
-    const res = await fetch(`${API_BASE}/api/loan-config`, { method: "GET" });
-    if (!res.ok) {
-      console.warn("loan-config GET 실패:", res.status);
-      // 서버 실패 시 로컬 우선
-      if (localBackup) {
-        lendersConfig = { lenders: localBackup.lenders || {} };
-      } else {
-        lendersConfig = { lenders: {} };
-      }
+    const json = await fetchJsonNoCache(`${API_BASE}/api/loan-config`);
+    const serverCfg = (json && typeof json === "object" && json.lenders && typeof json.lenders === "object")
+      ? json
+      : { lenders: {} };
+
+    const serverCount = Object.keys(serverCfg.lenders || {}).length;
+
+    if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
+      console.warn("loan-config 서버가 비어있어 로컬 백업을 우선 복구합니다.");
+      lendersConfig = { lenders: localBackup.lenders || {} };
     } else {
-      const json = await res.json().catch(() => null);
-      const serverCfg = (json && typeof json === "object" && json.lenders && typeof json.lenders === "object")
-        ? json
-        : { lenders: {} };
-
-      const serverCount = Object.keys(serverCfg.lenders || {}).length;
-
-      // ✅ 서버 lenders가 "비어있으면" 로컬 백업 우선
-      if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
-        console.warn("loan-config 서버가 비어있어 로컬 백업을 우선 복구합니다.");
-        lendersConfig = { lenders: localBackup.lenders || {} };
-      } else {
-        lendersConfig = serverCfg;
-      }
+      lendersConfig = serverCfg;
     }
   } catch (e) {
     console.warn("loan-config fetch error:", e);
-    // 네트워크 오류면 로컬 우선
     if (localBackup) lendersConfig = { lenders: localBackup.lenders || {} };
     else lendersConfig = { lenders: {} };
   }
@@ -967,7 +889,7 @@ async function loadLendersConfigFromServer() {
   mergeLendersWithMaster();
   renderLendersList();
   updateLendersConfigPreview();
-  saveLoanConfigBackupToStorageNow(); // 현재 상태를 로컬에도 반영
+  saveLoanConfigBackupToStorageNow();
 }
 
 function updateLendersConfigPreview() {
@@ -1020,7 +942,7 @@ async function postLendersConfigToServer(successText) {
   renderLendersList();
   updateLendersConfigPreview();
 
-  saveLoanConfigBackupToStorageNow(); // ✅ 저장 성공 시 로컬 백업도 확정
+  saveLoanConfigBackupToStorageNow();
 
   return successText || "저장되었습니다.";
 }
@@ -1102,6 +1024,7 @@ function renderExtraConditionsBox(lender) {
 
 /* =========================================================
    ✅ 렌더: 업체 카드
+   (이 아래는 네가 보낸 원본 그대로 — 중간 생략 없이 붙여넣기)
 ========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
@@ -1110,7 +1033,6 @@ function renderLendersList() {
 
   const cfg = lendersConfig.lenders || {};
 
-  // 표시 순서 구성
   const orderedIds = [];
   const seen = new Set();
 
@@ -1141,6 +1063,7 @@ function renderLendersList() {
     return;
   }
 
+  /* -------------- 이하 너 원본 render 로직 그대로 -------------- */
   visibleIds.forEach((id) => {
     const lender = cfg[id];
     if (!lender) return;
@@ -1150,7 +1073,6 @@ function renderLendersList() {
     const card = document.createElement("div");
     card.className = "lender-card";
 
-    // Header
     const head = document.createElement("div");
     head.className = "lender-head";
     head.setAttribute("role", "button");
@@ -1172,7 +1094,6 @@ function renderLendersList() {
       }
     });
 
-    // 업체명(홈페이지 링크)
     let nameEl;
     const homepage = (lender.homepage || "").trim();
     if (homepage) {
@@ -1210,7 +1131,6 @@ function renderLendersList() {
     const switches = document.createElement("div");
     switches.className = "lender-switches";
 
-    // 신규
     const swActive = document.createElement("div");
     swActive.className = "lender-switch-item";
     const swActiveLabel = document.createElement("span");
@@ -1235,7 +1155,6 @@ function renderLendersList() {
     swActive.appendChild(swActiveLabel);
     swActive.appendChild(swActiveWrap);
 
-    // 제휴
     const swPartner = document.createElement("div");
     swPartner.className = "lender-switch-item";
     const swPartnerLabel = document.createElement("span");
@@ -1269,7 +1188,6 @@ function renderLendersList() {
     switches.appendChild(swActive);
     switches.appendChild(swPartner);
 
-    // 제휴 표시순서 (제휴 ON일 때만) — 1~10
     const order = document.createElement("div");
     order.className = "lender-order";
     order.style.display = lender.isPartner ? "flex" : "none";
@@ -1307,7 +1225,6 @@ function renderLendersList() {
     head.appendChild(switches);
     head.appendChild(order);
 
-    // Panel
     const panel = document.createElement("div");
     panel.className = "lender-panel";
     panel.classList.toggle("hide", !isOpen);
@@ -1315,7 +1232,6 @@ function renderLendersList() {
     const inner = document.createElement("div");
     inner.className = "lender-panel__inner";
 
-    // 1) 상품군
     const productsBox = document.createElement("div");
     productsBox.className = "admin-subbox";
 
@@ -1362,14 +1278,11 @@ function renderLendersList() {
     productsBox.appendChild(chipRow);
     inner.appendChild(productsBox);
 
-    // ✅ 부동산 담보대출 선택 시에만 노출
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
     if (hasRealEstate) {
-      // ✅ 추가조건(선택)
       inner.appendChild(renderExtraConditionsBox(lender));
 
-      // 기존 matrixBox
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
@@ -1377,7 +1290,6 @@ function renderLendersList() {
       mTitle.className = "admin-subbox-title";
       mTitle.textContent = "지역/유형별 취급여부 + LTV(최대) + 취급 대출 종류";
 
-      // 안내문 + 우측 최저대출금액(만원)
       const helpRow = document.createElement("div");
       helpRow.className = "admin-subbox-headrow";
 
@@ -1460,7 +1372,6 @@ function renderLendersList() {
         const tdType = document.createElement("td");
         tdType.textContent = pt.label;
 
-        // 취급 칩
         const tdEnable = document.createElement("td");
         tdEnable.className = "cell-center";
 
@@ -1482,7 +1393,6 @@ function renderLendersList() {
 
         tdEnable.appendChild(enableChip);
 
-        // LTV 최대
         const tdLtv = document.createElement("td");
         const ltvWrap = document.createElement("div");
         ltvWrap.className = "admin-ltv-wrap";
@@ -1508,7 +1418,6 @@ function renderLendersList() {
         ltvWrap.appendChild(pct);
         tdLtv.appendChild(ltvWrap);
 
-        // 대출종류
         const tdLoans = document.createElement("td");
         const loanRow = document.createElement("div");
         loanRow.className = "admin-chip-row admin-chip-row--tight";
@@ -1564,7 +1473,6 @@ function renderLendersList() {
       inner.appendChild(matrixBox);
     }
 
-    // 3) 상담채널
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
 
@@ -1615,7 +1523,6 @@ function renderLendersList() {
     contactBox.appendChild(contactGrid);
     inner.appendChild(contactBox);
 
-    // 카드별 저장
     const saveRow = document.createElement("div");
     saveRow.className = "lender-save-row";
     const saveBtn = document.createElement("button");
@@ -1701,16 +1608,15 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStatsFromStorage();
   setupStatsInteractions();
 
-  // ✅ loan-config 도구 UI (있으면 연결, 없으면 생성)
+  // ✅ 백업 UI는 HTML에만 존재: 여기서는 이벤트만 연결
   setupLoanConfigToolsUI();
 
-  // 초기 랜더(비어 있어도 OK)
   mergeLendersWithMaster();
   setupLendersControls();
   renderLendersList();
   updateLendersConfigPreview();
   setupLendersSaveButton();
 
-  // 서버 로드 후 재렌더 (서버 empty면 로컬백업 우선 복구)
+  // ✅ 304 무력화된 방식으로 서버 로드
   loadLendersConfigFromServer();
 });
