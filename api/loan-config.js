@@ -1,12 +1,9 @@
 // /api/loan-config.js
 //
-// ✅ 후추 네비게이션 loan-config API (영구 저장: Upstash Redis)
-// - GET  /api/loan-config              → 저장된 설정 반환 (없으면 빈 구조)
-// - POST /api/loan-config              → 설정 저장
-// - OPTIONS                            → CORS preflight
-//
-// 저장 키: loan-config:v1
-// 저장 구조: { byType: {...}, lenders: {...} }
+// ✅ loan-config (영구 저장: Upstash Redis / pipeline)
+// - GET  /api/loan-config
+// - POST /api/loan-config
+// - OPTIONS (CORS)
 
 const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -36,38 +33,11 @@ function corsHeaders(origin) {
   };
 }
 
-// ---- Upstash REST helpers ----
-const enc = encodeURIComponent;
-
-async function upstash(path) {
-  if (!REDIS_URL || !REDIS_TOKEN) {
-    throw new Error("Upstash env missing: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN");
-  }
-  const r = await fetch(`${REDIS_URL}/${path}`, {
-    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-    cache: "no-store"
-  });
-  const j = await r.json();
-  if (!r.ok) throw new Error(`Upstash ${path} failed: HTTP ${r.status} ${JSON.stringify(j)}`);
-  if (j && j.error) throw new Error(`Upstash ${path} error: ${j.error}`);
-  return j;
-}
-
-async function getValue(key) {
-  const j = await upstash(`get/${enc(key)}`);
-  return j.result ?? null;
-}
-
-async function setValue(key, value) {
-  await upstash(`set/${enc(key)}/${enc(value)}`);
-}
-
 function safeJsonParse(raw) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
 function normalizeStoreShape(obj) {
-  // 최종적으로 { byType: {}, lenders: {} } 형태만 허용
   if (!obj || typeof obj !== "object") return { byType: {}, lenders: {} };
 
   const byType = (obj.byType && typeof obj.byType === "object" && !Array.isArray(obj.byType)) ? obj.byType : {};
@@ -76,8 +46,41 @@ function normalizeStoreShape(obj) {
   return { byType, lenders };
 }
 
+// ---- Upstash pipeline helpers ----
+async function upstashPipeline(commands) {
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    throw new Error("Upstash env missing: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN");
+  }
+
+  const r = await fetch(`${REDIS_URL}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${REDIS_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(commands),
+    cache: "no-store"
+  });
+
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(`Upstash pipeline failed: HTTP ${r.status} ${JSON.stringify(j)}`);
+  return j; // array
+}
+
+async function getValue(key) {
+  const resp = await upstashPipeline([["GET", key]]);
+  // resp[0].result 에 값이 들어옴 (없으면 null)
+  return resp?.[0]?.result ?? null;
+}
+
+async function setValue(key, value) {
+  const resp = await upstashPipeline([["SET", key, value]]);
+  const ok = resp?.[0]?.result === "OK";
+  if (!ok) throw new Error(`Upstash SET not OK: ${JSON.stringify(resp)}`);
+}
+
 export default async function handler(req, res) {
-  const origin = req.headers.origin || "";
+  const origin  = req.headers.origin || "";
   const headers = corsHeaders(origin);
 
   // Preflight
@@ -103,11 +106,18 @@ export default async function handler(req, res) {
       if (typeof body === "string") body = safeJsonParse(body) || {};
 
       const normalized = normalizeStoreShape(body);
+      const jsonStr = JSON.stringify(normalized);
 
-      await setValue(STORE_KEY, JSON.stringify(normalized));
+      await setValue(STORE_KEY, jsonStr);
+
+      const lenderCount = Object.keys(normalized.lenders || {}).length;
 
       for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({
+        ok: true,
+        lenderCount,
+        bytes: jsonStr.length
+      });
     }
 
     // Others
