@@ -68,6 +68,78 @@ function toggleChip(target) {
   target.classList.toggle("is-selected");
 }
 
+// ✅ (추가) financialInputs[상품군]에서 3컬럼(금리/플랫폼/중도상환) 뽑기 유틸
+function normalizeKey(v) {
+  return String(v || "").trim().replace(/\s+/g, "");
+}
+function toNumberLoose(v) {
+  if (v == null) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(String(v).replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  if (typeof v === "object") {
+    // 혹시 {avg:..} / {value:..} 같은 형태로 저장된 케이스 대응
+    if ("avg" in v) return toNumberLoose(v.avg);
+    if ("value" in v) return toNumberLoose(v.value);
+  }
+  return null;
+}
+function formatPercentSmart(v, digits = 1) {
+  const n = toNumberLoose(v);
+  if (n == null) return "—";
+  // 0~1 사이면 비율로 보고 % 변환, 그 외는 이미 % 값으로 간주
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${pct.toFixed(digits)}%`;
+}
+function pickFinancialInputs(lender, category) {
+  const fi = lender && lender.financialInputs ? lender.financialInputs : null;
+  if (!fi || !category) return null;
+
+  const cat = String(category);
+  const candidates = [];
+
+  // 1) 그대로
+  candidates.push(cat);
+
+  // 2) 공백 제거 버전
+  candidates.push(normalizeKey(cat));
+
+  // 3) 흔한 표기 흔들림/마이그레이션 대응
+  const map = {
+    "부동산담보대출": ["부동산담보대출", "부동산 담보대출", "부동산"],
+    "개인신용대출": ["개인신용대출", "개인 신용대출", "개인신용"],
+    "법인신용대출": ["법인신용대출", "법인 신용대출", "법인신용"],
+    "매출채권유동화": ["매출채권유동화", "매출채권 유동화"],
+    "의료사업자대출": ["의료사업자대출", "의료 사업자대출", "의료사업자"],
+    "온라인선정산": ["온라인선정산", "온라인 선정산"],
+    "전자어음": ["전자어음", "전자 어음"],
+    // ✅ 관리자쪽에서 스탁론이 (상장)/(비상장)으로 갈린 경우까지 흡수
+    "스탁론": ["스탁론", "스탁론(상장)", "스탁론(비상장)"],
+  };
+
+  if (map[cat]) candidates.push(...map[cat]);
+
+  // object key들을 normalize해서 한번 더 매칭
+  const keys = Object.keys(fi);
+  const normToReal = {};
+  keys.forEach((k) => (normToReal[normalizeKey(k)] = k));
+
+  for (const key of candidates) {
+    if (!key) continue;
+
+    // 직매칭
+    if (fi[key]) return fi[key];
+
+    // normalize 매칭
+    const nk = normalizeKey(key);
+    if (nk && normToReal[nk] && fi[normToReal[nk]]) return fi[normToReal[nk]];
+  }
+
+  return null;
+}
+
 // 상단 MENU
 function setupBetaMenu() {
   const toggle = document.getElementById("betaMenuToggle");
@@ -768,6 +840,12 @@ function renderFinalResult() {
     const phone = l.channels?.phoneNumber || "";
     const kakao = l.channels?.kakaoUrl || "";
 
+    // ✅ (추가) 선택 상품군 기준 3컬럼 값 추출
+    const fin = pickFinancialInputs(l, userState.mainCategory);
+    const interestAvgText = fin && ("interestAvg" in fin) ? formatPercentSmart(fin.interestAvg) : "—";
+    const platformFeeAvgText = fin && ("platformFeeAvg" in fin) ? formatPercentSmart(fin.platformFeeAvg) : "—";
+    const prepayFeeAvgText = fin && ("prepayFeeAvg" in fin) ? formatPercentSmart(fin.prepayFeeAvg) : "—";
+
     html += `<div class="navi-lender-item">`;
     html += `<div class="navi-lender-name">${l.displayName || "(이름 없음)"}`;
     if (l.isPartner) {
@@ -790,6 +868,24 @@ function renderFinalResult() {
       html += `<span class="navi-tag">비제휴 온투업체 (정보제공용)</span>`;
     }
     html += `</div>`;
+
+    // ✅ (추가) 3컬럼 렌더링 (CSS는 별도 파일에서)
+    html += `
+      <div class="navi-financial-grid" aria-label="평균 비용 정보" style="margin-top:8px;">
+        <div class="navi-financial-col">
+          <div class="navi-financial-label" style="font-size:11px;color:#6b7280;">평균 금리</div>
+          <div class="navi-financial-value" style="font-size:13px;font-weight:700;color:#111827;">${interestAvgText}</div>
+        </div>
+        <div class="navi-financial-col">
+          <div class="navi-financial-label" style="font-size:11px;color:#6b7280;">플랫폼 수수료</div>
+          <div class="navi-financial-value" style="font-size:13px;font-weight:700;color:#111827;">${platformFeeAvgText}</div>
+        </div>
+        <div class="navi-financial-col">
+          <div class="navi-financial-label" style="font-size:11px;color:#6b7280;">중도상환 수수료</div>
+          <div class="navi-financial-value" style="font-size:13px;font-weight:700;color:#111827;">${prepayFeeAvgText}</div>
+        </div>
+      </div>
+    `;
 
     html += `<div class="navi-lender-actions">`;
     if (phone) {
@@ -833,6 +929,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 첫 계산
   recalcAndUpdateSummary();
 
-    const lendersConfig = await loadLendersConfig();
+  const lendersConfig = await loadLendersConfig();
   window.__LENDERS_CONFIG__ = lendersConfig; // 디버깅용(임시)
 });
