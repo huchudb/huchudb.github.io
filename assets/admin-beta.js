@@ -122,6 +122,116 @@ function setupMoneyInputs(root) {
 }
 
 /* =========================================================
+   ✅ (추가) 금융조건 수치 입력: 스타일 주입 + 유틸
+========================================================= */
+function ensureFinanceInputsStylesInjected() {
+  if (document.getElementById("financeInputsStyles")) return;
+
+  const style = document.createElement("style");
+  style.id = "financeInputsStyles";
+  style.textContent = `
+    .finance-inputs-wrap { margin-top: 10px; }
+    .finance-products { display: flex; flex-direction: column; gap: 10px; }
+    .finance-product-title {
+      font-weight: 900;
+      font-size: 12px;
+      color: #111827;
+      margin: 2px 0 0;
+    }
+    .finance-metrics {
+      border: 2px solid #111;
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      background: #fff;
+    }
+    .finance-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    .finance-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .finance-metric-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      color: #111;
+      line-height: 1.1;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .finance-metric-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .finance-metric-row .lab {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+    .finance-metric-row input {
+      width: 120px;
+      max-width: 100%;
+      height: 40px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+      text-align: center;
+      background: #fff;
+    }
+    .finance-metric-row input:focus {
+      border-color: #111;
+      box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
+    }
+    .finance-metric-row .unit {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+    @media (max-width: 520px) {
+      .finance-metric-title { font-size: 22px; }
+      .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
+      .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
+      .finance-metrics-grid { gap: 10px; }
+      .finance-metrics { padding: 12px; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function sanitizePercentString(v) {
+  let s = String(v || "").replace(/[^0-9.]/g, "");
+  const parts = s.split(".");
+  if (parts.length > 2) {
+    s = parts[0] + "." + parts.slice(1).join("");
+  }
+  return s;
+}
+
+function normalizePercentBlur(v) {
+  const s = sanitizePercentString(v);
+  if (!s) return "";
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "";
+  // 불필요한 0 제거(표시는 최대 2자리 정도로만)
+  const fixed = Math.round(n * 100) / 100;
+  return String(fixed);
+}
+
+/* =========================================================
    1) 온투 통계
 ========================================================= */
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
@@ -302,6 +412,7 @@ function setupStatsInteractions() {
         fillStatsForm(statsRoot.byMonth[m] || null);
       }
 
+      setupums
       setupMoneyInputs();
       recalcProductAmounts();
     });
@@ -640,6 +751,8 @@ function ensureLender(id) {
       realEstateMinLoanAmount: "",
       // ✅ 추가조건(선택) - 옵션 key 배열
       extraConditions: [],
+      // ✅ (추가) 금융조건 수치 입력 - 상품군별 평균 % (금리/플랫폼/중도상환)
+      financialInputs: {},
       products: [],
       phoneNumber: "",
       kakaoUrl: "",
@@ -663,7 +776,7 @@ function ensureLenderDeepDefaults(lender) {
   }
 
   if (!Array.isArray(lender.products)) lender.products = [];
-  lender.products = migrateProducts(lender.products); // ✅ 여기만 변경됨
+  lender.products = migrateProducts(lender.products);
 
   // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
   const hasRealEstate = lender.products.includes("부동산담보대출");
@@ -676,7 +789,25 @@ function ensureLenderDeepDefaults(lender) {
   }
   lender.extraConditions = uniq(lender.extraConditions)
     .filter((k) => typeof k === "string" && !!EXTRA_CONDITION_INDEX[k]);
-  if (!hasRealEstate) lender.extraConditions = []; // 부동산담보대출 아니면 의미 없으니 비움
+  if (!hasRealEstate) lender.extraConditions = [];
+
+  // ✅ (추가) 금융조건 수치 입력 기본/정리
+  if (!lender.financialInputs || typeof lender.financialInputs !== "object") lender.financialInputs = {};
+  Object.keys(lender.financialInputs).forEach((k) => {
+    if (!lender.financialInputs[k] || typeof lender.financialInputs[k] !== "object") lender.financialInputs[k] = {};
+  });
+
+  const productsArr = Array.isArray(lender.products) ? lender.products : [];
+  productsArr.forEach((pgKey) => {
+    if (!lender.financialInputs[pgKey] || typeof lender.financialInputs[pgKey] !== "object") {
+      lender.financialInputs[pgKey] = {};
+    }
+    const obj = lender.financialInputs[pgKey];
+    ["interestAvg", "platformFeeAvg", "prepayFeeAvg"].forEach((field) => {
+      if (obj[field] == null) obj[field] = "";
+      else obj[field] = String(obj[field]);
+    });
+  });
 
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
@@ -717,7 +848,7 @@ function mergeLendersWithMaster() {
     ? lendersConfig.lenders
     : {};
 
-  const merged = { ...current }; // ✅ 기존 key 그대로 보존
+  const merged = { ...current };
 
   LENDERS_MASTER.forEach((m) => {
     const existing = current[m.id] || {};
@@ -729,7 +860,9 @@ function mergeLendersWithMaster() {
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
       realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
-      extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [], // ✅ 추가조건 보존
+      extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [],
+      // ✅ (추가) 금융조건 수치 입력 보존
+      financialInputs: (existing.financialInputs && typeof existing.financialInputs === "object") ? existing.financialInputs : {},
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
       kakaoUrl: existing.kakaoUrl || "",
@@ -959,6 +1092,130 @@ async function postLendersConfigToServer(successText) {
   saveLoanConfigBackupToStorageNow();
 
   return successText || "저장되었습니다.";
+}
+
+/* =========================================================
+   ✅ (추가) 금융조건 수치 입력 UI 렌더
+========================================================= */
+function renderFinanceInputsBox(lender) {
+  const box = document.createElement("div");
+  box.className = "admin-subbox finance-inputs-wrap";
+
+  const title = document.createElement("h3");
+  title.className = "admin-subbox-title";
+  title.textContent = "금융조건 수치 입력";
+
+  const help = document.createElement("p");
+  help.className = "admin-subbox-help";
+  help.innerHTML = "네비 결과 화면에 노출될 <b>평균 금리 / 플랫폼수수료 / 중도상환수수료(%)</b>를 입력하세요.";
+
+  box.appendChild(title);
+  box.appendChild(help);
+
+  const selected = Array.isArray(lender.products) ? lender.products.slice() : [];
+  if (selected.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "admin-empty";
+    empty.textContent = "먼저 ‘취급 상품군 설정’에서 상품군을 선택해주세요.";
+    box.appendChild(empty);
+    return box;
+  }
+
+  // PRODUCT_GROUPS 순서로 정렬(알 수 없는 키는 뒤로)
+  const orderMap = new Map(PRODUCT_GROUPS.map((p, idx) => [p.key, idx]));
+  selected.sort((a, b) => (orderMap.get(a) ?? 999) - (orderMap.get(b) ?? 999));
+
+  const wrap = document.createElement("div");
+  wrap.className = "finance-products";
+
+  const labelByKey = (k) => (PRODUCT_GROUPS.find((p) => p.key === k)?.label) || k;
+
+  selected.forEach((pgKey) => {
+    const cur = ensureLender(lender.id);
+    const fin = (cur.financialInputs && cur.financialInputs[pgKey]) ? cur.financialInputs[pgKey] : {};
+
+    const t = document.createElement("div");
+    t.className = "finance-product-title";
+    t.textContent = `• ${labelByKey(pgKey)}`;
+    wrap.appendChild(t);
+
+    const metrics = document.createElement("div");
+    metrics.className = "finance-metrics";
+
+    const grid = document.createElement("div");
+    grid.className = "finance-metrics-grid";
+
+    const makeMetric = (metricTitle, fieldKey) => {
+      const col = document.createElement("div");
+      col.className = "finance-metric";
+
+      const h = document.createElement("div");
+      h.className = "finance-metric-title";
+      h.textContent = metricTitle;
+
+      const row = document.createElement("div");
+      row.className = "finance-metric-row";
+
+      const lab = document.createElement("span");
+      lab.className = "lab";
+      lab.textContent = "평균";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.inputMode = "decimal";
+      input.placeholder = "숫자입력";
+      input.value = (fin && fin[fieldKey] != null) ? String(fin[fieldKey]) : "";
+
+      input.addEventListener("input", () => {
+        const sanitized = sanitizePercentString(input.value);
+        if (input.value !== sanitized) input.value = sanitized;
+
+        const cur2 = ensureLender(lender.id);
+        const nextAll = { ...(cur2.financialInputs || {}) };
+        const nextOne = { ...(nextAll[pgKey] || {}) };
+        nextOne[fieldKey] = input.value;
+        nextAll[pgKey] = nextOne;
+
+        // ✅ 포커스 유지 위해 renderLendersList()는 하지 않음
+        updateLenderState(lender.id, { financialInputs: nextAll });
+      });
+
+      input.addEventListener("blur", () => {
+        const normalized = normalizePercentBlur(input.value);
+        input.value = normalized;
+
+        const cur2 = ensureLender(lender.id);
+        const nextAll = { ...(cur2.financialInputs || {}) };
+        const nextOne = { ...(nextAll[pgKey] || {}) };
+        nextOne[fieldKey] = normalized;
+        nextAll[pgKey] = nextOne;
+
+        updateLenderState(lender.id, { financialInputs: nextAll });
+      });
+
+      const unit = document.createElement("span");
+      unit.className = "unit";
+      unit.textContent = "%";
+
+      row.appendChild(lab);
+      row.appendChild(input);
+      row.appendChild(unit);
+
+      col.appendChild(h);
+      col.appendChild(row);
+      return col;
+    };
+
+    grid.appendChild(makeMetric("금리", "interestAvg"));
+    grid.appendChild(makeMetric("플랫폼수수료", "platformFeeAvg"));
+    grid.appendChild(makeMetric("중도상환수수료", "prepayFeeAvg"));
+
+    metrics.appendChild(grid);
+    wrap.appendChild(metrics);
+  });
+
+  box.appendChild(wrap);
+  return box;
 }
 
 /* =========================================================
@@ -1292,7 +1549,11 @@ function renderLendersList() {
 
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
+    // ✅ 위치 규칙 반영:
+    // - 부동산담보대출 포함 시: 취급 상품군 설정 → 금융조건 수치 입력 → 추가조건(선택)
+    // - 그 외: 취급 상품군 설정 → 금융조건 수치 입력 → 상담 채널 정보
     if (hasRealEstate) {
+      inner.appendChild(renderFinanceInputsBox(lender));      // ✅ 여기!
       inner.appendChild(renderExtraConditionsBox(lender));
 
       const matrixBox = document.createElement("div");
@@ -1483,6 +1744,8 @@ function renderLendersList() {
       matrixBox.appendChild(table);
 
       inner.appendChild(matrixBox);
+    } else {
+      inner.appendChild(renderFinanceInputsBox(lender)); // ✅ 여기!
     }
 
     const contactBox = document.createElement("div");
@@ -1613,6 +1876,8 @@ function setupLendersSaveButton() {
 
 /* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
+  ensureFinanceInputsStylesInjected(); // ✅ (추가) 금융조건 UI 스타일
+
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
