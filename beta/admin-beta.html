@@ -6,20 +6,16 @@
   <title>후추 | 온투업(P2P) 관리자 (베타)</title>
   <meta name="description" content="온투업 담보대출 네비게이션 설정 및 중앙기록관리기관 통계 데이터를 관리하는 베타 관리자 페이지입니다.">
 
-  <!-- 기존 베타 공통 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-  <!-- 관리자 전용 스타일 -->
-  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251215-a3" />
+  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251218-fix1" />
 
-  <!-- 관리자 전용 스크립트 -->
-  <script type="module" src="/assets/admin-beta.js?v=20251215-a3"></script>
+  <script type="module" src="/assets/admin-beta.js?v=20251218-fix1"></script>
 </head>
 <body class="beta-body">
 
   <!-- ===== 상단 헤더 (베타 공통) ===== -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
-      <!-- 로고 -->
       <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
         <span class="logo-fallback">
@@ -28,7 +24,6 @@
         </span>
       </a>
 
-      <!-- MENU + 드롭다운 -->
       <button id="betaMenuToggle"
               class="beta-menu-toggle"
               type="button"
@@ -53,7 +48,6 @@
     <div class="beta-inner">
       <div class="admin-page">
 
-        <!-- 메인 타이틀 -->
         <h1 class="admin-title">온투업 베타 관리자</h1>
         <p class="admin-note">
           후추 네비게이션(담보대출 길잡이)과 온투업 대출통계에 사용되는
@@ -62,13 +56,12 @@
           · 온투업체 네비게이션 설정은 <code>/api/loan-config</code> 로 저장/불러오기 됩니다.
         </p>
 
-        <!-- 탭 버튼 -->
         <div class="admin-tabs">
           <button type="button" class="admin-tab-btn is-active" data-tab="stats">온투업 통계 저장</button>
           <button type="button" class="admin-tab-btn" data-tab="lenders">온투업체 정보 등록</button>
         </div>
 
-        <!-- ================== TAB 1: 온투업 통계 저장 ================== -->
+        <!-- TAB 1 -->
         <section id="admin-tab-stats" class="admin-tab-panel">
           <div class="admin-card">
             <div class="admin-field-group">
@@ -83,7 +76,6 @@
               </div>
             </div>
 
-            <!-- 대출현황 summary -->
             <div class="admin-field-group">
               <h2 class="admin-field-title">2. 온투업 대출현황 요약</h2>
               <p class="admin-note">
@@ -102,32 +94,19 @@
                 </div>
                 <div class="admin-field">
                   <label for="statsTotalLoan">누적대출금액 (원)</label>
-                  <input type="text"
-                         id="statsTotalLoan"
-                         class="admin-input"
-                         data-type="money"
-                         placeholder="예) 18358007760000" />
+                  <input type="text" id="statsTotalLoan" class="admin-input" data-type="money" placeholder="예) 18358007760000" />
                 </div>
                 <div class="admin-field">
                   <label for="statsTotalRepaid">누적상환금액 (원)</label>
-                  <input type="text"
-                         id="statsTotalRepaid"
-                         class="admin-input"
-                         data-type="money"
-                         placeholder="예) 16924144010000" />
+                  <input type="text" id="statsTotalRepaid" class="admin-input" data-type="money" placeholder="예) 16924144010000" />
                 </div>
                 <div class="admin-field">
                   <label for="statsBalance">대출잔액 (원)</label>
-                  <input type="text"
-                         id="statsBalance"
-                         class="admin-input"
-                         data-type="money"
-                         placeholder="예) 1433867500000" />
+                  <input type="text" id="statsBalance" class="admin-input" data-type="money" placeholder="예) 1433867500000" />
                 </div>
               </div>
             </div>
 
-            <!-- 상품유형별 대출잔액 -->
             <div class="admin-field-group">
               <h2 class="admin-field-title">3. 상품유형별 대출잔액</h2>
               <p class="admin-note">
@@ -151,6 +130,7 @@
                     </tr>
                   </thead>
                   <tbody id="productRows">
+                    <!-- (사용자 HTML 그대로 유지) -->
                     <tr data-key="부동산담보">
                       <td style="padding:6px 4px;">부동산담보</td>
                       <td style="padding:6px 4px;text-align:right;">
@@ -216,7 +196,6 @@
               </div>
             </div>
 
-            <!-- 저장 버튼 -->
             <div class="admin-field-group">
               <button type="button" id="saveOntuStatsBtn" class="admin-save-btn">
                 온투업 통계 데이터 저장
@@ -226,7 +205,7 @@
           </div>
         </section>
 
-        <!-- ================== TAB 2: 온투업체 정보 등록 ================== -->
+        <!-- TAB 2 -->
         <section id="admin-tab-lenders" class="admin-tab-panel hide">
           <div class="admin-card">
 
@@ -239,7 +218,6 @@
               </p>
             </div>
 
-            <!-- ✅ 검색만 유지 (필터 삭제) -->
             <div class="admin-field-group">
               <div class="admin-field">
                 <label for="lenderSearchInput">온투업체 검색</label>
@@ -250,29 +228,28 @@
               </div>
             </div>
 
-            <!-- 온투업체 리스트 (JS가 자동 생성) -->
             <div id="lendersList" class="admin-field-group"></div>
 
-             <!-- ✅ 전체 저장 + 백업(다운/업로드) -->
-<div class="admin-field-group">
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-    <button type="button" id="saveLendersConfigBtn" class="admin-save-btn">전체 저장</button>
-    <button type="button" id="downloadLoanConfigBtn" class="admin-save-btn" style="background:#374151;">
-      백업 다운로드
-    </button>
-    <button type="button" id="uploadLoanConfigBtn" class="admin-save-btn" style="background:#6b7280;">
-      백업 업로드
-    </button>
-    <input id="loanConfigFileInput" type="file" accept="application/json" style="display:none;" />
-  </div>
+            <div class="admin-field-group">
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <button type="button" id="saveLendersConfigBtn" class="admin-save-btn">전체 저장</button>
+                <button type="button" id="downloadLoanConfigBtn" class="admin-save-btn" style="background:#374151;">
+                  백업 다운로드
+                </button>
+                <button type="button" id="uploadLoanConfigBtn" class="admin-save-btn" style="background:#6b7280;">
+                  백업 업로드
+                </button>
+                <input id="loanConfigFileInput" type="file" accept="application/json" style="display:none;" />
+              </div>
 
-  <div id="lendersSaveStatus" class="admin-save-status"></div>
-  <div id="lendersBackupStatus" class="admin-save-status" style="color:#6b7280;"></div>
+              <div id="lendersSaveStatus" class="admin-save-status"></div>
+              <div id="lendersBackupStatus" class="admin-save-status" style="color:#6b7280;"></div>
 
-  <p class="admin-note" style="margin-top:8px;">
-    ※ 로컬 백업은 <strong>이 브라우저(PC/계정)</strong>에만 저장됩니다. 다른 PC/브라우저에서는 보이지 않아요.
-  </p>
-</div>
+              <p class="admin-note" style="margin-top:8px;">
+                ※ 로컬 백업은 <strong>이 브라우저(PC/계정)</strong>에만 저장됩니다. 다른 PC/브라우저에서는 보이지 않아요.
+              </p>
+            </div>
+
           </div>
         </section>
 
@@ -280,7 +257,6 @@
     </div>
   </main>
 
-  <!-- ===== 푸터 (베타 공통) ===== -->
   <footer class="beta-footer" role="contentinfo">
     <div class="beta-footer__top">
       <a href="/company.html">회사소개</a>
