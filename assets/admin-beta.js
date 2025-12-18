@@ -443,7 +443,7 @@ function fillStatsForm(stat, monthKey) {
   ensureByLenderSection();
   renderByLenderSection(monthKey);
 
-  // byLender 모드면 합산값으로 productRows/잔액/ratio 동기화
+  // byLender 모드면 합산값으로 productRows/ratio 동기화 (✅ statsBalance는 수동 입력값을 분모로만 사용)
   if (monthKey && isByLenderMode(monthKey)) {
     recalcFromByLender(monthKey, { silent: true });
     applyByLenderModeUI(true);
@@ -469,7 +469,7 @@ function collectStatsFormData() {
     dataFirms: dataEl ? Number(dataEl.value || 0) : 0,
     totalLoan: getMoneyValue(tlEl),
     totalRepaid: getMoneyValue(trEl),
-    balance: getMoneyValue(balEl)
+    balance: getMoneyValue(balEl) // ✅ 항상 수동 입력값
   };
 
   const products = {};
@@ -748,7 +748,8 @@ function ensureByLenderSection() {
     help.className = "stats-byLender-help";
     help.innerHTML =
       '기관 제공 <b>점유율(%)</b>이 100%를 넘는 문제가 있어, 여기서는 <b>업체별 잔액(원)</b>을 입력합니다.<br/>' +
-      '입력된 업체별 금액을 시스템이 <b>상품유형별 잔액(합계)</b>으로 자동 계산하여 위 표에 채워줍니다.';
+      '입력된 업체별 금액을 시스템이 <b>상품유형별 잔액(합계)</b>으로 자동 계산하여 위 표에 채워주고,<br/>' +
+      '<b>상품유형별 비율(%)</b>은 <b>대출잔액(수동 입력)</b>을 분모로 자동 계산합니다.';
 
     const tableWrap = document.createElement("div");
     tableWrap.className = "stats-byLender-tableWrap";
@@ -759,7 +760,7 @@ function ensureByLenderSection() {
     const note = document.createElement("div");
     note.className = "stats-byLender-disabledNote";
     note.id = "statsByLenderDisabledNote";
-    note.textContent = "※ 업체별 입력 사용 ON 시, 상품유형별 %/금액/대출잔액은 합산값으로 자동 계산됩니다.";
+    note.textContent = "※ 업체별 입력 사용 ON 시, 상품유형별 금액/비율(%)은 자동 계산됩니다. (대출잔액은 수동 입력 유지)";
 
     box.appendChild(head);
     box.appendChild(help);
@@ -802,24 +803,28 @@ function ensureByLenderSection() {
 }
 
 /* =========================================================
-   ✅ (FIX) byLender 렌더/모드UI/합산 함수 누락 보완
-   - renderByLenderSection
-   - applyByLenderModeUI
-   - recalcFromByLender
+   ✅ (FIX) byLender 렌더/모드UI/합산 함수
+   - 1) 업체 순서: LENDERS_MASTER 순서(온투업정보등록상 순서) 유지
+   - 2) statsBalance(대출잔액): 수동 입력 (자동 덮어쓰기/자동 합산 금지)
+   - 3) 비율(%) = (상품유형별 합계 / statsBalance) × 100
 ========================================================= */
 
 function applyByLenderModeUI(enabled) {
-  // enabled=true면: 상품유형별 % 입력/잔액 자동계산은 byLender 합산으로 잠그기
+  // enabled=true면: 상품유형별 % 입력은 잠그고, 금액/비율은 byLender 합산으로 표시
   const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
   const amountInputs = document.querySelectorAll("#productRows .js-amount");
   const balEl = document.getElementById("statsBalance");
 
+  // ✅ ratio 입력은 byLender 모드에서 계산값이므로 잠금
   ratioInputs.forEach((el) => { el.disabled = !!enabled; });
-  amountInputs.forEach((el) => { el.readOnly = true; el.disabled = !!enabled; });
 
+  // ✅ amount는 원래 readonly 성격. 값은 보여야 하므로 disabled는 걸지 않음
+  amountInputs.forEach((el) => { el.readOnly = true; el.disabled = false; });
+
+  // ✅ statsBalance는 "수동 입력" 유지: 절대 readOnly/disabled 하지 않음
   if (balEl) {
-    // byLender 모드에서는 잔액도 합산으로 고정 (직접 입력해도 무시됨)
-    balEl.readOnly = !!enabled;
+    balEl.readOnly = false;
+    balEl.disabled = false;
   }
 
   const note = document.getElementById("statsByLenderDisabledNote");
@@ -858,23 +863,34 @@ function renderByLenderSection(monthKey) {
     ? lendersConfig.lenders
     : {};
 
-  const list = Object.values(cfg)
-    .filter(Boolean)
-    .filter((l) => {
-      if (onlyActiveOn && !l.isActive) return false;
-      if (!q) return true;
-      const hay = `${l.name || ""} ${l.id || ""}`.toLowerCase();
-      return hay.includes(q);
-    })
-    .sort((a, b) => {
-      // 보기 좋게: 제휴순서(1~10) 우선, 그 다음 이름
-      const ao = (a.isPartner ? (a.partnerOrder || 999) : 999);
-      const bo = (b.isPartner ? (b.partnerOrder || 999) : 999);
-      if (ao !== bo) return ao - bo;
-      return String(a.name || a.id || "").localeCompare(String(b.name || b.id || ""), "ko");
-    });
+  // ✅ (중요) LENDERS_MASTER 순서(온투업정보등록상 순서) 그대로
+  const orderedIds = [];
+  const seen = new Set();
 
-  if (list.length === 0) {
+  LENDERS_MASTER.forEach((m) => {
+    if (cfg[m.id] && !seen.has(m.id)) {
+      orderedIds.push(m.id);
+      seen.add(m.id);
+    }
+  });
+  // 마스터에 없는 커스텀 업체는 뒤에 추가
+  Object.keys(cfg).forEach((id) => {
+    if (!seen.has(id)) {
+      orderedIds.push(id);
+      seen.add(id);
+    }
+  });
+
+  const visibleIds = orderedIds.filter((id) => {
+    const l = cfg[id];
+    if (!l) return false;
+    if (onlyActiveOn && !l.isActive) return false;
+    if (!q) return true;
+    const hay = `${l.name || ""} ${l.id || id || ""}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (visibleIds.length === 0) {
     scroll.innerHTML = `<div style="padding:10px;font-size:12px;color:#6b7280;">표시할 업체가 없습니다. (활성 업체만 체크/검색어를 확인)</div>`;
     return;
   }
@@ -905,14 +921,17 @@ function renderByLenderSection(monthKey) {
   const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
   node.byLender = byLender;
 
-  list.forEach((l) => {
+  visibleIds.forEach((id) => {
+    const l = cfg[id];
+    if (!l) return;
+
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
-    tdName.textContent = l.name || l.id || "-";
+    tdName.textContent = l.name || l.id || id || "-";
     tr.appendChild(tdName);
 
-    const lenderId = l.id;
+    const lenderId = id;
 
     if (!byLender[lenderId] || typeof byLender[lenderId] !== "object") {
       byLender[lenderId] = {};
@@ -934,6 +953,7 @@ function renderByLenderSection(monthKey) {
         saveStatsToStorage();
 
         if (node.ui?.useByLender) {
+          // ✅ statsBalance는 건드리지 않고, 상품유형 합계/비율만 업데이트
           recalcFromByLender(monthKey, { silent: true });
           applyByLenderModeUI(true);
         }
@@ -967,6 +987,10 @@ function recalcFromByLender(monthKey, opts = {}) {
   const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
   node.byLender = byLender;
 
+  // ✅ 분모: statsBalance는 "수동 입력" (자동 덮어쓰기 금지)
+  const balEl = document.getElementById("statsBalance");
+  const manualBalance = getMoneyValue(balEl);
+
   // 상품유형별 합계
   const sums = {};
   rowKeys.forEach((k) => (sums[k] = 0));
@@ -974,27 +998,24 @@ function recalcFromByLender(monthKey, opts = {}) {
   Object.values(byLender).forEach((per) => {
     if (!per || typeof per !== "object") return;
     rowKeys.forEach((k) => {
-      const v = Number(per[k] || 0);
-      if (Number.isFinite(v)) sums[k] += v;
+      const v = toNumberSafe(per[k]);
+      if (v > 0) sums[k] += v;
     });
   });
 
-  const totalBalance = rowKeys.reduce((acc, k) => acc + (sums[k] || 0), 0);
-
-  // summary.balance 업데이트
-  if (!node.summary || typeof node.summary !== "object") node.summary = {};
-  node.summary.balance = totalBalance;
-
-  // 입력 UI 반영 (잔액)
-  const balEl = document.getElementById("statsBalance");
-  if (balEl) balEl.value = totalBalance ? formatWithCommas(String(totalBalance)) : "";
-
-  // products 생성: ratioPercent = amount/total * 100
+  // products 생성:
+  // - amount = sums[type]
+  // - ratioPercent = amount / manualBalance * 100 (manualBalance가 0이면 빈값)
   const products = {};
   rowKeys.forEach((k) => {
-    const amount = sums[k] || 0;
+    const amount = Math.round(sums[k] || 0);
     if (!amount) return;
-    const ratioPercent = totalBalance ? (Math.round((amount / totalBalance) * 10000) / 100) : 0; // 소수2자리
+
+    const ratioPercent =
+      (manualBalance > 0)
+        ? (Math.round((amount / manualBalance) * 10000) / 100)  // 소수 2자리
+        : "";
+
     products[k] = { ratioPercent, amount };
   });
 
@@ -1003,6 +1024,7 @@ function recalcFromByLender(monthKey, opts = {}) {
 
   applyProductsToProductRows(products);
 
+  // ✅ summary.balance / statsBalance 값은 절대 자동 변경하지 않는다
   if (!opts.silent) saveStatsToStorage();
 }
 
@@ -1035,6 +1057,9 @@ function setupStatsInteractions() {
       setupMoneyInputs();
       if (!isByLenderMode(m)) {
         recalcProductAmounts();
+      } else {
+        // ✅ byLender 모드면 (수동 잔액 기준) 비율 재계산
+        recalcFromByLender(m, { silent: true });
       }
     });
   }
@@ -1043,8 +1068,16 @@ function setupStatsInteractions() {
   if (balEl) {
     balEl.addEventListener("input", () => {
       const m = getCurrentMonthKey();
-      if (m && isByLenderMode(m)) return;
       balEl.value = formatWithCommas(balEl.value);
+
+      if (!m) return;
+
+      // ✅ byLender 모드에서도 statsBalance 입력 변경 시 비율(%) 재계산
+      if (isByLenderMode(m)) {
+        recalcFromByLender(m, { silent: true });
+        return;
+      }
+
       recalcProductAmounts();
     });
   }
@@ -1065,7 +1098,7 @@ function setupStatsInteractions() {
 
       const { monthKey, summary, products, byLender, ui } = payload;
 
-      // ✅ byLender 모드면 합산으로 summary.balance 정합 맞추기
+      // ✅ byLender 모드면 (수동 잔액 기준) products/ratio 최신화만 수행 (statsBalance/summary.balance는 건드리지 않음)
       if (ui?.useByLender) {
         recalcFromByLender(monthKey, { silent: true });
       }
@@ -1663,7 +1696,8 @@ async function loadLendersConfigFromServer() {
       ? json
       : { lenders: {} };
 
-    const serverCount = Object.keys(serverCfg.lenders || {}).length;
+    const serverCount = Object.keys(serverCfg.lenders || {}).
+length;
 
     if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
       console.warn("loan-config 서버가 비어있어 로컬 백업을 우선 복구합니다.");
