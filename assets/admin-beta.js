@@ -37,7 +37,6 @@ async function fetchJsonNoCache(url, options = {}) {
   const sep = url.includes("?") ? "&" : "?";
   const bustUrl = `${url}${sep}_ts=${Date.now()}`;
 
-  // ✅ 중요: 불필요한 커스텀 헤더를 넣지 않는다 (CORS preflight 방지)
   const res = await fetch(bustUrl, {
     ...options,
     method: options.method || "GET",
@@ -110,10 +109,17 @@ function getMoneyValue(inputEl) {
   const digits = stripNonDigits(inputEl.value);
   return digits ? Number(digits) : 0;
 }
+
+/* ✅ 중복 바인딩 방지 */
 function setupMoneyInputs(root) {
   const scope = root || document;
   const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
   moneyInputs.forEach((input) => {
+    if (input.dataset.moneyBound === "true") {
+      if (input.value) input.value = formatWithCommas(input.value);
+      return;
+    }
+    input.dataset.moneyBound = "true";
     input.addEventListener("input", (e) => {
       e.target.value = formatWithCommas(e.target.value);
     });
@@ -236,25 +242,6 @@ function normalizePercentBlur(v) {
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
 let statsRoot = { byMonth: {} };
 
-// ✅ HTML의 기본 row key (DOM이 없을 때 대비)
-const STATS_ROWKEY_FALLBACK = [
-  "부동산담보",
-  "부동산PF",
-  "어음·매출채권담보",
-  "기타담보(주식 등)",
-  "개인신용",
-  "법인신용"
-];
-
-function getStatsRowKeys() {
-  const tbody = document.getElementById("productRows");
-  if (!tbody) return STATS_ROWKEY_FALLBACK.slice();
-  const keys = Array.from(tbody.querySelectorAll("tr[data-key]"))
-    .map((r) => r.getAttribute("data-key"))
-    .filter(Boolean);
-  return keys.length ? keys : STATS_ROWKEY_FALLBACK.slice();
-}
-
 function loadStatsFromStorage() {
   try {
     const raw = localStorage.getItem(STATS_LOCAL_KEY);
@@ -273,6 +260,7 @@ function getCurrentMonthKey() {
   const m = document.getElementById("statsMonth");
   return m ? (m.value || "").trim() : "";
 }
+
 function clearStatsForm() {
   ["statsRegisteredFirms","statsDataFirms","statsTotalLoan","statsTotalRepaid","statsBalance"]
     .forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -281,21 +269,22 @@ function clearStatsForm() {
   document.querySelectorAll("#productRows .js-amount").forEach((el) => (el.value = ""));
 }
 
+/* ✅ 서버/로컬 데이터 → 폼 채우기 (summary + products/byType 모두) */
 function fillStatsForm(stat) {
   if (!stat) { clearStatsForm(); return; }
 
-  const s = stat.summary || {};
+  const s = (stat.summary && typeof stat.summary === "object") ? stat.summary : {};
   const regEl = document.getElementById("statsRegisteredFirms");
   const dataEl = document.getElementById("statsDataFirms");
   const tlEl = document.getElementById("statsTotalLoan");
   const trEl = document.getElementById("statsTotalRepaid");
   const balEl = document.getElementById("statsBalance");
 
-  if (regEl) regEl.value = Number(s.registeredFirms || 0);
-  if (dataEl) dataEl.value = Number(s.dataFirms || 0);
-  if (tlEl) tlEl.value = formatWithCommas(String(s.totalLoan || ""));
-  if (trEl) trEl.value = formatWithCommas(String(s.totalRepaid || ""));
-  if (balEl) balEl.value = formatWithCommas(String(s.balance || ""));
+  if (regEl) regEl.value = (s.registeredFirms ?? "");
+  if (dataEl) dataEl.value = (s.dataFirms ?? "");
+  if (tlEl) tlEl.value = (s.totalLoan != null) ? formatWithCommas(String(s.totalLoan)) : "";
+  if (trEl) trEl.value = (s.totalRepaid != null) ? formatWithCommas(String(s.totalRepaid)) : "";
+  if (balEl) balEl.value = (s.balance != null) ? formatWithCommas(String(s.balance)) : "";
 
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
@@ -304,10 +293,10 @@ function fillStatsForm(stat) {
     .map((r) => r.getAttribute("data-key"))
     .filter(Boolean);
 
-  // ✅ products 우선, 없으면 byType → products 변환
-  let products = (stat && stat.products && typeof stat.products === "object") ? stat.products : null;
-  if ((!products || Object.keys(products).length === 0) && stat && stat.byType && typeof stat.byType === "object") {
-    products = _byTypeToProducts(stat.byType, rowKeys.length ? rowKeys : getStatsRowKeys());
+  // ✅ products 우선, 없으면 byType → products로 변환
+  let products = (stat.products && typeof stat.products === "object") ? stat.products : null;
+  if (!products && stat.byType && typeof stat.byType === "object") {
+    products = _byTypeToProducts(stat.byType, rowKeys);
   }
   if (!products) products = {};
 
@@ -351,6 +340,7 @@ function collectStatsFormData() {
     const key = row.getAttribute("data-key");
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
+
     const ratioPercent = ratioEl && ratioEl.value !== "" ? Number(ratioEl.value) : 0;
     const amount = getMoneyValue(amountEl);
 
@@ -382,12 +372,13 @@ function recalcProductAmounts() {
 function _ratioToPercent(v) {
   const n = Number(v);
   if (!isFinite(n)) return "";
+  // 서버: 0.43(=43%) 형태면 *100
   return (n <= 1) ? (n * 100) : n;
 }
-
 function _percentToRatio(v) {
   const n = Number(v);
   if (!isFinite(n)) return 0;
+  // UI: 43(%) 형태면 /100
   return (n > 1) ? (n / 100) : n;
 }
 
@@ -399,7 +390,6 @@ function _normTypeKey(s) {
     .replace(/[()]/g, "")
     .replace(/대출|유동화/g, "");
 }
-
 function _findBestRowKey(typeKey, rowKeys) {
   const t = _normTypeKey(typeKey);
   if (!t) return null;
@@ -407,7 +397,7 @@ function _findBestRowKey(typeKey, rowKeys) {
   let best = null;
   let bestScore = 0;
 
-  for (const rk of (rowKeys || [])) {
+  for (const rk of rowKeys) {
     const r = _normTypeKey(rk);
     if (!r) continue;
 
@@ -423,14 +413,13 @@ function _findBestRowKey(typeKey, rowKeys) {
   return best || null;
 }
 
-// ✅ rowKeys 없을 때도 동작하도록 보강
 function _byTypeToProducts(byType, rowKeys) {
   const out = {};
   if (!byType || typeof byType !== "object") return out;
 
   Object.entries(byType).forEach(([k, v]) => {
     if (!v || typeof v !== "object") return;
-    const matchKey = (rowKeys && rowKeys.length) ? (_findBestRowKey(k, rowKeys) || k) : k;
+    const matchKey = _findBestRowKey(k, rowKeys) || k;
     out[matchKey] = {
       ratioPercent: _ratioToPercent(v.ratio),
       amount: v.amount != null ? Number(v.amount) : 0
@@ -461,65 +450,80 @@ function _productsToByType(products) {
   return out;
 }
 
-// ✅ 서버 응답 정규화: byType도 살리고, products가 비면 byType→products 변환
+/* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType}로 정규화 */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
 
-  const normalizeOne = (obj) => {
-    if (!obj || typeof obj !== "object") return null;
-
-    const summary = obj.summary || (obj.data && obj.data.summary) || {};
-    const rawProducts = obj.products || (obj.data && obj.data.products) || {};
-    const byType = obj.byType || (obj.data && obj.data.byType) || null;
-
-    let products = (rawProducts && typeof rawProducts === "object") ? rawProducts : {};
-    if ((!products || Object.keys(products).length === 0) && byType && typeof byType === "object") {
-      products = _byTypeToProducts(byType, getStatsRowKeys());
-    }
-
-    const out = { summary, products };
-    if (byType && typeof byType === "object") out.byType = byType;
-    return out;
-  };
-
+  // 1) {byMonth: { "2025-12": {...}}}
   if (json.byMonth && typeof json.byMonth === "object") {
     const hit = json.byMonth[monthKey];
-    const normalized = normalizeOne(hit);
-    if (normalized) return normalized;
+    if (hit && typeof hit === "object") {
+      return {
+        summary: hit.summary || {},
+        products: hit.products || null,
+        byType: hit.byType || null
+      };
+    }
   }
 
+  // 2) [ {month:"2025-12", ...}, ... ] or monthKey field
   if (Array.isArray(json)) {
-    const found = json.find((x) => x && typeof x === "object" && x.monthKey === monthKey);
-    const normalized = normalizeOne(found);
-    if (normalized) return normalized;
+    const found = json.find((x) => x && typeof x === "object" && ((x.monthKey === monthKey) || (x.month === monthKey)));
+    if (found) {
+      return {
+        summary: found.summary || {},
+        products: found.products || null,
+        byType: found.byType || null
+      };
+    }
   }
 
+  // 3) 단일 객체 {month:"2025-12", summary, byType/products}
   if (typeof json === "object") {
-    if (json.summary || json.products || json.byType || (json.data && (json.data.summary || json.data.products || json.data.byType))) {
-      const normalized = normalizeOne(json);
-      if (normalized) return normalized;
+    // {data:{...}}
+    if (json.data && typeof json.data === "object") {
+      const d = json.data;
+      if (d.summary || d.products || d.byType) {
+        return { summary: d.summary || {}, products: d.products || null, byType: d.byType || null };
+      }
+    }
+
+    if (json.summary || json.products || json.byType) {
+      return { summary: json.summary || {}, products: json.products || null, byType: json.byType || null };
     }
   }
 
   return null;
 }
 
+/* ✅ 서버 로드: stats 페이지(ontu-stats.js)와 동일하게 ?month= 우선 시도 */
 async function loadOntuStatsFromServer(monthKey) {
   if (!monthKey) return null;
 
-  // ✅ 캐시/304 영향 최소화 위해 no-cache 유틸 사용
+  // 1) ?month=
   try {
-    const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
-    const json = await fetchJsonNoCache(url, { method: "GET" });
+    const url = `${API_BASE}/api/ontu-stats?month=${encodeURIComponent(monthKey)}`;
+    const json = await fetchJsonNoCache(url);
     const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
     if (normalized) return normalized;
   } catch (e) {
-    console.warn("ontu-stats server load (query) error:", e);
+    console.warn("ontu-stats server load (month) error:", e);
   }
 
+  // 2) ?monthKey= (호환)
+  try {
+    const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
+    const json = await fetchJsonNoCache(url);
+    const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
+    if (normalized) return normalized;
+  } catch (e) {
+    console.warn("ontu-stats server load (monthKey) error:", e);
+  }
+
+  // 3) 전체 GET 후 monthKey 매칭
   try {
     const urlAll = `${API_BASE}/api/ontu-stats`;
-    const jsonAll = await fetchJsonNoCache(urlAll, { method: "GET" });
+    const jsonAll = await fetchJsonNoCache(urlAll);
     const normalized = normalizeOntuStatsResponseToMonth(jsonAll, monthKey);
     return normalized || null;
   } catch (e) {
@@ -568,11 +572,10 @@ function setupStatsInteractions() {
       if (!payload) { alert("먼저 조회년월을 선택해주세요."); return; }
 
       const { monthKey, summary, products } = payload;
-
-      // ✅ fetch 옵션 객체 안에 문장 넣으면 파일이 깨짐 → 밖으로 빼기
       const byType = _productsToByType(products);
 
       try {
+        // ✅ 문법 오류 원인 제거: byType은 fetch 옵션 밖에서 계산
         const res = await fetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -581,7 +584,7 @@ function setupStatsInteractions() {
             month: monthKey,     // ✅ 서버가 month 필드를 쓰는 경우 대비
             summary,
             products,            // ✅ 기존 호환
-            byType               // ✅ 서버 호환
+            byType               // ✅ stats 페이지에서 쓰는 형태
           })
         });
 
@@ -591,9 +594,11 @@ function setupStatsInteractions() {
         }
 
         const savedJson = await res.json().catch(() => null);
-        const normalizedSaved =
-          normalizeOntuStatsResponseToMonth(savedJson, monthKey)
-          || { summary, products, byType };
+        const normalizedSaved = normalizeOntuStatsResponseToMonth(savedJson, monthKey) || {
+          summary,
+          products,
+          byType
+        };
 
         statsRoot.byMonth[monthKey] = normalizedSaved;
         saveStatsToStorage();
@@ -620,10 +625,8 @@ function setupStatsInteractions() {
 const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
-
   { key: "스탁론(상장)", label: "스탁론(상장)" },
   { key: "스탁론(비상장)", label: "스탁론(비상장)" },
-
   { key: "법인신용대출", label: "법인신용대출" },
   { key: "매출채권유동화", label: "매출채권유동화" },
   { key: "의료사업자대출", label: "의료사업자대출" },
@@ -670,7 +673,7 @@ const LOAN_TYPES_APTVILLA = [
 /* =========================================================
    ✅ 추가조건(선택) — 정의서(단일 소스)
 ========================================================= */
-const EXTRA_CONDITIONS = { /* (사용자가 준 그대로) */ 
+const EXTRA_CONDITIONS = {
   version: "v1",
   groups: [
     {
@@ -801,7 +804,7 @@ function buildExtraConditionIndex(def) {
 const EXTRA_CONDITION_INDEX = buildExtraConditionIndex(EXTRA_CONDITIONS);
 
 /* ✅ 마스터 */
-const LENDERS_MASTER = [ /* (사용자가 준 그대로) */ 
+const LENDERS_MASTER = [
   { id: "hifunding", name: "하이펀딩", homepage: "https://hifunding.co.kr/" },
   { id: "cple", name: "피에프씨테크놀로지스", homepage: "https://www.cple.co.kr/" },
   { id: "8percent", name: "에잇퍼센트", homepage: "https://8percent.kr/" },
@@ -869,7 +872,7 @@ function uniq(arr) {
   return Array.from(new Set(Array.isArray(arr) ? arr : []));
 }
 
-/* ✅ (중요) 기존 저장 데이터 호환: "스탁론" → "스탁론(상장)" 자동 변환 */
+/* ✅ 기존 저장 데이터 호환: "스탁론" → "스탁론(상장)" 자동 변환 */
 function migrateProducts(products) {
   let arr = uniq(Array.isArray(products) ? products : []);
   if (arr.includes("스탁론")) {
@@ -1682,8 +1685,6 @@ function renderLendersList() {
       inner.appendChild(renderFinanceInputsBox(lender));
       inner.appendChild(renderExtraConditionsBox(lender));
 
-      // (이하 매트릭스/컨택트/저장 버튼 로직은 사용자가 준 그대로)
-      // -------------------- (원본 그대로 유지) --------------------
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
