@@ -341,6 +341,91 @@ function recalcProductAmounts() {
   });
 }
 
+function _ratioToPercent(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return "";
+  // 서버: 0.43(=43%) 형태면 *100
+  return (n <= 1) ? (n * 100) : n;
+}
+
+function _percentToRatio(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return 0;
+  // UI: 43(%) 형태면 /100
+  return (n > 1) ? (n / 100) : n;
+}
+
+function _normTypeKey(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[_-]/g, "")
+    .replace(/[()]/g, "")
+    .replace(/대출|유동화/g, "");
+}
+
+function _findBestRowKey(typeKey, rowKeys) {
+  const t = _normTypeKey(typeKey);
+  if (!t) return null;
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const rk of rowKeys) {
+    const r = _normTypeKey(rk);
+    if (!r) continue;
+
+    let score = 0;
+    if (r === t) score = 3;
+    else if (r.includes(t) || t.includes(r)) score = 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = rk;
+    }
+  }
+  return best || null;
+}
+
+function _byTypeToProducts(byType, rowKeys) {
+  const out = {};
+  if (!byType || typeof byType !== "object") return out;
+
+  Object.entries(byType).forEach(([k, v]) => {
+    if (!v || typeof v !== "object") return;
+    const matchKey = _findBestRowKey(k, rowKeys) || k;
+    out[matchKey] = {
+      ratioPercent: _ratioToPercent(v.ratio),
+      amount: v.amount != null ? Number(v.amount) : 0
+    };
+  });
+
+  return out;
+}
+
+function _productsToByType(products) {
+  const out = {};
+  if (!products || typeof products !== "object") return out;
+
+  Object.entries(products).forEach(([k, v]) => {
+    if (!v || typeof v !== "object") return;
+
+    const ratioPercent = Number(v.ratioPercent || 0);
+    const amount = Number(v.amount || 0);
+
+    // 1) 원래 key 그대로도 넣고
+    out[k] = { ratio: _percentToRatio(ratioPercent), amount };
+
+    // 2) "대출/유동화" 제거한 short key도 같이 넣어서 서버 호환 폭 넓히기
+    const shortKey = String(k).replace(/대출|유동화/g, "");
+    if (shortKey && shortKey !== k) {
+      out[shortKey] = { ratio: _percentToRatio(ratioPercent), amount };
+    }
+  });
+
+  return out;
+}
+
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
 
