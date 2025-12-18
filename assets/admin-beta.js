@@ -120,6 +120,101 @@ function toNumberSafe(v) {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
+function formatPercent8(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "";
+  return n.toFixed(8);
+}
+
+function parsePercentInput(v) {
+  const s = String(v ?? "").replace(/[^0-9.\-]/g, "");
+  if (!s) return 0;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* ✅ 상품유형별 표에 "합계" 행을 법인신용대출 아래에 생성 */
+function ensureProductTotalsRow() {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return;
+
+  if (tbody.querySelector('tr[data-key="__total__"]')) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr[data-key]'));
+  if (rows.length === 0) return;
+
+  let anchor =
+    rows.find(r => r.getAttribute("data-key") === "법인신용대출") ||
+    rows.find(r => String(r.getAttribute("data-key") || "").includes("법인신용")) ||
+    rows[rows.length - 1];
+
+  const tr = document.createElement("tr");
+  tr.setAttribute("data-key", "__total__");
+  tr.className = "stats-total-row";
+
+  const td0 = document.createElement("td");
+  td0.textContent = "합계";
+
+  const td1 = document.createElement("td");
+  const ratio = document.createElement("input");
+  ratio.type = "text";
+  ratio.className = "js-ratio stats-total-ratio";
+  ratio.readOnly = true;
+  ratio.disabled = true;
+  ratio.placeholder = "-";
+  ratio.style.textAlign = "right";
+  td1.appendChild(ratio);
+
+  const td2 = document.createElement("td");
+  const amt = document.createElement("input");
+  amt.type = "text";
+  amt.className = "js-amount stats-total-amount";
+  amt.setAttribute("data-type", "money");
+  amt.readOnly = true;
+  amt.disabled = true;
+  amt.placeholder = "-";
+  amt.style.textAlign = "right";
+  td2.appendChild(amt);
+
+  tr.appendChild(td0);
+  tr.appendChild(td1);
+  tr.appendChild(td2);
+
+  tbody.insertBefore(tr, anchor.nextSibling);
+
+  // 금액 콤마 바인딩 (disabled여도 값 포맷만)
+  setupMoneyInputs(tbody);
+}
+
+/* ✅ 현재 상품유형별 표의 %/금액 합계를 합계 행에 표시 */
+function updateProductTotalsRow() {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return;
+
+  ensureProductTotalsRow();
+
+  const totalRow = tbody.querySelector('tr[data-key="__total__"]');
+  if (!totalRow) return;
+
+  let ratioSum = 0;
+  let amountSum = 0;
+
+  tbody.querySelectorAll('tr[data-key]').forEach((row) => {
+    const key = row.getAttribute("data-key");
+    if (!key || key === "__total__") return;
+
+    const ratioEl = row.querySelector(".js-ratio");
+    const amountEl = row.querySelector(".js-amount");
+
+    ratioSum += ratioEl ? parsePercentInput(ratioEl.value) : 0;
+    amountSum += getMoneyValue(amountEl);
+  });
+
+  const ratioTotalEl = totalRow.querySelector(".stats-total-ratio");
+  const amtTotalEl = totalRow.querySelector(".stats-total-amount");
+
+  if (ratioTotalEl) ratioTotalEl.value = formatPercent8(ratioSum);
+  if (amtTotalEl) amtTotalEl.value = amountSum ? formatWithCommas(String(amountSum)) : "";
 }
 
 /* ✅ 중복 바인딩 방지 */
@@ -353,9 +448,9 @@ function getCurrentMonthKey() {
 function getProductRowKeys() {
   const tbody = document.getElementById("productRows");
   if (!tbody) return [];
-  return Array.from(tbody.querySelectorAll("tr[data-key]"))
-    .map((r) => r.getAttribute("data-key"))
-    .filter(Boolean);
+ return Array.from(tbody.querySelectorAll("tr[data-key]"))
+  .map((r) => r.getAttribute("data-key"))
+  .filter((k) => k && k !== "__total__");
 }
 
 function clearStatsForm() {
@@ -381,6 +476,7 @@ function applyProductsToProductRows(products) {
   tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
     const cfg = products[key] || {};
+    if (key === "__total__") return;
 
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
@@ -390,8 +486,9 @@ function applyProductsToProductRows(products) {
       : (cfg.ratio != null) ? _ratioToPercent(cfg.ratio)
       : "";
 
-    if (ratioEl) ratioEl.value = (ratioPercent !== "" ? ratioPercent : "");
+    if (ratioEl) ratioEl.value = (ratioPercent !== "" ? formatPercent8(ratioPercent) : "");
     if (amountEl) amountEl.value = (cfg.amount != null) ? formatWithCommas(String(cfg.amount)) : "";
+    updateProductTotalsRow();
   });
 }
 
@@ -475,6 +572,7 @@ function collectStatsFormData() {
   const products = {};
   document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
+    if (key === "__total__") return;
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
 
