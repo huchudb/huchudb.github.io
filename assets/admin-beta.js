@@ -267,29 +267,37 @@ function fillStatsForm(stat) {
   const s = stat.summary || {};
   const p = stat.products || {};
 
-  const regEl = document.getElementById("statsRegisteredFirms");
-  const dataEl = document.getElementById("statsDataFirms");
-  const tlEl = document.getElementById("statsTotalLoan");
-  const trEl = document.getElementById("statsTotalRepaid");
-  const balEl = document.getElementById("statsBalance");
-
-  if (regEl) regEl.value = s.registeredFirms ?? "";
-  if (dataEl) dataEl.value = s.dataFirms ?? "";
-  if (tlEl) tlEl.value = s.totalLoan ? formatWithCommas(String(s.totalLoan)) : "";
-  if (trEl) trEl.value = s.totalRepaid ? formatWithCommas(String(s.totalRepaid)) : "";
-  if (balEl) balEl.value = s.balance ? formatWithCommas(String(s.balance)) : "";
-
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
+
+  const rowKeys = Array.from(tbody.querySelectorAll("tr[data-key]"))
+    .map((r) => r.getAttribute("data-key"))
+    .filter(Boolean);
+
+  // ✅ products가 없고 byType만 오는 경우 대응
+  let p = (stat && stat.products && typeof stat.products === "object") ? stat.products : null;
+  if (!p && stat && stat.byType && typeof stat.byType === "object") {
+    p = _byTypeToProducts(stat.byType, rowKeys);
+  }
+  if (!p) p = {};
 
   tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
     const cfg = p[key] || {};
+
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
-    if (ratioEl) ratioEl.value = cfg.ratioPercent != null ? cfg.ratioPercent : "";
-    if (amountEl) amountEl.value = cfg.amount != null ? formatWithCommas(String(cfg.amount)) : "";
+
+    // ratioPercent 우선, 없으면 ratio(0~1)도 처리
+    const ratioPercent =
+      (cfg.ratioPercent != null) ? cfg.ratioPercent
+      : (cfg.ratio != null) ? _ratioToPercent(cfg.ratio)
+      : "";
+
+    if (ratioEl) ratioEl.value = (ratioPercent !== "" ? ratioPercent : "");
+    if (amountEl) amountEl.value = (cfg.amount != null) ? formatWithCommas(String(cfg.amount)) : "";
   });
+
 }
 function collectStatsFormData() {
   const monthKey = getCurrentMonthKey();
@@ -526,16 +534,27 @@ function setupStatsInteractions() {
         const res = await fetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ monthKey, summary, products })
+       
+          const byType = _productsToByType(products);
+
+          body: JSON.stringify({
+          monthKey,
+          month: monthKey,     // ✅ 서버가 month 필드를 쓰는 경우 대비
+          summary,
+          products,            // ✅ 기존 호환
+          byType               // ✅ 현재 서버 응답 형태에 맞춤
+         })
         });
         if (!res.ok) {
           const errText = await res.text().catch(() => "");
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
-        await res.json().catch(() => null);
+          const savedJson = await res.json().catch(() => null);
+          const normalizedSaved = normalizeOntuStatsResponseToMonth(savedJson, monthKey) || { summary, products, byType };
 
-        statsRoot.byMonth[monthKey] = { summary, products };
-        saveStatsToStorage();
+          statsRoot.byMonth[monthKey] = normalizedSaved;
+          saveStatsToStorage();
+          fillStatsForm(normalizedSaved);
 
         if (statusEl) {
           statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
