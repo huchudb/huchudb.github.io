@@ -110,6 +110,18 @@ function getMoneyValue(inputEl) {
   return digits ? Number(digits) : 0;
 }
 
+function toNumberSafe(v) {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^\d.-]/g, "");
+    if (!cleaned) return 0;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
 /* ✅ 중복 바인딩 방지 */
 function setupMoneyInputs(root) {
   const scope = root || document;
@@ -214,6 +226,60 @@ function ensureFinanceInputsStylesInjected() {
       .finance-metrics-grid { gap: 10px; }
       .finance-metrics { padding: 12px; }
     }
+
+    /* ✅ (추가) 온투 통계 - byLender 입력 UI */
+    .stats-byLender-box { margin-top: 12px; }
+    .stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
+    .stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
+    .stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .stats-byLender-tools input[type="text"]{
+      height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 13px; font-weight: 700;
+    }
+    .stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
+    .stats-byLender-tableWrap{
+      margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
+    }
+    .stats-byLender-tableWrap .scroll{
+      max-height: 360px; overflow:auto;
+    }
+    .stats-byLender-table{
+      width:100%; border-collapse:separate; border-spacing:0;
+      min-width: 980px;
+    }
+    .stats-byLender-table th, .stats-byLender-table td{
+      border-bottom:1px solid #f3f4f6;
+      padding: 8px 10px;
+      font-size: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .stats-byLender-table th{
+      position: sticky; top:0; z-index:2;
+      background:#f9fafb;
+      font-weight: 900;
+      color:#111827;
+    }
+    .stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
+      position: sticky; left:0; z-index:3;
+      background: #fff;
+      border-right:1px solid #f3f4f6;
+      min-width: 160px;
+      max-width: 220px;
+      overflow:hidden; text-overflow:ellipsis;
+    }
+    .stats-byLender-table th:first-child{
+      background:#f9fafb;
+      z-index:4;
+    }
+    .stats-byLender-money{
+      width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 12px; font-weight: 800; text-align:right;
+    }
+    .stats-byLender-disabledNote{
+      margin-top:8px; font-size:12px; color:#6b7280;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -242,6 +308,29 @@ function normalizePercentBlur(v) {
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
 let statsRoot = { byMonth: {} };
 
+function ensureMonthNode(monthKey) {
+  if (!statsRoot.byMonth) statsRoot.byMonth = {};
+  if (!statsRoot.byMonth[monthKey]) {
+    statsRoot.byMonth[monthKey] = {
+      summary: {},
+      products: {},
+      byType: null,
+      byLender: {},
+      ui: { useByLender: false }
+    };
+  } else {
+    if (!statsRoot.byMonth[monthKey].byLender) statsRoot.byMonth[monthKey].byLender = {};
+    if (!statsRoot.byMonth[monthKey].ui) statsRoot.byMonth[monthKey].ui = { useByLender: false };
+  }
+  return statsRoot.byMonth[monthKey];
+}
+
+function isByLenderMode(monthKey) {
+  if (!monthKey) monthKey = getCurrentMonthKey();
+  if (!monthKey) return false;
+  return !!(statsRoot.byMonth?.[monthKey]?.ui?.useByLender);
+}
+
 function loadStatsFromStorage() {
   try {
     const raw = localStorage.getItem(STATS_LOCAL_KEY);
@@ -261,44 +350,33 @@ function getCurrentMonthKey() {
   return m ? (m.value || "").trim() : "";
 }
 
+function getProductRowKeys() {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll("tr[data-key]"))
+    .map((r) => r.getAttribute("data-key"))
+    .filter(Boolean);
+}
+
 function clearStatsForm() {
   ["statsRegisteredFirms","statsDataFirms","statsTotalLoan","statsTotalRepaid","statsBalance"]
     .forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
 
   document.querySelectorAll("#productRows .js-ratio").forEach((el) => (el.value = ""));
   document.querySelectorAll("#productRows .js-amount").forEach((el) => (el.value = ""));
+
+  // byLender UI도 비움
+  const box = document.getElementById("statsByLenderBox");
+  if (box) {
+    const scroll = box.querySelector(".stats-byLender-tableWrap .scroll");
+    if (scroll) scroll.innerHTML = "";
+  }
 }
 
-/* ✅ 서버/로컬 데이터 → 폼 채우기 (summary + products/byType 모두) */
-function fillStatsForm(stat) {
-  if (!stat) { clearStatsForm(); return; }
-
-  const s = (stat.summary && typeof stat.summary === "object") ? stat.summary : {};
-  const regEl = document.getElementById("statsRegisteredFirms");
-  const dataEl = document.getElementById("statsDataFirms");
-  const tlEl = document.getElementById("statsTotalLoan");
-  const trEl = document.getElementById("statsTotalRepaid");
-  const balEl = document.getElementById("statsBalance");
-
-  if (regEl) regEl.value = (s.registeredFirms ?? "");
-  if (dataEl) dataEl.value = (s.dataFirms ?? "");
-  if (tlEl) tlEl.value = (s.totalLoan != null) ? formatWithCommas(String(s.totalLoan)) : "";
-  if (trEl) trEl.value = (s.totalRepaid != null) ? formatWithCommas(String(s.totalRepaid)) : "";
-  if (balEl) balEl.value = (s.balance != null) ? formatWithCommas(String(s.balance)) : "";
-
+/* ✅ products/byType/byLender → productRows에 반영 */
+function applyProductsToProductRows(products) {
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
-
-  const rowKeys = Array.from(tbody.querySelectorAll("tr[data-key]"))
-    .map((r) => r.getAttribute("data-key"))
-    .filter(Boolean);
-
-  // ✅ products 우선, 없으면 byType → products로 변환
-  let products = (stat.products && typeof stat.products === "object") ? stat.products : null;
-  if (!products && stat.byType && typeof stat.byType === "object") {
-    products = _byTypeToProducts(stat.byType, rowKeys);
-  }
-  if (!products) products = {};
 
   tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
@@ -317,9 +395,68 @@ function fillStatsForm(stat) {
   });
 }
 
+/* ✅ 서버/로컬 데이터 → 폼 채우기 */
+function fillStatsForm(stat, monthKey) {
+  if (!stat) { clearStatsForm(); return; }
+  if (!monthKey) monthKey = getCurrentMonthKey();
+
+  const node = monthKey ? ensureMonthNode(monthKey) : null;
+
+  const s = (stat.summary && typeof stat.summary === "object") ? stat.summary : {};
+  const regEl = document.getElementById("statsRegisteredFirms");
+  const dataEl = document.getElementById("statsDataFirms");
+  const tlEl = document.getElementById("statsTotalLoan");
+  const trEl = document.getElementById("statsTotalRepaid");
+  const balEl = document.getElementById("statsBalance");
+
+  if (regEl) regEl.value = (s.registeredFirms ?? "");
+  if (dataEl) dataEl.value = (s.dataFirms ?? "");
+  if (tlEl) tlEl.value = (s.totalLoan != null) ? formatWithCommas(String(s.totalLoan)) : "";
+  if (trEl) trEl.value = (s.totalRepaid != null) ? formatWithCommas(String(s.totalRepaid)) : "";
+  if (balEl) balEl.value = (s.balance != null) ? formatWithCommas(String(s.balance)) : "";
+
+  const rowKeys = getProductRowKeys();
+
+  // ✅ products 우선, 없으면 byType → products 변환
+  let products = (stat.products && typeof stat.products === "object") ? stat.products : null;
+  if (!products && stat.byType && typeof stat.byType === "object") {
+    products = _byTypeToProducts(stat.byType, rowKeys);
+  }
+  if (!products) products = {};
+
+  applyProductsToProductRows(products);
+
+  // ✅ byLender 로드/반영
+  const byLender = (stat.byLender && typeof stat.byLender === "object") ? stat.byLender : {};
+  const hasByLender = Object.keys(byLender).length > 0;
+
+  if (node) {
+    node.summary = { ...(node.summary || {}), ...(stat.summary || {}) };
+    node.products = products;
+    node.byType = stat.byType || null;
+    node.byLender = byLender || {};
+    if (!node.ui) node.ui = { useByLender: false };
+    // 서버/로컬에 byLender가 있으면 기본 ON
+    if (hasByLender) node.ui.useByLender = true;
+  }
+
+  ensureByLenderSection();
+  renderByLenderSection(monthKey);
+
+  // byLender 모드면 합산값으로 productRows/잔액/ratio 동기화
+  if (monthKey && isByLenderMode(monthKey)) {
+    recalcFromByLender(monthKey, { silent: true });
+    applyByLenderModeUI(true);
+  } else {
+    applyByLenderModeUI(false);
+  }
+}
+
 function collectStatsFormData() {
   const monthKey = getCurrentMonthKey();
   if (!monthKey) return null;
+
+  ensureMonthNode(monthKey);
 
   const regEl = document.getElementById("statsRegisteredFirms");
   const dataEl = document.getElementById("statsDataFirms");
@@ -348,10 +485,18 @@ function collectStatsFormData() {
     products[key] = { ratioPercent, amount };
   });
 
-  return { monthKey, summary, products };
+  const node = ensureMonthNode(monthKey);
+  const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
+  const ui = node.ui || { useByLender: false };
+
+  return { monthKey, summary, products, byLender, ui };
 }
 
+/* ===== 기존 ratio% → amount 자동계산 (byLender 모드면 중단) ===== */
 function recalcProductAmounts() {
+  const monthKey = getCurrentMonthKey();
+  if (monthKey && isByLenderMode(monthKey)) return;
+
   const balEl = document.getElementById("statsBalance");
   if (!balEl) return;
   const balance = getMoneyValue(balEl);
@@ -372,13 +517,11 @@ function recalcProductAmounts() {
 function _ratioToPercent(v) {
   const n = Number(v);
   if (!isFinite(n)) return "";
-  // 서버: 0.43(=43%) 형태면 *100
   return (n <= 1) ? (n * 100) : n;
 }
 function _percentToRatio(v) {
   const n = Number(v);
   if (!isFinite(n)) return 0;
-  // UI: 43(%) 형태면 /100
   return (n > 1) ? (n / 100) : n;
 }
 
@@ -450,7 +593,7 @@ function _productsToByType(products) {
   return out;
 }
 
-/* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType}로 정규화 */
+/* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType, byLender}로 정규화 */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
 
@@ -461,42 +604,53 @@ function normalizeOntuStatsResponseToMonth(json, monthKey) {
       return {
         summary: hit.summary || {},
         products: hit.products || null,
-        byType: hit.byType || null
+        byType: hit.byType || null,
+        byLender: hit.byLender || {}
       };
     }
   }
 
-  // 2) [ {month:"2025-12", ...}, ... ] or monthKey field
+  // 2) [ {month:"2025-12", ...}, ... ]
   if (Array.isArray(json)) {
     const found = json.find((x) => x && typeof x === "object" && ((x.monthKey === monthKey) || (x.month === monthKey)));
     if (found) {
       return {
         summary: found.summary || {},
         products: found.products || null,
-        byType: found.byType || null
+        byType: found.byType || null,
+        byLender: found.byLender || {}
       };
     }
   }
 
-  // 3) 단일 객체 {month:"2025-12", summary, byType/products}
+  // 3) 단일 객체 {month:"2025-12", summary, byType/products/byLender}
   if (typeof json === "object") {
-    // {data:{...}}
     if (json.data && typeof json.data === "object") {
       const d = json.data;
-      if (d.summary || d.products || d.byType) {
-        return { summary: d.summary || {}, products: d.products || null, byType: d.byType || null };
+      if (d.summary || d.products || d.byType || d.byLender) {
+        return {
+          summary: d.summary || {},
+          products: d.products || null,
+          byType: d.byType || null,
+          byLender: d.byLender || {}
+        };
       }
     }
 
-    if (json.summary || json.products || json.byType) {
-      return { summary: json.summary || {}, products: json.products || null, byType: json.byType || null };
+    if (json.summary || json.products || json.byType || json.byLender) {
+      return {
+        summary: json.summary || {},
+        products: json.products || null,
+        byType: json.byType || null,
+        byLender: json.byLender || {}
+      };
     }
   }
 
   return null;
 }
 
-/* ✅ 서버 로드: stats 페이지(ontu-stats.js)와 동일하게 ?month= 우선 시도 */
+/* ✅ 서버 로드: stats 페이지와 동일하게 ?month= 우선 시도 */
 async function loadOntuStatsFromServer(monthKey) {
   if (!monthKey) return null;
 
@@ -510,7 +664,7 @@ async function loadOntuStatsFromServer(monthKey) {
     console.warn("ontu-stats server load (month) error:", e);
   }
 
-  // 2) ?monthKey= (호환)
+  // 2) ?monthKey=
   try {
     const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
     const json = await fetchJsonNoCache(url);
@@ -520,7 +674,7 @@ async function loadOntuStatsFromServer(monthKey) {
     console.warn("ontu-stats server load (monthKey) error:", e);
   }
 
-  // 3) 전체 GET 후 monthKey 매칭
+  // 3) latest/all GET 후 monthKey 매칭 (서버가 latest만 준다면 여기서는 null 가능)
   try {
     const urlAll = `${API_BASE}/api/ontu-stats`;
     const jsonAll = await fetchJsonNoCache(urlAll);
@@ -532,6 +686,311 @@ async function loadOntuStatsFromServer(monthKey) {
   }
 }
 
+/* =========================================================
+   ✅ (신규) byLender 입력 UI + 합산 로직
+========================================================= */
+function ensureByLenderSection() {
+  if (document.getElementById("statsByLenderBox")) return;
+
+  const productTbody = document.getElementById("productRows");
+  if (!productTbody) return;
+
+  // productRows가 있는 테이블/박스 바로 아래에 삽입
+  const anchor = productTbody.closest(".admin-subbox") || productTbody.parentElement;
+
+  const box = document.createElement("div");
+  box.id = "statsByLenderBox";
+  box.className = "admin-subbox stats-byLender-box";
+
+  const head = document.createElement("div");
+  head.className = "stats-byLender-head";
+
+  const title = document.createElement("div");
+  title.className = "stats-byLender-title";
+  title.textContent = "업체별 상품유형 잔액 입력 (byLender)";
+
+  const tools = document.createElement("div");
+  tools.className = "stats-byLender-tools";
+
+  const useLabel = document.createElement("label");
+  const useCb = document.createElement("input");
+  useCb.type = "checkbox";
+  useCb.id = "statsUseByLenderToggle";
+  useLabel.appendChild(useCb);
+  useLabel.appendChild(document.createTextNode("업체별 입력 사용"));
+  tools.appendChild(useLabel);
+
+  const onlyActiveLabel = document.createElement("label");
+  const onlyActiveCb = document.createElement("input");
+  onlyActiveCb.type = "checkbox";
+  onlyActiveCb.id = "statsByLenderOnlyActive";
+  onlyActiveCb.checked = true;
+  onlyActiveLabel.appendChild(onlyActiveCb);
+  onlyActiveLabel.appendChild(document.createTextNode("활성 업체만"));
+  tools.appendChild(onlyActiveLabel);
+
+  const q = document.createElement("input");
+  q.type = "text";
+  q.id = "statsByLenderSearch";
+  q.placeholder = "업체 검색 (이름/ID)";
+  tools.appendChild(q);
+
+  head.appendChild(title);
+  head.appendChild(tools);
+
+  const help = document.createElement("p");
+  help.className = "stats-byLender-help";
+  help.innerHTML =
+    "기관 제공 <b>점유율(%)</b>이 100%를 넘는 문제가 있어, 여기서는 <b>업체별 잔액(원)</b>을 입력합니다.<br/>" +
+    "입력된 업체별 금액을 시스템이 <b>상품유형별 잔액(합계)</b>으로 자동 계산하여 위 표에 채워줍니다.";
+
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "stats-byLender-tableWrap";
+  const scroll = document.createElement("div");
+  scroll.className = "scroll";
+  tableWrap.appendChild(scroll);
+
+  const note = document.createElement("div");
+  note.className = "stats-byLender-disabledNote";
+  note.id = "statsByLenderDisabledNote";
+  note.textContent = "※ 업체별 입력 사용 ON 시, 상품유형별 %/금액/대출잔액은 합산값으로 자동 계산됩니다.";
+
+  box.appendChild(head);
+  box.appendChild(help);
+  box.appendChild(tableWrap);
+  box.appendChild(note);
+
+  if (anchor && anchor.parentNode) {
+    // anchor 바로 아래에 붙여주기
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+  } else {
+    // fallback
+    productTbody.parentNode.insertBefore(box, productTbody.parentNode.nextSibling);
+  }
+
+  // 이벤트 바인딩
+  useCb.addEventListener("change", () => {
+    const monthKey = getCurrentMonthKey();
+    if (!monthKey) return;
+
+    const node = ensureMonthNode(monthKey);
+    node.ui.useByLender = !!useCb.checked;
+    saveStatsToStorage();
+
+    applyByLenderModeUI(node.ui.useByLender);
+    if (node.ui.useByLender) {
+      recalcFromByLender(monthKey);
+    } else {
+      // 기존 ratio 기반으로 amount 재계산
+      recalcProductAmounts();
+    }
+  });
+
+  onlyActiveCb.addEventListener("change", () => {
+    renderByLenderSection(getCurrentMonthKey());
+  });
+
+  q.addEventListener("input", () => {
+    renderByLenderSection(getCurrentMonthKey());
+  });
+}
+
+function applyByLenderModeUI(on) {
+  const balEl = document.getElementById("statsBalance");
+  const ratioEls = document.querySelectorAll("#productRows .js-ratio");
+  const amtEls = document.querySelectorAll("#productRows .js-amount");
+
+  ratioEls.forEach((el) => { el.disabled = !!on; });
+  amtEls.forEach((el) => { el.disabled = !!on; });
+  if (balEl) balEl.disabled = !!on;
+
+  const note = document.getElementById("statsByLenderDisabledNote");
+  if (note) note.style.opacity = on ? "1" : "0.55";
+
+  const useCb = document.getElementById("statsUseByLenderToggle");
+  if (useCb) useCb.checked = !!on;
+}
+
+function renderByLenderSection(monthKey) {
+  if (!monthKey) monthKey = getCurrentMonthKey();
+  const box = document.getElementById("statsByLenderBox");
+  if (!box || !monthKey) return;
+
+  const node = ensureMonthNode(monthKey);
+  const useByLender = !!node.ui.useByLender;
+
+  const scroll = box.querySelector(".stats-byLender-tableWrap .scroll");
+  if (!scroll) return;
+  scroll.innerHTML = "";
+
+  const rowKeys = getProductRowKeys();
+  if (!rowKeys.length) {
+    scroll.innerHTML = `<div class="admin-empty">상품유형 테이블(productRows)을 찾을 수 없습니다.</div>`;
+    return;
+  }
+
+  const onlyActiveCb = document.getElementById("statsByLenderOnlyActive");
+  const onlyActive = onlyActiveCb ? !!onlyActiveCb.checked : true;
+
+  const qEl = document.getElementById("statsByLenderSearch");
+  const q = (qEl ? String(qEl.value || "") : "").trim().toLowerCase();
+
+  const lenders = Array.isArray(LENDERS_MASTER) ? LENDERS_MASTER.slice() : [];
+  const table = document.createElement("table");
+  table.className = "stats-byLender-table";
+
+  const thead = document.createElement("thead");
+  const trh = document.createElement("tr");
+  const th0 = document.createElement("th");
+  th0.textContent = "온투업체";
+  trh.appendChild(th0);
+
+  rowKeys.forEach((rk) => {
+    const th = document.createElement("th");
+    th.textContent = rk;
+    trh.appendChild(th);
+  });
+
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  // lendersConfig 로드 여부에 따라 isActive 필터 적용
+  const cfg = lendersConfig?.lenders || {};
+
+  const filtered = lenders.filter((m) => {
+    const name = String(m.name || "").toLowerCase();
+    const id = String(m.id || "").toLowerCase();
+    if (q && !(name.includes(q) || id.includes(q))) return false;
+
+    if (onlyActive) {
+      const l = cfg[m.id];
+      return l ? !!l.isActive : false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    scroll.innerHTML = `<div class="admin-empty">조건에 맞는 업체가 없습니다. (검색/활성필터 확인)</div>`;
+    return;
+  }
+
+  filtered.forEach((m) => {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.title = `${m.name} (${m.id})`;
+    tdName.textContent = m.name;
+    tr.appendChild(tdName);
+
+    rowKeys.forEach((rk) => {
+      const td = document.createElement("td");
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.inputMode = "numeric";
+      input.className = "stats-byLender-money";
+      input.setAttribute("data-type", "money");
+      input.setAttribute("data-lender", m.id);
+      input.setAttribute("data-typekey", rk);
+
+      const cur = node.byLender?.[m.id]?.[rk] ?? 0;
+      input.value = cur ? formatWithCommas(String(cur)) : "";
+
+      input.disabled = !useByLender;
+
+      input.addEventListener("input", () => {
+        // 금액 입력 → node.byLender 갱신 → 합산 반영
+        const monthKey2 = getCurrentMonthKey();
+        if (!monthKey2) return;
+        const n2 = ensureMonthNode(monthKey2);
+
+        if (!n2.byLender) n2.byLender = {};
+        if (!n2.byLender[m.id]) n2.byLender[m.id] = {};
+
+        const amt = getMoneyValue(input);
+        if (amt > 0) n2.byLender[m.id][rk] = amt;
+        else {
+          // 0이면 정리
+          delete n2.byLender[m.id][rk];
+          if (Object.keys(n2.byLender[m.id]).length === 0) delete n2.byLender[m.id];
+        }
+
+        saveStatsToStorage();
+        if (isByLenderMode(monthKey2)) recalcFromByLender(monthKey2);
+      });
+
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+
+  setupMoneyInputs(box);
+
+  applyByLenderModeUI(useByLender);
+}
+
+/* byLender 합산 → balance/productRows amount/ratio 자동 계산 */
+function recalcFromByLender(monthKey, opts = {}) {
+  const node = ensureMonthNode(monthKey);
+  const byLender = node.byLender || {};
+  const rowKeys = getProductRowKeys();
+
+  const sumByType = {};
+  rowKeys.forEach((k) => (sumByType[k] = 0));
+
+  let total = 0;
+
+  Object.values(byLender).forEach((typeMap) => {
+    if (!typeMap || typeof typeMap !== "object") return;
+    rowKeys.forEach((k) => {
+      const amt = toNumberSafe(typeMap[k]);
+      if (!amt) return;
+      sumByType[k] += amt;
+      total += amt;
+    });
+  });
+
+  // balance 자동 채움
+  const balEl = document.getElementById("statsBalance");
+  if (balEl) balEl.value = total ? formatWithCommas(String(total)) : "";
+
+  // productRows amount + ratio 자동
+  const tbody = document.getElementById("productRows");
+  if (tbody) {
+    tbody.querySelectorAll("tr[data-key]").forEach((row) => {
+      const key = row.getAttribute("data-key");
+      const ratioEl = row.querySelector(".js-ratio");
+      const amountEl = row.querySelector(".js-amount");
+      const amt = toNumberSafe(sumByType[key]);
+
+      if (amountEl) amountEl.value = amt ? formatWithCommas(String(amt)) : "";
+
+      const ratio = total > 0 ? (amt / total) * 100 : 0;
+      if (ratioEl) ratioEl.value = total > 0 ? (Math.round(ratio * 10) / 10).toFixed(1) : "";
+    });
+  }
+
+  // node.summary.balance도 동기화(서버는 summary.balance가 비면 합계로 채움)
+  node.summary = node.summary || {};
+  node.summary.balance = total;
+
+  saveStatsToStorage();
+
+  if (!opts.silent) {
+    // 추가 동작 없음
+  }
+}
+
+/* =========================================================
+   Stats interactions
+========================================================= */
 function setupStatsInteractions() {
   const monthInput = document.getElementById("statsMonth");
   if (monthInput) {
@@ -539,30 +998,45 @@ function setupStatsInteractions() {
       const m = getCurrentMonthKey();
       if (!m) { clearStatsForm(); return; }
 
+      ensureByLenderSection();
+
       const serverStat = await loadOntuStatsFromServer(m);
       if (serverStat) {
-        fillStatsForm(serverStat);
-        statsRoot.byMonth[m] = serverStat;
+        fillStatsForm(serverStat, m);
+        statsRoot.byMonth[m] = {
+          ...(statsRoot.byMonth[m] || {}),
+          ...serverStat,
+          ui: { ...(statsRoot.byMonth[m]?.ui || {}), useByLender: (serverStat.byLender && Object.keys(serverStat.byLender).length > 0) ? true : (statsRoot.byMonth[m]?.ui?.useByLender || false) }
+        };
         saveStatsToStorage();
       } else {
-        fillStatsForm(statsRoot.byMonth[m] || null);
+        // 로컬
+        fillStatsForm(statsRoot.byMonth[m] || null, m);
       }
 
       setupMoneyInputs();
-      recalcProductAmounts();
+      if (!isByLenderMode(m)) {
+        recalcProductAmounts();
+      }
     });
   }
 
   const balEl = document.getElementById("statsBalance");
   if (balEl) {
     balEl.addEventListener("input", () => {
+      const m = getCurrentMonthKey();
+      if (m && isByLenderMode(m)) return;
       balEl.value = formatWithCommas(balEl.value);
       recalcProductAmounts();
     });
   }
 
   document.querySelectorAll("#productRows .js-ratio")
-    .forEach((el) => el.addEventListener("input", recalcProductAmounts));
+    .forEach((el) => el.addEventListener("input", () => {
+      const m = getCurrentMonthKey();
+      if (m && isByLenderMode(m)) return;
+      recalcProductAmounts();
+    }));
 
   const saveBtn = document.getElementById("saveOntuStatsBtn");
   const statusEl = document.getElementById("statsSaveStatus");
@@ -571,20 +1045,25 @@ function setupStatsInteractions() {
       const payload = collectStatsFormData();
       if (!payload) { alert("먼저 조회년월을 선택해주세요."); return; }
 
-      const { monthKey, summary, products } = payload;
-      const byType = _productsToByType(products);
+      const { monthKey, summary, products, byLender, ui } = payload;
+
+      // ✅ byLender 모드면 합산으로 summary.balance 정합 맞추기
+      if (ui?.useByLender) {
+        recalcFromByLender(monthKey, { silent: true });
+      }
 
       try {
-        // ✅ 문법 오류 원인 제거: byType은 fetch 옵션 밖에서 계산
+        // ✅ 요청한 그대로 포함: monthKey/summary/byLender 중심 + 하위호환 products도 같이
+        // (서버는 byLender가 있으면 byType 자동 계산)
         const res = await fetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             monthKey,
-            month: monthKey,     // ✅ 서버가 month 필드를 쓰는 경우 대비
+            month: monthKey,     // 호환
             summary,
-            products,            // ✅ 기존 호환
-            byType               // ✅ stats 페이지에서 쓰는 형태
+            products,            // 하위호환 (byLender OFF일 때도 유지)
+            byLender             // ✅ 핵심
           })
         });
 
@@ -593,16 +1072,26 @@ function setupStatsInteractions() {
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
 
-        const savedJson = await res.json().catch(() => null);
-        const normalizedSaved = normalizeOntuStatsResponseToMonth(savedJson, monthKey) || {
+        // ✅ 서버 응답이 {ok:true...} 일 수 있으니 저장 후 GET으로 재로드
+        const serverStat = await loadOntuStatsFromServer(monthKey);
+
+        const node = ensureMonthNode(monthKey);
+
+        const applied = serverStat || {
           summary,
           products,
-          byType
+          byType: _productsToByType(products),
+          byLender
         };
 
-        statsRoot.byMonth[monthKey] = normalizedSaved;
+        statsRoot.byMonth[monthKey] = {
+          ...(statsRoot.byMonth[monthKey] || {}),
+          ...applied,
+          ui: { ...(node.ui || {}), useByLender: !!ui?.useByLender }
+        };
+
         saveStatsToStorage();
-        fillStatsForm(normalizedSaved);
+        fillStatsForm(statsRoot.byMonth[monthKey], monthKey);
 
         if (statusEl) {
           statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
@@ -1428,6 +1917,11 @@ function renderExtraConditionsBox(lender) {
 /* =========================================================
    ✅ 렌더: 업체 카드
 ========================================================= */
+/* (이하 renderLendersList ~ setupLendersSaveButton 까지는 원본 그대로)
+   ───────────
+   네가 붙여준 코드가 길어서, 여기서부터는 변경 없이 그대로 유지됨
+   ───────────
+*/
 function renderLendersList() {
   const container = document.getElementById("lendersList");
   if (!container) return;
@@ -2012,6 +2506,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupMoneyInputs();
 
   loadStatsFromStorage();
+  ensureByLenderSection();
   setupStatsInteractions();
 
   setupLoanConfigToolsUI();
@@ -2023,4 +2518,12 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLendersSaveButton();
 
   loadLendersConfigFromServer();
+
+  // 초기 month가 이미 선택되어 있으면 byLender 섹션 렌더
+  const m = getCurrentMonthKey();
+  if (m) {
+    ensureMonthNode(m);
+    renderByLenderSection(m);
+    applyByLenderModeUI(isByLenderMode(m));
+  }
 });
