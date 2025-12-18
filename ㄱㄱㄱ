@@ -1,0 +1,1699 @@
+// /assets/admin-beta.js
+console.log("✅ admin-beta.js loaded");
+
+/* =========================================================
+   ✅ API_BASE 해석
+========================================================= */
+function resolveApiBase() {
+  try {
+    const w = (typeof window !== "undefined") ? window : null;
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+
+    if (!base) {
+      const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+      const isLocal =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host.endsWith(".local");
+
+      if (isLocal) base = "";
+      else base = "https://huchudb-github-io.vercel.app";
+    }
+
+    base = base.replace(/\/+$/, "");
+    return base;
+  } catch {
+    return "https://huchudb-github-io.vercel.app";
+  }
+}
+const API_BASE = resolveApiBase();
+console.log("🔌 API_BASE =", API_BASE || "(relative /api)");
+
+/* =========================================================
+   ✅ fetch 304 무력화 유틸 (cache-bust + no-store)
+   - CORS preflight 유발하던 Cache-Control/Pragma 헤더 주입 제거
+========================================================= */
+async function fetchJsonNoCache(url, options = {}) {
+  const sep = url.includes("?") ? "&" : "?";
+  const bustUrl = `${url}${sep}_ts=${Date.now()}`;
+
+  const res = await fetch(bustUrl, {
+    ...options,
+    method: options.method || "GET",
+    cache: "no-store",
+    headers: {
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${txt}`);
+  }
+
+  return await res.json().catch(() => null);
+}
+
+/* =========================================================
+   공통/유틸
+========================================================= */
+function setupBetaMenu() {
+  const toggle = document.getElementById("betaMenuToggle");
+  const panel = document.getElementById("betaMenuPanel");
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isHidden = panel.classList.contains("hide");
+    panel.classList.toggle("hide", !isHidden);
+    toggle.setAttribute("aria-expanded", isHidden ? "true" : "false");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!panel.classList.contains("hide")) {
+      if (!panel.contains(e.target) && e.target !== toggle) {
+        panel.classList.add("hide");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    }
+  });
+}
+
+function setupAdminTabs() {
+  const tabButtons = document.querySelectorAll(".admin-tab-btn");
+  const panelStats = document.getElementById("admin-tab-stats");
+  const panelLenders = document.getElementById("admin-tab-lenders");
+  if (!tabButtons.length || !panelStats || !panelLenders) return;
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab");
+
+      tabButtons.forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+
+      panelStats.classList.toggle("hide", tab !== "stats");
+      panelLenders.classList.toggle("hide", tab !== "lenders");
+    });
+  });
+}
+
+function stripNonDigits(str) { return (str || "").replace(/[^\d]/g, ""); }
+function formatWithCommas(str) {
+  const digits = stripNonDigits(str);
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function getMoneyValue(inputEl) {
+  if (!inputEl) return 0;
+  const digits = stripNonDigits(inputEl.value);
+  return digits ? Number(digits) : 0;
+}
+
+function toNumberSafe(v) {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^\d.-]/g, "");
+    if (!cleaned) return 0;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+/* ✅ 중복 바인딩 방지 */
+function setupMoneyInputs(root) {
+  const scope = root || document;
+  const moneyInputs = scope.querySelectorAll('input[data-type="money"]');
+  moneyInputs.forEach((input) => {
+    if (input.dataset.moneyBound === "true") {
+      if (input.value) input.value = formatWithCommas(input.value);
+      return;
+    }
+    input.dataset.moneyBound = "true";
+    input.addEventListener("input", (e) => {
+      e.target.value = formatWithCommas(e.target.value);
+    });
+    if (input.value) input.value = formatWithCommas(input.value);
+  });
+}
+
+/* =========================================================
+   ✅ (추가) 금융조건 수치 입력: 스타일 주입 + 유틸
+========================================================= */
+function ensureFinanceInputsStylesInjected() {
+  if (document.getElementById("financeInputsStyles")) return;
+
+  const style = document.createElement("style");
+  style.id = "financeInputsStyles";
+  style.textContent = `
+    .finance-inputs-wrap { margin-top: 10px; }
+    .finance-products { display: flex; flex-direction: column; gap: 10px; }
+    .finance-product-title {
+      font-weight: 900;
+      font-size: 12px;
+      color: #111827;
+      margin: 2px 0 0;
+    }
+    .finance-metrics {
+      border: 2px solid #111;
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      background: #fff;
+    }
+    .finance-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    .finance-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .finance-metric-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      color: #111;
+      line-height: 1.1;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .finance-metric-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .finance-metric-row .lab {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+    .finance-metric-row input {
+      width: 120px;
+      max-width: 100%;
+      height: 40px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+      text-align: center;
+      background: #fff;
+    }
+    .finance-metric-row input:focus {
+      border-color: #111;
+      box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
+    }
+    .finance-metric-row .unit {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+    @media (max-width: 520px) {
+      .finance-metric-title { font-size: 22px; }
+      .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
+      .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
+      .finance-metrics-grid { gap: 10px; }
+      .finance-metrics { padding: 12px; }
+    }
+
+    /* ✅ (추가) 온투 통계 - byLender 입력 UI */
+    .stats-byLender-box { margin-top: 12px; }
+    .stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
+    .stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
+    .stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .stats-byLender-tools input[type="text"]{
+      height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 13px; font-weight: 700;
+    }
+    .stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
+    .stats-byLender-tableWrap{
+      margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
+    }
+    .stats-byLender-tableWrap .scroll{
+      max-height: 360px; overflow:auto;
+    }
+    .stats-byLender-table{
+      width:100%; border-collapse:separate; border-spacing:0;
+      min-width: 980px;
+    }
+    .stats-byLender-table th, .stats-byLender-table td{
+      border-bottom:1px solid #f3f4f6;
+      padding: 8px 10px;
+      font-size: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .stats-byLender-table th{
+      position: sticky; top:0; z-index:2;
+      background:#f9fafb;
+      font-weight: 900;
+      color:#111827;
+    }
+    .stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
+      position: sticky; left:0; z-index:3;
+      background: #fff;
+      border-right:1px solid #f3f4f6;
+      min-width: 160px;
+      max-width: 220px;
+      overflow:hidden; text-overflow:ellipsis;
+    }
+    .stats-byLender-table th:first-child{
+      background:#f9fafb;
+      z-index:4;
+    }
+    .stats-byLender-money{
+      width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 12px; font-weight: 800; text-align:right;
+    }
+    .stats-byLender-disabledNote{
+      margin-top:8px; font-size:12px; color:#6b7280;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function sanitizePercentString(v) {
+  let s = String(v || "").replace(/[^0-9.]/g, "");
+  const parts = s.split(".");
+  if (parts.length > 2) {
+    s = parts[0] + "." + parts.slice(1).join("");
+  }
+  return s;
+}
+
+function normalizePercentBlur(v) {
+  const s = sanitizePercentString(v);
+  if (!s) return "";
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "";
+  const fixed = Math.round(n * 100) / 100;
+  return String(fixed);
+}
+
+/* =========================================================
+   1) 온투 통계
+========================================================= */
+const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
+let statsRoot = { byMonth: {} };
+
+function ensureMonthNode(monthKey) {
+  if (!statsRoot.byMonth) statsRoot.byMonth = {};
+  if (!statsRoot.byMonth[monthKey]) {
+    statsRoot.byMonth[monthKey] = {
+      summary: {},
+      products: {},
+      byType: null,
+      byLender: {},
+      ui: { useByLender: false }
+    };
+  } else {
+    if (!statsRoot.byMonth[monthKey].byLender) statsRoot.byMonth[monthKey].byLender = {};
+    if (!statsRoot.byMonth[monthKey].ui) statsRoot.byMonth[monthKey].ui = { useByLender: false };
+  }
+  return statsRoot.byMonth[monthKey];
+}
+
+function isByLenderMode(monthKey) {
+  if (!monthKey) monthKey = getCurrentMonthKey();
+  if (!monthKey) return false;
+  return !!(statsRoot.byMonth?.[monthKey]?.ui?.useByLender);
+}
+
+function loadStatsFromStorage() {
+  try {
+    const raw = localStorage.getItem(STATS_LOCAL_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && parsed.byMonth) statsRoot = parsed;
+  } catch (e) {
+    console.warn("ontu-stats load error:", e);
+  }
+}
+function saveStatsToStorage() {
+  try { localStorage.setItem(STATS_LOCAL_KEY, JSON.stringify(statsRoot)); }
+  catch (e) { console.warn("ontu-stats save error:", e); }
+}
+function getCurrentMonthKey() {
+  const m = document.getElementById("statsMonth");
+  return m ? (m.value || "").trim() : "";
+}
+
+function getProductRowKeys() {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll("tr[data-key]"))
+    .map((r) => r.getAttribute("data-key"))
+    .filter(Boolean);
+}
+
+function clearStatsForm() {
+  ["statsRegisteredFirms","statsDataFirms","statsTotalLoan","statsTotalRepaid","statsBalance"]
+    .forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+
+  document.querySelectorAll("#productRows .js-ratio").forEach((el) => (el.value = ""));
+  document.querySelectorAll("#productRows .js-amount").forEach((el) => (el.value = ""));
+
+  // byLender UI도 비움
+  const box = document.getElementById("statsByLenderBox");
+  if (box) {
+    const scroll = box.querySelector(".stats-byLender-tableWrap .scroll");
+    if (scroll) scroll.innerHTML = "";
+  }
+}
+
+/* ✅ products/byType/byLender → productRows에 반영 */
+function applyProductsToProductRows(products) {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return;
+
+  tbody.querySelectorAll("tr[data-key]").forEach((row) => {
+    const key = row.getAttribute("data-key");
+    const cfg = products[key] || {};
+
+    const ratioEl = row.querySelector(".js-ratio");
+    const amountEl = row.querySelector(".js-amount");
+
+    const ratioPercent =
+      (cfg.ratioPercent != null) ? cfg.ratioPercent
+      : (cfg.ratio != null) ? _ratioToPercent(cfg.ratio)
+      : "";
+
+    if (ratioEl) ratioEl.value = (ratioPercent !== "" ? ratioPercent : "");
+    if (amountEl) amountEl.value = (cfg.amount != null) ? formatWithCommas(String(cfg.amount)) : "";
+  });
+}
+
+/* ✅ 서버/로컬 데이터 → 폼 채우기 */
+function fillStatsForm(stat, monthKey) {
+  if (!stat) { clearStatsForm(); return; }
+  if (!monthKey) monthKey = getCurrentMonthKey();
+
+  const node = monthKey ? ensureMonthNode(monthKey) : null;
+
+  const s = (stat.summary && typeof stat.summary === "object") ? stat.summary : {};
+  const regEl = document.getElementById("statsRegisteredFirms");
+  const dataEl = document.getElementById("statsDataFirms");
+  const tlEl = document.getElementById("statsTotalLoan");
+  const trEl = document.getElementById("statsTotalRepaid");
+  const balEl = document.getElementById("statsBalance");
+
+  if (regEl) regEl.value = (s.registeredFirms ?? "");
+  if (dataEl) dataEl.value = (s.dataFirms ?? "");
+  if (tlEl) tlEl.value = (s.totalLoan != null) ? formatWithCommas(String(s.totalLoan)) : "";
+  if (trEl) trEl.value = (s.totalRepaid != null) ? formatWithCommas(String(s.totalRepaid)) : "";
+  if (balEl) balEl.value = (s.balance != null) ? formatWithCommas(String(s.balance)) : "";
+
+  const rowKeys = getProductRowKeys();
+
+  // ✅ products 우선, 없으면 byType → products 변환
+  let products = (stat.products && typeof stat.products === "object") ? stat.products : null;
+  if (!products && stat.byType && typeof stat.byType === "object") {
+    products = _byTypeToProducts(stat.byType, rowKeys);
+  }
+  if (!products) products = {};
+
+  applyProductsToProductRows(products);
+
+  // ✅ byLender 로드/반영
+  const byLender = (stat.byLender && typeof stat.byLender === "object") ? stat.byLender : {};
+  const hasByLender = Object.keys(byLender).length > 0;
+
+  if (node) {
+    node.summary = { ...(node.summary || {}), ...(stat.summary || {}) };
+    node.products = products;
+    node.byType = stat.byType || null;
+    node.byLender = byLender || {};
+    if (!node.ui) node.ui = { useByLender: false };
+    // 서버/로컬에 byLender가 있으면 기본 ON
+    if (hasByLender) node.ui.useByLender = true;
+  }
+
+  ensureByLenderSection();
+  renderByLenderSection(monthKey);
+
+  // byLender 모드면 합산값으로 productRows/ratio 동기화 (✅ statsBalance는 수동 입력값을 분모로만 사용)
+  if (monthKey && isByLenderMode(monthKey)) {
+    recalcFromByLender(monthKey, { silent: true });
+    applyByLenderModeUI(true);
+  } else {
+    applyByLenderModeUI(false);
+  }
+}
+
+function collectStatsFormData() {
+  const monthKey = getCurrentMonthKey();
+  if (!monthKey) return null;
+
+  ensureMonthNode(monthKey);
+
+  const regEl = document.getElementById("statsRegisteredFirms");
+  const dataEl = document.getElementById("statsDataFirms");
+  const tlEl = document.getElementById("statsTotalLoan");
+  const trEl = document.getElementById("statsTotalRepaid");
+  const balEl = document.getElementById("statsBalance");
+
+  const summary = {
+    registeredFirms: regEl ? Number(regEl.value || 0) : 0,
+    dataFirms: dataEl ? Number(dataEl.value || 0) : 0,
+    totalLoan: getMoneyValue(tlEl),
+    totalRepaid: getMoneyValue(trEl),
+    balance: getMoneyValue(balEl) // ✅ 항상 수동 입력값
+  };
+
+  const products = {};
+  document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
+    const key = row.getAttribute("data-key");
+    const ratioEl = row.querySelector(".js-ratio");
+    const amountEl = row.querySelector(".js-amount");
+
+    const ratioPercent = ratioEl && ratioEl.value !== "" ? Number(ratioEl.value) : 0;
+    const amount = getMoneyValue(amountEl);
+
+    if (ratioPercent === 0 && amount === 0) return;
+    products[key] = { ratioPercent, amount };
+  });
+
+  const node = ensureMonthNode(monthKey);
+  const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
+  const ui = node.ui || { useByLender: false };
+
+  return { monthKey, summary, products, byLender, ui };
+}
+
+/* ===== 기존 ratio% → amount 자동계산 (byLender 모드면 중단) ===== */
+function recalcProductAmounts() {
+  const monthKey = getCurrentMonthKey();
+  if (monthKey && isByLenderMode(monthKey)) return;
+
+  const balEl = document.getElementById("statsBalance");
+  if (!balEl) return;
+  const balance = getMoneyValue(balEl);
+
+  document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
+    const ratioEl = row.querySelector(".js-ratio");
+    const amountEl = row.querySelector(".js-amount");
+    if (!ratioEl || !amountEl) return;
+
+    const ratio = ratioEl.value !== "" ? parseFloat(ratioEl.value) : NaN;
+    if (!balance || isNaN(ratio)) { amountEl.value = ""; return; }
+
+    const amt = Math.round(balance * (ratio / 100));
+    amountEl.value = formatWithCommas(String(amt));
+  });
+}
+
+function _ratioToPercent(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return "";
+  return (n <= 1) ? (n * 100) : n;
+}
+function _percentToRatio(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return 0;
+  return (n > 1) ? (n / 100) : n;
+}
+
+function _normTypeKey(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[_-]/g, "")
+    .replace(/[()]/g, "")
+    .replace(/대출|유동화/g, "");
+}
+function _findBestRowKey(typeKey, rowKeys) {
+  const t = _normTypeKey(typeKey);
+  if (!t) return null;
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const rk of rowKeys) {
+    const r = _normTypeKey(rk);
+    if (!r) continue;
+
+    let score = 0;
+    if (r === t) score = 3;
+    else if (r.includes(t) || t.includes(r)) score = 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = rk;
+    }
+  }
+  return best || null;
+}
+
+function _byTypeToProducts(byType, rowKeys) {
+  const out = {};
+  if (!byType || typeof byType !== "object") return out;
+
+  Object.entries(byType).forEach(([k, v]) => {
+    if (!v || typeof v !== "object") return;
+    const matchKey = _findBestRowKey(k, rowKeys) || k;
+    out[matchKey] = {
+      ratioPercent: _ratioToPercent(v.ratio),
+      amount: v.amount != null ? Number(v.amount) : 0
+    };
+  });
+
+  return out;
+}
+
+function _productsToByType(products) {
+  const out = {};
+  if (!products || typeof products !== "object") return out;
+
+  Object.entries(products).forEach(([k, v]) => {
+    if (!v || typeof v !== "object") return;
+
+    const ratioPercent = Number(v.ratioPercent || 0);
+    const amount = Number(v.amount || 0);
+
+    out[k] = { ratio: _percentToRatio(ratioPercent), amount };
+
+    const shortKey = String(k).replace(/대출|유동화/g, "");
+    if (shortKey && shortKey !== k) {
+      out[shortKey] = { ratio: _percentToRatio(ratioPercent), amount };
+    }
+  });
+
+  return out;
+}
+
+/* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType, byLender}로 정규화 */
+function normalizeOntuStatsResponseToMonth(json, monthKey) {
+  if (!json) return null;
+
+  // 1) {byMonth: { "2025-12": {...}}}
+  if (json.byMonth && typeof json.byMonth === "object") {
+    const hit = json.byMonth[monthKey];
+    if (hit && typeof hit === "object") {
+      return {
+        summary: hit.summary || {},
+        products: hit.products || null,
+        byType: hit.byType || null,
+        byLender: hit.byLender || {}
+      };
+    }
+  }
+
+  // 2) [ {month:"2025-12", ...}, ... ]
+  if (Array.isArray(json)) {
+    const found = json.find((x) => x && typeof x === "object" && ((x.monthKey === monthKey) || (x.month === monthKey)));
+    if (found) {
+      return {
+        summary: found.summary || {},
+        products: found.products || null,
+        byType: found.byType || null,
+        byLender: found.byLender || {}
+      };
+    }
+  }
+
+  // 3) 단일 객체 {month:"2025-12", summary, byType/products/byLender}
+  if (typeof json === "object") {
+    if (json.data && typeof json.data === "object") {
+      const d = json.data;
+      if (d.summary || d.products || d.byType || d.byLender) {
+        return {
+          summary: d.summary || {},
+          products: d.products || null,
+          byType: d.byType || null,
+          byLender: d.byLender || {}
+        };
+      }
+    }
+
+    if (json.summary || json.products || json.byType || json.byLender) {
+      return {
+        summary: json.summary || {},
+        products: json.products || null,
+        byType: json.byType || null,
+        byLender: json.byLender || {}
+      };
+    }
+  }
+
+  return null;
+}
+
+/* ✅ 서버 로드: stats 페이지와 동일하게 ?month= 우선 시도 */
+async function loadOntuStatsFromServer(monthKey) {
+  if (!monthKey) return null;
+
+  // 1) ?month=
+  try {
+    const url = `${API_BASE}/api/ontu-stats?month=${encodeURIComponent(monthKey)}`;
+    const json = await fetchJsonNoCache(url);
+    const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
+    if (normalized) return normalized;
+  } catch (e) {
+    console.warn("ontu-stats server load (month) error:", e);
+  }
+
+  // 2) ?monthKey=
+  try {
+    const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
+    const json = await fetchJsonNoCache(url);
+    const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
+    if (normalized) return normalized;
+  } catch (e) {
+    console.warn("ontu-stats server load (monthKey) error:", e);
+  }
+
+  // 3) latest/all GET 후 monthKey 매칭 (서버가 latest만 준다면 여기서는 null 가능)
+  try {
+    const urlAll = `${API_BASE}/api/ontu-stats`;
+    const jsonAll = await fetchJsonNoCache(urlAll);
+    const normalized = normalizeOntuStatsResponseToMonth(jsonAll, monthKey);
+    return normalized || null;
+  } catch (e) {
+    console.warn("ontu-stats server load (all) error:", e);
+    return null;
+  }
+}
+
+/* =========================================================
+   ✅ (신규) byLender 입력 UI + 합산 로직
+========================================================= */
+function ensureByLenderSection() {
+  if (document.getElementById("statsByLenderBox")) return;
+
+  const tryAttach = () => {
+    const productTbody = document.getElementById("productRows");
+    if (!productTbody) return false;
+
+    const anchor =
+      productTbody.closest(".admin-subbox") ||
+      productTbody.closest(".admin-card") ||
+      productTbody.closest("section") ||
+      productTbody.parentElement;
+
+    if (!anchor || !anchor.parentNode) return false;
+
+    const box = document.createElement("div");
+    box.id = "statsByLenderBox";
+    box.className = "admin-subbox stats-byLender-box";
+
+    const head = document.createElement("div");
+    head.className = "stats-byLender-head";
+
+    const title = document.createElement("div");
+    title.className = "stats-byLender-title";
+    title.textContent = "업체별 상품유형 잔액 입력 (byLender)";
+
+    const tools = document.createElement("div");
+    tools.className = "stats-byLender-tools";
+
+    const useLabel = document.createElement("label");
+    const useCb = document.createElement("input");
+    useCb.type = "checkbox";
+    useCb.id = "statsUseByLenderToggle";
+    useLabel.appendChild(useCb);
+    useLabel.appendChild(document.createTextNode("업체별 입력 사용"));
+    tools.appendChild(useLabel);
+
+    const onlyActiveLabel = document.createElement("label");
+    const onlyActiveCb = document.createElement("input");
+    onlyActiveCb.type = "checkbox";
+    onlyActiveCb.id = "statsByLenderOnlyActive";
+    onlyActiveCb.checked = true;
+    onlyActiveLabel.appendChild(onlyActiveCb);
+    onlyActiveLabel.appendChild(document.createTextNode("활성 업체만"));
+    tools.appendChild(onlyActiveLabel);
+
+    const q = document.createElement("input");
+    q.type = "text";
+    q.id = "statsByLenderSearch";
+    q.placeholder = "업체 검색 (이름/ID)";
+    tools.appendChild(q);
+
+    head.appendChild(title);
+    head.appendChild(tools);
+
+    const help = document.createElement("p");
+    help.className = "stats-byLender-help";
+    help.innerHTML =
+      '기관 제공 <b>점유율(%)</b>이 100%를 넘는 문제가 있어, 여기서는 <b>업체별 잔액(원)</b>을 입력합니다.<br/>' +
+      '입력된 업체별 금액을 시스템이 <b>상품유형별 잔액(합계)</b>으로 자동 계산하여 위 표에 채워주고,<br/>' +
+      '<b>상품유형별 비율(%)</b>은 <b>대출잔액(수동 입력)</b>을 분모로 자동 계산합니다.';
+
+    const tableWrap = document.createElement("div");
+    tableWrap.className = "stats-byLender-tableWrap";
+    const scroll = document.createElement("div");
+    scroll.className = "scroll";
+    tableWrap.appendChild(scroll);
+
+    const note = document.createElement("div");
+    note.className = "stats-byLender-disabledNote";
+    note.id = "statsByLenderDisabledNote";
+    note.textContent = "※ 업체별 입력 사용 ON 시, 상품유형별 금액/비율(%)은 자동 계산됩니다. (대출잔액은 수동 입력 유지)";
+
+    box.appendChild(head);
+    box.appendChild(help);
+    box.appendChild(tableWrap);
+    box.appendChild(note);
+
+    // ✅ anchor 바로 다음에 삽입
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+
+    // 이벤트 바인딩
+    useCb.addEventListener("change", () => {
+      const monthKey = getCurrentMonthKey();
+      if (!monthKey) return;
+
+      const node = ensureMonthNode(monthKey);
+      node.ui.useByLender = !!useCb.checked;
+      saveStatsToStorage();
+
+      applyByLenderModeUI(node.ui.useByLender);
+      renderByLenderSection(monthKey);
+
+      if (node.ui.useByLender) recalcFromByLender(monthKey);
+      else recalcProductAmounts();
+    });
+
+    onlyActiveCb.addEventListener("change", () => renderByLenderSection(getCurrentMonthKey()));
+    q.addEventListener("input", () => renderByLenderSection(getCurrentMonthKey()));
+
+    return true;
+  };
+
+  if (tryAttach()) return;
+
+  // ✅ DOM이 늦게 생기는 케이스 대비 재시도
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries += 1;
+    if (tryAttach() || tries >= 30) clearInterval(timer);
+  }, 150);
+}
+
+/* =========================================================
+   ✅ (FIX) byLender 렌더/모드UI/합산 함수
+   - 1) 업체 순서: LENDERS_MASTER 순서(온투업정보등록상 순서) 유지
+   - 2) statsBalance(대출잔액): 수동 입력 (자동 덮어쓰기/자동 합산 금지)
+   - 3) 비율(%) = (상품유형별 합계 / statsBalance) × 100
+========================================================= */
+
+function applyByLenderModeUI(enabled) {
+  // enabled=true면: 상품유형별 % 입력은 잠그고, 금액/비율은 byLender 합산으로 표시
+  const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
+  const amountInputs = document.querySelectorAll("#productRows .js-amount");
+  const balEl = document.getElementById("statsBalance");
+
+  // ✅ ratio 입력은 byLender 모드에서 계산값이므로 잠금
+  ratioInputs.forEach((el) => { el.disabled = !!enabled; });
+
+  // ✅ amount는 원래 readonly 성격. 값은 보여야 하므로 disabled는 걸지 않음
+  amountInputs.forEach((el) => { el.readOnly = true; el.disabled = false; });
+
+  // ✅ statsBalance는 "수동 입력" 유지: 절대 readOnly/disabled 하지 않음
+  if (balEl) {
+    balEl.readOnly = false;
+    balEl.disabled = false;
+  }
+
+  const note = document.getElementById("statsByLenderDisabledNote");
+  if (note) note.style.opacity = enabled ? "1" : "0.65";
+}
+
+function renderByLenderSection(monthKey) {
+  const box = document.getElementById("statsByLenderBox");
+  if (!box) return;
+
+  const scroll = box.querySelector(".stats-byLender-tableWrap .scroll");
+  if (!scroll) return;
+
+  if (!monthKey) monthKey = getCurrentMonthKey();
+  if (!monthKey) {
+    scroll.innerHTML = `<div style="padding:10px;font-size:12px;color:#6b7280;">조회년월을 먼저 선택해주세요.</div>`;
+    return;
+  }
+
+  const node = ensureMonthNode(monthKey);
+
+  // 토글 UI 상태 반영
+  const useCb = document.getElementById("statsUseByLenderToggle");
+  if (useCb) useCb.checked = !!node.ui?.useByLender;
+
+  const onlyActive = document.getElementById("statsByLenderOnlyActive");
+  const onlyActiveOn = onlyActive ? !!onlyActive.checked : true;
+
+  const qEl = document.getElementById("statsByLenderSearch");
+  const q = (qEl ? (qEl.value || "") : "").trim().toLowerCase();
+
+  const rowKeys = getProductRowKeys();
+
+  // lenders 목록 구성
+  const cfg = (lendersConfig && lendersConfig.lenders && typeof lendersConfig.lenders === "object")
+    ? lendersConfig.lenders
+    : {};
+
+  // ✅ (중요) LENDERS_MASTER 순서(온투업정보등록상 순서) 그대로
+  const orderedIds = [];
+  const seen = new Set();
+
+  LENDERS_MASTER.forEach((m) => {
+    if (cfg[m.id] && !seen.has(m.id)) {
+      orderedIds.push(m.id);
+      seen.add(m.id);
+    }
+  });
+  // 마스터에 없는 커스텀 업체는 뒤에 추가
+  Object.keys(cfg).forEach((id) => {
+    if (!seen.has(id)) {
+      orderedIds.push(id);
+      seen.add(id);
+    }
+  });
+
+  const visibleIds = orderedIds.filter((id) => {
+    const l = cfg[id];
+    if (!l) return false;
+    if (onlyActiveOn && !l.isActive) return false;
+    if (!q) return true;
+    const hay = `${l.name || ""} ${l.id || id || ""}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (visibleIds.length === 0) {
+    scroll.innerHTML = `<div style="padding:10px;font-size:12px;color:#6b7280;">표시할 업체가 없습니다. (활성 업체만 체크/검색어를 확인)</div>`;
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "stats-byLender-table";
+
+  // 헤더
+  const thead = document.createElement("thead");
+  const trh = document.createElement("tr");
+
+  const th0 = document.createElement("th");
+  th0.textContent = "업체";
+  trh.appendChild(th0);
+
+  rowKeys.forEach((k) => {
+    const th = document.createElement("th");
+    th.textContent = k;
+    trh.appendChild(th);
+  });
+
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  // 바디
+  const tbody = document.createElement("tbody");
+
+  const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
+  node.byLender = byLender;
+
+  visibleIds.forEach((id) => {
+    const l = cfg[id];
+    if (!l) return;
+
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = l.name || l.id || id || "-";
+    tr.appendChild(tdName);
+
+    const lenderId = id;
+
+    if (!byLender[lenderId] || typeof byLender[lenderId] !== "object") {
+      byLender[lenderId] = {};
+    }
+
+    rowKeys.forEach((ptype) => {
+      const td = document.createElement("td");
+
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.className = "stats-byLender-money";
+      inp.placeholder = "-";
+      inp.value = byLender[lenderId][ptype] ? formatWithCommas(String(byLender[lenderId][ptype])) : "";
+
+      inp.addEventListener("input", () => {
+        inp.value = formatWithCommas(inp.value);
+        const n = getMoneyValue(inp);
+        byLender[lenderId][ptype] = n;
+        saveStatsToStorage();
+
+        if (node.ui?.useByLender) {
+          // ✅ statsBalance는 건드리지 않고, 상품유형 합계/비율만 업데이트
+          recalcFromByLender(monthKey, { silent: true });
+          applyByLenderModeUI(true);
+        }
+      });
+
+      inp.addEventListener("blur", () => {
+        const n = getMoneyValue(inp);
+        inp.value = n ? formatWithCommas(String(n)) : "";
+      });
+
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+
+  scroll.innerHTML = "";
+  scroll.appendChild(table);
+}
+
+function recalcFromByLender(monthKey, opts = {}) {
+  if (!monthKey) monthKey = getCurrentMonthKey();
+  if (!monthKey) return;
+
+  const node = ensureMonthNode(monthKey);
+  const rowKeys = getProductRowKeys();
+
+  const byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : {};
+  node.byLender = byLender;
+
+  // ✅ 분모: statsBalance는 "수동 입력" (자동 덮어쓰기 금지)
+  const balEl = document.getElementById("statsBalance");
+  const manualBalance = getMoneyValue(balEl);
+
+  // 상품유형별 합계
+  const sums = {};
+  rowKeys.forEach((k) => (sums[k] = 0));
+
+  Object.values(byLender).forEach((per) => {
+    if (!per || typeof per !== "object") return;
+    rowKeys.forEach((k) => {
+      const v = toNumberSafe(per[k]);
+      if (v > 0) sums[k] += v;
+    });
+  });
+
+  // products 생성:
+  // - amount = sums[type]
+  // - ratioPercent = amount / manualBalance * 100 (manualBalance가 0이면 빈값)
+  const products = {};
+  rowKeys.forEach((k) => {
+    const amount = Math.round(sums[k] || 0);
+    if (!amount) return;
+
+    const ratioPercent =
+      (manualBalance > 0)
+        ? (Math.round((amount / manualBalance) * 10000) / 100)  // 소수 2자리
+        : "";
+
+    products[k] = { ratioPercent, amount };
+  });
+
+  node.products = products;
+  node.byType = _productsToByType(products);
+
+  applyProductsToProductRows(products);
+
+  // ✅ summary.balance / statsBalance 값은 절대 자동 변경하지 않는다
+  if (!opts.silent) saveStatsToStorage();
+}
+
+/* =========================================================
+   Stats interactions
+========================================================= */
+function setupStatsInteractions() {
+  const monthInput = document.getElementById("statsMonth");
+  if (monthInput) {
+    monthInput.addEventListener("change", async () => {
+      const m = getCurrentMonthKey();
+      if (!m) { clearStatsForm(); return; }
+
+      ensureByLenderSection();
+
+      const serverStat = await loadOntuStatsFromServer(m);
+      if (serverStat) {
+        fillStatsForm(serverStat, m);
+        statsRoot.byMonth[m] = {
+          ...(statsRoot.byMonth[m] || {}),
+          ...serverStat,
+          ui: { ...(statsRoot.byMonth[m]?.ui || {}), useByLender: (serverStat.byLender && Object.keys(serverStat.byLender).length > 0) ? true : (statsRoot.byMonth[m]?.ui?.useByLender || false) }
+        };
+        saveStatsToStorage();
+      } else {
+        // 로컬
+        fillStatsForm(statsRoot.byMonth[m] || null, m);
+      }
+
+      setupMoneyInputs();
+      if (!isByLenderMode(m)) {
+        recalcProductAmounts();
+      } else {
+        // ✅ byLender 모드면 (수동 잔액 기준) 비율 재계산
+        recalcFromByLender(m, { silent: true });
+      }
+    });
+  }
+
+  const balEl = document.getElementById("statsBalance");
+  if (balEl) {
+    balEl.addEventListener("input", () => {
+      const m = getCurrentMonthKey();
+      balEl.value = formatWithCommas(balEl.value);
+
+      if (!m) return;
+
+      // ✅ byLender 모드에서도 statsBalance 입력 변경 시 비율(%) 재계산
+      if (isByLenderMode(m)) {
+        recalcFromByLender(m, { silent: true });
+        return;
+      }
+
+      recalcProductAmounts();
+    });
+  }
+
+  document.querySelectorAll("#productRows .js-ratio")
+    .forEach((el) => el.addEventListener("input", () => {
+      const m = getCurrentMonthKey();
+      if (m && isByLenderMode(m)) return;
+      recalcProductAmounts();
+    }));
+
+  const saveBtn = document.getElementById("saveOntuStatsBtn");
+  const statusEl = document.getElementById("statsSaveStatus");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const payload = collectStatsFormData();
+      if (!payload) { alert("먼저 조회년월을 선택해주세요."); return; }
+
+      const { monthKey, summary, products, byLender, ui } = payload;
+
+      // ✅ byLender 모드면 (수동 잔액 기준) products/ratio 최신화만 수행 (statsBalance/summary.balance는 건드리지 않음)
+      if (ui?.useByLender) {
+        recalcFromByLender(monthKey, { silent: true });
+      }
+
+      try {
+        // ✅ 요청한 그대로 포함: monthKey/summary/byLender 중심 + 하위호환 products도 같이
+        // (서버는 byLender가 있으면 byType 자동 계산)
+        const res = await fetch(`${API_BASE}/api/ontu-stats`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            monthKey,
+            month: monthKey,     // 호환
+            summary,
+            products,            // 하위호환 (byLender OFF일 때도 유지)
+            byLender             // ✅ 핵심
+          })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
+        }
+
+        // ✅ 서버 응답이 {ok:true...} 일 수 있으니 저장 후 GET으로 재로드
+        const serverStat = await loadOntuStatsFromServer(monthKey);
+
+        const node = ensureMonthNode(monthKey);
+
+        const applied = serverStat || {
+          summary,
+          products,
+          byType: _productsToByType(products),
+          byLender
+        };
+
+        statsRoot.byMonth[monthKey] = {
+          ...(statsRoot.byMonth[monthKey] || {}),
+          ...applied,
+          ui: { ...(node.ui || {}), useByLender: !!ui?.useByLender }
+        };
+
+        saveStatsToStorage();
+        fillStatsForm(statsRoot.byMonth[monthKey], monthKey);
+
+        if (statusEl) {
+          statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
+          setTimeout(() => {
+            if (statusEl.textContent.includes("저장되었습니다")) statusEl.textContent = "";
+          }, 3000);
+        }
+        alert(`통계 데이터가 ${monthKey} 기준으로 서버에 저장되었습니다.`);
+      } catch (e) {
+        console.error("saveOntuStats error:", e);
+        alert("통계 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.");
+      }
+    });
+  }
+}
+
+/* =========================================================
+   2) 온투업체 설정
+========================================================= */
+const PRODUCT_GROUPS = [
+  { key: "부동산담보대출", label: "부동산 담보대출" },
+  { key: "개인신용대출", label: "개인신용대출" },
+  { key: "스탁론(상장)", label: "스탁론(상장)" },
+  { key: "스탁론(비상장)", label: "스탁론(비상장)" },
+  { key: "법인신용대출", label: "법인신용대출" },
+  { key: "매출채권유동화", label: "매출채권유동화" },
+  { key: "의료사업자대출", label: "의료사업자대출" },
+  { key: "온라인선정산", label: "선정산" },
+  { key: "전자어음", label: "전자어음" },
+  { key: "경매배당금담보대출", label: "경매배당금 담보대출" },
+  { key: "미술품담보대출", label: "미술품 담보대출" }
+];
+
+const REGIONS = [
+  { key: "seoul", label: "서울" },
+  { key: "gyeonggi", label: "경기" },
+  { key: "incheon", label: "인천" },
+  { key: "chungcheong", label: "충청" },
+  { key: "jeolla", label: "전라" },
+  { key: "gyeongsang", label: "경상" },
+  { key: "gangwon", label: "강원" },
+  { key: "jeju", label: "제주" }
+];
+
+const PROPERTY_TYPES = [
+  { key: "apt", label: "아파트", loanSet: "aptv" },
+  { key: "villa", label: "다세대/연립", loanSet: "aptv" },
+  { key: "officetel", label: "오피스텔", loanSet: "base" },
+  { key: "detached", label: "단독·다가구", loanSet: "base" },
+  { key: "land", label: "토지·임야", loanSet: "base" },
+  { key: "commercial", label: "근린생활시설", loanSet: "base" }
+];
+
+const LOAN_TYPES_BASE = [
+  { key: "일반담보대출", label: "일반담보대출" },
+  { key: "임대보증금반환대출", label: "임대보증금반환대출" },
+  { key: "지분대출", label: "지분대출" },
+  { key: "경락잔금대출", label: "경락잔금대출" },
+  { key: "대환대출", label: "대환대출" }
+];
+
+const LOAN_TYPES_APTVILLA = [
+  ...LOAN_TYPES_BASE,
+  { key: "매입잔금_일반", label: "매입잔금(일반)" },
+  { key: "매입잔금_분양", label: "매입잔금(분양)" }
+];
+
+/* =========================================================
+   ✅ 추가조건(선택) — 정의서(단일 소스)
+========================================================= */
+const EXTRA_CONDITIONS = {
+  version: "v1",
+  groups: [
+    {
+      key: "borrower",
+      label: "추가조건-차주관련",
+      appliesTo: "realEstateAll",
+      sections: [
+        {
+          key: "age",
+          label: "나이",
+          options: [
+            { key: "borrower_age_20_69", label: "20~70세 미만" },
+            { key: "borrower_age_70_plus", label: "70세 이상" }
+          ]
+        },
+        {
+          key: "income_type",
+          label: "소득유형",
+          options: [
+            { key: "borrower_income_wage", label: "근로소득" },
+            { key: "borrower_income_nonwage", label: "근로외 소득" },
+            { key: "borrower_income_none", label: "증빙소득 없음" },
+            { key: "borrower_income_none_but_pay", label: "증빙소득 없으나 이자 납입가능" }
+          ]
+        },
+        {
+          key: "credit_bucket",
+          label: "신용점수 구간",
+          options: [
+            { key: "borrower_credit_nice_lt_600", label: "NICE 600점 미만" },
+            { key: "borrower_credit_nice_gte_600", label: "NICE 600점 이상" },
+            { key: "borrower_credit_kcb_lt_454", label: "KCB 454점 미만" },
+            { key: "borrower_credit_kcb_gte_454", label: "KCB 454점 이상" }
+          ]
+        },
+        {
+          key: "repay_plan",
+          label: "상환계획(예정)",
+          options: [
+            { key: "borrower_repay_within_3m", label: "3개월 내" },
+            { key: "borrower_repay_3m_to_1y", label: "3개월 초과~1년 미만" },
+            { key: "borrower_repay_gte_1y", label: "1년 이상" }
+          ]
+        },
+        {
+          key: "need_timing",
+          label: "대출금 필요시기",
+          options: [
+            { key: "borrower_need_today", label: "당일" },
+            { key: "borrower_need_within_1w", label: "1주일 내" },
+            { key: "borrower_need_within_1m", label: "한달 이내" }
+          ]
+        },
+        {
+          key: "other_flags",
+          label: "기타사항",
+          options: [
+            { key: "borrower_flag_tax_arrears", label: "세금체납중" },
+            { key: "borrower_flag_interest_overdue", label: "대출이자연체중" },
+            { key: "borrower_flag_card_overdue", label: "카드연체중" },
+            { key: "borrower_flag_seizure", label: "압류·가압류중" },
+            { key: "borrower_flag_rehab", label: "개인회생이력" },
+            { key: "borrower_flag_bankruptcy", label: "파산이력" },
+            { key: "borrower_flag_credit_recovery", label: "신용회복이력" }
+          ]
+        }
+      ]
+    },
+    {
+      key: "property_common",
+      label: "추가조건-부동산 전체 유형",
+      appliesTo: "realEstateAll",
+      sections: [
+        {
+          key: "property_flags",
+          label: "부동산 공통 조건",
+          options: [
+            { key: "property_foreigner_owned", label: "외국인소유" },
+            { key: "property_corporate_owned", label: "법인소유" },
+            { key: "property_trust_property", label: "신탁물건" },
+            { key: "property_tenant_no_consent", label: "임차인 동의불가" },
+            { key: "property_free_occupant_no_consent", label: "무상거주인 동의불가" },
+            { key: "property_gift_inherit_lt_10y", label: "증여·상속된지 10년 미만" },
+            { key: "property_title_transfer_lt_3m", label: "소유권이전 3개월 미만" }
+          ]
+        }
+      ]
+    },
+    {
+      key: "apt_only",
+      label: "추가조건-아파트관련",
+      appliesTo: "aptOnly",
+      sections: [
+        {
+          key: "apt_flags",
+          label: "아파트 조건",
+          options: [
+            { key: "apt_lt_100_units", label: "100세대 미만" },
+            { key: "apt_single_complex", label: "나홀로아파트" },
+            { key: "apt_kb_not_listed", label: "KB시세 미등재" },
+            { key: "apt_private_rental", label: "민간임대주택" }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+function buildExtraConditionIndex(def) {
+  const map = {};
+  (def?.groups || []).forEach((g) => {
+    (g.sections || []).forEach((s) => {
+      (s.options || []).forEach((o) => {
+        map[o.key] = {
+          key: o.key,
+          label: o.label,
+          groupKey: g.key,
+          groupLabel: g.label,
+          sectionKey: s.key,
+          sectionLabel: s.label,
+          appliesTo: g.appliesTo
+        };
+      });
+    });
+  });
+  return map;
+}
+const EXTRA_CONDITION_INDEX = buildExtraConditionIndex(EXTRA_CONDITIONS);
+
+/* ✅ 마스터 */
+const LENDERS_MASTER = [
+  { id: "hifunding", name: "하이펀딩", homepage: "https://hifunding.co.kr/" },
+  { id: "cple", name: "피에프씨테크놀로지스", homepage: "https://www.cple.co.kr/" },
+  { id: "8percent", name: "에잇퍼센트", homepage: "https://8percent.kr/" },
+  { id: "crossfinancekorea", name: "크로스파이낸스코리아", homepage: "https://www.fss.or.kr/" },
+  { id: "niceabc", name: "NICE비즈니스플랫폼", homepage: "https://www.niceabc.co.kr/" },
+  { id: "profit", name: "프로핏", homepage: "https://www.pro-fit.co.kr/" },
+  { id: "honestfund", name: "어니스트에이아이", homepage: "https://www.honestfund.kr/" },
+  { id: "leadingplus", name: "리딩플러스", homepage: "https://www.leadingplusfunding.com/index" },
+  { id: "cocktailfunding", name: "트리거파트너스", homepage: "https://v2.cocktailfunding.com/" },
+  { id: "loanpoint", name: "론포인트", homepage: "https://www.loanpoint.co.kr/" },
+  { id: "funding119", name: "펀딩119", homepage: "https://funding119.com/" },
+  { id: "dailyfunding", name: "데일리펀딩", homepage: "https://new.daily-funding.com/" },
+  { id: "namofunding", name: "나모펀딩", homepage: "https://namofunding.co.kr/" },
+  { id: "yfund", name: "와이펀드", homepage: "https://www.yfund.co.kr/" },
+  { id: "funfunding", name: "베네핏소셜", homepage: "https://www.funfunding.co.kr/" },
+  { id: "presdaq", name: "프리스닥", homepage: "https://presdaqfunding.co.kr/index" },
+  { id: "solarbridge", name: "솔라브리지", homepage: "https://solarbridge.kr/" },
+  { id: "zoomfund", name: "줌펀드", homepage: "https://www.zoomfund.co.kr/" },
+  { id: "fmfunding", name: "에프엠펀딩", homepage: "https://fmfunding.co.kr/" },
+  { id: "together", name: "투게더앱스", homepage: "https://www.together.co.kr/" },
+  { id: "moneymove", name: "머니무브", homepage: "https://moneymove.ai/" },
+  { id: "rootenergy", name: "루트인프라금융", homepage: "https://www.rootenergy.co.kr/" },
+  { id: "wefunding", name: "위펀딩", homepage: "https://www.wefunding.com/" },
+  { id: "oasisfund", name: "오아시스펀드", homepage: "https://oasisfund.kr/" },
+  { id: "titaninvest", name: "타이탄인베스트", homepage: "https://www.titaninvest.co.kr/index" },
+  { id: "mouda", name: "모우다", homepage: "https://mouda.kr/" },
+  { id: "cocofunding", name: "코코펀딩", homepage: "" },
+  { id: "theassetfund", name: "디에셋핀테크", homepage: "https://www.theassetfund/" },
+  { id: "vfunding", name: "브이핀테크", homepage: "https://www.vfunding.co.kr/" },
+  { id: "benefitplus", name: "비플러스", homepage: "https://benefitplus.kr/" },
+  { id: "acefunding", name: "에이스펀딩", homepage: "https://acefunding.co.kr/" },
+  { id: "herbfund", name: "허브펀드", homepage: "" },
+  { id: "nurifunding", name: "누리펀딩", homepage: "https://www.nurifunding.co.kr/" },
+  { id: "miraclefunding", name: "미라클핀테크", homepage: "https://www.miraclefunding.co.kr/" },
+  { id: "funda", name: "펀다", homepage: "https://www.funda.kr/" },
+  { id: "graphfunding", name: "그래프펀딩", homepage: "https://www.graphfunding.com/" },
+  { id: "daonfunding", name: "다온핀테크", homepage: "https://www.daonfunding.com/" },
+  { id: "winkstone", name: "윙크스톤", homepage: "https://loanone.winkstone.com/" },
+  { id: "hellofunding", name: "헬로핀테크", homepage: "https://www.hellofunding.co.kr/" },
+  { id: "trustfund", name: "앱솔브트러스트", homepage: "https://trustfund.co.kr/" },
+  { id: "firstonline", name: "퍼스트온라인투자금융", homepage: "https://www.firstonline.kr/" },
+  { id: "jhplus", name: "제이에이치플러스", homepage: "" },
+  { id: "apfunding", name: "에이피펀딩", homepage: "https://www.apfunding.co.kr/" },
+  { id: "campusfund", name: "레드로켓", homepage: "https://campusfund.net/" },
+  { id: "oceanfunding", name: "오션펀딩", homepage: "https://www.oceanfunding.co.kr/" },
+  { id: "sugarfunding", name: "슈가펀딩주식회사", homepage: "" },
+  { id: "grayzip", name: "브릭베이스", homepage: "https://grayzip.com/" },
+  { id: "ontwo", name: "온투인", homepage: "https://www.ontwo.co.kr/" },
+  { id: "tgsfinance", name: "티지에스파이낸스", homepage: "" },
+  { id: "hnr", name: "에이치엔알", homepage: "" },
+  { id: "lendit", name: "렌딧", homepage: "https://www.lendit.co.kr/" },
+  { id: "modufintech", name: "모두의핀테크", homepage: "" },
+  { id: "bidfunding", name: "비드펀딩", homepage: "" }
+];
+
+let lendersConfig = { lenders: {} };
+
+let lenderUiState = {
+  q: "",
+  openIds: new Set(),
+  activeRegionById: {}
+};
+
+function uniq(arr) {
+  return Array.from(new Set(Array.isArray(arr) ? arr : []));
+}
+
+/* ✅ 기존 저장 데이터 호환: "스탁론" → "스탁론(상장)" 자동 변환 */
+function migrateProducts(products) {
+  let arr = uniq(Array.isArray(products) ? products : []);
+  if (arr.includes("스탁론")) {
+    arr = arr.filter((x) => x !== "스탁론");
+    if (!arr.includes("스탁론(상장)")) arr.push("스탁론(상장)");
+  }
+  return arr;
+}
+
+function ensureLender(id) {
+  if (!lendersConfig.lenders) lendersConfig.lenders = {};
+  if (!lendersConfig.lenders[id]) {
+    lendersConfig.lenders[id] = {
+      id,
+      name: id,
+      homepage: "",
+      isActive: false,
+      isPartner: false,
+      partnerOrder: 0,
+      realEstateMinLoanAmount: "",
+      extraConditions: [],
+      financialInputs: {},
+      products: [],
+      phoneNumber: "",
+      kakaoUrl: "",
+      regions: {}
+    };
+  }
+  return lendersConfig.lenders[id];
+}
+
+function ensureLenderDeepDefaults(lender) {
+  if (!lender) return;
+
+  if (typeof lender.name !== "string") lender.name = String(lender.name || lender.id || "");
+  if (typeof lender.homepage !== "string") lender.homepage = String(lender.homepage || lender.homepageUrl || "");
+
+  if (typeof lender.partnerOrder !== "number") lender.partnerOrder = 0;
+  if (lender.partnerOrder < 0 || lender.partnerOrder > 10) lender.partnerOrder = 0;
+
+  if (typeof lender.realEstateMinLoanAmount !== "string" && typeof lender.realEstateMinLoanAmount !== "number") {
+    lender.realEstateMinLoanAmount = "";
+  }
+
+  if (!Array.isArray(lender.products)) lender.products = [];
+  lender.products = migrateProducts(lender.products);
+
+  const hasRealEstate = lender.products.includes("부동산담보대출");
+  if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
+
+  if (!Array.isArray(lender.extraConditions)) {
+    const legacy = lender.extraConditionsKeys || lender.extraConditionKeys || [];
+    lender.extraConditions = Array.isArray(legacy) ? legacy.slice() : [];
+  }
+  lender.extraConditions = uniq(lender.extraConditions)
+    .filter((k) => typeof k === "string" && !!EXTRA_CONDITION_INDEX[k]);
+  if (!hasRealEstate) lender.extraConditions = [];
+
+  if (!lender.financialInputs || typeof lender.financialInputs !== "object") lender.financialInputs = {};
+  Object.keys(lender.financialInputs).forEach((k) => {
+    if (!lender.financialInputs[k] || typeof lender.financialInputs[k] !== "object") lender.financialInputs[k] = {};
+  });
+
+  const productsArr = Array.isArray(lender.products) ? lender.products : [];
+  productsArr.forEach((pgKey) => {
+    if (!lender.financialInputs[pgKey] || typeof lender.financialInputs[pgKey] !== "object") {
+      lender.financialInputs[pgKey] = {};
+    }
+    const obj = lender.financialInputs[pgKey];
+    ["interestAvg", "platformFeeAvg", "prepayFeeAvg"].forEach((field) => {
+      if (obj[field] == null) obj[field] = "";
+      else obj[field] = String(obj[field]);
+    });
+  });
+
+  if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
+
+  REGIONS.forEach((r) => {
+    if (!lender.regions[r.key] || typeof lender.regions[r.key] !== "object") lender.regions[r.key] = {};
+    PROPERTY_TYPES.forEach((pt) => {
+      const prev = lender.regions[r.key][pt.key] || {};
+      lender.regions[r.key][pt.key] = {
+        enabled: !!prev.enabled,
+        ltvMax: prev.ltvMax ?? "",
+        ltvMin: prev.ltvMin ?? "",
+        loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
+      };
+    });
+  });
+}
+
+let _previewRAF = 0;
+function schedulePreviewUpdate() {
+  if (_previewRAF) return;
+  _previewRAF = requestAnimationFrame(() => {
+    _previewRAF = 0;
+    updateLendersConfigPreview();
+    scheduleLoanConfigBackupSave();
+  });
+}
+
+function updateLenderState(id, patch) {
+  const lender = ensureLender(id);
+  Object.assign(lender, patch);
+  ensureLenderDeepDefaults(lender);
+  schedulePreviewUpdate();
+}
+
+function mergeLendersWithMaster() {
+  const current = (lendersConfig && lendersConfig.lenders && typeof lendersConfig.lenders === "object")
+    ? lendersConfig.lenders
+    : {};
+
+  const merged = { ...current };
+
+  LENDERS_MASTER.forEach((m) => {
+    const existing = current[m.id] || {};
+    merged[m.id] = {
+      id: m.id,
+      name: (typeof existing.name === "string" && existing.name.trim()) ? existing.name : m.name,
+      homepage: (existing.homepage || existing.homepageUrl || m.homepage || ""),
+      isActive: typeof existing.isActive === "boolean" ? existing.isActive : false,
+      isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
+      partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
+      realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
+      extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [],
+      financialInputs: (existing.financialInputs && typeof existing.financialInputs === "object") ? existing.financialInputs : {},
+      products: Array.isArray(existing.products) ? uniq(existing.products) : [],
+      phoneNumber: existing.phoneNumber || "",
+      kakaoUrl: existing.kakaoUrl || "",
+      regions: (existing.regions && typeof existing.regions === "object") ? existing.regions : {}
+    };
+  });
+
+  lendersConfig.lenders = merged;
+  Object.values(lendersConfig.lenders).forEach(ensureLenderDeepDefaults);
+}
+
+/* =========================================================
+   ✅ loan-config 로컬 자동백업/복구 + 다운로드/업로드
+========================================================= */
+const LOANCFG_LOCAL_KEY = "huchu_loan_config_backup_v1";
+let _loanBackupTimer = 0;
+
+function safeJsonParse(raw) {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function loadLoanConfigBackupFromStorage() {
+  try {
+    const raw = localStorage.getItem(LOANCFG_LOCAL_KEY);
+    if (!raw) return null;
+    const parsed = safeJsonParse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.lenders || typeof parsed.lenders !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveLoanConfigBackupToStorageNow() {
+  try {
+    const payload = (lendersConfig && typeof lendersConfig === "object" && lendersConfig.lenders)
+      ? { lenders: lendersConfig.lenders }
+      : { lenders: {} };
+    localStorage.setItem(LOANCFG_LOCAL_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn("loan-config backup save error:", e);
+  }
+}
+
+function scheduleLoanConfigBackupSave() {
+  if (_loanBackupTimer) clearTimeout(_loanBackupTimer);
+  _loanBackupTimer = setTimeout(() => {
+    _loanBackupTimer = 0;
+    saveLoanConfigBackupToStorageNow();
+  }, 450);
+}
+
+function downloadJson(filename, obj) {
+  try {
+    const json = JSON.stringify(obj, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert("다운로드 생성 중 오류가 발생했습니다.");
+    console.warn(e);
+  }
+}
+
+async function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
+    fr.onerror = () => reject(fr.error || new Error("File read error"));
+    fr.readAsText(file);
+  });
+}
+
+function normalizeLoanConfigShape(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  if (obj.lenders && typeof obj.lenders === "object") return { lenders: obj.lenders };
+  if (obj.data && obj.data.lenders && typeof obj.data.lenders === "object") return { lenders: obj.data.lenders };
+  return null;
+}
+
+let __loanCfgUiBound = false;
+function setupLoanConfigToolsUI() {
+  if (__loanCfgUiBound) return;
+  __loanCfgUiBound = true;
+
+  const btnDownload = document.getElementById("downloadLoanConfigBtn");
+  const btnUpload = document.getElementById("uploadLoanConfigBtn");
+  const fileInput = document.getElementById("loanConfigFileInput");
+  const statusEl = document.getElementById("lendersBackupStatus");
+
+  const setStatus = (msg) => {
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+  };
+
+  if (btnDownload) {
+    btnDownload.addEventListener("click", () => {
+      downloadJson("huchu-loan-config.json", { lenders: lendersConfig.lenders || {} });
+      setStatus("백업 파일을 다운로드했습니다.");
+      setTimeout(() => { if (statusEl && statusEl.textContent.includes("다운로드")) statusEl.textContent = ""; }, 2500);
+    });
+  }
+
+  if (btnUpload && fileInput) {
+    btnUpload.addEventListener("click", () => fileInput.click());
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+
+      try {
+        const txt = await readFileAsText(file);
+        const parsed = safeJsonParse(txt);
+        const normalized = normalizeLoanConfigShape(parsed);
+        if (!normalized) throw new Error("형식 오류: lenders가 없습니다.");
+
+        lendersConfig = { lenders: normalized.lenders || {} };
+        mergeLendersWithMaster();
+        renderLendersList();
+        updateLendersConfigPreview();
+        saveLoanConfigBackupToStorageNow();
+        const mk = getCurrentMonthKey();
+        if (mk) renderByLenderSection(mk);
+
+        setStatus("업로드한 백업을 적용했고, 로컬 백업에도 저장했습니다.");
+        setTimeout(() => { if (statusEl && statusEl.textContent.includes("업로드")) statusEl.textContent = ""; }, 3000);
+        alert("업로드한 설정을 적용했고 로컬에도 백업했습니다.");
+      } catch (e) {
+        console.error(e);
+        setStatus("업로드 처리 중 오류가 발생했습니다. (JSON 형식 확인)");
+        alert("업로드 파일 처리 중 오류가 발생했습니다.\n(형식이 맞는 JSON인지 확인해주세요.)");
+      } finally {
+        fileInput.value = "";
+      }
+    });
+  }
+}
+
+async function loadLendersConfigFromServer() {
+  const localBackup = loadLoanConfigBackupFromStorage();
+
+  try {
+    const json = await fetchJsonNoCache(`${API_BASE}/api/loan-config`);
+    const serverCfg = (json && typeof json === "object" && json.lenders && typeof json.lenders === "object")
+      ? json
+      : { lenders: {} };
+
+    const serverCount = Object.keys(serverCfg.lenders || {}).
