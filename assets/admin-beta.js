@@ -412,7 +412,6 @@ function setupStatsInteractions() {
         fillStatsForm(statsRoot.byMonth[m] || null);
       }
 
-      setupums
       setupMoneyInputs();
       recalcProductAmounts();
     });
