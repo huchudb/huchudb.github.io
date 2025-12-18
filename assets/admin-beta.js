@@ -226,7 +226,6 @@ function normalizePercentBlur(v) {
   if (!s) return "";
   const n = Number(s);
   if (!Number.isFinite(n)) return "";
-  // 불필요한 0 제거(표시는 최대 2자리 정도로만)
   const fixed = Math.round(n * 100) / 100;
   return String(fixed);
 }
@@ -236,6 +235,25 @@ function normalizePercentBlur(v) {
 ========================================================= */
 const STATS_LOCAL_KEY = "huchu_ontu_stats_beta_v2";
 let statsRoot = { byMonth: {} };
+
+// ✅ HTML의 기본 row key (DOM이 없을 때 대비)
+const STATS_ROWKEY_FALLBACK = [
+  "부동산담보",
+  "부동산PF",
+  "어음·매출채권담보",
+  "기타담보(주식 등)",
+  "개인신용",
+  "법인신용"
+];
+
+function getStatsRowKeys() {
+  const tbody = document.getElementById("productRows");
+  if (!tbody) return STATS_ROWKEY_FALLBACK.slice();
+  const keys = Array.from(tbody.querySelectorAll("tr[data-key]"))
+    .map((r) => r.getAttribute("data-key"))
+    .filter(Boolean);
+  return keys.length ? keys : STATS_ROWKEY_FALLBACK.slice();
+}
 
 function loadStatsFromStorage() {
   try {
@@ -262,10 +280,22 @@ function clearStatsForm() {
   document.querySelectorAll("#productRows .js-ratio").forEach((el) => (el.value = ""));
   document.querySelectorAll("#productRows .js-amount").forEach((el) => (el.value = ""));
 }
+
 function fillStatsForm(stat) {
   if (!stat) { clearStatsForm(); return; }
+
   const s = stat.summary || {};
-  const p = stat.products || {};
+  const regEl = document.getElementById("statsRegisteredFirms");
+  const dataEl = document.getElementById("statsDataFirms");
+  const tlEl = document.getElementById("statsTotalLoan");
+  const trEl = document.getElementById("statsTotalRepaid");
+  const balEl = document.getElementById("statsBalance");
+
+  if (regEl) regEl.value = Number(s.registeredFirms || 0);
+  if (dataEl) dataEl.value = Number(s.dataFirms || 0);
+  if (tlEl) tlEl.value = formatWithCommas(String(s.totalLoan || ""));
+  if (trEl) trEl.value = formatWithCommas(String(s.totalRepaid || ""));
+  if (balEl) balEl.value = formatWithCommas(String(s.balance || ""));
 
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
@@ -274,21 +304,20 @@ function fillStatsForm(stat) {
     .map((r) => r.getAttribute("data-key"))
     .filter(Boolean);
 
-  // ✅ products가 없고 byType만 오는 경우 대응
-  let p = (stat && stat.products && typeof stat.products === "object") ? stat.products : null;
-  if (!p && stat && stat.byType && typeof stat.byType === "object") {
-    p = _byTypeToProducts(stat.byType, rowKeys);
+  // ✅ products 우선, 없으면 byType → products 변환
+  let products = (stat && stat.products && typeof stat.products === "object") ? stat.products : null;
+  if ((!products || Object.keys(products).length === 0) && stat && stat.byType && typeof stat.byType === "object") {
+    products = _byTypeToProducts(stat.byType, rowKeys.length ? rowKeys : getStatsRowKeys());
   }
-  if (!p) p = {};
+  if (!products) products = {};
 
   tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
-    const cfg = p[key] || {};
+    const cfg = products[key] || {};
 
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
 
-    // ratioPercent 우선, 없으면 ratio(0~1)도 처리
     const ratioPercent =
       (cfg.ratioPercent != null) ? cfg.ratioPercent
       : (cfg.ratio != null) ? _ratioToPercent(cfg.ratio)
@@ -297,8 +326,8 @@ function fillStatsForm(stat) {
     if (ratioEl) ratioEl.value = (ratioPercent !== "" ? ratioPercent : "");
     if (amountEl) amountEl.value = (cfg.amount != null) ? formatWithCommas(String(cfg.amount)) : "";
   });
-
 }
+
 function collectStatsFormData() {
   const monthKey = getCurrentMonthKey();
   if (!monthKey) return null;
@@ -331,6 +360,7 @@ function collectStatsFormData() {
 
   return { monthKey, summary, products };
 }
+
 function recalcProductAmounts() {
   const balEl = document.getElementById("statsBalance");
   if (!balEl) return;
@@ -352,14 +382,12 @@ function recalcProductAmounts() {
 function _ratioToPercent(v) {
   const n = Number(v);
   if (!isFinite(n)) return "";
-  // 서버: 0.43(=43%) 형태면 *100
   return (n <= 1) ? (n * 100) : n;
 }
 
 function _percentToRatio(v) {
   const n = Number(v);
   if (!isFinite(n)) return 0;
-  // UI: 43(%) 형태면 /100
   return (n > 1) ? (n / 100) : n;
 }
 
@@ -379,7 +407,7 @@ function _findBestRowKey(typeKey, rowKeys) {
   let best = null;
   let bestScore = 0;
 
-  for (const rk of rowKeys) {
+  for (const rk of (rowKeys || [])) {
     const r = _normTypeKey(rk);
     if (!r) continue;
 
@@ -395,13 +423,14 @@ function _findBestRowKey(typeKey, rowKeys) {
   return best || null;
 }
 
+// ✅ rowKeys 없을 때도 동작하도록 보강
 function _byTypeToProducts(byType, rowKeys) {
   const out = {};
   if (!byType || typeof byType !== "object") return out;
 
   Object.entries(byType).forEach(([k, v]) => {
     if (!v || typeof v !== "object") return;
-    const matchKey = _findBestRowKey(k, rowKeys) || k;
+    const matchKey = (rowKeys && rowKeys.length) ? (_findBestRowKey(k, rowKeys) || k) : k;
     out[matchKey] = {
       ratioPercent: _ratioToPercent(v.ratio),
       amount: v.amount != null ? Number(v.amount) : 0
@@ -421,10 +450,8 @@ function _productsToByType(products) {
     const ratioPercent = Number(v.ratioPercent || 0);
     const amount = Number(v.amount || 0);
 
-    // 1) 원래 key 그대로도 넣고
     out[k] = { ratio: _percentToRatio(ratioPercent), amount };
 
-    // 2) "대출/유동화" 제거한 short key도 같이 넣어서 서버 호환 폭 넓히기
     const shortKey = String(k).replace(/대출|유동화/g, "");
     if (shortKey && shortKey !== k) {
       out[shortKey] = { ratio: _percentToRatio(ratioPercent), amount };
@@ -434,27 +461,43 @@ function _productsToByType(products) {
   return out;
 }
 
+// ✅ 서버 응답 정규화: byType도 살리고, products가 비면 byType→products 변환
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
 
+  const normalizeOne = (obj) => {
+    if (!obj || typeof obj !== "object") return null;
+
+    const summary = obj.summary || (obj.data && obj.data.summary) || {};
+    const rawProducts = obj.products || (obj.data && obj.data.products) || {};
+    const byType = obj.byType || (obj.data && obj.data.byType) || null;
+
+    let products = (rawProducts && typeof rawProducts === "object") ? rawProducts : {};
+    if ((!products || Object.keys(products).length === 0) && byType && typeof byType === "object") {
+      products = _byTypeToProducts(byType, getStatsRowKeys());
+    }
+
+    const out = { summary, products };
+    if (byType && typeof byType === "object") out.byType = byType;
+    return out;
+  };
+
   if (json.byMonth && typeof json.byMonth === "object") {
     const hit = json.byMonth[monthKey];
-    if (hit && typeof hit === "object") {
-      return { summary: hit.summary || {}, products: hit.products || {} };
-    }
+    const normalized = normalizeOne(hit);
+    if (normalized) return normalized;
   }
 
   if (Array.isArray(json)) {
     const found = json.find((x) => x && typeof x === "object" && x.monthKey === monthKey);
-    if (found) return { summary: found.summary || {}, products: found.products || {} };
+    const normalized = normalizeOne(found);
+    if (normalized) return normalized;
   }
 
   if (typeof json === "object") {
-    if (json.summary || json.products) {
-      return { summary: json.summary || {}, products: json.products || {} };
-    }
-    if (json.data && (json.data.summary || json.data.products)) {
-      return { summary: json.data.summary || {}, products: json.data.products || {} };
+    if (json.summary || json.products || json.byType || (json.data && (json.data.summary || json.data.products || json.data.byType))) {
+      const normalized = normalizeOne(json);
+      if (normalized) return normalized;
     }
   }
 
@@ -464,23 +507,19 @@ function normalizeOntuStatsResponseToMonth(json, monthKey) {
 async function loadOntuStatsFromServer(monthKey) {
   if (!monthKey) return null;
 
+  // ✅ 캐시/304 영향 최소화 위해 no-cache 유틸 사용
   try {
     const url = `${API_BASE}/api/ontu-stats?monthKey=${encodeURIComponent(monthKey)}`;
-    const res = await fetch(url, { method: "GET" });
-    if (res.ok) {
-      const json = await res.json().catch(() => null);
-      const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
-      if (normalized) return normalized;
-    }
+    const json = await fetchJsonNoCache(url, { method: "GET" });
+    const normalized = normalizeOntuStatsResponseToMonth(json, monthKey);
+    if (normalized) return normalized;
   } catch (e) {
     console.warn("ontu-stats server load (query) error:", e);
   }
 
   try {
     const urlAll = `${API_BASE}/api/ontu-stats`;
-    const resAll = await fetch(urlAll, { method: "GET" });
-    if (!resAll.ok) return null;
-    const jsonAll = await resAll.json().catch(() => null);
+    const jsonAll = await fetchJsonNoCache(urlAll, { method: "GET" });
     const normalized = normalizeOntuStatsResponseToMonth(jsonAll, monthKey);
     return normalized || null;
   } catch (e) {
@@ -530,31 +569,35 @@ function setupStatsInteractions() {
 
       const { monthKey, summary, products } = payload;
 
+      // ✅ fetch 옵션 객체 안에 문장 넣으면 파일이 깨짐 → 밖으로 빼기
+      const byType = _productsToByType(products);
+
       try {
         const res = await fetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-       
-          const byType = _productsToByType(products);
-
           body: JSON.stringify({
-          monthKey,
-          month: monthKey,     // ✅ 서버가 month 필드를 쓰는 경우 대비
-          summary,
-          products,            // ✅ 기존 호환
-          byType               // ✅ 현재 서버 응답 형태에 맞춤
-         })
+            monthKey,
+            month: monthKey,     // ✅ 서버가 month 필드를 쓰는 경우 대비
+            summary,
+            products,            // ✅ 기존 호환
+            byType               // ✅ 서버 호환
+          })
         });
+
         if (!res.ok) {
           const errText = await res.text().catch(() => "");
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
-          const savedJson = await res.json().catch(() => null);
-          const normalizedSaved = normalizeOntuStatsResponseToMonth(savedJson, monthKey) || { summary, products, byType };
 
-          statsRoot.byMonth[monthKey] = normalizedSaved;
-          saveStatsToStorage();
-          fillStatsForm(normalizedSaved);
+        const savedJson = await res.json().catch(() => null);
+        const normalizedSaved =
+          normalizeOntuStatsResponseToMonth(savedJson, monthKey)
+          || { summary, products, byType };
+
+        statsRoot.byMonth[monthKey] = normalizedSaved;
+        saveStatsToStorage();
+        fillStatsForm(normalizedSaved);
 
         if (statusEl) {
           statusEl.textContent = "통계 데이터가 서버에 저장되었습니다.";
@@ -578,14 +621,13 @@ const PRODUCT_GROUPS = [
   { key: "부동산담보대출", label: "부동산 담보대출" },
   { key: "개인신용대출", label: "개인신용대출" },
 
-  // ✅ 변경/추가: 기존 '스탁론' → '스탁론(상장)', 그리고 '스탁론(비상장)' 추가(우측)
   { key: "스탁론(상장)", label: "스탁론(상장)" },
   { key: "스탁론(비상장)", label: "스탁론(비상장)" },
 
   { key: "법인신용대출", label: "법인신용대출" },
   { key: "매출채권유동화", label: "매출채권유동화" },
   { key: "의료사업자대출", label: "의료사업자대출" },
-  { key: "온라인선정산", label: "선정산" }, // 저장 키 호환 유지
+  { key: "온라인선정산", label: "선정산" },
   { key: "전자어음", label: "전자어음" },
   { key: "경매배당금담보대출", label: "경매배당금 담보대출" },
   { key: "미술품담보대출", label: "미술품 담보대출" }
@@ -627,9 +669,8 @@ const LOAN_TYPES_APTVILLA = [
 
 /* =========================================================
    ✅ 추가조건(선택) — 정의서(단일 소스)
-   - 저장은 lender.extraConditions: string[] (옵션 key 배열)
 ========================================================= */
-const EXTRA_CONDITIONS = {
+const EXTRA_CONDITIONS = { /* (사용자가 준 그대로) */ 
   version: "v1",
   groups: [
     {
@@ -698,7 +739,6 @@ const EXTRA_CONDITIONS = {
         }
       ]
     },
-
     {
       key: "property_common",
       label: "추가조건-부동산 전체 유형",
@@ -719,7 +759,6 @@ const EXTRA_CONDITIONS = {
         }
       ]
     },
-
     {
       key: "apt_only",
       label: "추가조건-아파트관련",
@@ -761,8 +800,8 @@ function buildExtraConditionIndex(def) {
 }
 const EXTRA_CONDITION_INDEX = buildExtraConditionIndex(EXTRA_CONDITIONS);
 
-/* ✅ 마스터: 네가 준 순서 그대로 + 홈페이지 URL(homepage) */
-const LENDERS_MASTER = [
+/* ✅ 마스터 */
+const LENDERS_MASTER = [ /* (사용자가 준 그대로) */ 
   { id: "hifunding", name: "하이펀딩", homepage: "https://hifunding.co.kr/" },
   { id: "cple", name: "피에프씨테크놀로지스", homepage: "https://www.cple.co.kr/" },
   { id: "8percent", name: "에잇퍼센트", homepage: "https://8percent.kr/" },
@@ -850,11 +889,8 @@ function ensureLender(id) {
       isActive: false,
       isPartner: false,
       partnerOrder: 0,
-      // ✅ 부동산담보대출 최소금액(만원)
       realEstateMinLoanAmount: "",
-      // ✅ 추가조건(선택) - 옵션 key 배열
       extraConditions: [],
-      // ✅ (추가) 금융조건 수치 입력 - 상품군별 평균 % (금리/플랫폼/중도상환)
       financialInputs: {},
       products: [],
       phoneNumber: "",
@@ -881,11 +917,9 @@ function ensureLenderDeepDefaults(lender) {
   if (!Array.isArray(lender.products)) lender.products = [];
   lender.products = migrateProducts(lender.products);
 
-  // ✅ 부동산 담보대출에만 적용: 체크 해제 시 값 제거
   const hasRealEstate = lender.products.includes("부동산담보대출");
   if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
 
-  // ✅ 추가조건(선택) 기본/정리
   if (!Array.isArray(lender.extraConditions)) {
     const legacy = lender.extraConditionsKeys || lender.extraConditionKeys || [];
     lender.extraConditions = Array.isArray(legacy) ? legacy.slice() : [];
@@ -894,7 +928,6 @@ function ensureLenderDeepDefaults(lender) {
     .filter((k) => typeof k === "string" && !!EXTRA_CONDITION_INDEX[k]);
   if (!hasRealEstate) lender.extraConditions = [];
 
-  // ✅ (추가) 금융조건 수치 입력 기본/정리
   if (!lender.financialInputs || typeof lender.financialInputs !== "object") lender.financialInputs = {};
   Object.keys(lender.financialInputs).forEach((k) => {
     if (!lender.financialInputs[k] || typeof lender.financialInputs[k] !== "object") lender.financialInputs[k] = {};
@@ -921,7 +954,6 @@ function ensureLenderDeepDefaults(lender) {
       lender.regions[r.key][pt.key] = {
         enabled: !!prev.enabled,
         ltvMax: prev.ltvMax ?? "",
-        // 하위호환: 남아 있어도 UI/판정에 사용 안함
         ltvMin: prev.ltvMin ?? "",
         loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
       };
@@ -935,7 +967,7 @@ function schedulePreviewUpdate() {
   _previewRAF = requestAnimationFrame(() => {
     _previewRAF = 0;
     updateLendersConfigPreview();
-    scheduleLoanConfigBackupSave(); // ✅ 변경 시 디바운스 로컬 백업
+    scheduleLoanConfigBackupSave();
   });
 }
 
@@ -964,7 +996,6 @@ function mergeLendersWithMaster() {
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
       realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
       extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [],
-      // ✅ (추가) 금융조건 수치 입력 보존
       financialInputs: (existing.financialInputs && typeof existing.financialInputs === "object") ? existing.financialInputs : {},
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
       phoneNumber: existing.phoneNumber || "",
@@ -978,7 +1009,7 @@ function mergeLendersWithMaster() {
 }
 
 /* =========================================================
-   ✅ loan-config 로컬 자동백업/복구 + 다운로드/업로드 (UI는 HTML만)
+   ✅ loan-config 로컬 자동백업/복구 + 다운로드/업로드
 ========================================================= */
 const LOANCFG_LOCAL_KEY = "huchu_loan_config_backup_v1";
 let _loanBackupTimer = 0;
@@ -1016,7 +1047,7 @@ function scheduleLoanConfigBackupSave() {
   _loanBackupTimer = setTimeout(() => {
     _loanBackupTimer = 0;
     saveLoanConfigBackupToStorageNow();
-  }, 450); // 디바운스
+  }, 450);
 }
 
 function downloadJson(filename, obj) {
@@ -1053,7 +1084,6 @@ function normalizeLoanConfigShape(obj) {
   return null;
 }
 
-/* ✅ UI는 HTML에만: 이벤트만 연결 */
 let __loanCfgUiBound = false;
 function setupLoanConfigToolsUI() {
   if (__loanCfgUiBound) return;
@@ -1112,7 +1142,6 @@ function setupLoanConfigToolsUI() {
   }
 }
 
-/* ✅ 304 무력화 적용: loan-config 서버 로드 */
 async function loadLendersConfigFromServer() {
   const localBackup = loadLoanConfigBackupFromStorage();
 
@@ -1191,7 +1220,6 @@ async function postLendersConfigToServer(successText) {
   mergeLendersWithMaster();
   renderLendersList();
   updateLendersConfigPreview();
-
   saveLoanConfigBackupToStorageNow();
 
   return successText || "저장되었습니다.";
@@ -1224,7 +1252,6 @@ function renderFinanceInputsBox(lender) {
     return box;
   }
 
-  // PRODUCT_GROUPS 순서로 정렬(알 수 없는 키는 뒤로)
   const orderMap = new Map(PRODUCT_GROUPS.map((p, idx) => [p.key, idx]));
   selected.sort((a, b) => (orderMap.get(a) ?? 999) - (orderMap.get(b) ?? 999));
 
@@ -1279,7 +1306,6 @@ function renderFinanceInputsBox(lender) {
         nextOne[fieldKey] = input.value;
         nextAll[pgKey] = nextOne;
 
-        // ✅ 포커스 유지 위해 renderLendersList()는 하지 않음
         updateLenderState(lender.id, { financialInputs: nextAll });
       });
 
@@ -1652,13 +1678,12 @@ function renderLendersList() {
 
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
-    // ✅ 위치 규칙 반영:
-    // - 부동산담보대출 포함 시: 취급 상품군 설정 → 금융조건 수치 입력 → 추가조건(선택)
-    // - 그 외: 취급 상품군 설정 → 금융조건 수치 입력 → 상담 채널 정보
     if (hasRealEstate) {
-      inner.appendChild(renderFinanceInputsBox(lender));      // ✅ 여기!
+      inner.appendChild(renderFinanceInputsBox(lender));
       inner.appendChild(renderExtraConditionsBox(lender));
 
+      // (이하 매트릭스/컨택트/저장 버튼 로직은 사용자가 준 그대로)
+      // -------------------- (원본 그대로 유지) --------------------
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
@@ -1848,7 +1873,7 @@ function renderLendersList() {
 
       inner.appendChild(matrixBox);
     } else {
-      inner.appendChild(renderFinanceInputsBox(lender)); // ✅ 여기!
+      inner.appendChild(renderFinanceInputsBox(lender));
     }
 
     const contactBox = document.createElement("div");
@@ -1979,7 +2004,7 @@ function setupLendersSaveButton() {
 
 /* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
-  ensureFinanceInputsStylesInjected(); // ✅ (추가) 금융조건 UI 스타일
+  ensureFinanceInputsStylesInjected();
 
   setupBetaMenu();
   setupAdminTabs();
@@ -1988,7 +2013,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStatsFromStorage();
   setupStatsInteractions();
 
-  // ✅ 백업 UI는 HTML에만 존재: 여기서는 이벤트만 연결
   setupLoanConfigToolsUI();
 
   mergeLendersWithMaster();
@@ -1997,6 +2021,5 @@ document.addEventListener("DOMContentLoaded", () => {
   updateLendersConfigPreview();
   setupLendersSaveButton();
 
-  // ✅ 304 무력화된 방식으로 서버 로드
   loadLendersConfigFromServer();
 });
