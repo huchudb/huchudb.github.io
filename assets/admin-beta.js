@@ -120,6 +120,8 @@ function toNumberSafe(v) {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
+}
+
 function formatPercent8(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "";
@@ -375,6 +377,16 @@ function ensureFinanceInputsStylesInjected() {
     .stats-byLender-disabledNote{
       margin-top:8px; font-size:12px; color:#6b7280;
     }
+
+    /* ✅ (추가) 상품유형별 잔액 합계 행 */
+    #productRows tr.stats-total-row td {
+      background: #f3f4f6;
+      font-weight: 900;
+    }
+    #productRows tr.stats-total-row input {
+      background: #f3f4f6;
+      font-weight: 900;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -448,9 +460,9 @@ function getCurrentMonthKey() {
 function getProductRowKeys() {
   const tbody = document.getElementById("productRows");
   if (!tbody) return [];
- return Array.from(tbody.querySelectorAll("tr[data-key]"))
-  .map((r) => r.getAttribute("data-key"))
-  .filter((k) => k && k !== "__total__");
+  return Array.from(tbody.querySelectorAll("tr[data-key]"))
+    .map((r) => r.getAttribute("data-key"))
+    .filter((k) => k && k !== "__total__");
 }
 
 function clearStatsForm() {
@@ -466,6 +478,9 @@ function clearStatsForm() {
     const scroll = box.querySelector(".stats-byLender-tableWrap .scroll");
     if (scroll) scroll.innerHTML = "";
   }
+
+  ensureProductTotalsRow();
+  updateProductTotalsRow();
 }
 
 /* ✅ products/byType/byLender → productRows에 반영 */
@@ -473,10 +488,13 @@ function applyProductsToProductRows(products) {
   const tbody = document.getElementById("productRows");
   if (!tbody) return;
 
+  ensureProductTotalsRow();
+
   tbody.querySelectorAll("tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
-    const cfg = products[key] || {};
     if (key === "__total__") return;
+
+    const cfg = products[key] || {};
 
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
@@ -488,8 +506,9 @@ function applyProductsToProductRows(products) {
 
     if (ratioEl) ratioEl.value = (ratioPercent !== "" ? formatPercent8(ratioPercent) : "");
     if (amountEl) amountEl.value = (cfg.amount != null) ? formatWithCommas(String(cfg.amount)) : "";
-    updateProductTotalsRow();
   });
+
+  updateProductTotalsRow();
 }
 
 /* ✅ 서버/로컬 데이터 → 폼 채우기 */
@@ -547,6 +566,9 @@ function fillStatsForm(stat, monthKey) {
   } else {
     applyByLenderModeUI(false);
   }
+
+  ensureProductTotalsRow();
+  updateProductTotalsRow();
 }
 
 function collectStatsFormData() {
@@ -572,7 +594,8 @@ function collectStatsFormData() {
   const products = {};
   document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
     const key = row.getAttribute("data-key");
-    if (key === "__total__") return;
+    if (!key || key === "__total__") return;
+
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
 
@@ -600,6 +623,9 @@ function recalcProductAmounts() {
   const balance = getMoneyValue(balEl);
 
   document.querySelectorAll("#productRows tr[data-key]").forEach((row) => {
+    const key = row.getAttribute("data-key");
+    if (!key || key === "__total__") return;
+
     const ratioEl = row.querySelector(".js-ratio");
     const amountEl = row.querySelector(".js-amount");
     if (!ratioEl || !amountEl) return;
@@ -610,6 +636,8 @@ function recalcProductAmounts() {
     const amt = Math.round(balance * (ratio / 100));
     amountEl.value = formatWithCommas(String(amt));
   });
+
+  updateProductTotalsRow();
 }
 
 function _ratioToPercent(v) {
@@ -880,8 +908,11 @@ function ensureByLenderSection() {
       applyByLenderModeUI(node.ui.useByLender);
       renderByLenderSection(monthKey);
 
-      if (node.ui.useByLender) recalcFromByLender(monthKey);
-      else recalcProductAmounts();
+      if (node.ui.useByLender) {
+        recalcFromByLender(monthKey);
+      } else {
+        recalcProductAmounts();
+      }
     });
 
     onlyActiveCb.addEventListener("change", () => renderByLenderSection(getCurrentMonthKey()));
@@ -905,21 +936,27 @@ function ensureByLenderSection() {
    - 1) 업체 순서: LENDERS_MASTER 순서(온투업정보등록상 순서) 유지
    - 2) statsBalance(대출잔액): 수동 입력 (자동 덮어쓰기/자동 합산 금지)
    - 3) 비율(%) = (상품유형별 합계 / statsBalance) × 100
+   - 4) 비율(%) 소수 8자리 고정
 ========================================================= */
 
 function applyByLenderModeUI(enabled) {
-  // enabled=true면: 상품유형별 % 입력은 잠그고, 금액/비율은 byLender 합산으로 표시
   const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
   const amountInputs = document.querySelectorAll("#productRows .js-amount");
   const balEl = document.getElementById("statsBalance");
 
   // ✅ ratio 입력은 byLender 모드에서 계산값이므로 잠금
-  ratioInputs.forEach((el) => { el.disabled = !!enabled; });
+  ratioInputs.forEach((el) => {
+    // 합계행도 어차피 disabled라 상관없지만 통일
+    el.disabled = !!enabled;
+  });
 
-  // ✅ amount는 원래 readonly 성격. 값은 보여야 하므로 disabled는 걸지 않음
-  amountInputs.forEach((el) => { el.readOnly = true; el.disabled = false; });
+  // ✅ amount는 항상 표시용(읽기전용). disabled 걸면 회색/포커스 이슈 생겨서 false 유지
+  amountInputs.forEach((el) => {
+    el.readOnly = true;
+    el.disabled = false;
+  });
 
-  // ✅ statsBalance는 "수동 입력" 유지: 절대 readOnly/disabled 하지 않음
+  // ✅ statsBalance는 절대 잠그지 않는다(수동 입력 유지)
   if (balEl) {
     balEl.readOnly = false;
     balEl.disabled = false;
@@ -961,7 +998,7 @@ function renderByLenderSection(monthKey) {
     ? lendersConfig.lenders
     : {};
 
-  // ✅ (중요) LENDERS_MASTER 순서(온투업정보등록상 순서) 그대로
+  // ✅ (중요) LENDERS_MASTER 순서 그대로
   const orderedIds = [];
   const seen = new Set();
 
@@ -1111,7 +1148,7 @@ function recalcFromByLender(monthKey, opts = {}) {
 
     const ratioPercent =
       (manualBalance > 0)
-        ? (Math.round((amount / manualBalance) * 10000) / 100)  // 소수 2자리
+        ? Number(((amount / manualBalance) * 100).toFixed(8))
         : "";
 
     products[k] = { ratioPercent, amount };
@@ -1144,7 +1181,12 @@ function setupStatsInteractions() {
         statsRoot.byMonth[m] = {
           ...(statsRoot.byMonth[m] || {}),
           ...serverStat,
-          ui: { ...(statsRoot.byMonth[m]?.ui || {}), useByLender: (serverStat.byLender && Object.keys(serverStat.byLender).length > 0) ? true : (statsRoot.byMonth[m]?.ui?.useByLender || false) }
+          ui: {
+            ...(statsRoot.byMonth[m]?.ui || {}),
+            useByLender: (serverStat.byLender && Object.keys(serverStat.byLender).length > 0)
+              ? true
+              : (statsRoot.byMonth[m]?.ui?.useByLender || false)
+          }
         };
         saveStatsToStorage();
       } else {
@@ -1153,12 +1195,16 @@ function setupStatsInteractions() {
       }
 
       setupMoneyInputs();
+
       if (!isByLenderMode(m)) {
         recalcProductAmounts();
       } else {
         // ✅ byLender 모드면 (수동 잔액 기준) 비율 재계산
         recalcFromByLender(m, { silent: true });
       }
+
+      ensureProductTotalsRow();
+      updateProductTotalsRow();
     });
   }
 
@@ -1167,12 +1213,12 @@ function setupStatsInteractions() {
     balEl.addEventListener("input", () => {
       const m = getCurrentMonthKey();
       balEl.value = formatWithCommas(balEl.value);
-
       if (!m) return;
 
       // ✅ byLender 모드에서도 statsBalance 입력 변경 시 비율(%) 재계산
       if (isByLenderMode(m)) {
         recalcFromByLender(m, { silent: true });
+        updateProductTotalsRow();
         return;
       }
 
@@ -1194,16 +1240,17 @@ function setupStatsInteractions() {
       const payload = collectStatsFormData();
       if (!payload) { alert("먼저 조회년월을 선택해주세요."); return; }
 
-      const { monthKey, summary, products, byLender, ui } = payload;
+      let { monthKey, summary, products, byLender, ui } = payload;
 
-      // ✅ byLender 모드면 (수동 잔액 기준) products/ratio 최신화만 수행 (statsBalance/summary.balance는 건드리지 않음)
+      // ✅ byLender 모드면 products를 "현재 합산 결과(node.products)"로 강제 갱신해서 전송
       if (ui?.useByLender) {
         recalcFromByLender(monthKey, { silent: true });
+        const node = ensureMonthNode(monthKey);
+        products = (node.products && typeof node.products === "object") ? node.products : {};
+        byLender = (node.byLender && typeof node.byLender === "object") ? node.byLender : (byLender || {});
       }
 
       try {
-        // ✅ 요청한 그대로 포함: monthKey/summary/byLender 중심 + 하위호환 products도 같이
-        // (서버는 byLender가 있으면 byType 자동 계산)
         const res = await fetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1211,7 +1258,7 @@ function setupStatsInteractions() {
             monthKey,
             month: monthKey,     // 호환
             summary,
-            products,            // 하위호환 (byLender OFF일 때도 유지)
+            products,            // ✅ 최신 products(합산 결과) 또는 수동 입력값
             byLender             // ✅ 핵심
           })
         });
@@ -1223,7 +1270,6 @@ function setupStatsInteractions() {
 
         // ✅ 서버 응답이 {ok:true...} 일 수 있으니 저장 후 GET으로 재로드
         const serverStat = await loadOntuStatsFromServer(monthKey);
-
         const node = ensureMonthNode(monthKey);
 
         const applied = serverStat || {
@@ -1256,7 +1302,6 @@ function setupStatsInteractions() {
     });
   }
 }
-
 /* =========================================================
    2) 온투업체 설정
 ========================================================= */
@@ -1794,8 +1839,8 @@ async function loadLendersConfigFromServer() {
       ? json
       : { lenders: {} };
 
-    const serverCount = Object.keys(serverCfg.lenders || {}).
-length;
+    // ✅ (FIX) 줄바꿈으로 깨져있던 length 복구
+    const serverCount = Object.keys(serverCfg.lenders || {}).length;
 
     if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
       console.warn("loan-config 서버가 비어있어 로컬 백업을 우선 복구합니다.");
@@ -2069,11 +2114,6 @@ function renderExtraConditionsBox(lender) {
 /* =========================================================
    ✅ 렌더: 업체 카드
 ========================================================= */
-/* (이하 renderLendersList ~ setupLendersSaveButton 까지는 원본 그대로)
-   ───────────
-   네가 붙여준 코드가 길어서, 여기서부터는 변경 없이 그대로 유지됨
-   ───────────
-*/
 function renderLendersList() {
   const container = document.getElementById("lendersList");
   if (!container) return;
@@ -2677,5 +2717,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ensureMonthNode(m);
     renderByLenderSection(m);
     applyByLenderModeUI(isByLenderMode(m));
+    ensureProductTotalsRow();
+    updateProductTotalsRow();
   }
 });
