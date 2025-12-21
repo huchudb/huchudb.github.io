@@ -77,6 +77,188 @@ function includesRegion(regions, region) {
   });
 }
 
+// ------------------------------------------------------
+// ✅ admin(loan-config) 스키마 정규화 유틸
+//   - loan-config: { lenders: {id: {...}} }  (객체)
+//   - lenders-config: { lenders: [...] }     (배열)
+// ------------------------------------------------------
+
+function lendersAnyToArray(any) {
+  if (!any) return [];
+  if (Array.isArray(any)) return any;
+
+  if (typeof any === "object" && !Array.isArray(any)) {
+    return Object.entries(any).map(([id, v]) => {
+      if (!v || typeof v !== "object") return null;
+      return { ...v, id: v.id || id };
+    }).filter(Boolean);
+  }
+  return [];
+}
+
+const REGION_LABEL_TO_KEY = {
+  "서울": "seoul",
+  "경기": "gyeonggi",
+  "경상": "gyeongsang",
+  "전라": "jeolla",
+  "충청": "chungcheong",
+  "강원": "gangwon",
+  "인천": "incheon",
+  "제주": "jeju",
+};
+
+const REGION_KEY_TO_LABEL = {
+  seoul: "서울",
+  gyeonggi: "경기",
+  incheon: "인천",
+  chungcheong: "충청",
+  jeolla: "전라",
+  gyeongsang: "경상",
+  gangwon: "강원",
+  jeju: "제주",
+};
+
+const PROP_LABEL_TO_KEY = {
+  "아파트": "apt",
+  "다세대/연립": "villa",
+  "오피스텔": "officetel",
+  "단독/다가구": "detached",
+  "토지/임야": "land",
+  "근린생활시설": "commercial",
+};
+
+const PROP_KEY_TO_LABEL = {
+  apt: "아파트",
+  villa: "다세대/연립",
+  officetel: "오피스텔",
+  detached: "단독/다가구",
+  land: "토지/임야",
+  commercial: "근린생활시설",
+};
+
+function regionKeyFromLabel(label) {
+  if (!label) return "";
+  const t = String(label).replace(/도$/g, "").trim();
+  // "경기도" 같은 케이스도 대비
+  if (REGION_LABEL_TO_KEY[t]) return REGION_LABEL_TO_KEY[t];
+
+  // 혹시 "서울특별시" 같은 값이면 앞 2글자 기준으로
+  const head2 = t.slice(0, 2);
+  if (REGION_LABEL_TO_KEY[head2]) return REGION_LABEL_TO_KEY[head2];
+
+  // fallback: 영어 키가 직접 들어온 경우
+  const low = String(label).toLowerCase();
+  if (REGION_KEY_TO_LABEL[low]) return low;
+
+  return "";
+}
+
+function propKeyFromLabel(label) {
+  if (!label) return "";
+  return PROP_LABEL_TO_KEY[String(label).trim()] || "";
+}
+
+// "만원/원" 혼재 가능성 대비: 값이 너무 작으면 만원으로 보고 *10000
+function toWonMaybe(v) {
+  const n = parseNumberLoose(v);
+  if (n == null) return 0;
+  if (n >= 1000000) return n;     // 이미 원 단위로 보이는 큰 값
+  return n * 10000;               // 만원 단위로 간주
+}
+
+// admin regions 구조에서 현재 선택(지역+유형)에 해당하는 셀을 찾아준다.
+function getAdminRegionCell(lender, regionLabel, propertyTypeLabel) {
+  const regionsObj = lender?.regions;
+  if (!regionsObj || typeof regionsObj !== "object") return null;
+
+  const rk = regionKeyFromLabel(regionLabel);
+  const pk = propKeyFromLabel(propertyTypeLabel);
+  if (!rk || !pk) return null;
+
+  const regionCfg = regionsObj[rk];
+  if (!regionCfg || typeof regionCfg !== "object") return null;
+
+  const cell = regionCfg[pk];
+  if (!cell || typeof cell !== "object") return null;
+
+  return cell;
+}
+
+// regions -> (표시용) realEstateConfig 유사 구조 생성
+function deriveRealEstateConfigFromRegions(regionsObj) {
+  const out = { regions: [], propertyTypes: [], loanTypes: [] };
+
+  if (!regionsObj || typeof regionsObj !== "object") return out;
+
+  const regionSet = new Set();
+  const propSet = new Set();
+  const loanSet = new Set();
+
+  for (const [rk, regionCfg] of Object.entries(regionsObj)) {
+    if (!regionCfg || typeof regionCfg !== "object") continue;
+
+    let regionHasAny = false;
+
+    for (const [pk, cell] of Object.entries(regionCfg)) {
+      if (!cell || typeof cell !== "object") continue;
+      const enabled = (cell.enabled === true || cell.enabled === "true");
+      if (!enabled) continue;
+
+      regionHasAny = true;
+      const propLabel = PROP_KEY_TO_LABEL[pk] || pk;
+      propSet.add(propLabel);
+
+      (cell.loanTypes || []).forEach((t) => loanSet.add(t));
+    }
+
+    if (regionHasAny) {
+      regionSet.add(REGION_KEY_TO_LABEL[rk] || rk);
+    }
+  }
+
+  out.regions = Array.from(regionSet);
+  out.propertyTypes = Array.from(propSet);
+  out.loanTypes = Array.from(loanSet);
+  return out;
+}
+
+function normalizeLenderRecord(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const l = { ...raw };
+
+  // ✅ 표기용 기본값 통일
+  l.id = l.id || l.lenderId || l.slug || "";
+  l.displayName = l.displayName || l.name || l.id || "(이름 없음)";
+
+  // ✅ 상품군: admin은 products, navi는 loanCategories로 쓰고 있었음
+  if (!Array.isArray(l.loanCategories) || !l.loanCategories.length) {
+    l.loanCategories = Array.isArray(l.products) ? l.products : (Array.isArray(l.loanCategories) ? l.loanCategories : []);
+  }
+
+  // ✅ 채널: admin은 phoneNumber/kakaoUrl이 top-level인 케이스가 있음
+  if (!l.channels || typeof l.channels !== "object") l.channels = {};
+  l.channels.phoneNumber = l.channels.phoneNumber || l.phoneNumber || "";
+  l.channels.kakaoUrl = l.channels.kakaoUrl || l.kakaoUrl || "";
+
+  // ✅ 정렬용
+  if (typeof l.displayOrder !== "number") {
+    const o = parseNumberLoose(l.partnerOrder);
+    l.displayOrder = (o != null) ? o : l.displayOrder;
+  }
+
+  // ✅ 표시용 realEstateConfig(없으면 regions 기반으로 생성)
+  if ((!l.realEstateConfig || typeof l.realEstateConfig !== "object") && l.regions && typeof l.regions === "object") {
+    l.realEstateConfig = deriveRealEstateConfigFromRegions(l.regions);
+  }
+
+  return l;
+}
+
+function normalizeLenderList(list) {
+  return (list || []).map(normalizeLenderRecord).filter(Boolean);
+}
+
 // --------- 퍼센트/수수료 파싱 ----------
 function parseNumberLoose(v) {
   if (v == null) return null;
@@ -116,16 +298,54 @@ async function loadLendersConfig() {
       const t = await res.text().catch(() => "");
       throw new Error(`lenders-config GET 실패: HTTP ${res.status} ${t}`);
     }
+
     const json = await res.json();
-    console.log("✅ lendersConfig loaded from server:", json);
-    return json;
+    const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
+
+    const out = { version: json?.version ?? 1, lenders: lendersArr };
+    console.log("✅ lendersConfig loaded from server:", out);
+    return out;
   } catch (e) {
     console.warn("⚠️ lenders-config API 실패, localStorage 대체:", e);
     try {
       const raw = localStorage.getItem("huchu_lenders_config_beta");
-      return raw ? JSON.parse(raw) : { lenders: [] };
+      if (!raw) return { version: 1, lenders: [] };
+      const parsed = JSON.parse(raw);
+      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
+      return { version: parsed?.version ?? 1, lenders: lendersArr };
     } catch {
-      return { lenders: [] };
+      return { version: 1, lenders: [] };
+    }
+  }
+}
+
+let naviLoanConfig = { version: 1, lenders: [] };
+
+// loan-config + lenders-config 병합(가능하면 admin 원본 우선)
+async function loadLendersConfig() {
+  try {
+    const res = await fetch(LENDERS_CONFIG_API, { method: "GET" });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error(`lenders-config GET 실패: HTTP ${res.status} ${t}`);
+    }
+
+    const json = await res.json();
+    const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
+
+    const out = { version: json?.version ?? 1, lenders: lendersArr };
+    console.log("✅ lendersConfig loaded from server:", out);
+    return out;
+  } catch (e) {
+    console.warn("⚠️ lenders-config API 실패, localStorage 대체:", e);
+    try {
+      const raw = localStorage.getItem("huchu_lenders_config_beta");
+      if (!raw) return { version: 1, lenders: [] };
+      const parsed = JSON.parse(raw);
+      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
+      return { version: parsed?.version ?? 1, lenders: lendersArr };
+    } catch {
+      return { version: 1, lenders: [] };
     }
   }
 }
@@ -135,17 +355,25 @@ let naviLoanConfig = { version: 1, lenders: [] };
 // loan-config + lenders-config 병합(가능하면 admin 원본 우선)
 async function loadNaviLoanConfig() {
   let fromLoanConfig = null;
+
+  // 1) loan-config (Upstash 단일 소스)에서 읽기
   try {
     const res = await fetch(NAVI_LOAN_CONFIG_ENDPOINT, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
     });
 
     if (res.ok) {
       const json = await res.json();
-      if (json && Array.isArray(json.lenders)) {
-        fromLoanConfig = json;
-        console.log("✅ loan-config from API:", fromLoanConfig);
+
+      // ✅ 핵심: lenders가 "객체"여도 배열로 변환
+      const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
+      if (lendersArr.length) {
+        fromLoanConfig = { version: json?.version ?? 1, lenders: lendersArr };
+        console.log("✅ loan-config from API(normalized):", fromLoanConfig.lenders.length);
+      } else {
+        console.warn("ℹ️ loan-config는 있으나 lenders가 비어있음");
       }
     } else {
       console.warn("loan-config GET 실패:", res.status, await res.text().catch(() => ""));
@@ -154,16 +382,16 @@ async function loadNaviLoanConfig() {
     console.warn("loan-config API 불러오기 실패:", e);
   }
 
+  // 2) lenders-config (뷰 endpoint) 우선 적용
   const lendersConfig = await loadLendersConfig();
-
-  // 우선순위: lenders-config(관리자 원본) → loan-config → localStorage
   if (lendersConfig && Array.isArray(lendersConfig.lenders) && lendersConfig.lenders.length) {
-    naviLoanConfig = { version: 1, lenders: lendersConfig.lenders };
+    naviLoanConfig = { version: lendersConfig.version ?? 1, lenders: lendersConfig.lenders };
     localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
-    console.log("✅ naviLoanConfig ← lenders-config (admin 원본) 적용:", naviLoanConfig.lenders.length);
+    console.log("✅ naviLoanConfig ← lenders-config 적용:", naviLoanConfig.lenders.length);
     return;
   }
 
+  // 3) loan-config fallback
   if (fromLoanConfig && Array.isArray(fromLoanConfig.lenders) && fromLoanConfig.lenders.length) {
     naviLoanConfig = fromLoanConfig;
     localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
@@ -171,13 +399,15 @@ async function loadNaviLoanConfig() {
     return;
   }
 
+  // 4) localStorage fallback
   try {
     const raw = localStorage.getItem(NAVI_LOAN_CONFIG_LOCAL_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.lenders)) {
-        naviLoanConfig = parsed;
-        console.log("✅ loan-config from localStorage:", naviLoanConfig);
+      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
+      if (lendersArr.length) {
+        naviLoanConfig = { version: parsed?.version ?? 1, lenders: lendersArr };
+        console.log("✅ loan-config from localStorage:", naviLoanConfig.lenders.length);
         return;
       }
     }
@@ -188,6 +418,7 @@ async function loadNaviLoanConfig() {
   console.log("ℹ️ loan-config 없음, 빈 구조로 시작");
   naviLoanConfig = { version: 1, lenders: [] };
 }
+
 
 // ------------------------------------------------------
 // 네비게이션 상태
@@ -230,7 +461,8 @@ function ensureStepper() {
   const step1 = document.getElementById("navi-step1");
   if (!root || !step1) return;
 
-  if (document.getElementById("naviStepper")) return;
+  // ✅ id 불일치로 매번 삽입되던 문제 해결
+  if (document.getElementById("navi-stepper")) return;
 
   const wrap = document.createElement("section");
   wrap.className = "beta-section navi-section";
@@ -1027,66 +1259,84 @@ function filterLenders(applyExtras = false) {
   const lenders = naviLoanConfig.lenders || [];
   if (!lenders.length) return [];
 
-  const {
-    mainCategory,
-    region,
-    propertyType,
-    realEstateLoanType,
-    extra,
-  } = userState;
+  const { mainCategory, region, propertyType, realEstateLoanType, extra } = userState;
 
   const principalAmount = getPrincipalAmount();
-  const { ltv } = calcLtv();
+  const { ltv } = calcLtv(); // ratio (0~1)
 
   const filtered = lenders.filter((l) => {
-    if (!l.isActive) return false;
+    if (l.isActive === false) return false;
     if (l.isNewLoanActive === false) return false;
 
-    // 상품군 매칭
+    // ✅ 상품군 매칭: admin(products) ↔ navi(mainCategory)
     if (mainCategory) {
       const cats = l.loanCategories || [];
       if (cats.length && !includesNorm(cats, mainCategory)) return false;
     }
 
-    // 부동산담보대출인 경우 추가 조건
+    // ✅ 부동산담보대출 매칭 (admin의 regions 구조를 우선 사용)
     if (mainCategory === "부동산담보대출") {
-      const cfg = l.realEstateConfig || {};
+      // 1) admin regions 셀 우선
+      const cell = getAdminRegionCell(l, region, propertyType);
 
-      // 지역
-      if (region) {
-        const rgs = cfg.regions || [];
-        if (rgs.length && !includesRegion(rgs, region)) return false;
-      }
+      if (cell) {
+        const enabled = (cell.enabled === true || cell.enabled === "true");
+        if (!enabled) return false;
 
-      // 부동산 유형
-      if (propertyType) {
-        const props = cfg.propertyTypes || [];
-        if (props.length && !includesNorm(props, propertyType)) return false;
-      }
+        // 대출종류
+        if (realEstateLoanType) {
+          const types = cell.loanTypes || [];
+          if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
+        }
 
-      // 대출종류
-      if (realEstateLoanType) {
-        const types = cfg.loanTypes || [];
-        if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
-      }
+        // 최소 대출금액 (업체 공통 최소값: realEstateMinLoanAmount) - 있으면 적용
+        // (값이 1000 같은 형태면 만원 단위로 간주 -> 1,000만원)
+        if (principalAmount) {
+          const lenderMinWon = toWonMaybe(l.realEstateMinLoanAmount);
+          if (lenderMinWon && principalAmount < lenderMinWon) return false;
+        }
 
-      // 최소 대출금액 (온투업별) - "요청 대출금액(원)" 기준
-      if (principalAmount) {
-        const minMap = cfg.minLoanByProperty || {};
-        const aptMin = minMap["아파트"] ?? 0;
-        const otherMin = minMap["_기타"] ?? 0;
-        const isApt = propertyType === "아파트";
-        const lenderMin = isApt ? aptMin : otherMin;
-        if (lenderMin && principalAmount < lenderMin) return false;
-      }
+        // LTV 한도: cell.ltvMax는 퍼센트 문자열인 케이스가 많음 (예: "74.99")
+        const maxPct = parseNumberLoose(cell.ltvMax);
+        if (maxPct != null && maxPct > 0 && ltv != null) {
+          if (ltv * 100 > maxPct + 1e-6) return false;
+        }
+      } else {
+        // 2) fallback: 예전 형태(realEstateConfig) 지원
+        const cfg = l.realEstateConfig || {};
 
-      // LTV 한도
-      if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
-        if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
+        if (region) {
+          const rgs = cfg.regions || [];
+          if (rgs.length && !includesRegion(rgs, region)) return false;
+        }
+
+        if (propertyType) {
+          const props = cfg.propertyTypes || [];
+          if (props.length && !includesNorm(props, propertyType)) return false;
+        }
+
+        if (realEstateLoanType) {
+          const types = cfg.loanTypes || [];
+          if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
+        }
+
+        if (principalAmount) {
+          const minMap = cfg.minLoanByProperty || {};
+          const aptMin = minMap["아파트"] ?? 0;
+          const otherMin = minMap["_기타"] ?? 0;
+          const isApt = propertyType === "아파트";
+          const lenderMin = isApt ? aptMin : otherMin;
+          if (lenderMin && principalAmount < lenderMin) return false;
+        }
+
+        if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
+          if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
+        }
       }
     }
 
-    // 추가조건 필터링
+    // ✅ 추가조건(6-1) — 아직 admin 필드 매핑이 완벽하지 않아서
+    // 현재는 "기존 구조가 있을 때만" 제한적으로 적용 (추후 admin 스키마 확정 후 매핑 강화)
     if (applyExtras) {
       if (extra.creditBand) {
         const bands = l.allowedCreditBands || [];
