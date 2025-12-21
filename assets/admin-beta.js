@@ -1681,6 +1681,8 @@ REGIONS.forEach((r) => {
   });
 });
 
+}
+
 let _previewRAF = 0;
 function schedulePreviewUpdate() {
   if (_previewRAF) return;
