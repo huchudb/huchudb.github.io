@@ -1669,7 +1669,18 @@ function ensureLenderDeepDefaults(lender) {
         ltvMax: prev.ltvMax ?? "",
         ltvMin: prev.ltvMin ?? "",
         loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
-      };
+
+      // ✅ 토지(land)에서는 임대보증금반환대출 저장값도 제거
+if (pt.key === "land") {
+  loanTypes = loanTypes.filter(x => x !== "임대보증금반환대출");
+}
+
+lender.regions[r.key][pt.key] = {
+  enabled: !!prev.enabled,
+  ltvMax: prev.ltvMax ?? "",
+  ltvMin: prev.ltvMin ?? "",
+  loanTypes
+    };
     });
   });
 }
@@ -2662,6 +2673,11 @@ function renderLendersList() {
 
         const loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
 
+         // ✅ 토지(land)에서는 임대보증금반환대출 제외
+         if (pt.key === "land") {
+         loanTypes = loanTypes.filter(x => x.key !== "임대보증금반환대출");
+         }
+         
         loanTypes.forEach((lt) => {
           const label = document.createElement("label");
           label.className = "admin-chip-check admin-chip-check--tiny";
