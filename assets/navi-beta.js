@@ -527,23 +527,38 @@ function updateLoanTypeChipVisibility() {
 
   const prop = userState.propertyType;
   const isAptOrVilla = prop === "아파트" || prop === "다세대/연립";
+  const isLand = prop === "토지/임야";
 
   const chips = container.querySelectorAll(".navi-chip");
   chips.forEach((chip) => {
-    const loanType = chip.getAttribute("data-loan-type");
-    const isBuyout = normKey(loanType).includes("매입잔금");
-    if (isBuyout) {
-      chip.style.display = isAptOrVilla ? "" : "none";
-      // 숨겨질 때 선택 상태 해제
-      if (!isAptOrVilla && chip.classList.contains("is-selected")) {
-        chip.classList.remove("is-selected");
-        if (userState.realEstateLoanType && normKey(userState.realEstateLoanType).includes("매입잔금")) {
-          userState.realEstateLoanType = null;
-          uiState.hasRenderedResult = false;
-        }
+    const loanType = chip.getAttribute("data-loan-type") || "";
+    const k = normKey(loanType);
+
+    const isBuyout = k.includes("매입잔금");
+    const isDepositReturn = k.includes("임대보증금반환");
+
+    // 기본은 노출
+    let visible = true;
+
+    // ✅ 매입잔금 2종은 아파트/빌라에만
+    if (isBuyout) visible = isAptOrVilla;
+
+    // ✅ 토지/임야에서는 임대보증금반환대출 칩 제거
+    if (isLand && isDepositReturn) visible = false;
+
+    chip.style.display = visible ? "" : "none";
+
+    // 안전장치: 숨겨질 때 선택 상태였으면 해제
+    if (!visible && chip.classList.contains("is-selected")) {
+      chip.classList.remove("is-selected");
+      if (userState.realEstateLoanType && normKey(userState.realEstateLoanType) === k) {
+        userState.realEstateLoanType = null;
+        userState.occupancy = null;
+        uiState.hasRenderedResult = false;
+        document
+          .querySelectorAll("#naviOccupancyChips .navi-chip")
+          .forEach((c) => c.classList.remove("is-selected"));
       }
-    } else {
-      chip.style.display = "";
     }
   });
 }
