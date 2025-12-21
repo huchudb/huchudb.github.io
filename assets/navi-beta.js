@@ -319,39 +319,6 @@ async function loadLendersConfig() {
   }
 }
 
-let naviLoanConfig = { version: 1, lenders: [] };
-
-// loan-config + lenders-config 병합(가능하면 admin 원본 우선)
-async function loadLendersConfig() {
-  try {
-    const res = await fetch(LENDERS_CONFIG_API, { method: "GET" });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      throw new Error(`lenders-config GET 실패: HTTP ${res.status} ${t}`);
-    }
-
-    const json = await res.json();
-    const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
-
-    const out = { version: json?.version ?? 1, lenders: lendersArr };
-    console.log("✅ lendersConfig loaded from server:", out);
-    return out;
-  } catch (e) {
-    console.warn("⚠️ lenders-config API 실패, localStorage 대체:", e);
-    try {
-      const raw = localStorage.getItem("huchu_lenders_config_beta");
-      if (!raw) return { version: 1, lenders: [] };
-      const parsed = JSON.parse(raw);
-      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
-      return { version: parsed?.version ?? 1, lenders: lendersArr };
-    } catch {
-      return { version: 1, lenders: [] };
-    }
-  }
-}
-
-let naviLoanConfig = { version: 1, lenders: [] };
-
 // loan-config + lenders-config 병합(가능하면 admin 원본 우선)
 async function loadNaviLoanConfig() {
   let fromLoanConfig = null;
