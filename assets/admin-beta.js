@@ -1660,30 +1660,26 @@ function ensureLenderDeepDefaults(lender) {
 
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
-  REGIONS.forEach((r) => {
-    if (!lender.regions[r.key] || typeof lender.regions[r.key] !== "object") lender.regions[r.key] = {};
-    PROPERTY_TYPES.forEach((pt) => {
-      const prev = lender.regions[r.key][pt.key] || {};
-      lender.regions[r.key][pt.key] = {
-        enabled: !!prev.enabled,
-        ltvMax: prev.ltvMax ?? "",
-        ltvMin: prev.ltvMin ?? "",
-        loanTypes: Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : []
+REGIONS.forEach((r) => {
+  if (!lender.regions[r.key] || typeof lender.regions[r.key] !== "object") lender.regions[r.key] = {};
 
-      // ✅ 토지(land)에서는 임대보증금반환대출 저장값도 제거
-if (pt.key === "land") {
-  loanTypes = loanTypes.filter(x => x !== "임대보증금반환대출");
-}
+  PROPERTY_TYPES.forEach((pt) => {
+    const prev = lender.regions[r.key][pt.key] || {};
 
-lender.regions[r.key][pt.key] = {
-  enabled: !!prev.enabled,
-  ltvMax: prev.ltvMax ?? "",
-  ltvMin: prev.ltvMin ?? "",
-  loanTypes
+    // ✅ loanTypes 먼저 정리 → 토지(land)면 임대보증금반환대출 제거
+    let loanTypes = Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : [];
+    if (pt.key === "land") {
+      loanTypes = loanTypes.filter((x) => x !== "임대보증금반환대출");
+    }
+
+    lender.regions[r.key][pt.key] = {
+      enabled: !!prev.enabled,
+      ltvMax: prev.ltvMax ?? "",
+      ltvMin: prev.ltvMin ?? "",
+      loanTypes
     };
-    });
   });
-}
+});
 
 let _previewRAF = 0;
 function schedulePreviewUpdate() {
@@ -2671,7 +2667,7 @@ function renderLendersList() {
         const loanRow = document.createElement("div");
         loanRow.className = "admin-chip-row admin-chip-row--tight";
 
-        const loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
+        let loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
 
          // ✅ 토지(land)에서는 임대보증금반환대출 제외
          if (pt.key === "land") {
