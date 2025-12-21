@@ -319,6 +319,9 @@ async function loadLendersConfig() {
   }
 }
 
+// ✅ 이 줄을 추가
+let naviLoanConfig = { version: 1, lenders: [] };
+
 // loan-config + lenders-config 병합(가능하면 admin 원본 우선)
 async function loadNaviLoanConfig() {
   let fromLoanConfig = null;
