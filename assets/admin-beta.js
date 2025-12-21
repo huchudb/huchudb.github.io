@@ -316,6 +316,11 @@ function ensureFinanceInputsStylesInjected() {
       color: #111;
       white-space: nowrap;
     }
+
+    /* ✅ (추가) 부동산담보대출 금리: 최소/최대/평균 3줄 레이아웃 */
+    .finance-metric-row--minmax { justify-content: center; }
+    .finance-metric-row--minmax input { width: 120px; }
+
     @media (max-width: 520px) {
       .finance-metric-title { font-size: 22px; }
       .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
@@ -408,7 +413,6 @@ function normalizePercentBlur(v) {
   const fixed = Math.round(n * 100) / 100;
   return String(fixed);
 }
-
 /* =========================================================
    1) 온투 통계
 ========================================================= */
@@ -1619,16 +1623,39 @@ function ensureLenderDeepDefaults(lender) {
     if (!lender.financialInputs[k] || typeof lender.financialInputs[k] !== "object") lender.financialInputs[k] = {};
   });
 
+  // ✅ (FIX + PATCH) 괄호/중괄호 오류 제거 + 부동산담보대출 금리 min/max 지원
   const productsArr = Array.isArray(lender.products) ? lender.products : [];
   productsArr.forEach((pgKey) => {
     if (!lender.financialInputs[pgKey] || typeof lender.financialInputs[pgKey] !== "object") {
       lender.financialInputs[pgKey] = {};
     }
     const obj = lender.financialInputs[pgKey];
+
+    // 기존 3종 필드 기본값
     ["interestAvg", "platformFeeAvg", "prepayFeeAvg"].forEach((field) => {
       if (obj[field] == null) obj[field] = "";
       else obj[field] = String(obj[field]);
     });
+
+    // ✅ (추가) 부동산담보대출: 금리 최소/최대 입력 지원 + 평균 자동(호환 저장)
+    if (pgKey === "부동산담보대출") {
+      if (obj.interestMin == null) obj.interestMin = "";
+      else obj.interestMin = String(obj.interestMin);
+
+      if (obj.interestMax == null) obj.interestMax = "";
+      else obj.interestMax = String(obj.interestMax);
+
+      // 과거 데이터(interestAvg만 존재) → min/max로 씨딩
+      const hasMinMax =
+        (String(obj.interestMin || "").trim() !== "") ||
+        (String(obj.interestMax || "").trim() !== "");
+      const hasAvg = String(obj.interestAvg || "").trim() !== "";
+
+      if (!hasMinMax && hasAvg) {
+        obj.interestMin = String(obj.interestAvg);
+        obj.interestMax = String(obj.interestAvg);
+      }
+    }
   });
 
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
@@ -1964,6 +1991,31 @@ function renderFinanceInputsBox(lender) {
     const grid = document.createElement("div");
     grid.className = "finance-metrics-grid";
 
+    // ✅ PATCH: 부동산담보대출 "금리"만 min/max 입력 → avg 자동
+    const toFinitePercentVal = (s) => {
+      const t2 = sanitizePercentString(s);
+      if (!t2) return null;
+      const n = Number(t2);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const computeAvgStr2 = (minStr, maxStr) => {
+      const a = toFinitePercentVal(minStr);
+      const b = toFinitePercentVal(maxStr);
+      if (a == null || b == null) return "";
+      const avg = (a + b) / 2;
+      return normalizePercentBlur(String(avg)); // 기존 룰(소수 2자리 반올림) 유지
+    };
+
+    const patchFinancialInputs = (lenderId, pgKey2, patchOne) => {
+      const cur2 = ensureLender(lenderId);
+      const nextAll = { ...(cur2.financialInputs || {}) };
+      const nextOne = { ...(nextAll[pgKey2] || {}) };
+      Object.assign(nextOne, patchOne);
+      nextAll[pgKey2] = nextOne;
+      updateLenderState(lenderId, { financialInputs: nextAll });
+    };
+
     const makeMetric = (metricTitle, fieldKey) => {
       const col = document.createElement("div");
       col.className = "finance-metric";
@@ -1971,7 +2023,120 @@ function renderFinanceInputsBox(lender) {
       const h = document.createElement("div");
       h.className = "finance-metric-title";
       h.textContent = metricTitle;
+      col.appendChild(h);
 
+      // ✅ 부동산담보대출의 "금리"만: 최소/최대 입력 → 평균 자동 계산/표시
+      if (pgKey === "부동산담보대출" && fieldKey === "interestAvg") {
+        const cur2 = ensureLender(lender.id);
+        const fin2 = (cur2.financialInputs && cur2.financialInputs[pgKey]) ? cur2.financialInputs[pgKey] : {};
+
+        const minInit = (fin2.interestMin != null) ? String(fin2.interestMin) : "";
+        const maxInit = (fin2.interestMax != null) ? String(fin2.interestMax) : "";
+
+        // row: 최소
+        const rowMin = document.createElement("div");
+        rowMin.className = "finance-metric-row finance-metric-row--minmax";
+
+        const labMin = document.createElement("span");
+        labMin.className = "lab";
+        labMin.textContent = "최소";
+
+        const inputMin = document.createElement("input");
+        inputMin.type = "text";
+        inputMin.inputMode = "decimal";
+        inputMin.placeholder = "숫자입력";
+        inputMin.value = minInit;
+
+        const unitMin = document.createElement("span");
+        unitMin.className = "unit";
+        unitMin.textContent = "%";
+
+        rowMin.appendChild(labMin);
+        rowMin.appendChild(inputMin);
+        rowMin.appendChild(unitMin);
+
+        // row: 최대
+        const rowMax = document.createElement("div");
+        rowMax.className = "finance-metric-row finance-metric-row--minmax";
+
+        const labMax = document.createElement("span");
+        labMax.className = "lab";
+        labMax.textContent = "최대";
+
+        const inputMax = document.createElement("input");
+        inputMax.type = "text";
+        inputMax.inputMode = "decimal";
+        inputMax.placeholder = "숫자입력";
+        inputMax.value = maxInit;
+
+        const unitMax = document.createElement("span");
+        unitMax.className = "unit";
+        unitMax.textContent = "%";
+
+        rowMax.appendChild(labMax);
+        rowMax.appendChild(inputMax);
+        rowMax.appendChild(unitMax);
+
+        // row: 평균(자동)
+        const rowAvg = document.createElement("div");
+        rowAvg.className = "finance-metric-row finance-metric-row--minmax";
+
+        const labAvg = document.createElement("span");
+        labAvg.className = "lab";
+        labAvg.textContent = "평균";
+
+        const inputAvg = document.createElement("input");
+        inputAvg.type = "text";
+        inputAvg.inputMode = "decimal";
+        inputAvg.placeholder = "-";
+        inputAvg.value = computeAvgStr2(inputMin.value, inputMax.value);
+        inputAvg.readOnly = true;
+        inputAvg.disabled = true;
+
+        const unitAvg = document.createElement("span");
+        unitAvg.className = "unit";
+        unitAvg.textContent = "%";
+
+        rowAvg.appendChild(labAvg);
+        rowAvg.appendChild(inputAvg);
+        rowAvg.appendChild(unitAvg);
+
+        const syncAndSave = (mode /* "input" | "blur" */) => {
+          if (mode === "input") {
+            const sMin = sanitizePercentString(inputMin.value);
+            if (inputMin.value !== sMin) inputMin.value = sMin;
+
+            const sMax = sanitizePercentString(inputMax.value);
+            if (inputMax.value !== sMax) inputMax.value = sMax;
+          } else {
+            inputMin.value = normalizePercentBlur(inputMin.value);
+            inputMax.value = normalizePercentBlur(inputMax.value);
+          }
+
+          const avgStr = computeAvgStr2(inputMin.value, inputMax.value);
+          inputAvg.value = avgStr;
+
+          // ✅ 저장: min/max + avg(자동)까지 같이 저장 (호환성 위해 interestAvg도 채움)
+          patchFinancialInputs(lender.id, pgKey, {
+            interestMin: inputMin.value,
+            interestMax: inputMax.value,
+            interestAvg: avgStr
+          });
+        };
+
+        inputMin.addEventListener("input", () => syncAndSave("input"));
+        inputMax.addEventListener("input", () => syncAndSave("input"));
+        inputMin.addEventListener("blur", () => syncAndSave("blur"));
+        inputMax.addEventListener("blur", () => syncAndSave("blur"));
+
+        col.appendChild(rowMin);
+        col.appendChild(rowMax);
+        col.appendChild(rowAvg);
+
+        return col;
+      }
+
+      // ✅ 나머지(기존 방식 그대로: 평균 1칸 입력)
       const row = document.createElement("div");
       row.className = "finance-metric-row";
 
@@ -1988,27 +2153,13 @@ function renderFinanceInputsBox(lender) {
       input.addEventListener("input", () => {
         const sanitized = sanitizePercentString(input.value);
         if (input.value !== sanitized) input.value = sanitized;
-
-        const cur2 = ensureLender(lender.id);
-        const nextAll = { ...(cur2.financialInputs || {}) };
-        const nextOne = { ...(nextAll[pgKey] || {}) };
-        nextOne[fieldKey] = input.value;
-        nextAll[pgKey] = nextOne;
-
-        updateLenderState(lender.id, { financialInputs: nextAll });
+        patchFinancialInputs(lender.id, pgKey, { [fieldKey]: input.value });
       });
 
       input.addEventListener("blur", () => {
         const normalized = normalizePercentBlur(input.value);
         input.value = normalized;
-
-        const cur2 = ensureLender(lender.id);
-        const nextAll = { ...(cur2.financialInputs || {}) };
-        const nextOne = { ...(nextAll[pgKey] || {}) };
-        nextOne[fieldKey] = normalized;
-        nextAll[pgKey] = nextOne;
-
-        updateLenderState(lender.id, { financialInputs: nextAll });
+        patchFinancialInputs(lender.id, pgKey, { [fieldKey]: normalized });
       });
 
       const unit = document.createElement("span");
@@ -2019,7 +2170,6 @@ function renderFinanceInputsBox(lender) {
       row.appendChild(input);
       row.appendChild(unit);
 
-      col.appendChild(h);
       col.appendChild(row);
       return col;
     };
