@@ -1,7 +1,5 @@
 // /assets/navi-beta.js  (후추 네비게이션 – 베타용)
-// NOTE: Step5 schema is generated from step5.매트릭스.xlsx (최종본)
-
-console.log("✅ navi-beta.js loaded");
+// NOTE: stepper/단계 노출 제어 + Step6 1차 결과(업체명 비공개) + Step7 3컬럼(금리/플랫폼/중도상환) 렌더
 
 // ------------------------------------------------------
 // 공통 상수 / 유틸
@@ -12,1517 +10,12 @@ const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
 const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
 const NAVI_LOAN_CONFIG_LOCAL_KEY = "huchu_navi_loan_config_v1";
 
-// Step5 matrix (propertyType × loanType)
-const STEP5_SCHEMA_MATRIX = {
-  "아파트": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "임대보증금반환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세(원)"
-        },
-        {
-          "key": "DEP",
-          "required": true,
-          "label": "반환 임대보증금(원)",
-          "conditionalRequired": null,
-          "raw": "“반환 임대보증금(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “KB시세(원)”\nDEP [필수] “반환 임대보증금(원)”\nSL [선택] “선순위 대출금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정 or 선순위임차인인수",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정 or 선순위임차인인수"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세”"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정 or 선순위임차인인수\nPV [필수] “KB시세”\n”REQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nASB [선택] “인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [선택] “추가 필요금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “KB시세”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "매입잔금(분양)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "분양가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“분양가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “분양가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    }
-  },
-  "다세대/연립": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“하우스머치시세REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “하우스머치시세”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "임대보증금반환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세(원)",
-          "conditionalRequired": null,
-          "raw": "“하우스머치시세(원)"
-        },
-        {
-          "key": "DEP",
-          "required": true,
-          "label": "반환 임대보증금(원)",
-          "conditionalRequired": null,
-          "raw": "“반환 임대보증금(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “하우스머치시세(원)”\nDEP [필수] “반환 임대보증금(원)”\nSL [선택] “선순위 대출금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세(원)",
-          "conditionalRequired": null,
-          "raw": "“하우스머치시세(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “하우스머치시세(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정 or 선순위임차인인수",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정 or 선순위임차인인수"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세SL [선택] “선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“하우스머치시세SL [선택] “선순위 대출금액(원)”"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정 or 선순위임차인인수\nPV [필수] “하우스머치시세”\nSL [선택] “선순위 대출금액(원)”\n”REQ [필수] “필요 대출금액(원)”\nASB [선택] “인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세(원)",
-          "conditionalRequired": null,
-          "raw": "“하우스머치시세(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “하우스머치시세(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [선택] “추가 필요금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "하우스머치시세REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "\"하우스머치시세REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] \"하우스머치시세”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "매입잔금(분양)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "분양가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“분양가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “분양가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    }
-  },
-  "오피스텔": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세/시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세/시세(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세/시세(원)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "임대보증금반환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세/시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세/시세(원)"
-        },
-        {
-          "key": "DEP",
-          "required": true,
-          "label": "반환 임대보증금(원)",
-          "conditionalRequired": null,
-          "raw": "“반환 임대보증금(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “KB시세/시세(원)”\nDEP [필수] “반환 임대보증금(원)”\nSL [선택] “선순위 대출금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세/시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세/시세(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세/시세(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정 or 선순위임차인인수",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정 or 선순위임차인인수"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "낙찰가or감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“낙찰가or감정가(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)”"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정 or 선순위임차인인수\nPV [필수] “낙찰가or감정가(원)”\nSL [선택] “선순위 대출금액(원)”\n”REQ [필수] “필요 대출금액(원)”\nASB [선택] “인수되는 금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세/시세(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세/시세(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “KB시세/시세(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [선택] “추가 필요금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "KB시세or매입가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“KB시세or매입가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “KB시세or매입가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "매입잔금(분양)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "분양가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“분양가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "예정 선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“예정 선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “분양가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “예정 선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    }
-  },
-  "단독/다가구": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “시세(원)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "임대보증금반환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "DEP",
-          "required": true,
-          "label": "총 임대보증금(원)",
-          "conditionalRequired": null,
-          "raw": "“총 임대보증금(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "임대보증금 반환 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“임대보증금 반환 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세(원)”\nDEP [필수] “총 임대보증금(원)”\nSL [선택] “선순위 대출금액(원)”\nREF [필수] “임대보증금 반환 금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “시세(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정 or 선순위임차인인수",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정 or 선순위임차인인수"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "낙찰가or감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“낙찰가or감정가(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)”"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정 or 선순위임차인인수\nPV [필수] “낙찰가or감정가(원)”\nSL [선택] “선순위 대출금액(원)”\n”REQ [필수] “필요 대출금액(원)”\nASB [선택] “인수되는 금액(원)”/OCC 선순위임차인인수 선택시 표현+필수로 변환\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “시세(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [필수] “추가 필요금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주예정 or 임대예정",
-          "conditionalRequired": null,
-          "raw": "본인거주예정 or 임대예정"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "매입가/감정가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“매입가/감정가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 예정 임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주예정 or 임대예정\nPV [필수] “매입가/감정가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “선순위 예정 임대보증금액(원)” / OCC 임대예정 선택시 표현+필수로 변환."
-    },
-    "매입잔금(분양)": {
-      "supported": false
-    }
-  },
-  "토지/임야": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세/감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“시세/감정가(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세/감정가(원)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”"
-    },
-    "임대보증금반환대출": {
-      "supported": false
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세/감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“시세/감정가(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세/감정가(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”"
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "낙찰가or감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“낙찰가or감정가(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)(원)”"
-        }
-      ],
-      "raw": "PV [필수] “낙찰가or감정가(원)”\nSL [선택] “선순위 대출금액(원)”REQ [필수] “필요 대출금액(원)”\nASB [선택] “인수되는 금액(원)(원)”"
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세/감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“시세/감정가(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세/감정가(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "매입가/감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“매입가/감정가(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “매입가/감정가(원)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”"
-    },
-    "매입잔금(분양)": {
-      "supported": false
-    }
-  },
-  "근린생활시설": {
-    "일반담보대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“시세REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": null,
-          "raw": "“임대보증금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “임대보증금액(원)”"
-    },
-    "임대보증금반환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "DEP",
-          "required": true,
-          "label": "총 임대보증금(원)",
-          "conditionalRequired": null,
-          "raw": "“총 임대보증금(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "임대보증금 반환 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“임대보증금 반환 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세(원)”\nDEP [필수] “총 임대보증금(원)”\nSL [선택] “선순위 대출금액(원)”\nREF [필수] “임대보증금 반환 금액(원)”\nREQ [선택] “추가 필요금액(원)”"
-    },
-    "지분대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "SP",
-          "required": true,
-          "label": "지분율(%)",
-          "conditionalRequired": null,
-          "raw": "“지분율(%)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 임대보증금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 임대보증금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “시세(원)”\nSP [필수] “지분율(%)”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “선순위 임대보증금액(원)”"
-    },
-    "경락잔금대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "낙찰가or감정가(원)",
-          "conditionalRequired": null,
-          "raw": "“낙찰가or감정가(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": true,
-          "label": "필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“필요 대출금액(원)"
-        },
-        {
-          "key": "ASB",
-          "required": false,
-          "label": "인수되는 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“인수되는 금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “낙찰가or감정가(원)”\nSL [선택] “선순위 대출금액(원)”\nREQ [필수] “필요 대출금액(원)”\nASB [선택] “인수되는 금액(원)”"
-    },
-    "대환대출": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "OCC",
-          "required": true,
-          "label": "본인거주 or 임대",
-          "conditionalRequired": null,
-          "raw": "본인거주 or 임대"
-        },
-        {
-          "key": "PV",
-          "required": true,
-          "label": "시세(원)",
-          "conditionalRequired": null,
-          "raw": "“시세(원)"
-        },
-        {
-          "key": "SL",
-          "required": true,
-          "label": "선순위 총 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 총 대출금액(원)"
-        },
-        {
-          "key": "REF",
-          "required": true,
-          "label": "상환할 선순위 금액(원)",
-          "conditionalRequired": null,
-          "raw": "“상환할 선순위 금액(원)"
-        },
-        {
-          "key": "REQ",
-          "required": false,
-          "label": "추가 필요금액(원)",
-          "conditionalRequired": null,
-          "raw": "“추가 필요금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "임대보증금액(원)",
-          "conditionalRequired": "if_occupancy_rental",
-          "raw": "“임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-        }
-      ],
-      "raw": "OCC [필수] 본인거주 or 임대\nPV [필수] “시세(원)”\nSL [필수] “선순위 총 대출금액(원)”\nREF [필수] “상환할 선순위 금액(원)”\nREQ [선택] “추가 필요금액(원)”\nDEP [선택] “임대보증금액(원)” / OCC 임대중 선택시 표현+필수로 변환."
-    },
-    "매입잔금(일반)": {
-      "supported": true,
-      "fields": [
-        {
-          "key": "PV",
-          "required": true,
-          "label": "매입가REQ [필수] “필요 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“매입가REQ [필수] “필요 대출금액(원)"
-        },
-        {
-          "key": "SL",
-          "required": false,
-          "label": "선순위 대출금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 대출금액(원)"
-        },
-        {
-          "key": "DEP",
-          "required": false,
-          "label": "선순위 임대보증금액(원)",
-          "conditionalRequired": null,
-          "raw": "“선순위 임대보증금액(원)”"
-        }
-      ],
-      "raw": "PV [필수] “매입가”\nREQ [필수] “필요 대출금액(원)”\nSL [선택] “선순위 대출금액(원)”\nDEP [선택] “선순위 임대보증금액(원)”"
-    },
-    "매입잔금(분양)": {
-      "supported": false
-    }
-  }
-};
-
-
-// OCC UX rule (확정본)
-// - 경락잔금/매입잔금: 본인거주(예정) / 임대(예정)
-// - 임대(예정) 선택 시 도움말 노출
-const OCC_RULES = {
-  plannedLoanTypes: new Set(["경락잔금대출", "매입잔금(일반)", "매입잔금(분양)"]),
-  plannedHelpText:
-    "잔금일에 임차인이 입주하며 보증금이 온투업 대출의 선순위로 들어오는 경우",
-};
+/**
+ * Step5 폼 스키마 매트릭스 (최종본)
+ * - 키: [부동산유형][대출종류]
+ * - 값: { supported:boolean, fields:[{code,required,label,note?}, ...] }
+ */
+const STEP5_MATRIX = {"아파트":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"다세대/연립":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"하우스머치시세"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"\"하우스머치시세”"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"오피스텔":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"KB시세or매입가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"단독/다가구":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"DEP","required":true,"label":"총 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REF","required":true,"label":"임대보증금 반환 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":true,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"매입가/감정가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금(분양)":{"supported":false,"fields":[]}},"토지/임야":{"일반담보대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"임대보증금반환대출":{"supported":false,"fields":[]},"지분대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"경락잔금대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)(원)"}]},"대환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"PV","required":true,"label":"매입가/감정가(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"매입잔금(분양)":{"supported":false,"fields":[]}},"근린생활시설":{"일반담보대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)"}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"DEP","required":true,"label":"총 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REF","required":true,"label":"임대보증금 반환 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 임대보증금액(원)"}]},"경락잔금대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)"}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금(일반)":{"supported":true,"fields":[{"code":"PV","required":true,"label":"매입가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 임대보증금액(원)"}]},"매입잔금(분양)":{"supported":false,"fields":[]}}};
 
 // 숫자 유틸
 function stripNonDigits(str) {
@@ -1539,46 +32,82 @@ function getMoneyValueById(id) {
   const digits = stripNonDigits(el.value);
   return digits ? Number(digits) : 0;
 }
-function setupMoneyInputs() {
-  const moneyInputs = document.querySelectorAll('input[data-type="money"]');
+function setMoneyValueById(id, num) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = num ? formatWithCommas(String(num)) : "";
+}
+function setupMoneyInputs(root = document) {
+  const moneyInputs = root.querySelectorAll('input[data-type="money"]');
   moneyInputs.forEach((input) => {
+    if (input.__moneyBound) return;
+    input.__moneyBound = true;
+
     input.addEventListener("input", (e) => {
       const v = e.target.value;
       e.target.value = formatWithCommas(v);
     });
+
     if (input.value) {
       input.value = formatWithCommas(input.value);
     }
   });
 }
 
-function safeText(v) {
-  return (v == null) ? "" : String(v);
+// --------- 문자열 정규화(매칭 강건화) ----------
+function normKey(s) {
+  return String(s || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[()·]/g, "")
+    .replace(/_/g, "")
+    .toLowerCase();
+}
+function includesNorm(list, value) {
+  const v = normKey(value);
+  return (list || []).some((x) => normKey(x) === v);
+}
+function includesRegion(regions, region) {
+  if (!region) return true;
+  const r = String(region || "").replace(/도$/g, ""); // 충청도/전라도/경상도/강원도 → 충청/전라/경상/강원
+  return (regions || []).some((x) => {
+    if (String(x) === "전국") return true;
+    const xr = String(x || "").replace(/도$/g, "");
+    return xr === r;
+  });
 }
 
+// --------- 퍼센트/수수료 파싱 ----------
 function parseNumberLoose(v) {
   if (v == null) return null;
-  if (typeof v === "number" && isFinite(v)) return v;
-  const s = String(v).trim();
-  if (!s) return null;
-  // "10~12" -> 10, "약 12%" -> 12
-  const m = s.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
-  if (!m) return null;
-  const n = Number(m[0]);
-  return isFinite(n) ? n : null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  const s = String(v);
+  const m = s.match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+function fmtPct(v, fallback = "미등록") {
+  const n = parseNumberLoose(v);
+  if (n == null) return fallback;
+  return `연 ${n}%`;
+}
+function fmtFee(v, fallback = "미등록") {
+  const n = parseNumberLoose(v);
+  if (n == null) return fallback;
+  return `${n}%`;
+}
+function fmtRange(min, max, unitText, fallback = "미등록") {
+  if (min == null && max == null) return fallback;
+  if (min != null && max != null) {
+    if (Math.abs(min - max) < 1e-9) return `${min}${unitText}`;
+    return `${min}${unitText} ~ ${max}${unitText}`;
+  }
+  const only = (min != null) ? min : max;
+  return `${only}${unitText}`;
 }
 
-function formatPctMaybe(v) {
-  if (v == null) return "-";
-  if (typeof v === "string") return v;
-  if (typeof v === "number" && isFinite(v)) {
-    // 이미 0.12 형태인지(12%)인지 불명. admin 저장이 보통 '연이율%'라면 12로 저장했을 가능성이 높음.
-    // 너무 공격적으로 변환하지 않고, 1 미만이면 %로 환산.
-    const n = v < 1 ? (v * 100) : v;
-    return `${n.toFixed(1)}%`;
-  }
-  return String(v);
-}
+// ------------------------------------------------------
+// 서버 설정 로드 (admin 정보)
+// ------------------------------------------------------
 
 async function loadLendersConfig() {
   try {
@@ -1600,6 +129,453 @@ async function loadLendersConfig() {
     }
   }
 }
+
+let naviLoanConfig = { version: 1, lenders: [] };
+
+// loan-config + lenders-config 병합(가능하면 admin 원본 우선)
+async function loadNaviLoanConfig() {
+  let fromLoanConfig = null;
+  try {
+    const res = await fetch(NAVI_LOAN_CONFIG_ENDPOINT, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json && Array.isArray(json.lenders)) {
+        fromLoanConfig = json;
+        console.log("✅ loan-config from API:", fromLoanConfig);
+      }
+    } else {
+      console.warn("loan-config GET 실패:", res.status, await res.text().catch(() => ""));
+    }
+  } catch (e) {
+    console.warn("loan-config API 불러오기 실패:", e);
+  }
+
+  const lendersConfig = await loadLendersConfig();
+
+  // 우선순위: lenders-config(관리자 원본) → loan-config → localStorage
+  if (lendersConfig && Array.isArray(lendersConfig.lenders) && lendersConfig.lenders.length) {
+    naviLoanConfig = { version: 1, lenders: lendersConfig.lenders };
+    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
+    console.log("✅ naviLoanConfig ← lenders-config (admin 원본) 적용:", naviLoanConfig.lenders.length);
+    return;
+  }
+
+  if (fromLoanConfig && Array.isArray(fromLoanConfig.lenders) && fromLoanConfig.lenders.length) {
+    naviLoanConfig = fromLoanConfig;
+    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
+    console.log("✅ naviLoanConfig ← loan-config 적용:", naviLoanConfig.lenders.length);
+    return;
+  }
+
+  try {
+    const raw = localStorage.getItem(NAVI_LOAN_CONFIG_LOCAL_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.lenders)) {
+        naviLoanConfig = parsed;
+        console.log("✅ loan-config from localStorage:", naviLoanConfig);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("loan-config localStorage 로드 실패:", e);
+  }
+
+  console.log("ℹ️ loan-config 없음, 빈 구조로 시작");
+  naviLoanConfig = { version: 1, lenders: [] };
+}
+
+// ------------------------------------------------------
+// 네비게이션 상태
+// ------------------------------------------------------
+
+const uiState = {
+  hasRenderedResult: false,
+};
+
+const userState = {
+  mainCategory: null, // 부동산담보대출, 개인신용대출 ...
+  region: null,
+  propertyType: null,
+  realEstateLoanType: null, // 일반담보대출, 임대보증금반환대출, ...
+  occupancy: null, // self | rental (예정 포함)
+  // 핵심 숫자 입력
+  propertyValue: 0,
+  sharePercent: 100,
+  seniorLoan: 0,
+  deposit: 0,
+  refinanceAmount: 0,
+  requestedAmount: 0,
+  assumedBurden: 0, // 경락 인수 권리 등
+  // 추가 정보
+  extra: {
+    incomeType: null,
+    creditBand: null,
+    repayPlan: null,
+    needTiming: null,
+    others: [], // 세금체납, 연체기록, ...
+  },
+};
+
+// ------------------------------------------------------
+// Stepper / 단계 노출 제어 (JS로 동적 삽입)
+// ------------------------------------------------------
+
+function ensureStepper() {
+  const root = document.querySelector(".beta-inner.navi-main");
+  const step1 = document.getElementById("navi-step1");
+  if (!root || !step1) return;
+
+  if (document.getElementById("naviStepper")) return;
+
+  const wrap = document.createElement("section");
+  wrap.className = "beta-section navi-section";
+  wrap.id = "navi-stepper";
+
+  wrap.innerHTML = `
+    <div class="beta-card beta-card--wide" style="padding:10px 12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="font-weight:700;font-size:13px;color:#111827;">진행 단계</div>
+        <div id="naviStepperMeta" style="font-size:11px;color:#6b7280;">
+          총 7단계 (6-1은 선택)
+        </div>
+      </div>
+      <div id="naviStepperBar" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"></div>
+    </div>
+  `;
+  root.insertBefore(wrap, step1);
+}
+
+function renderStepper(activeKey) {
+  const bar = document.getElementById("naviStepperBar");
+  if (!bar) return;
+
+  const steps = [
+    { key: 1, label: "1. 상품군" },
+    { key: 2, label: "2. 지역" },
+    { key: 3, label: "3. 유형" },
+    { key: 4, label: "4. 대출종류" },
+    { key: 5, label: "5. 핵심입력" },
+    { key: 6, label: "6. 1차결과" },
+    { key: 6.1, label: "6-1. 선택조건" },
+    { key: 7, label: "7. 업체결과" },
+  ];
+
+  const active = activeKey ?? 1;
+
+  bar.innerHTML = steps
+    .map((s) => {
+      const isDone = s.key < active;
+      const isActive = s.key === active;
+      const bg = isActive ? "#111827" : (isDone ? "#2563eb" : "#e5e7eb");
+      const fg = isActive || isDone ? "#fff" : "#374151";
+      const op = (s.key === 6.1) ? 0.85 : 1;
+
+      return `
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;background:${bg};color:${fg};font-size:11px;opacity:${op};">
+          <span style="font-weight:700;">${s.label}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function setSectionVisible(sectionId, visible) {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  el.style.display = visible ? "" : "none";
+}
+
+// ------------------------------------------------------
+// Step4: 아파트/빌라만 7개 대출종류 노출 (JS로 칩 추가)
+// ------------------------------------------------------
+
+function ensureLoanTypeChips() {
+  const container = document.getElementById("naviRealEstateLoanTypeChips");
+  if (!container) return;
+
+  // 매입잔금(일반/분양) 칩이 없으면 추가 (data-loan-type는 표시명 기준)
+  const need = [
+    { t: "매입잔금(일반)", label: "매입잔금(일반)" },
+    { t: "매입잔금(분양)", label: "매입잔금(분양)" },
+  ];
+
+  need.forEach((x) => {
+    const exists = Array.from(container.querySelectorAll(".navi-chip")).some(
+      (b) => b.getAttribute("data-loan-type") === x.t
+    );
+    if (!exists) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "navi-chip";
+      btn.setAttribute("data-loan-type", x.t);
+      btn.textContent = x.label;
+      container.appendChild(btn);
+    }
+  });
+}
+
+function updateLoanTypeChipVisibility() {
+  const container = document.getElementById("naviRealEstateLoanTypeChips");
+  if (!container) return;
+
+  const prop = userState.propertyType;
+  const isAptOrVilla = prop === "아파트" || prop === "다세대/연립";
+
+  const chips = container.querySelectorAll(".navi-chip");
+  chips.forEach((chip) => {
+    const loanType = chip.getAttribute("data-loan-type");
+    const isBuyout = normKey(loanType).includes("매입잔금");
+    if (isBuyout) {
+      chip.style.display = isAptOrVilla ? "" : "none";
+      // 숨겨질 때 선택 상태 해제
+      if (!isAptOrVilla && chip.classList.contains("is-selected")) {
+        chip.classList.remove("is-selected");
+        if (userState.realEstateLoanType && normKey(userState.realEstateLoanType).includes("매입잔금")) {
+          userState.realEstateLoanType = null;
+          uiState.hasRenderedResult = false;
+        }
+      }
+    } else {
+      chip.style.display = "";
+    }
+  });
+}
+
+// ------------------------------------------------------
+// Step5: 폼 스키마 적용 (라벨/필수/노출)
+// ------------------------------------------------------
+
+function getStep5Schema() {
+  const prop = userState.propertyType;
+  const loan = userState.realEstateLoanType;
+  if (!prop || !loan) return null;
+
+  const byProp = STEP5_MATRIX[prop];
+  if (!byProp) return null;
+
+  // loanType 정규화 매칭(underscore/괄호 차이 흡수)
+  const keys = Object.keys(byProp || {});
+  const foundKey = keys.find((k) => normKey(k) === normKey(loan));
+  const schema = foundKey ? byProp[foundKey] : null;
+
+  if (!schema || !schema.supported) return null;
+  return schema;
+}
+
+function ensureAssumedBurdenField() {
+  const grid = document.querySelector("#navi-step5 .navi-field-grid");
+  if (!grid) return;
+
+  if (document.getElementById("naviInputAssumedBurden")) return;
+
+  const label = document.createElement("label");
+  label.setAttribute("data-field-code", "ASB");
+  label.innerHTML = `
+    인수되는 권리 금액 (원)
+    <input type="text" id="naviInputAssumedBurden" data-type="money" placeholder="예) 50000000" />
+    <span class="navi-help">※ 경락 시 인수되는 보증금/점유권리 등(예: 대항력 있는 임차인 보증금)</span>
+  `;
+  grid.appendChild(label);
+
+  setupMoneyInputs(label);
+  const input = label.querySelector("input");
+  if (input) {
+    input.addEventListener("input", () => recalcAndUpdateSummary());
+  }
+}
+
+function setLabelText(labelEl, text) {
+  if (!labelEl) return;
+  // label 내부에서 input 앞의 텍스트 노드를 찾아 교체
+  const nodes = Array.from(labelEl.childNodes || []);
+  const textNode = nodes.find((n) => n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "");
+  if (textNode) {
+    textNode.textContent = `\n              ${text}\n              `;
+    return;
+  }
+  // 없으면 span 추가
+  const span = document.createElement("span");
+  span.textContent = text;
+  labelEl.insertBefore(span, labelEl.firstChild);
+}
+
+function applyStep5Schema() {
+  ensureAssumedBurdenField();
+
+  const schema = getStep5Schema();
+  const occBlock = document.getElementById("naviOccupancyChips")?.parentElement; // OCC 레이블 블럭 전체
+  const helpEl = document.getElementById("naviLoanTypeHelp");
+
+  const fieldDefs = schema?.fields || [];
+  const visibleCodes = new Set(fieldDefs.map((f) => f.code));
+
+  // OCC 옵션명 (최종 UX 규칙)
+  const isBuyoutOrAuction =
+    normKey(userState.realEstateLoanType).includes("경락잔금") ||
+    normKey(userState.realEstateLoanType).includes("매입잔금");
+  const occSelfText = isBuyoutOrAuction ? "본인거주(예정)" : "본인거주";
+  const occRentText = isBuyoutOrAuction ? "임대(예정)" : "임대";
+
+  // OCC 칩 라벨 교체
+  const occContainer = document.getElementById("naviOccupancyChips");
+  if (occContainer) {
+    const selfBtn = occContainer.querySelector('[data-occ="self"]');
+    const rentBtn = occContainer.querySelector('[data-occ="rental"]');
+    if (selfBtn) selfBtn.textContent = occSelfText;
+    if (rentBtn) rentBtn.textContent = occRentText;
+  }
+
+  // Step5 각 입력 라벨 표시/숨김 + 라벨 텍스트/필수 표시
+  const idToCode = {
+    naviInputPropertyValue: "PV",
+    naviInputSharePercent: "SP",
+    naviInputSeniorLoan: "SL",
+    naviInputDeposit: "DEP",
+    naviInputRefinanceAmount: "REF",
+    naviInputRequestedAmount: "REQ",
+    naviInputAssumedBurden: "ASB",
+  };
+
+  Object.entries(idToCode).forEach(([id, code]) => {
+    const input = document.getElementById(id);
+    const label = input ? input.closest("label") : null;
+    if (!label) return;
+
+    const def = fieldDefs.find((f) => f.code === code);
+    const shouldShow = Boolean(def);
+
+    label.style.display = shouldShow ? "" : "none";
+    label.toggleAttribute("data-required", Boolean(def?.required));
+
+    if (def?.label) {
+      // 라벨 텍스트: (원) 같은 suffix는 유지
+      const suffix = (id === "naviInputSharePercent") ? " (%)" : " (원)";
+      const txt = def.label.includes("(원)") || def.label.includes("(%)")
+        ? def.label
+        : def.label + suffix;
+      setLabelText(label, txt);
+    }
+  });
+
+  // OCC 블록 노출
+  if (occBlock) {
+    occBlock.style.display = visibleCodes.has("OCC") ? "" : "none";
+    if (!visibleCodes.has("OCC")) {
+      userState.occupancy = null;
+      // 선택 표시 해제
+      document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
+    }
+  }
+
+  // DEP/ASB 조건부 노출/필수 변환 (note에 OCC 문구가 있을 때)
+  const depDef = fieldDefs.find((f) => f.code === "DEP");
+  const asbDef = fieldDefs.find((f) => f.code === "ASB");
+
+  const depInput = document.getElementById("naviInputDeposit");
+  const depLabel = depInput ? depInput.closest("label") : null;
+
+  if (depLabel && depDef) {
+    const note = String(depDef.note || "");
+    const needsRental = note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
+    const isRental = userState.occupancy === "rental";
+
+    if (needsRental) {
+      depLabel.style.display = isRental ? "" : "none";
+      depLabel.toggleAttribute("data-required", isRental);
+      if (!isRental) {
+        setMoneyValueById("naviInputDeposit", 0);
+      }
+    }
+  }
+
+  const asbInput = document.getElementById("naviInputAssumedBurden");
+  const asbLabel = asbInput ? asbInput.closest("label") : null;
+  if (asbLabel && asbDef) {
+    const note = String(asbDef.note || "");
+    // 매트릭스의 '선순위임차인인수'는 제거되었으므로: 경락잔금에서는 항상 선택 입력(노출)로 둔다.
+    const isAuction = normKey(userState.realEstateLoanType).includes("경락잔금");
+    if (isAuction) {
+      asbLabel.style.display = "";
+      asbLabel.toggleAttribute("data-required", false);
+    } else {
+      // note 기반 조건이 있으면(다른 케이스) 일단 항상 노출(선택)로 유지
+      asbLabel.style.display = "";
+      asbLabel.toggleAttribute("data-required", false);
+    }
+  }
+
+  // Step5 도움말(상단) 보정
+  if (helpEl) {
+    if (!schema) {
+      helpEl.textContent = "※ 선택하신 대출종류/부동산유형 조합에 대한 입력 스키마가 없습니다. 관리자 설정을 확인해주세요.";
+    }
+  }
+}
+
+function isRentalOcc() {
+  return userState.occupancy === "rental";
+}
+
+function isStep5Complete() {
+  const schema = getStep5Schema();
+  if (!schema) return false;
+
+  // 필수 항목 검사(조건부 필수 포함)
+  for (const f of (schema.fields || [])) {
+    if (!f.required) continue;
+
+    if (f.code === "OCC") {
+      if (!userState.occupancy) return false;
+      continue;
+    }
+    if (f.code === "PV") {
+      if (!userState.propertyValue) return false;
+      continue;
+    }
+    if (f.code === "REQ") {
+      if (!userState.requestedAmount) return false;
+      continue;
+    }
+    if (f.code === "SL") {
+      if (!userState.seniorLoan && userState.seniorLoan !== 0) return false;
+      continue;
+    }
+    if (f.code === "DEP") {
+      // note에 OCC 임대 시 필수 변환이 있을 수 있음
+      const note = String(f.note || "");
+      const conditional = note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
+      if (conditional) {
+        if (isRentalOcc() && !userState.deposit) return false;
+      } else {
+        if (!userState.deposit && userState.deposit !== 0) return false;
+      }
+      continue;
+    }
+    if (f.code === "SP") {
+      // percent 입력은 기본 100으로 간주
+      continue;
+    }
+    if (f.code === "REF") {
+      if (!userState.refinanceAmount) return false;
+      continue;
+    }
+    if (f.code === "ASB") {
+      if (!userState.assumedBurden) return false;
+      continue;
+    }
+  }
+
+  return true;
+}
+
+// ------------------------------------------------------
+// UI 이벤트 바인딩
+// ------------------------------------------------------
 
 // chip helpers
 function singleSelectChip(container, target) {
@@ -1639,409 +615,6 @@ function setupBetaMenu() {
   });
 }
 
-// ------------------------------------------------------
-// 네비게이션 상태
-// ------------------------------------------------------
-
-let naviLoanConfig = {
-  version: 1,
-  lenders: [],
-};
-
-let lendersConfig = { lenders: [] }; // admin lenders-config (financialInputs 포함)
-
-// NOTE: userState는 UI/필터/계산의 단일 소스
-const userState = {
-  mainCategory: null, // 부동산담보대출, 개인신용대출 ...
-  region: null,
-  propertyType: null,
-  realEstateLoanType: null, // 일반담보대출, 임대보증금반환대출, ...
-  occupancy: null, // self | rental (예정 포함하여 동일 키로 관리)
-  // 핵심 숫자 입력
-  propertyValue: 0,       // PV
-  sharePercent: 100,      // SP
-  seniorLoan: 0,          // SL
-  deposit: 0,             // DEP
-  assumedBurden: 0,       // ASB
-  refinanceAmount: 0,     // REF
-  requestedAmount: 0,     // REQ
-  // 추가 정보
-  extra: {
-    incomeType: null,
-    creditBand: null,
-    repayPlan: null,
-    needTiming: null,
-    others: [], // 세금체납, 연체기록, ...
-  },
-};
-
-// ------------------------------------------------------
-// loan-config 불러오기
-// ------------------------------------------------------
-
-async function loadNaviLoanConfig() {
-  try {
-    const res = await fetch(NAVI_LOAN_CONFIG_ENDPOINT, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (res.ok) {
-      const json = await res.json();
-      if (json && Array.isArray(json.lenders)) {
-        naviLoanConfig = json;
-        localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
-        console.log("✅ loan-config from API:", naviLoanConfig);
-        return;
-      }
-    } else {
-      console.warn("loan-config GET 실패:", res.status, await res.text().catch(() => ""));
-    }
-  } catch (e) {
-    console.warn("loan-config API 불러오기 실패, localStorage로 대체:", e);
-  }
-
-  try {
-    const raw = localStorage.getItem(NAVI_LOAN_CONFIG_LOCAL_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.lenders)) {
-        naviLoanConfig = parsed;
-        console.log("✅ loan-config from localStorage:", naviLoanConfig);
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("loan-config localStorage 로드 실패:", e);
-  }
-
-  console.log("ℹ️ loan-config 없음, 빈 구조로 시작");
-  naviLoanConfig = { version: 1, lenders: [] };
-}
-
-// ------------------------------------------------------
-// Stepper / Progressive disclosure
-// ------------------------------------------------------
-
-function getTotalStepsForCurrentFlow() {
-  // 부동산담보대출 기준은 1~7
-  // 다른 상품군은 이후 확장(현재는 동일 1~7 노출)
-  return 7;
-}
-
-function computeStepCompletion() {
-  const done = {
-    s1: !!userState.mainCategory,
-    s2: !!userState.region,
-    s3: userState.mainCategory === "부동산담보대출" ? !!userState.propertyType : true,
-    s4: userState.mainCategory === "부동산담보대출" ? !!userState.realEstateLoanType : true,
-    s5: false, // schema required 만족 여부
-  };
-
-  // Step5 required validation (부동산담보대출일 때만)
-  if (userState.mainCategory !== "부동산담보대출") {
-    done.s5 = true;
-  } else {
-    done.s5 = isStep5Valid();
-  }
-
-  return done;
-}
-
-function setupStepper() {
-  const host = document.getElementById("naviStepper");
-  if (!host) return;
-
-  const total = getTotalStepsForCurrentFlow();
-  host.innerHTML = `
-    <div class="navi-stepper__bar" aria-hidden="true">
-      <div id="naviStepperFill" class="navi-stepper__fill" style="width:0%;"></div>
-    </div>
-    <div class="navi-stepper__meta">
-      <div id="naviStepperText" class="navi-stepper__text"></div>
-    </div>
-  `;
-  updateStepper();
-}
-
-function updateStepper() {
-  const fill = document.getElementById("naviStepperFill");
-  const text = document.getElementById("naviStepperText");
-  const total = getTotalStepsForCurrentFlow();
-  const done = computeStepCompletion();
-
-  // 현재 단계 계산: 첫 미완료 단계
-  let current = 1;
-  if (!done.s1) current = 1;
-  else if (!done.s2) current = 2;
-  else if (!done.s3) current = 3;
-  else if (!done.s4) current = 4;
-  else if (!done.s5) current = 5;
-  else current = 6; // 계산요약(6)까지 완료면 6으로 표시(7은 결과 버튼 동작에 가깝기 때문)
-
-  // 진행률
-  const completedCount = [done.s1, done.s2, done.s3, done.s4, done.s5].filter(Boolean).length;
-  const pct = Math.round((completedCount / 5) * 100);
-
-  if (fill) fill.style.width = `${pct}%`;
-  if (text) {
-    text.textContent = `진행: ${current}/${total} 단계 (입력 완료: ${completedCount}/5)`;
-  }
-}
-
-function setSectionVisible(id, visible) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.display = visible ? "" : "none";
-}
-
-function updateProgressiveSections() {
-  // 기본: Step1은 항상
-  setSectionVisible("navi-step1", true);
-
-  // Step2: step1 이후
-  setSectionVisible("navi-step2", !!userState.mainCategory);
-
-  const isRE = userState.mainCategory === "부동산담보대출";
-  // Step3/4/5는 부동산담보대출일 때만
-  setSectionVisible("navi-step3", isRE && !!userState.region);
-  setSectionVisible("navi-step4", isRE && !!userState.region && !!userState.propertyType);
-  setSectionVisible("navi-step5", isRE && !!userState.region && !!userState.propertyType && !!userState.realEstateLoanType);
-
-  // Step6/6-1은 Step5가 보이는 시점부터
-  const step5On = isRE && !!userState.realEstateLoanType;
-  setSectionVisible("navi-step6", step5On);
-  setSectionVisible("navi-step6-1", step5On);
-
-  // Step7은 항상 노출(버튼/안내)
-  setSectionVisible("navi-step7", true);
-}
-
-// ------------------------------------------------------
-// Step5 Schema 적용
-// ------------------------------------------------------
-
-const FIELD_UI = {
-  PV: { inputId: "naviInputPropertyValue", type: "money" },
-  SP: { inputId: "naviInputSharePercent", type: "percent" },
-  SL: { inputId: "naviInputSeniorLoan", type: "money" },
-  DEP: { inputId: "naviInputDeposit", type: "money" },
-  ASB: { inputId: "naviInputAssumedBurden", type: "money" },
-  REF: { inputId: "naviInputRefinanceAmount", type: "money" },
-  REQ: { inputId: "naviInputRequestedAmount", type: "money" },
-};
-
-function getLabelElByInputId(inputId) {
-  const input = document.getElementById(inputId);
-  if (!input) return null;
-  const label = input.closest("label");
-  return label instanceof HTMLElement ? label : null;
-}
-
-function setLabelText(labelEl, text, required) {
-  if (!labelEl) return;
-  // label의 첫 텍스트 노드를 교체
-  const nodes = Array.from(labelEl.childNodes);
-  const tn = nodes.find((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length);
-  const suffix = required ? " *" : "";
-  const newText = `${text}${suffix}\n`;
-  if (tn) {
-    tn.textContent = newText;
-  } else {
-    labelEl.insertBefore(document.createTextNode(newText), labelEl.firstChild);
-  }
-  labelEl.dataset.required = required ? "1" : "0";
-}
-
-function setFieldVisible(fieldKey, visible) {
-  const ui = FIELD_UI[fieldKey];
-  if (!ui) return;
-  const labelEl = getLabelElByInputId(ui.inputId);
-  if (!labelEl) return;
-  labelEl.style.display = visible ? "" : "none";
-}
-
-function setFieldRequired(fieldKey, required) {
-  const ui = FIELD_UI[fieldKey];
-  if (!ui) return;
-  const input = document.getElementById(ui.inputId);
-  if (!input) return;
-  if (required) input.setAttribute("required", "required");
-  else input.removeAttribute("required");
-}
-
-function setFieldPlaceholder(fieldKey, placeholder) {
-  const ui = FIELD_UI[fieldKey];
-  if (!ui) return;
-  const input = document.getElementById(ui.inputId);
-  if (!input) return;
-  input.setAttribute("placeholder", placeholder);
-}
-
-function applyOCCUiRule() {
-  // OCC 라벨/옵션은 loanType에 따라 바뀜 (확정본)
-  const occContainer = document.getElementById("naviOccupancyChips");
-  const occHelp = document.getElementById("naviOccHelp");
-  if (!occContainer) return;
-
-  const isPlanned = OCC_RULES.plannedLoanTypes.has(userState.realEstateLoanType || "");
-  const btns = occContainer.querySelectorAll(".navi-chip");
-  btns.forEach((b) => {
-    const key = b.getAttribute("data-occ");
-    if (key === "self") {
-      b.textContent = isPlanned ? "본인거주(예정)" : "본인거주";
-    }
-    if (key === "rental") {
-      b.textContent = isPlanned ? "임대(예정)" : "임대";
-    }
-  });
-
-  // 도움말: planned + rental 선택시에만 노출
-  if (occHelp) {
-    const show = isPlanned && userState.occupancy === "rental";
-    occHelp.textContent = OCC_RULES.plannedHelpText;
-    occHelp.style.display = show ? "block" : "none";
-  }
-}
-
-function getStep5Schema(propertyType, loanType) {
-  if (!propertyType || !loanType) return null;
-  const row = STEP5_SCHEMA_MATRIX[propertyType];
-  if (!row) return null;
-  const cell = row[loanType];
-  if (!cell || !cell.supported) return null;
-  return cell;
-}
-
-function applyStep5Schema() {
-  // 부동산담보대출일 때만 Step5를 스키마로 제어
-  if (userState.mainCategory !== "부동산담보대출") return;
-
-  applyOCCUiRule();
-
-  const schema = getStep5Schema(userState.propertyType, userState.realEstateLoanType);
-  const helpEl = document.getElementById("naviLoanTypeHelp");
-
-  // schema 없으면: Step5 입력 전체 숨기고 안내
-  if (!schema) {
-    Object.keys(FIELD_UI).forEach((k) => setFieldVisible(k, false));
-    if (helpEl) {
-      helpEl.textContent = "※ 선택하신 부동산 유형/대출종류 조합은 현재 지원되지 않습니다.";
-    }
-    return;
-  }
-
-  // 일단 전부 숨김 → schema에 있는 것만 노출
-  Object.keys(FIELD_UI).forEach((k) => {
-    setFieldVisible(k, false);
-    setFieldRequired(k, false);
-  });
-
-  // schema fields 기준으로 노출/라벨/필수
-  schema.fields.forEach((f) => {
-    const key = f.key;
-    if (!FIELD_UI[key] && key !== "OCC") return;
-
-    if (key === "OCC") return; // OCC는 별도 영역
-    setFieldVisible(key, true);
-
-    // 조건부 필수: DEP + 임대 선택 시
-    let required = !!f.required;
-    if (f.conditionalRequired === "if_occupancy_rental") {
-      required = required || (userState.occupancy === "rental");
-    }
-
-    setFieldRequired(key, required);
-
-    const label = f.label || key;
-    setLabelText(getLabelElByInputId(FIELD_UI[key].inputId), label, required);
-
-    // placeholder는 라벨에서 괄호 제거한 짧은 텍스트로 자동
-    const ph = label.replace(/\s*\([^\)]*\)\s*/g, "").trim();
-    if (FIELD_UI[key].type === "money") {
-      setFieldPlaceholder(key, `예) 50000000`);
-    } else if (FIELD_UI[key].type === "percent") {
-      setFieldPlaceholder(key, `예) 100`);
-    } else {
-      setFieldPlaceholder(key, ph ? `예) ${ph}` : "");
-    }
-  });
-
-  // OCC 필수/비필수: 스키마에 OCC가 있으면 필수 처리(칩 선택 유도)
-  const hasOCC = schema.fields.some((f) => f.key === "OCC");
-  const occWrap = document.getElementById("naviOccupancyChips")?.closest("div");
-  if (occWrap) {
-    occWrap.style.display = hasOCC ? "" : "none";
-  }
-}
-
-function isStep5Valid() {
-  // 스키마 기준 required 충족 확인
-  if (userState.mainCategory !== "부동산담보대출") return true;
-  const schema = getStep5Schema(userState.propertyType, userState.realEstateLoanType);
-  if (!schema) return false;
-
-  for (const f of schema.fields) {
-    if (f.key === "OCC") {
-      if (f.required && !userState.occupancy) return false;
-      continue;
-    }
-    const ui = FIELD_UI[f.key];
-    if (!ui) continue;
-
-    let required = !!f.required;
-    if (f.conditionalRequired === "if_occupancy_rental") {
-      required = required || (userState.occupancy === "rental");
-    }
-
-    if (!required) continue;
-
-    const el = document.getElementById(ui.inputId);
-    if (!el) return false;
-
-    if (ui.type === "money") {
-      if (getMoneyValueById(ui.inputId) <= 0) return false;
-    } else if (ui.type === "percent") {
-      const v = Number(el.value);
-      if (!v || v <= 0) return false;
-    } else {
-      if (!el.value) return false;
-    }
-  }
-
-  return true;
-}
-
-function updateLoanTypeChipAvailability() {
-  // Step4 chips에서 propertyType 기준으로 미지원 조합은 disable
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  if (!container) return;
-  const prop = userState.propertyType;
-  const buttons = Array.from(container.querySelectorAll(".navi-chip"));
-  buttons.forEach((btn) => {
-    const lt = btn.getAttribute("data-loan-type");
-    if (!prop || !lt) {
-      btn.disabled = false;
-      btn.classList.remove("is-disabled");
-      return;
-    }
-    const cell = STEP5_SCHEMA_MATRIX?.[prop]?.[lt];
-    const supported = !!cell && cell.supported;
-    btn.disabled = !supported;
-    btn.classList.toggle("is-disabled", !supported);
-
-    // 현재 선택된 loanType이 미지원이면 해제
-    if (!supported && userState.realEstateLoanType === lt) {
-      userState.realEstateLoanType = null;
-      btn.classList.remove("is-selected");
-    }
-  });
-}
-
-// ------------------------------------------------------
-// UI 이벤트 바인딩
-// ------------------------------------------------------
-
 function setupStep1() {
   const container = document.getElementById("naviLoanCategoryChips");
   if (!container) return;
@@ -2053,12 +626,16 @@ function setupStep1() {
     singleSelectChip(container, target);
     userState.mainCategory = target.getAttribute("data-main-cat");
 
-    // 초기화(부동산담보대출이 아닐 경우)
-    if (userState.mainCategory !== "부동산담보대출") {
-      userState.propertyType = null;
-      userState.realEstateLoanType = null;
-      userState.occupancy = null;
-    }
+    // 초기화(하위 선택)
+    userState.region = null;
+    userState.propertyType = null;
+    userState.realEstateLoanType = null;
+    userState.occupancy = null;
+    uiState.hasRenderedResult = false;
+
+    // 하위 칩 선택 표시 제거
+    document.querySelectorAll("#naviRegionChips .navi-chip, #naviPropertyTypeChips .navi-chip, #naviRealEstateLoanTypeChips .navi-chip, #naviOccupancyChips .navi-chip")
+      .forEach((c) => c.classList.remove("is-selected"));
 
     recalcAndUpdateSummary();
   });
@@ -2074,6 +651,8 @@ function setupStep2() {
 
     singleSelectChip(container, target);
     userState.region = target.getAttribute("data-region");
+
+    uiState.hasRenderedResult = false;
     recalcAndUpdateSummary();
   });
 }
@@ -2089,8 +668,14 @@ function setupStep3() {
     singleSelectChip(container, target);
     userState.propertyType = target.getAttribute("data-prop");
 
-    // Step4 loan type availability 업데이트
-    updateLoanTypeChipAvailability();
+    // 대출종류 칩(매입잔금 2개) 노출 규칙 적용
+    updateLoanTypeChipVisibility();
+
+    // 하위 초기화
+    userState.realEstateLoanType = null;
+    userState.occupancy = null;
+    uiState.hasRenderedResult = false;
+    document.querySelectorAll("#naviRealEstateLoanTypeChips .navi-chip, #naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
 
     recalcAndUpdateSummary();
   });
@@ -2104,34 +689,32 @@ function setupStep4() {
   const helpTexts = {
     일반담보대출: "시세·선순위대출·임대보증금·필요대출금액을 합산해 LTV를 계산합니다.",
     임대보증금반환대출:
-      "기존 임대보증금을 반환하기 위한 대출입니다. 임대보증금 + 선순위 + 필요대출금액 기준으로 LTV를 계산합니다.",
+      "임대보증금 반환을 위한 대출입니다. (입력 스키마에 따라) 선순위 + 반환 보증금 + 추가 필요금액을 기준으로 LTV를 계산합니다.",
     지분대출: "지분율만큼 시세를 반영하여 LTV를 계산합니다. (예: 시세 5억, 지분 50% → 2.5억 기준)",
     경락잔금대출:
-      "낙찰가/감정가와 선순위·인수금·필요대출금액을 기준으로 잔금대출 LTV를 계산합니다.",
+      "낙찰가(또는 감정가)와 선순위·필요 대출금액을 기준으로 잔금대출 LTV를 계산합니다. (인수 권리 금액 입력 가능)",
     대환대출:
-      "선순위 대출/보증금 중 상환 예정금액 + 신규 필요대출금액을 합산하여 대환 후 LTV를 계산합니다.",
+      "선순위/보증금 중 상환 예정금액 + 신규 필요 대출금액을 합산하여 대환 후 LTV를 계산합니다.",
     "매입잔금(일반)":
-      "매입 잔금 전후 필요한 자금을 마련하기 위한 대출입니다. 예정 선순위/보증금 + 필요대출금액 기준으로 계산합니다.",
+      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
     "매입잔금(분양)":
-      "분양 잔금 자금을 마련하기 위한 대출입니다. 예정 선순위/보증금 + 필요대출금액 기준으로 계산합니다.",
+      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
   };
 
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
     if (!target.classList.contains("navi-chip")) return;
-    if (target.hasAttribute("disabled")) return;
+    if (target.style.display === "none") return; // 숨김 칩 클릭 방지
 
     singleSelectChip(container, target);
     const loanType = target.getAttribute("data-loan-type");
     userState.realEstateLoanType = loanType;
 
-    // OCC 초기화(loanType 톤 변경 시 혼란 방지)
+    // 하위 초기화
     userState.occupancy = null;
-    const occContainer = document.getElementById("naviOccupancyChips");
-    if (occContainer) {
-      occContainer.querySelectorAll(".navi-chip").forEach((c) => c.classList.remove("is-selected"));
-    }
+    document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
+    uiState.hasRenderedResult = false;
 
     if (helpEl && loanType && helpTexts[loanType]) {
       helpEl.textContent = "※ " + helpTexts[loanType];
@@ -2146,20 +729,19 @@ function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
   const occContainer = document.getElementById("naviOccupancyChips");
 
-  const inputIds = [
+  [
     "naviInputPropertyValue",
     "naviInputSharePercent",
     "naviInputSeniorLoan",
     "naviInputDeposit",
-    "naviInputAssumedBurden",
     "naviInputRefinanceAmount",
     "naviInputRequestedAmount",
-  ];
-
-  inputIds.forEach((id) => {
+    "naviInputAssumedBurden",
+  ].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("input", () => {
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary();
     });
   });
@@ -2173,14 +755,15 @@ function setupStep5() {
       singleSelectChip(occContainer, target);
       userState.occupancy = target.getAttribute("data-occ");
 
-      applyStep5Schema(); // DEP 조건부 필수 갱신 + 도움말 노출
+      // OCC 변경 시 DEP 조건부 노출 반영
+      applyStep5Schema();
+
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary();
     });
   }
 
-  if (amountWarningEl) {
-    amountWarningEl.style.display = "none";
-  }
+  if (amountWarningEl) amountWarningEl.style.display = "none";
 }
 
 function setupStep6Extra() {
@@ -2193,6 +776,7 @@ function setupStep6Extra() {
       if (!target.classList.contains("navi-chip")) return;
       singleSelectChip(incomeContainer, target);
       userState.extra.incomeType = target.getAttribute("data-income");
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(true);
     });
   }
@@ -2206,6 +790,7 @@ function setupStep6Extra() {
       if (!target.classList.contains("navi-chip")) return;
       singleSelectChip(creditContainer, target);
       userState.extra.creditBand = target.getAttribute("data-credit");
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(true);
     });
   }
@@ -2219,6 +804,7 @@ function setupStep6Extra() {
       if (!target.classList.contains("navi-chip")) return;
       singleSelectChip(repayContainer, target);
       userState.extra.repayPlan = target.getAttribute("data-repay");
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(true);
     });
   }
@@ -2232,6 +818,7 @@ function setupStep6Extra() {
       if (!target.classList.contains("navi-chip")) return;
       singleSelectChip(needContainer, target);
       userState.extra.needTiming = target.getAttribute("data-need");
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(true);
     });
   }
@@ -2256,6 +843,8 @@ function setupStep6Extra() {
         if (idx !== -1) arr.splice(idx, 1);
       }
       userState.extra.others = arr;
+
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(true);
     });
   }
@@ -2266,6 +855,7 @@ function setupResultButtons() {
   const recalcBtn = document.getElementById("naviRecalcBtn");
   if (recalcBtn) {
     recalcBtn.addEventListener("click", () => {
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary();
     });
   }
@@ -2281,9 +871,7 @@ function setupResultButtons() {
   if (adjustBtn) {
     adjustBtn.addEventListener("click", () => {
       const target = document.getElementById("navi-step1");
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
@@ -2313,7 +901,7 @@ function setupResultButtons() {
 }
 
 // ------------------------------------------------------
-// 입력/계산/필터 로직
+// 필터링 / 계산 로직
 // ------------------------------------------------------
 
 // 입력값을 userState에 반영
@@ -2324,24 +912,34 @@ function syncInputsToState() {
 
   userState.seniorLoan = getMoneyValueById("naviInputSeniorLoan");
   userState.deposit = getMoneyValueById("naviInputDeposit");
-  userState.assumedBurden = getMoneyValueById("naviInputAssumedBurden");
   userState.refinanceAmount = getMoneyValueById("naviInputRefinanceAmount");
   userState.requestedAmount = getMoneyValueById("naviInputRequestedAmount");
+  userState.assumedBurden = getMoneyValueById("naviInputAssumedBurden");
 }
 
+function getPrincipalAmount() {
+  const lt = normKey(userState.realEstateLoanType);
+  // 임대보증금반환대출: 반환 보증금(DEP) + 추가 필요금액(REQ)
+  if (lt.includes("임대보증금반환")) {
+    return (userState.deposit || 0) + (userState.requestedAmount || 0);
+  }
+  return userState.requestedAmount || 0;
+}
+
+// LTV 계산
 function calcLtv() {
   const {
     propertyValue,
     sharePercent,
     seniorLoan,
     deposit,
-    assumedBurden,
     refinanceAmount,
     requestedAmount,
+    assumedBurden,
     realEstateLoanType,
   } = userState;
 
-  if (!propertyValue || !requestedAmount) {
+  if (!propertyValue) {
     return { ltv: null, totalDebtAfter: null, baseValue: null };
   }
 
@@ -2349,21 +947,26 @@ function calcLtv() {
   const baseValue = propertyValue * ratio;
 
   let totalDebtAfter = 0;
-  const seniorPlusDeposit = seniorLoan + deposit;
 
-  if (!realEstateLoanType || realEstateLoanType === "일반담보대출") {
-    totalDebtAfter = seniorPlusDeposit + requestedAmount;
-  } else if (realEstateLoanType === "임대보증금반환대출") {
-    totalDebtAfter = seniorPlusDeposit + requestedAmount;
-  } else if (realEstateLoanType === "지분대출") {
-    totalDebtAfter = seniorPlusDeposit + requestedAmount;
-  } else if (realEstateLoanType === "경락잔금대출") {
-    totalDebtAfter = seniorLoan + deposit + assumedBurden + requestedAmount;
-  } else if (realEstateLoanType === "대환대출") {
-    const remaining = seniorPlusDeposit - refinanceAmount;
-    totalDebtAfter = (remaining > 0 ? remaining : 0) + requestedAmount;
-  } else if (realEstateLoanType === "매입잔금(일반)" || realEstateLoanType === "매입잔금(분양)") {
-    totalDebtAfter = seniorPlusDeposit + requestedAmount;
+  const seniorPlusDeposit = (seniorLoan || 0) + (deposit || 0);
+  const req = requestedAmount || 0;
+  const asb = assumedBurden || 0;
+
+  if (!realEstateLoanType || normKey(realEstateLoanType) === normKey("일반담보대출")) {
+    totalDebtAfter = seniorPlusDeposit + req;
+  } else if (normKey(realEstateLoanType).includes("임대보증금반환")) {
+    totalDebtAfter = seniorPlusDeposit + req; // DEP를 반환 보증금으로 입력할 경우에도 동일 합산
+  } else if (normKey(realEstateLoanType).includes("지분")) {
+    totalDebtAfter = seniorPlusDeposit + req;
+  } else if (normKey(realEstateLoanType).includes("경락잔금")) {
+    totalDebtAfter = (seniorLoan || 0) + req + asb + (deposit || 0);
+  } else if (normKey(realEstateLoanType).includes("대환")) {
+    const remaining = seniorPlusDeposit - (refinanceAmount || 0);
+    totalDebtAfter = (remaining > 0 ? remaining : 0) + req;
+  } else if (normKey(realEstateLoanType).includes("매입잔금")) {
+    totalDebtAfter = (seniorLoan || 0) + req + (deposit || 0); // 임대예정 보증금 포함 가능
+  } else {
+    totalDebtAfter = seniorPlusDeposit + req;
   }
 
   if (!baseValue) {
@@ -2374,11 +977,24 @@ function calcLtv() {
   return { ltv, totalDebtAfter, baseValue };
 }
 
+// 최소 대출금액 체크 (유저 공통 규칙)
+function passesGlobalMinAmount() {
+  const amt = getPrincipalAmount();
+  if (!amt) return false;
+
+  const prop = userState.propertyType;
+  if (!prop) return false;
+
+  const isAptOrOfficetel = prop === "아파트" || prop === "오피스텔";
+  const minByUserRule = isAptOrOfficetel ? 10000000 : 30000000; // 1,000만 / 3,000만
+  return amt >= minByUserRule;
+}
+
 function checkGlobalMinAmount() {
   const warningEl = document.getElementById("naviAmountWarning");
   if (!warningEl) return;
 
-  const amt = userState.requestedAmount;
+  const amt = getPrincipalAmount();
   if (!amt) {
     warningEl.style.display = "none";
     warningEl.textContent = "";
@@ -2406,137 +1022,7 @@ function checkGlobalMinAmount() {
   }
 }
 
-function getLenderKey(l) {
-  return (
-    l?.id ||
-    l?.lenderId ||
-    l?.code ||
-    l?.slug ||
-    l?.displayName ||
-    ""
-  );
-}
-
-function mergeLendersWithAdminConfig() {
-  const list = naviLoanConfig.lenders || [];
-  const admin = lendersConfig?.lenders || [];
-  const map = new Map();
-  admin.forEach((a) => {
-    const k = getLenderKey(a);
-    if (k) map.set(k, a);
-  });
-
-  list.forEach((l) => {
-    const k = getLenderKey(l);
-    const a = k ? map.get(k) : null;
-
-    // id 미스매치 대비: displayName로도 fallback
-    const a2 = (!a && l?.displayName) ? admin.find((x) => x?.displayName === l.displayName) : null;
-    const src = a || a2;
-
-    if (src) {
-      if (!l.financialInputs && src.financialInputs) l.financialInputs = src.financialInputs;
-      if (!l.channels && src.channels) l.channels = src.channels;
-      if (typeof l.isPartner !== "boolean" && typeof src.isPartner === "boolean") l.isPartner = src.isPartner;
-    }
-  });
-}
-
-function getFinancialInputsForCategory(lender, mainCategory) {
-  const fi = lender?.financialInputs;
-  if (!fi || !mainCategory) return null;
-
-  // 우선 정확히 일치
-  if (fi[mainCategory]) return fi[mainCategory];
-
-  // 느슨한 매핑 (향후 키 변경 대비)
-  const keys = Object.keys(fi);
-  if (!keys.length) return null;
-  const hit = keys.find((k) => k.includes(mainCategory) || mainCategory.includes(k));
-  return hit ? fi[hit] : null;
-}
-
-function summarizeFeesForLenders(lenders, mainCategory) {
-  const values = {
-    interest: [],
-    platform: [],
-    prepay: [],
-  };
-
-  for (const l of lenders) {
-    const inps = getFinancialInputsForCategory(l, mainCategory);
-    if (!inps) continue;
-
-    const i = parseNumberLoose(inps.interestAvg);
-    const p = parseNumberLoose(inps.platformFeeAvg);
-    const pp = parseNumberLoose(inps.prepayFeeAvg);
-
-    if (i != null) values.interest.push(i);
-    if (p != null) values.platform.push(p);
-    if (pp != null) values.prepay.push(pp);
-  }
-
-  function stats(arr) {
-    if (!arr.length) return null;
-    const s = [...arr].sort((a,b)=>a-b);
-    const min = s[0];
-    const max = s[s.length-1];
-    const mid = s[Math.floor(s.length/2)];
-    return { min, max, mid, count: s.length };
-  }
-
-  return {
-    interest: stats(values.interest),
-    platform: stats(values.platform),
-    prepay: stats(values.prepay),
-  };
-}
-
-function renderFeePreviewIntoStep6(matchedCore) {
-  const host = document.getElementById("naviFeePreview");
-  if (!host) return;
-
-  const mainCategory = userState.mainCategory;
-  if (!mainCategory || !matchedCore?.length) {
-    host.innerHTML = "";
-    host.style.display = "none";
-    return;
-  }
-
-  const stats = summarizeFeesForLenders(matchedCore, mainCategory);
-
-  // 값이 하나도 없으면 숨김
-  const hasAny = !!(stats.interest || stats.platform || stats.prepay);
-  if (!hasAny) {
-    host.innerHTML = "";
-    host.style.display = "none";
-    return;
-  }
-
-  function col(title, s) {
-    if (!s) return `<div class="navi-fee-col"><div class="navi-fee-title">${title}</div><div class="navi-fee-val">-</div></div>`;
-    const mid = formatPctMaybe(s.mid);
-    const range = (s.min === s.max) ? `${formatPctMaybe(s.min)}` : `${formatPctMaybe(s.min)} ~ ${formatPctMaybe(s.max)}`;
-    return `
-      <div class="navi-fee-col">
-        <div class="navi-fee-title">${title}</div>
-        <div class="navi-fee-val">${mid}</div>
-        <div class="navi-fee-sub">범위: ${range}</div>
-      </div>
-    `;
-  }
-
-  host.innerHTML = `
-    <div class="navi-fee-grid">
-      ${col("예상 금리(평균)", stats.interest)}
-      ${col("플랫폼 수수료(평균)", stats.platform)}
-      ${col("중도상환 수수료(평균)", stats.prepay)}
-    </div>
-  `;
-  host.style.display = "";
-}
-
-// 온투업 리스트 필터링
+// 온투업 리스트 필터링 (추가조건 미적용 / 적용 두 케이스 모두 사용)
 function filterLenders(applyExtras = false) {
   const lenders = naviLoanConfig.lenders || [];
   if (!lenders.length) return [];
@@ -2546,10 +1032,10 @@ function filterLenders(applyExtras = false) {
     region,
     propertyType,
     realEstateLoanType,
-    requestedAmount,
     extra,
   } = userState;
 
+  const principalAmount = getPrincipalAmount();
   const { ltv } = calcLtv();
 
   const filtered = lenders.filter((l) => {
@@ -2559,7 +1045,7 @@ function filterLenders(applyExtras = false) {
     // 상품군 매칭
     if (mainCategory) {
       const cats = l.loanCategories || [];
-      if (!cats.includes(mainCategory)) return false;
+      if (cats.length && !includesNorm(cats, mainCategory)) return false;
     }
 
     // 부동산담보대출인 경우 추가 조건
@@ -2569,36 +1055,34 @@ function filterLenders(applyExtras = false) {
       // 지역
       if (region) {
         const rgs = cfg.regions || [];
-        if (!rgs.includes("전국") && !rgs.includes(region)) return false;
+        if (rgs.length && !includesRegion(rgs, region)) return false;
       }
 
       // 부동산 유형
       if (propertyType) {
         const props = cfg.propertyTypes || [];
-        if (!props.includes(propertyType)) return false;
+        if (props.length && !includesNorm(props, propertyType)) return false;
       }
 
       // 대출종류
       if (realEstateLoanType) {
         const types = cfg.loanTypes || [];
-        if (!types.includes(realEstateLoanType)) return false;
+        if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
       }
 
-      // 최소 대출금액 (온투업별)
-      if (requestedAmount) {
+      // 최소 대출금액 (온투업별) - "요청 대출금액(원)" 기준
+      if (principalAmount) {
         const minMap = cfg.minLoanByProperty || {};
         const aptMin = minMap["아파트"] ?? 0;
         const otherMin = minMap["_기타"] ?? 0;
         const isApt = propertyType === "아파트";
         const lenderMin = isApt ? aptMin : otherMin;
-        if (lenderMin && requestedAmount < lenderMin) return false;
+        if (lenderMin && principalAmount < lenderMin) return false;
       }
 
       // LTV 한도
       if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
-        if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) {
-          return false;
-        }
+        if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
       }
     }
 
@@ -2606,7 +1090,7 @@ function filterLenders(applyExtras = false) {
     if (applyExtras) {
       if (extra.creditBand) {
         const bands = l.allowedCreditBands || [];
-        if (bands.length && !bands.includes(extra.creditBand)) return false;
+        if (bands.length && !includesNorm(bands, extra.creditBand)) return false;
       }
 
       if (extra.others && extra.others.length) {
@@ -2623,7 +1107,7 @@ function filterLenders(applyExtras = false) {
     return true;
   });
 
-  // 정렬
+  // 정렬: 제휴업체 우선 → displayOrder → 이름
   filtered.sort((a, b) => {
     if (a.isPartner && !b.isPartner) return -1;
     if (!a.isPartner && b.isPartner) return 1;
@@ -2641,17 +1125,147 @@ function filterLenders(applyExtras = false) {
 }
 
 // ------------------------------------------------------
-// 계산 결과 요약 / 카운트 업데이트
+// Step6(1차 결과): 업체명 비공개 + 금리/수수료 범위
 // ------------------------------------------------------
+
+function ensurePrimaryFeeUI() {
+  const step6Card = document.querySelector("#navi-step6 .navi-card");
+  if (!step6Card) return;
+
+  if (document.getElementById("naviPrimaryFeePanel")) return;
+
+  const div = document.createElement("div");
+  div.id = "naviPrimaryFeePanel";
+  div.style.marginTop = "10px";
+  div.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">대출금리 (최소~최대)</div>
+        <div id="naviRangeInterest" style="font-weight:800;color:#111827;">-</div>
+      </div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">플랫폼수수료 (최소~최대)</div>
+        <div id="naviRangePlatform" style="font-weight:800;color:#111827;">-</div>
+      </div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">중도상환수수료 (최소~최대)</div>
+        <div id="naviRangePrepay" style="font-weight:800;color:#111827;">-</div>
+      </div>
+    </div>
+    <div style="margin-top:6px;font-size:11px;color:#6b7280;">
+      ※ 1차 결과는 <strong>업체명 비공개</strong>로, 조건에 따른 예상 범위만 제공합니다.
+    </div>
+  `;
+  step6Card.appendChild(div);
+}
+
+function getFinancialInputsForCategory(lender, category) {
+  const fin = lender?.financialInputs || {};
+  if (!category) return null;
+
+  // direct
+  if (fin[category]) return fin[category];
+
+  // normalized key match
+  const keys = Object.keys(fin);
+  const k = keys.find((x) => normKey(x) === normKey(category));
+  return k ? fin[k] : null;
+}
+
+function calcFeeRanges(lenders, category) {
+  let iMin = null, iMax = null;
+  let pMin = null, pMax = null;
+  let ppMin = null, ppMax = null;
+
+  (lenders || []).forEach((l) => {
+    const f = getFinancialInputsForCategory(l, category);
+    if (!f) return;
+
+    const i = parseNumberLoose(f.interestAvg);
+    const p = parseNumberLoose(f.platformFeeAvg);
+    const pp = parseNumberLoose(f.prepayFeeAvg);
+
+    if (i != null) {
+      if (iMin == null || i < iMin) iMin = i;
+      if (iMax == null || i > iMax) iMax = i;
+    }
+    if (p != null) {
+      if (pMin == null || p < pMin) pMin = p;
+      if (pMax == null || p > pMax) pMax = p;
+    }
+    if (pp != null) {
+      if (ppMin == null || pp < ppMin) ppMin = pp;
+      if (ppMax == null || pp > ppMax) ppMax = pp;
+    }
+  });
+
+  return { iMin, iMax, pMin, pMax, ppMin, ppMax };
+}
+
+function updatePrimaryFeeUI(coreMatched) {
+  ensurePrimaryFeeUI();
+
+  const { iMin, iMax, pMin, pMax, ppMin, ppMax } = calcFeeRanges(coreMatched, userState.mainCategory);
+
+  const iEl = document.getElementById("naviRangeInterest");
+  const pEl = document.getElementById("naviRangePlatform");
+  const ppEl = document.getElementById("naviRangePrepay");
+  if (iEl) iEl.textContent = fmtRange(iMin, iMax, "%", "미등록");
+  if (pEl) pEl.textContent = fmtRange(pMin, pMax, "%", "미등록");
+  if (ppEl) ppEl.textContent = fmtRange(ppMin, ppMax, "%", "미등록");
+}
+
+// ------------------------------------------------------
+// 계산 결과 요약 / 카운트 업데이트 + 단계 노출 제어
+// ------------------------------------------------------
+
+function updateStepVisibility(primaryEligible) {
+  // 기본: step1은 항상
+  setSectionVisible("navi-step1", true);
+
+  // step2: step1 선택 이후
+  setSectionVisible("navi-step2", Boolean(userState.mainCategory));
+
+  // 부동산담보대출 플로우(현재 집중)
+  const isRE = userState.mainCategory === "부동산담보대출";
+
+  // step3~5: 순차
+  setSectionVisible("navi-step3", isRE && Boolean(userState.region));
+  setSectionVisible("navi-step4", isRE && Boolean(userState.region) && Boolean(userState.propertyType));
+  setSectionVisible("navi-step5", isRE && Boolean(userState.region) && Boolean(userState.propertyType) && Boolean(userState.realEstateLoanType));
+
+  // step6: step5가 보여질 때 같이 보여줌(미완료면 안내)
+  setSectionVisible("navi-step6", isRE && Boolean(userState.realEstateLoanType));
+
+  // step6-1 / step7: 1차 결과 '가능'일 때만
+  setSectionVisible("navi-step6-1", Boolean(primaryEligible));
+  setSectionVisible("navi-step7", Boolean(primaryEligible));
+}
+
+function resolveActiveStep(primaryEligible) {
+  if (!userState.mainCategory) return 1;
+  if (!userState.region) return 2;
+
+  if (userState.mainCategory === "부동산담보대출") {
+    if (!userState.propertyType) return 3;
+    if (!userState.realEstateLoanType) return 4;
+
+    if (!isStep5Complete()) return 5;
+    if (!primaryEligible) return 6;
+
+    // primary ok
+    if (uiState.hasRenderedResult) return 7;
+    // 선택조건은 선택이므로, step6(1차결과)로 유지
+    return 6;
+  }
+
+  // 기타 상품군(추후 확장)
+  return 2;
+}
 
 function recalcAndUpdateSummary(onlyExtra = false) {
   syncInputsToState();
   checkGlobalMinAmount();
-
-  // schema 적용(loanType/prop 변경 또는 OCC 변경 시 필수 갱신)
-  if (userState.mainCategory === "부동산담보대출") {
-    applyStep5Schema();
-  }
 
   const calcTextEl = document.getElementById("naviCalcSummaryText");
   const calcSubEl = document.getElementById("naviCalcSubText");
@@ -2661,69 +1275,153 @@ function recalcAndUpdateSummary(onlyExtra = false) {
 
   if (!calcTextEl || !calcSubEl || !resultSummaryEl) return;
 
-  // progressive sections + stepper
-  updateProgressiveSections();
-  updateStepper();
+  // Stepper
+  ensureStepper();
+  ensureLoanTypeChips();
+  updateLoanTypeChipVisibility();
+
+  // Step5 schema 적용(선택 상태에 따라)
+  if (userState.mainCategory === "부동산담보대출" && userState.realEstateLoanType) {
+    applyStep5Schema();
+  }
 
   const { mainCategory, propertyType, realEstateLoanType } = userState;
 
+  // 기본 단계 노출
+  let primaryEligible = false;
+
   if (!mainCategory) {
-    calcTextEl.textContent =
-      "대출 상품군이 선택되지 않았습니다. 1단계에서 먼저 대출 상품군을 선택해주세요.";
+    calcTextEl.textContent = "대출 상품군이 선택되지 않았습니다. 1단계에서 먼저 대출 상품군을 선택해주세요.";
     calcSubEl.textContent = "";
     if (countInfoEl) countInfoEl.style.display = "none";
     if (extraCountEl) extraCountEl.style.display = "none";
-    resultSummaryEl.textContent =
-      "상품군, 지역, 대출종류를 입력하시면 추천 온투업 결과를 볼 수 있습니다.";
-    renderFeePreviewIntoStep6([]);
+    resultSummaryEl.textContent = "상품군, 지역, 대출종류를 입력하시면 추천 온투업 결과를 볼 수 있습니다.";
+
+    updateStepVisibility(false);
+    renderStepper(1);
     return;
   }
 
-  // 기본 메시지 구성
+  // 요약 문구
   let baseSummary = `선택 상품군: ${mainCategory}`;
   if (propertyType) baseSummary += ` / 부동산 유형: ${propertyType}`;
   if (realEstateLoanType) baseSummary += ` / 대출종류: ${realEstateLoanType}`;
   calcTextEl.textContent = baseSummary;
 
+  // Step6 기본 문구: LTV 계산
   const { ltv, totalDebtAfter, baseValue } = calcLtv();
   if (ltv == null || !baseValue) {
-    calcSubEl.textContent =
-      "시세(또는 낙찰가)와 필요 대출금액을 포함한 핵심 정보가 부족하여 LTV를 계산할 수 없습니다.";
+    calcSubEl.textContent = "시세(또는 낙찰가) 등 핵심 정보가 부족하여 LTV를 계산할 수 없습니다.";
   } else {
     const pct = (ltv * 100).toFixed(1);
     const totalStr = formatWithCommas(String(Math.round(totalDebtAfter)));
     const baseStr = formatWithCommas(String(Math.round(baseValue)));
-    calcSubEl.textContent = `예상 총 부담액은 약 ${totalStr}원, 지분 기준 담보가치는 약 ${baseStr}원으로 예상 LTV는 약 ${pct}% 수준입니다.`;
+    calcSubEl.textContent = `예상 총 부담액은 약 ${totalStr}원, 담보가치는 약 ${baseStr}원으로 예상 LTV는 약 ${pct}% 수준입니다.`;
   }
 
-  // 온투업 매칭 카운트 (핵심조건 기준)
-  const matched = filterLenders(false);
+  // 1차 결과(핵심 조건 기준) — 업체명 비공개
+  const isRE = mainCategory === "부동산담보대출";
+  const step5Complete = isRE ? isStep5Complete() : false;
+
+  const coreMatched = step5Complete ? filterLenders(false) : [];
+  const extraMatched = step5Complete ? filterLenders(true) : [];
+
+  const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
+
+  primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
+
   if (countInfoEl) {
-    countInfoEl.style.display = "inline-block";
-    countInfoEl.textContent = matched.length
-      ? `핵심 조건 기준 추천 가능 온투업체: ${matched.length}곳`
-      : "현재 입력 기준으로 매칭되는 온투업체가 없습니다. 대출금액·부동산 유형·지역 등을 조정하면 가능한 온투업체가 있을 수 있습니다.";
+    if (!isRE || !userState.realEstateLoanType) {
+      countInfoEl.style.display = "none";
+    } else if (!step5Complete) {
+      countInfoEl.style.display = "inline-block";
+      countInfoEl.textContent = "아직 입력이 부족합니다. 5단계 필수 항목을 모두 입력하면 1차 결과를 확인할 수 있습니다.";
+    } else if (!globalMinOK) {
+      countInfoEl.style.display = "inline-block";
+      countInfoEl.textContent = "현재 입력한 대출금액이 최소 기준 미만입니다. (아파트/오피스텔 1,000만원·그 외 3,000만원 이상)";
+    } else if (!coreMatched.length) {
+      countInfoEl.style.display = "inline-block";
+      countInfoEl.textContent = "현재 조건으로는 매칭되는 온투업체가 없습니다. LTV/대출금액/유형/지역을 조정해보세요.";
+    } else {
+      countInfoEl.style.display = "inline-block";
+      countInfoEl.textContent = `✅ 1차 결과: 조건상 매칭 온투업체 ${coreMatched.length}곳 (업체명 비공개)`;
+      updatePrimaryFeeUI(coreMatched);
+    }
   }
-
-  // Step6: 3컬럼 예상값(평균/범위) 노출
-  renderFeePreviewIntoStep6(matched);
 
   // 추가조건 적용 카운트
-  const matchedWithExtra = filterLenders(true);
   if (extraCountEl) {
-    extraCountEl.style.display = "inline-block";
-    extraCountEl.textContent = matchedWithExtra.length
-      ? `추가조건까지 반영한 추천 온투업체: ${matchedWithExtra.length}곳`
-      : "현재 추가조건까지 고려하면 추천 가능한 온투업체가 없습니다. 일부 추가조건(신용점수, 기타사항)을 완화해보세요.";
+    if (!primaryEligible) {
+      extraCountEl.style.display = "none";
+    } else if (!extraMatched.length) {
+      extraCountEl.style.display = "inline-block";
+      extraCountEl.textContent = "추가조건까지 고려하면 추천 가능한 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
+    } else {
+      extraCountEl.style.display = "inline-block";
+      extraCountEl.textContent = `추가조건까지 반영한 추천 온투업체: ${extraMatched.length}곳`;
+    }
   }
 
-  resultSummaryEl.textContent =
-    "현재 입력 기준 예상 LTV 및 온투업 매칭 가능성은 위 요약을 참고해주세요.";
+  // Step7 요약 문구
+  if (!primaryEligible) {
+    resultSummaryEl.textContent = "아직 1차 결과(대출 가능 여부)가 확정되지 않았습니다. 위 단계 입력을 완료해주세요.";
+  } else {
+    const { ltv: l } = calcLtv();
+    const ltvText = l != null ? ` / 예상 LTV 약 ${(l * 100).toFixed(1)}%` : "";
+    resultSummaryEl.textContent = `1차 결과 통과: 업체명 공개는 6-1 선택조건 입력 후 가능합니다.${ltvText}`;
+  }
+
+  // 단계 노출 + 스텝퍼
+  updateStepVisibility(primaryEligible);
+  const active = resolveActiveStep(primaryEligible);
+  renderStepper(active);
+
+  // 1차 결과 불가로 떨어지면, Step7 렌더 상태 초기화
+  if (!primaryEligible) uiState.hasRenderedResult = false;
+
+  // Step7이 보이지 않는 상태면 내부 패널 초기화(혼동 방지)
+  if (!primaryEligible) {
+    const panel = document.getElementById("naviResultPanel");
+    if (panel) {
+      panel.innerHTML = `
+        <div class="navi-empty-card">
+          아직 결과가 없습니다.<br />
+          <span style="font-size:11px;">
+            위 조건을 모두 입력하신 후 1차 결과가 가능으로 나오면 <strong>[네비게이션 결과 보기]</strong> 버튼이 활성 흐름으로 이어집니다.
+          </span>
+        </div>
+      `;
+    }
+  }
 }
 
 // ------------------------------------------------------
-// 최종 결과 렌더링 (Step7)
+// 최종 결과 렌더링 (Step7) - 3컬럼(금리/플랫폼/중도상환)
 // ------------------------------------------------------
+
+function renderFee3Cols(lender) {
+  const f = getFinancialInputsForCategory(lender, userState.mainCategory) || {};
+  const i = f.interestAvg;
+  const p = f.platformFeeAvg;
+  const pp = f.prepayFeeAvg;
+
+  return `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;">
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">대출금리(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(i), parseNumberLoose(i), "%", "미등록")}</div>
+      </div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">플랫폼수수료(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(p), parseNumberLoose(p), "%", "미등록")}</div>
+      </div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">중도상환수수료(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(pp), parseNumberLoose(pp), "%", "미등록")}</div>
+      </div>
+    </div>
+  `;
+}
 
 function renderFinalResult() {
   const panel = document.getElementById("naviResultPanel");
@@ -2736,41 +1434,42 @@ function renderFinalResult() {
     return;
   }
 
-  if (userState.mainCategory === "부동산담보대출" && !isStep5Valid()) {
-    alert("Step5 필수 입력을 먼저 완료해주세요.");
+  // 1차 결과 통과 여부
+  syncInputsToState();
+  const step5Complete = isStep5Complete();
+  const coreMatched = step5Complete ? filterLenders(false) : [];
+  const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && coreMatched.length);
+
+  if (!primaryEligible) {
+    alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
     return;
   }
 
-  syncInputsToState();
   const matched = filterLenders(true);
 
   if (!matched.length) {
     summaryEl.textContent =
-      "현재 조건에 맞는 온투업체가 없습니다. 대출금액 등 조건을 조정하면 가능한 온투업체가 있을 수 있습니다.";
+      "현재 추가조건까지 고려하면 추천 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
     panel.innerHTML = `
       <div class="navi-empty-card">
-        <div style="font-weight:600;margin-bottom:4px;">조건에 맞는 온투업체가 없습니다.</div>
+        <div style="font-weight:600;margin-bottom:4px;">추가조건 적용 결과: 추천 온투업체가 없습니다.</div>
         <div style="font-size:11px;">
-          · 대출금액을 소폭 줄이거나, LTV를 낮출 수 있는 방향으로 조정해보세요.<br/>
-          · 부동산 유형이나 지역을 넓혀보면 선택지가 늘어날 수 있습니다.<br/>
-          · 추가정보(신용점수 구간, 기타사항)를 완화하면 가능성이 높아질 수 있습니다.
+          · 신용점수 구간, 기타사항(세금체납/연체/압류/개인회생)을 완화하면 선택지가 늘 수 있습니다.<br/>
+          · 대출금액/LTV를 조정하는 것도 도움이 됩니다.
         </div>
-        <ul class="navi-tip-list">
-          <li>선순위 대출 일부 상환 또는 필요 대출금액 조정</li>
-          <li>경매 낙찰/감정가 대비 LTV 80% 이내로 맞추기</li>
-          <li>보증금 반환 시, 일부를 자가 자금으로 마련하여 LTV 낮추기</li>
-        </ul>
       </div>
     `;
+    uiState.hasRenderedResult = false;
+    renderStepper(6);
     return;
   }
 
+  // 상단 요약
   const { ltv } = calcLtv();
-  const ltvText =
-    ltv != null ? ` / 예상 LTV 약 ${(ltv * 100).toFixed(1)}%` : "";
+  const ltvText = ltv != null ? ` / 예상 LTV 약 ${(ltv * 100).toFixed(1)}%` : "";
+  summaryEl.textContent = `추천 온투업체 ${matched.length}곳${ltvText}`;
 
-  summaryEl.textContent = `추가조건까지 반영한 추천 온투업체 ${matched.length}곳${ltvText}`;
-
+  // 조건 요약 문장
   const condParts = [];
   if (userState.mainCategory) condParts.push(userState.mainCategory);
   if (userState.propertyType) condParts.push(userState.propertyType);
@@ -2778,14 +1477,14 @@ function renderFinalResult() {
   if (userState.region) condParts.push(userState.region);
   const condSummary = condParts.join(" / ");
 
-  const reqAmt = userState.requestedAmount
-    ? formatWithCommas(String(userState.requestedAmount)) + "원"
+  const reqAmt = getPrincipalAmount()
+    ? formatWithCommas(String(getPrincipalAmount())) + "원"
     : "입력 없음";
 
   let html = "";
   html += `<div style="margin-bottom:8px;font-size:12px;color:#374151;">`;
   html += `<div>요청 조건 요약: <strong>${condSummary || "조건 미입력"}</strong></div>`;
-  html += `<div>필요 대출금액: <strong>${reqAmt}</strong></div>`;
+  html += `<div>요청 대출금액(원): <strong>${reqAmt}</strong></div>`;
   html += `</div>`;
 
   matched.forEach((l) => {
@@ -2797,12 +1496,6 @@ function renderFinalResult() {
     const phone = l.channels?.phoneNumber || "";
     const kakao = l.channels?.kakaoUrl || "";
 
-    // 3컬럼 (선택된 상품군 기준)
-    const inps = getFinancialInputsForCategory(l, userState.mainCategory) || {};
-    const interest = inps.interestAvg ?? null;
-    const platform = inps.platformFeeAvg ?? null;
-    const prepay = inps.prepayFeeAvg ?? null;
-
     html += `<div class="navi-lender-item">`;
     html += `<div class="navi-lender-name">${l.displayName || "(이름 없음)"}`;
     if (l.isPartner) {
@@ -2810,24 +1503,10 @@ function renderFinalResult() {
     }
     html += `</div>`;
 
-    html += `<div class="navi-fee-grid" style="margin:6px 0 8px;">`;
-    html += `
-      <div class="navi-fee-col">
-        <div class="navi-fee-title">금리(평균)</div>
-        <div class="navi-fee-val">${formatPctMaybe(interest)}</div>
-      </div>
-      <div class="navi-fee-col">
-        <div class="navi-fee-title">플랫폼 수수료(평균)</div>
-        <div class="navi-fee-val">${formatPctMaybe(platform)}</div>
-      </div>
-      <div class="navi-fee-col">
-        <div class="navi-fee-title">중도상환 수수료(평균)</div>
-        <div class="navi-fee-val">${formatPctMaybe(prepay)}</div>
-      </div>
-    `;
-    html += `</div>`;
+    // ✅ 3컬럼(금리/플랫폼/중도상환)
+    html += renderFee3Cols(l);
 
-    html += `<div class="navi-lender-meta">`;
+    html += `<div class="navi-lender-meta" style="margin-top:8px;">`;
     if (cats.length) html += `상품군: ${cats.join(", ")} `;
     if (regions.length) html += `| 취급지역: ${regions.join(", ")} `;
     if (props.length) html += `| 담보유형: ${props.join(", ")} `;
@@ -2843,24 +1522,36 @@ function renderFinalResult() {
     }
     html += `</div>`;
 
-    html += `<div class="navi-lender-actions">`;
-    if (phone) {
-      const telHref = phone.replace(/\s+/g, "");
-      html += `<a class="navi-btn-secondary" href="tel:${telHref}">유선 상담 (${phone})</a>`;
+    // 제휴업체만 상담채널 노출
+    if (l.isPartner) {
+      html += `<div class="navi-lender-actions">`;
+      if (phone) {
+        const telHref = phone.replace(/\s+/g, "");
+        html += `<a class="navi-btn-secondary" href="tel:${telHref}">유선 상담 (${phone})</a>`;
+      } else {
+        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">유선 상담 번호 미등록</span>`;
+      }
+      if (kakao) {
+        html += `<a class="navi-btn-primary" href="${kakao}" target="_blank" rel="noopener noreferrer">카카오톡 채팅상담 바로가기</a>`;
+      } else {
+        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">카카오톡 채널 미등록</span>`;
+      }
+      html += `</div>`;
     } else {
-      html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">유선 상담 번호 미등록</span>`;
+      html += `<div class="navi-help" style="margin-top:8px;">※ 비제휴 업체는 상담 채널을 공개하지 않습니다.</div>`;
     }
-    if (kakao) {
-      html += `<a class="navi-btn-primary" href="${kakao}" target="_blank" rel="noopener noreferrer">카카오톡 채팅상담 바로가기</a>`;
-    } else {
-      html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">카카오톡 채널 미등록</span>`;
-    }
-    html += `</div>`;
 
     html += `</div>`;
   });
 
   panel.innerHTML = html;
+
+  uiState.hasRenderedResult = true;
+  renderStepper(7);
+
+  // Step7으로 스크롤
+  const s7 = document.getElementById("navi-step7");
+  if (s7) s7.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ------------------------------------------------------
@@ -2868,33 +1559,28 @@ function renderFinalResult() {
 // ------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ navi-beta.js DOMContentLoaded");
+  console.log("✅ navi-beta.js loaded");
   setupBetaMenu();
+  ensureStepper();
+  ensureLoanTypeChips();
+
+  // 기존 input들 money 포맷
   setupMoneyInputs();
 
   await loadNaviLoanConfig();
-  lendersConfig = await loadLendersConfig();
-  window.__LENDERS_CONFIG__ = lendersConfig; // 디버깅용(임시)
-
-  // merge financialInputs into loan-config lenders (필요시)
-  mergeLendersWithAdminConfig();
-
-  setupStepper();
 
   setupStep1();
   setupStep2();
   setupStep3();
   setupStep4();
+
+  // Step5의 ASB 필드는 동적 생성되므로 먼저 생성 후 바인딩
+  ensureAssumedBurdenField();
   setupStep5();
+
   setupStep6Extra();
   setupResultButtons();
 
-  // Step4 초기 disabled 상태 동기화
-  updateLoanTypeChipAvailability();
-
-  // Step5 초기 schema 적용
-  applyStep5Schema();
-
-  // 첫 계산
+  // 초기 렌더
   recalcAndUpdateSummary();
 });
