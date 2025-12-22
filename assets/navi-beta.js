@@ -1342,7 +1342,6 @@ function filterLenders(applyExtras = false) {
           if (tag === "연체기록" && blocked["delinquency"]) return false;
           if (tag === "압류·가압류" && blocked["seizure"]) return false;
           if (tag === "개인회생" && blocked["bankruptcy"]) return false;
-        }
       }
     }
 
