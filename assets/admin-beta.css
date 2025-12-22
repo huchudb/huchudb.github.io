@@ -651,3 +651,77 @@
   color:#6b7280;
   font-size:13px;
 }
+
+/* =========================================================
+   ✅ (5) LTV 최대(%) 셀: 2×2 “4분할” 레이아웃 (최대 + 강남/서초/송파)
+   - 기존 header/컬럼은 그대로 두고, 셀 내부만 정리
+========================================================= */
+
+/* 4칸 그리드 */
+.admin-ltv4{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(120px, 1fr));
+  gap:8px;
+  align-items:stretch;
+}
+
+/* 각 칸 */
+.admin-ltv4__item{
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  border-radius:12px;
+  padding:8px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  box-shadow:0 1px 0 rgba(15,23,42,0.02);
+}
+
+/* 빈칸(4칸 맞추기용) */
+.admin-ltv4__item--empty{
+  border:1px dashed #e5e7eb;
+  background:#fafafa;
+}
+
+/* 라벨 */
+.admin-ltv4__label{
+  font-size:11px;
+  font-weight:900;
+  color:#6b7280;
+  letter-spacing:-0.01em;
+  line-height:1.1;
+}
+
+/* 컨트롤 */
+.admin-ltv4__ctrl{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* ✅ 기존 admin-mini-input은 width:90px 고정이라, 4분할에서는 유동 폭 클래스 추가 */
+.admin-mini-input--fluid{
+  width:100% !important;
+  min-width:0;
+}
+
+/* % 단위 */
+.admin-ltv4__unit{
+  font-size:12px;
+  font-weight:900;
+  color:#6b7280;
+  white-space:nowrap;
+}
+
+/* disabled 느낌 */
+.admin-ltv4__item.is-disabled{
+  opacity:0.55;
+  background:#f9fafb;
+}
+
+/* 모바일도 2열 유지(너무 좁으면 자동으로 줄어듦) */
+@media (max-width:420px){
+  .admin-ltv4{
+    grid-template-columns:1fr;
+  }
+}
