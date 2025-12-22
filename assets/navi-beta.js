@@ -641,31 +641,56 @@ function ensureOccBlockPlacementAndTitle() {
   const block = occChips.closest("label") || occChips.parentElement;
   if (!block) return;
 
-  // ✅ 제목 텍스트를 "거주형태"로 강제
-  const nodes = Array.from(block.childNodes || []);
-  const textNode = nodes.find((n) => n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "");
+  // ------------------------------------------------------------
+  // 1) 과거 코드로 누적된 "거주형태" 텍스트/요소들을 먼저 정리(중복 제거)
+  // ------------------------------------------------------------
 
-  if (textNode) {
-    textNode.textContent = `\n              거주형태\n              `;
-  } else {
-    const span = document.createElement("span");
-    span.textContent = "거주형태";
-    span.style.display = "block";
-    span.style.fontWeight = "600";
-    span.style.marginBottom = "6px";
-    block.insertBefore(span, block.firstChild);
+  // (a) label 직계의 "비어있지 않은 텍스트 노드" 제거 (기존 label 텍스트 누적 방지)
+  Array.from(block.childNodes).forEach((n) => {
+    if (n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "") {
+      block.removeChild(n);
+    }
+  });
+
+  // (b) 직계 자식 중 "거주형태"만 있는 요소(컨트롤 없음)는 중복 타이틀로 보고 제거
+  Array.from(block.children).forEach((el) => {
+    const t = (el.textContent || "").trim();
+    const hasControls =
+      el.querySelector("button, input, select, textarea, #naviOccupancyChips, .navi-chip") != null;
+
+    // 우리가 이전에 만든 span들이 딱 이 케이스로 쌓임
+    if (t === "거주형태" && !hasControls && el.getAttribute("data-occ-title") !== "1") {
+      el.remove();
+    }
+  });
+
+  // ------------------------------------------------------------
+  // 2) 타이틀은 1개만 유지 (data-occ-title="1")
+  // ------------------------------------------------------------
+  let titleEl = block.querySelector('[data-occ-title="1"]');
+  if (!titleEl) {
+    titleEl = document.createElement("div");
+    titleEl.setAttribute("data-occ-title", "1");
+    titleEl.style.display = "block";
+    titleEl.style.fontWeight = "600";
+    titleEl.style.marginBottom = "6px";
+    block.insertBefore(titleEl, block.firstChild);
   }
+  titleEl.textContent = "거주형태";
 
-  // ✅ PV(시세) 라벨 위로 이동
+  // ------------------------------------------------------------
+  // 3) PV(시세) 라벨 위로 이동 (이미 위면 아무 것도 안 함)
+  // ------------------------------------------------------------
   const grid = document.querySelector("#navi-step5 .navi-field-grid");
   const pvInput = document.getElementById("naviInputPropertyValue");
   const pvLabel = pvInput ? pvInput.closest("label") : null;
 
   if (grid && pvLabel) {
-    try {
-      grid.insertBefore(block, pvLabel);
-    } catch {
-      // 구조가 다르면 조용히 패스
+    // 같은 grid 안에 있을 때만 reorder
+    if (block.parentElement === grid) {
+      if (block !== pvLabel && block.nextSibling !== pvLabel) {
+        grid.insertBefore(block, pvLabel);
+      }
     }
   }
 }
