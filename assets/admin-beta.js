@@ -286,6 +286,7 @@ function ensureFinanceInputsStylesInjected() {
       align-items: center;
       gap: 8px;
       flex-wrap: nowrap;
+      justify-content: center;
     }
     .finance-metric-row .lab {
       font-size: 18px;
@@ -317,7 +318,7 @@ function ensureFinanceInputsStylesInjected() {
       white-space: nowrap;
     }
 
-    /* ✅ (추가) 부동산담보대출 금리: 최소/최대/평균 3줄 레이아웃 */
+    /* ✅ min/max/avg 3줄 레이아웃 */
     .finance-metric-row--minmax { justify-content: center; }
     .finance-metric-row--minmax input { width: 120px; }
 
@@ -392,6 +393,38 @@ function ensureFinanceInputsStylesInjected() {
       background: #f3f4f6;
       font-weight: 900;
     }
+
+    /* ✅ (추가) LTV Up UI (세부지역) */
+    .admin-ltv-wrap { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+    .admin-ltv-base { display:flex; gap:6px; align-items:center; }
+    .admin-ltvup {
+      display:flex; align-items:center; gap:8px;
+      border-left: 2px solid #111;
+      padding-left: 10px;
+      margin-left: 2px;
+      flex-wrap:wrap;
+    }
+    .admin-ltvup__label {
+      font-weight: 900; font-size: 12px; color:#111;
+      white-space: nowrap;
+    }
+    .admin-ltvup__chiprow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .admin-ltvup__chip {
+      display:flex; gap:6px; align-items:center;
+      border:1px solid #e5e7eb; border-radius:999px;
+      padding: 6px 10px;
+      background:#fff;
+    }
+    .admin-ltvup__chip b { font-size: 12px; font-weight: 900; color:#111; }
+    .admin-ltvup__chip input{
+      width: 64px; height: 30px;
+      border:1px solid #d1d5db; border-radius:10px;
+      padding:0 8px;
+      font-size: 12px; font-weight: 900;
+      text-align:center;
+    }
+    .admin-ltvup__chip span{ font-size: 12px; font-weight: 900; color:#111; }
+    .admin-ltvup.is-disabled { opacity: 0.55; }
   `;
   document.head.appendChild(style);
 }
@@ -413,6 +446,7 @@ function normalizePercentBlur(v) {
   const fixed = Math.round(n * 100) / 100;
   return String(fixed);
 }
+
 /* =========================================================
    1) 온투 통계
 ========================================================= */
@@ -722,7 +756,6 @@ function _productsToByType(products) {
 
   return out;
 }
-
 /* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType, byLender}로 정규화 */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
@@ -804,7 +837,7 @@ async function loadOntuStatsFromServer(monthKey) {
     console.warn("ontu-stats server load (monthKey) error:", e);
   }
 
-  // 3) latest/all GET 후 monthKey 매칭 (서버가 latest만 준다면 여기서는 null 가능)
+  // 3) latest/all GET 후 monthKey 매칭
   try {
     const urlAll = `${API_BASE}/api/ontu-stats`;
     const jsonAll = await fetchJsonNoCache(urlAll);
@@ -937,12 +970,7 @@ function ensureByLenderSection() {
 
 /* =========================================================
    ✅ (FIX) byLender 렌더/모드UI/합산 함수
-   - 1) 업체 순서: LENDERS_MASTER 순서(온투업정보등록상 순서) 유지
-   - 2) statsBalance(대출잔액): 수동 입력 (자동 덮어쓰기/자동 합산 금지)
-   - 3) 비율(%) = (상품유형별 합계 / statsBalance) × 100
-   - 4) 비율(%) 소수 8자리 고정
 ========================================================= */
-
 function applyByLenderModeUI(enabled) {
   const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
   const amountInputs = document.querySelectorAll("#productRows .js-amount");
@@ -950,11 +978,10 @@ function applyByLenderModeUI(enabled) {
 
   // ✅ ratio 입력은 byLender 모드에서 계산값이므로 잠금
   ratioInputs.forEach((el) => {
-    // 합계행도 어차피 disabled라 상관없지만 통일
     el.disabled = !!enabled;
   });
 
-  // ✅ amount는 항상 표시용(읽기전용). disabled 걸면 회색/포커스 이슈 생겨서 false 유지
+  // ✅ amount는 항상 표시용(읽기전용)
   amountInputs.forEach((el) => {
     el.readOnly = true;
     el.disabled = false;
@@ -1002,7 +1029,7 @@ function renderByLenderSection(monthKey) {
     ? lendersConfig.lenders
     : {};
 
-  // ✅ (중요) LENDERS_MASTER 순서 그대로
+  // ✅ LENDERS_MASTER 순서 유지
   const orderedIds = [];
   const seen = new Set();
 
@@ -1012,7 +1039,6 @@ function renderByLenderSection(monthKey) {
       seen.add(m.id);
     }
   });
-  // 마스터에 없는 커스텀 업체는 뒤에 추가
   Object.keys(cfg).forEach((id) => {
     if (!seen.has(id)) {
       orderedIds.push(id);
@@ -1092,7 +1118,6 @@ function renderByLenderSection(monthKey) {
         saveStatsToStorage();
 
         if (node.ui?.useByLender) {
-          // ✅ statsBalance는 건드리지 않고, 상품유형 합계/비율만 업데이트
           recalcFromByLender(monthKey, { silent: true });
           applyByLenderModeUI(true);
         }
@@ -1142,9 +1167,7 @@ function recalcFromByLender(monthKey, opts = {}) {
     });
   });
 
-  // products 생성:
-  // - amount = sums[type]
-  // - ratioPercent = amount / manualBalance * 100 (manualBalance가 0이면 빈값)
+  // products 생성
   const products = {};
   rowKeys.forEach((k) => {
     const amount = Math.round(sums[k] || 0);
@@ -1163,7 +1186,6 @@ function recalcFromByLender(monthKey, opts = {}) {
 
   applyProductsToProductRows(products);
 
-  // ✅ summary.balance / statsBalance 값은 절대 자동 변경하지 않는다
   if (!opts.silent) saveStatsToStorage();
 }
 
@@ -1194,7 +1216,6 @@ function setupStatsInteractions() {
         };
         saveStatsToStorage();
       } else {
-        // 로컬
         fillStatsForm(statsRoot.byMonth[m] || null, m);
       }
 
@@ -1203,7 +1224,6 @@ function setupStatsInteractions() {
       if (!isByLenderMode(m)) {
         recalcProductAmounts();
       } else {
-        // ✅ byLender 모드면 (수동 잔액 기준) 비율 재계산
         recalcFromByLender(m, { silent: true });
       }
 
@@ -1219,7 +1239,6 @@ function setupStatsInteractions() {
       balEl.value = formatWithCommas(balEl.value);
       if (!m) return;
 
-      // ✅ byLender 모드에서도 statsBalance 입력 변경 시 비율(%) 재계산
       if (isByLenderMode(m)) {
         recalcFromByLender(m, { silent: true });
         updateProductTotalsRow();
@@ -1246,7 +1265,6 @@ function setupStatsInteractions() {
 
       let { monthKey, summary, products, byLender, ui } = payload;
 
-      // ✅ byLender 모드면 products를 "현재 합산 결과(node.products)"로 강제 갱신해서 전송
       if (ui?.useByLender) {
         recalcFromByLender(monthKey, { silent: true });
         const node = ensureMonthNode(monthKey);
@@ -1260,10 +1278,10 @@ function setupStatsInteractions() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             monthKey,
-            month: monthKey,     // 호환
+            month: monthKey,
             summary,
-            products,            // ✅ 최신 products(합산 결과) 또는 수동 입력값
-            byLender             // ✅ 핵심
+            products,
+            byLender
           })
         });
 
@@ -1272,7 +1290,6 @@ function setupStatsInteractions() {
           throw new Error(`API 실패: HTTP ${res.status} ${errText}`);
         }
 
-        // ✅ 서버 응답이 {ok:true...} 일 수 있으니 저장 후 GET으로 재로드
         const serverStat = await loadOntuStatsFromServer(monthKey);
         const node = ensureMonthNode(monthKey);
 
@@ -1306,6 +1323,7 @@ function setupStatsInteractions() {
     });
   }
 }
+
 /* =========================================================
    2) 온투업체 설정
 ========================================================= */
@@ -1357,6 +1375,19 @@ const LOAN_TYPES_APTVILLA = [
   { key: "매입잔금_분양", label: "매입잔금(분양)" }
 ];
 
+/* ✅ (신규) 세부지역 LTV Up 정의 */
+const SUBREGION_LTV_UP = {
+  seoul: [
+    { key: "gangnam", label: "강남" },
+    { key: "seocho", label: "서초" },
+    { key: "songpa", label: "송파" }
+  ],
+  gyeonggi: [
+    { key: "bundang", label: "분당" },
+    { key: "hanam", label: "하남" },
+    { key: "ilsan", label: "일산" }
+  ]
+};
 /* =========================================================
    ✅ 추가조건(선택) — 정의서(단일 소스)
 ========================================================= */
@@ -1580,6 +1611,7 @@ function ensureLender(id) {
       isPartner: false,
       partnerOrder: 0,
       realEstateMinLoanAmount: "",
+      realEstateMaxLoanAmount: "", // ✅ (추가)
       extraConditions: [],
       financialInputs: {},
       products: [],
@@ -1591,6 +1623,9 @@ function ensureLender(id) {
   return lendersConfig.lenders[id];
 }
 
+/* =========================================================
+   ✅ lender deep default/호환
+========================================================= */
 function ensureLenderDeepDefaults(lender) {
   if (!lender) return;
 
@@ -1603,12 +1638,18 @@ function ensureLenderDeepDefaults(lender) {
   if (typeof lender.realEstateMinLoanAmount !== "string" && typeof lender.realEstateMinLoanAmount !== "number") {
     lender.realEstateMinLoanAmount = "";
   }
+  if (typeof lender.realEstateMaxLoanAmount !== "string" && typeof lender.realEstateMaxLoanAmount !== "number") {
+    lender.realEstateMaxLoanAmount = "";
+  }
 
   if (!Array.isArray(lender.products)) lender.products = [];
   lender.products = migrateProducts(lender.products);
 
   const hasRealEstate = lender.products.includes("부동산담보대출");
-  if (!hasRealEstate) lender.realEstateMinLoanAmount = "";
+  if (!hasRealEstate) {
+    lender.realEstateMinLoanAmount = "";
+    lender.realEstateMaxLoanAmount = "";
+  }
 
   if (!Array.isArray(lender.extraConditions)) {
     const legacy = lender.extraConditionsKeys || lender.extraConditionKeys || [];
@@ -1623,7 +1664,6 @@ function ensureLenderDeepDefaults(lender) {
     if (!lender.financialInputs[k] || typeof lender.financialInputs[k] !== "object") lender.financialInputs[k] = {};
   });
 
-  // ✅ (FIX + PATCH) 괄호/중괄호 오류 제거 + 부동산담보대출 금리 min/max 지원
   const productsArr = Array.isArray(lender.products) ? lender.products : [];
   productsArr.forEach((pgKey) => {
     if (!lender.financialInputs[pgKey] || typeof lender.financialInputs[pgKey] !== "object") {
@@ -1631,13 +1671,36 @@ function ensureLenderDeepDefaults(lender) {
     }
     const obj = lender.financialInputs[pgKey];
 
-    // 기존 3종 필드 기본값
+    // ✅ 기존 avg-only 3종은 유지 + 문자열화
     ["interestAvg", "platformFeeAvg", "prepayFeeAvg"].forEach((field) => {
       if (obj[field] == null) obj[field] = "";
       else obj[field] = String(obj[field]);
     });
 
-    // ✅ (추가) 부동산담보대출: 금리 최소/최대 입력 지원 + 평균 자동(호환 저장)
+    // ✅ (추가) 플랫폼수수료 / 중도상환수수료: min/max 지원 + 평균 자동(호환 저장)
+    const ensureMinMax = (minKey, maxKey, avgKey) => {
+      if (obj[minKey] == null) obj[minKey] = "";
+      else obj[minKey] = String(obj[minKey]);
+
+      if (obj[maxKey] == null) obj[maxKey] = "";
+      else obj[maxKey] = String(obj[maxKey]);
+
+      const hasMinMax =
+        (String(obj[minKey] || "").trim() !== "") ||
+        (String(obj[maxKey] || "").trim() !== "");
+      const hasAvg = String(obj[avgKey] || "").trim() !== "";
+
+      // 과거 데이터(avg만 존재) → min/max로 씨딩
+      if (!hasMinMax && hasAvg) {
+        obj[minKey] = String(obj[avgKey]);
+        obj[maxKey] = String(obj[avgKey]);
+      }
+    };
+
+    ensureMinMax("platformFeeMin", "platformFeeMax", "platformFeeAvg");
+    ensureMinMax("prepayFeeMin", "prepayFeeMax", "prepayFeeAvg");
+
+    // ✅ 부동산담보대출: 금리 최소/최대 입력 지원 + 평균 자동(호환 저장)
     if (pgKey === "부동산담보대출") {
       if (obj.interestMin == null) obj.interestMin = "";
       else obj.interestMin = String(obj.interestMin);
@@ -1645,7 +1708,6 @@ function ensureLenderDeepDefaults(lender) {
       if (obj.interestMax == null) obj.interestMax = "";
       else obj.interestMax = String(obj.interestMax);
 
-      // 과거 데이터(interestAvg만 존재) → min/max로 씨딩
       const hasMinMax =
         (String(obj.interestMin || "").trim() !== "") ||
         (String(obj.interestMax || "").trim() !== "");
@@ -1660,27 +1722,40 @@ function ensureLenderDeepDefaults(lender) {
 
   if (!lender.regions || typeof lender.regions !== "object") lender.regions = {};
 
-REGIONS.forEach((r) => {
-  if (!lender.regions[r.key] || typeof lender.regions[r.key] !== "object") lender.regions[r.key] = {};
+  REGIONS.forEach((r) => {
+    if (!lender.regions[r.key] || typeof lender.regions[r.key] !== "object") lender.regions[r.key] = {};
 
-  PROPERTY_TYPES.forEach((pt) => {
-    const prev = lender.regions[r.key][pt.key] || {};
+    PROPERTY_TYPES.forEach((pt) => {
+      const prev = lender.regions[r.key][pt.key] || {};
 
-    // ✅ loanTypes 먼저 정리 → 토지(land)면 임대보증금반환대출 제거
-    let loanTypes = Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : [];
-    if (pt.key === "land") {
-      loanTypes = loanTypes.filter((x) => x !== "임대보증금반환대출");
-    }
+      // loanTypes 정리
+      let loanTypes = Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : [];
+      if (pt.key === "land") {
+        loanTypes = loanTypes.filter((x) => x !== "임대보증금반환대출");
+      }
 
-    lender.regions[r.key][pt.key] = {
-      enabled: !!prev.enabled,
-      ltvMax: prev.ltvMax ?? "",
-      ltvMin: prev.ltvMin ?? "",
-      loanTypes
-    };
+      // ✅ (추가) LTV Up 기본값 (서울/경기만)
+      const subList = SUBREGION_LTV_UP[r.key] || null;
+      let ltvUp = {};
+      if (subList) {
+        const prevUp = (prev.ltvUp && typeof prev.ltvUp === "object") ? prev.ltvUp : {};
+        subList.forEach((s) => {
+          const raw = prevUp[s.key];
+          ltvUp[s.key] = (raw == null) ? "" : String(raw);
+        });
+      } else {
+        ltvUp = (prev.ltvUp && typeof prev.ltvUp === "object") ? prev.ltvUp : {};
+      }
+
+      lender.regions[r.key][pt.key] = {
+        enabled: !!prev.enabled,
+        ltvMax: prev.ltvMax ?? "",
+        ltvMin: prev.ltvMin ?? "",
+        ltvUp, // ✅ (추가)
+        loanTypes
+      };
+    });
   });
-});
-
 }
 
 let _previewRAF = 0;
@@ -1717,6 +1792,7 @@ function mergeLendersWithMaster() {
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
       realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
+      realEstateMaxLoanAmount: (existing.realEstateMaxLoanAmount ?? ""), // ✅ (추가)
       extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [],
       financialInputs: (existing.financialInputs && typeof existing.financialInputs === "object") ? existing.financialInputs : {},
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
@@ -1875,7 +1951,6 @@ async function loadLendersConfigFromServer() {
       ? json
       : { lenders: {} };
 
-    // ✅ (FIX) 줄바꿈으로 깨져있던 length 복구
     const serverCount = Object.keys(serverCfg.lenders || {}).length;
 
     if (serverCount === 0 && localBackup && Object.keys(localBackup.lenders || {}).length > 0) {
@@ -1951,7 +2026,7 @@ async function postLendersConfigToServer(successText) {
 }
 
 /* =========================================================
-   ✅ (추가) 금융조건 수치 입력 UI 렌더
+   ✅ (추가) 금융조건 수치 입력 UI 렌더 (min/max + avg 자동)
 ========================================================= */
 function renderFinanceInputsBox(lender) {
   const box = document.createElement("div");
@@ -1963,7 +2038,7 @@ function renderFinanceInputsBox(lender) {
 
   const help = document.createElement("p");
   help.className = "admin-subbox-help";
-  help.innerHTML = "네비 결과 화면에 노출될 <b>평균 금리 / 플랫폼수수료 / 중도상환수수료(%)</b>를 입력하세요.";
+  help.innerHTML = "네비 결과 화면에 노출될 <b>금리/플랫폼수수료/중도상환수수료(%)</b>를 입력하세요. <b>최소/최대</b> 입력 시 <b>평균은 자동 계산</b>됩니다.";
 
   box.appendChild(title);
   box.appendChild(help);
@@ -1985,6 +2060,181 @@ function renderFinanceInputsBox(lender) {
 
   const labelByKey = (k) => (PRODUCT_GROUPS.find((p) => p.key === k)?.label) || k;
 
+  const toFinitePercentVal = (s) => {
+    const t2 = sanitizePercentString(s);
+    if (!t2) return null;
+    const n = Number(t2);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const computeAvgStr2 = (minStr, maxStr) => {
+    const a = toFinitePercentVal(minStr);
+    const b = toFinitePercentVal(maxStr);
+    if (a == null || b == null) return "";
+    const avg = (a + b) / 2;
+    return normalizePercentBlur(String(avg));
+  };
+
+  const patchFinancialInputs = (lenderId, pgKey2, patchOne) => {
+    const cur2 = ensureLender(lenderId);
+    const nextAll = { ...(cur2.financialInputs || {}) };
+    const nextOne = { ...(nextAll[pgKey2] || {}) };
+    Object.assign(nextOne, patchOne);
+    nextAll[pgKey2] = nextOne;
+    updateLenderState(lenderId, { financialInputs: nextAll });
+  };
+
+  const makeMinMaxAvgMetric = (pgKey, lenderId, finObj, metricTitle, keys, enableMinMax) => {
+    const col = document.createElement("div");
+    col.className = "finance-metric";
+
+    const h = document.createElement("div");
+    h.className = "finance-metric-title";
+    h.textContent = metricTitle;
+    col.appendChild(h);
+
+    // ✅ avg-only (기존 방식)도 유지할 수 있게 분기
+    if (!enableMinMax) {
+      const row = document.createElement("div");
+      row.className = "finance-metric-row";
+
+      const lab = document.createElement("span");
+      lab.className = "lab";
+      lab.textContent = "평균";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.inputMode = "decimal";
+      input.placeholder = "숫자입력";
+      input.value = (finObj && finObj[keys.avg] != null) ? String(finObj[keys.avg]) : "";
+
+      input.addEventListener("input", () => {
+        const sanitized = sanitizePercentString(input.value);
+        if (input.value !== sanitized) input.value = sanitized;
+        patchFinancialInputs(lenderId, pgKey, { [keys.avg]: input.value });
+      });
+
+      input.addEventListener("blur", () => {
+        const normalized = normalizePercentBlur(input.value);
+        input.value = normalized;
+        patchFinancialInputs(lenderId, pgKey, { [keys.avg]: normalized });
+      });
+
+      const unit = document.createElement("span");
+      unit.className = "unit";
+      unit.textContent = "%";
+
+      row.appendChild(lab);
+      row.appendChild(input);
+      row.appendChild(unit);
+
+      col.appendChild(row);
+      return col;
+    }
+
+    const minInit = (finObj && finObj[keys.min] != null) ? String(finObj[keys.min]) : "";
+    const maxInit = (finObj && finObj[keys.max] != null) ? String(finObj[keys.max]) : "";
+
+    const rowMin = document.createElement("div");
+    rowMin.className = "finance-metric-row finance-metric-row--minmax";
+
+    const labMin = document.createElement("span");
+    labMin.className = "lab";
+    labMin.textContent = "최소";
+
+    const inputMin = document.createElement("input");
+    inputMin.type = "text";
+    inputMin.inputMode = "decimal";
+    inputMin.placeholder = "숫자입력";
+    inputMin.value = minInit;
+
+    const unitMin = document.createElement("span");
+    unitMin.className = "unit";
+    unitMin.textContent = "%";
+
+    rowMin.appendChild(labMin);
+    rowMin.appendChild(inputMin);
+    rowMin.appendChild(unitMin);
+
+    const rowMax = document.createElement("div");
+    rowMax.className = "finance-metric-row finance-metric-row--minmax";
+
+    const labMax = document.createElement("span");
+    labMax.className = "lab";
+    labMax.textContent = "최대";
+
+    const inputMax = document.createElement("input");
+    inputMax.type = "text";
+    inputMax.inputMode = "decimal";
+    inputMax.placeholder = "숫자입력";
+    inputMax.value = maxInit;
+
+    const unitMax = document.createElement("span");
+    unitMax.className = "unit";
+    unitMax.textContent = "%";
+
+    rowMax.appendChild(labMax);
+    rowMax.appendChild(inputMax);
+    rowMax.appendChild(unitMax);
+
+    const rowAvg = document.createElement("div");
+    rowAvg.className = "finance-metric-row finance-metric-row--minmax";
+
+    const labAvg = document.createElement("span");
+    labAvg.className = "lab";
+    labAvg.textContent = "평균";
+
+    const inputAvg = document.createElement("input");
+    inputAvg.type = "text";
+    inputAvg.inputMode = "decimal";
+    inputAvg.placeholder = "-";
+    inputAvg.value = computeAvgStr2(inputMin.value, inputMax.value);
+    inputAvg.readOnly = true;
+    inputAvg.disabled = true;
+
+    const unitAvg = document.createElement("span");
+    unitAvg.className = "unit";
+    unitAvg.textContent = "%";
+
+    rowAvg.appendChild(labAvg);
+    rowAvg.appendChild(inputAvg);
+    rowAvg.appendChild(unitAvg);
+
+    const syncAndSave = (mode /* "input" | "blur" */) => {
+      if (mode === "input") {
+        const sMin = sanitizePercentString(inputMin.value);
+        if (inputMin.value !== sMin) inputMin.value = sMin;
+
+        const sMax = sanitizePercentString(inputMax.value);
+        if (inputMax.value !== sMax) inputMax.value = sMax;
+      } else {
+        inputMin.value = normalizePercentBlur(inputMin.value);
+        inputMax.value = normalizePercentBlur(inputMax.value);
+      }
+
+      const avgStr = computeAvgStr2(inputMin.value, inputMax.value);
+      inputAvg.value = avgStr;
+
+      // ✅ 저장: min/max + avg(자동)까지 같이 저장
+      patchFinancialInputs(lenderId, pgKey, {
+        [keys.min]: inputMin.value,
+        [keys.max]: inputMax.value,
+        [keys.avg]: avgStr
+      });
+    };
+
+    inputMin.addEventListener("input", () => syncAndSave("input"));
+    inputMax.addEventListener("input", () => syncAndSave("input"));
+    inputMin.addEventListener("blur", () => syncAndSave("blur"));
+    inputMax.addEventListener("blur", () => syncAndSave("blur"));
+
+    col.appendChild(rowMin);
+    col.appendChild(rowMax);
+    col.appendChild(rowAvg);
+
+    return col;
+  };
+
   selected.forEach((pgKey) => {
     const cur = ensureLender(lender.id);
     const fin = (cur.financialInputs && cur.financialInputs[pgKey]) ? cur.financialInputs[pgKey] : {};
@@ -2000,192 +2250,20 @@ function renderFinanceInputsBox(lender) {
     const grid = document.createElement("div");
     grid.className = "finance-metrics-grid";
 
-    // ✅ PATCH: 부동산담보대출 "금리"만 min/max 입력 → avg 자동
-    const toFinitePercentVal = (s) => {
-      const t2 = sanitizePercentString(s);
-      if (!t2) return null;
-      const n = Number(t2);
-      return Number.isFinite(n) ? n : null;
-    };
+    // 금리: 부동산담보대출만 min/max + avg 자동, 그 외는 avg-only 유지
+    const interestMinMax = (pgKey === "부동산담보대출");
+    grid.appendChild(makeMinMaxAvgMetric(pgKey, lender.id, fin, "금리", {
+      min: "interestMin", max: "interestMax", avg: "interestAvg"
+    }, interestMinMax));
 
-    const computeAvgStr2 = (minStr, maxStr) => {
-      const a = toFinitePercentVal(minStr);
-      const b = toFinitePercentVal(maxStr);
-      if (a == null || b == null) return "";
-      const avg = (a + b) / 2;
-      return normalizePercentBlur(String(avg)); // 기존 룰(소수 2자리 반올림) 유지
-    };
+    // ✅ 요청사항(1): 플랫폼수수료 / 중도상환수수료도 금리처럼 min/max + avg 자동
+    grid.appendChild(makeMinMaxAvgMetric(pgKey, lender.id, fin, "플랫폼수수료", {
+      min: "platformFeeMin", max: "platformFeeMax", avg: "platformFeeAvg"
+    }, true));
 
-    const patchFinancialInputs = (lenderId, pgKey2, patchOne) => {
-      const cur2 = ensureLender(lenderId);
-      const nextAll = { ...(cur2.financialInputs || {}) };
-      const nextOne = { ...(nextAll[pgKey2] || {}) };
-      Object.assign(nextOne, patchOne);
-      nextAll[pgKey2] = nextOne;
-      updateLenderState(lenderId, { financialInputs: nextAll });
-    };
-
-    const makeMetric = (metricTitle, fieldKey) => {
-      const col = document.createElement("div");
-      col.className = "finance-metric";
-
-      const h = document.createElement("div");
-      h.className = "finance-metric-title";
-      h.textContent = metricTitle;
-      col.appendChild(h);
-
-      // ✅ 부동산담보대출의 "금리"만: 최소/최대 입력 → 평균 자동 계산/표시
-      if (pgKey === "부동산담보대출" && fieldKey === "interestAvg") {
-        const cur2 = ensureLender(lender.id);
-        const fin2 = (cur2.financialInputs && cur2.financialInputs[pgKey]) ? cur2.financialInputs[pgKey] : {};
-
-        const minInit = (fin2.interestMin != null) ? String(fin2.interestMin) : "";
-        const maxInit = (fin2.interestMax != null) ? String(fin2.interestMax) : "";
-
-        // row: 최소
-        const rowMin = document.createElement("div");
-        rowMin.className = "finance-metric-row finance-metric-row--minmax";
-
-        const labMin = document.createElement("span");
-        labMin.className = "lab";
-        labMin.textContent = "최소";
-
-        const inputMin = document.createElement("input");
-        inputMin.type = "text";
-        inputMin.inputMode = "decimal";
-        inputMin.placeholder = "숫자입력";
-        inputMin.value = minInit;
-
-        const unitMin = document.createElement("span");
-        unitMin.className = "unit";
-        unitMin.textContent = "%";
-
-        rowMin.appendChild(labMin);
-        rowMin.appendChild(inputMin);
-        rowMin.appendChild(unitMin);
-
-        // row: 최대
-        const rowMax = document.createElement("div");
-        rowMax.className = "finance-metric-row finance-metric-row--minmax";
-
-        const labMax = document.createElement("span");
-        labMax.className = "lab";
-        labMax.textContent = "최대";
-
-        const inputMax = document.createElement("input");
-        inputMax.type = "text";
-        inputMax.inputMode = "decimal";
-        inputMax.placeholder = "숫자입력";
-        inputMax.value = maxInit;
-
-        const unitMax = document.createElement("span");
-        unitMax.className = "unit";
-        unitMax.textContent = "%";
-
-        rowMax.appendChild(labMax);
-        rowMax.appendChild(inputMax);
-        rowMax.appendChild(unitMax);
-
-        // row: 평균(자동)
-        const rowAvg = document.createElement("div");
-        rowAvg.className = "finance-metric-row finance-metric-row--minmax";
-
-        const labAvg = document.createElement("span");
-        labAvg.className = "lab";
-        labAvg.textContent = "평균";
-
-        const inputAvg = document.createElement("input");
-        inputAvg.type = "text";
-        inputAvg.inputMode = "decimal";
-        inputAvg.placeholder = "-";
-        inputAvg.value = computeAvgStr2(inputMin.value, inputMax.value);
-        inputAvg.readOnly = true;
-        inputAvg.disabled = true;
-
-        const unitAvg = document.createElement("span");
-        unitAvg.className = "unit";
-        unitAvg.textContent = "%";
-
-        rowAvg.appendChild(labAvg);
-        rowAvg.appendChild(inputAvg);
-        rowAvg.appendChild(unitAvg);
-
-        const syncAndSave = (mode /* "input" | "blur" */) => {
-          if (mode === "input") {
-            const sMin = sanitizePercentString(inputMin.value);
-            if (inputMin.value !== sMin) inputMin.value = sMin;
-
-            const sMax = sanitizePercentString(inputMax.value);
-            if (inputMax.value !== sMax) inputMax.value = sMax;
-          } else {
-            inputMin.value = normalizePercentBlur(inputMin.value);
-            inputMax.value = normalizePercentBlur(inputMax.value);
-          }
-
-          const avgStr = computeAvgStr2(inputMin.value, inputMax.value);
-          inputAvg.value = avgStr;
-
-          // ✅ 저장: min/max + avg(자동)까지 같이 저장 (호환성 위해 interestAvg도 채움)
-          patchFinancialInputs(lender.id, pgKey, {
-            interestMin: inputMin.value,
-            interestMax: inputMax.value,
-            interestAvg: avgStr
-          });
-        };
-
-        inputMin.addEventListener("input", () => syncAndSave("input"));
-        inputMax.addEventListener("input", () => syncAndSave("input"));
-        inputMin.addEventListener("blur", () => syncAndSave("blur"));
-        inputMax.addEventListener("blur", () => syncAndSave("blur"));
-
-        col.appendChild(rowMin);
-        col.appendChild(rowMax);
-        col.appendChild(rowAvg);
-
-        return col;
-      }
-
-      // ✅ 나머지(기존 방식 그대로: 평균 1칸 입력)
-      const row = document.createElement("div");
-      row.className = "finance-metric-row";
-
-      const lab = document.createElement("span");
-      lab.className = "lab";
-      lab.textContent = "평균";
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.inputMode = "decimal";
-      input.placeholder = "숫자입력";
-      input.value = (fin && fin[fieldKey] != null) ? String(fin[fieldKey]) : "";
-
-      input.addEventListener("input", () => {
-        const sanitized = sanitizePercentString(input.value);
-        if (input.value !== sanitized) input.value = sanitized;
-        patchFinancialInputs(lender.id, pgKey, { [fieldKey]: input.value });
-      });
-
-      input.addEventListener("blur", () => {
-        const normalized = normalizePercentBlur(input.value);
-        input.value = normalized;
-        patchFinancialInputs(lender.id, pgKey, { [fieldKey]: normalized });
-      });
-
-      const unit = document.createElement("span");
-      unit.className = "unit";
-      unit.textContent = "%";
-
-      row.appendChild(lab);
-      row.appendChild(input);
-      row.appendChild(unit);
-
-      col.appendChild(row);
-      return col;
-    };
-
-    grid.appendChild(makeMetric("금리", "interestAvg"));
-    grid.appendChild(makeMetric("플랫폼수수료", "platformFeeAvg"));
-    grid.appendChild(makeMetric("중도상환수수료", "prepayFeeAvg"));
+    grid.appendChild(makeMinMaxAvgMetric(pgKey, lender.id, fin, "중도상환수수료", {
+      min: "prepayFeeMin", max: "prepayFeeMax", avg: "prepayFeeAvg"
+    }, true));
 
     metrics.appendChild(grid);
     wrap.appendChild(metrics);
@@ -2527,9 +2605,10 @@ function renderLendersList() {
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
     if (hasRealEstate) {
+      // ✅ 금융조건
       inner.appendChild(renderFinanceInputsBox(lender));
-      inner.appendChild(renderExtraConditionsBox(lender));
 
+      // ✅ (요청 3) 위치 교체: 매트릭스 먼저, 추가조건은 아래로
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
@@ -2542,38 +2621,58 @@ function renderLendersList() {
 
       const mHelp = document.createElement("p");
       mHelp.className = "admin-subbox-help";
-      mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부(칩) / LTV 최대(%) / 취급 대출 종류를 설정하세요.";
+      mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부(칩) / LTV 최대(%) / (서울·경기) LTV Up / 취급 대출 종류를 설정하세요.";
 
-      const minLoan = document.createElement("div");
-      minLoan.className = "admin-minloan";
-      minLoan.addEventListener("click", (e) => e.stopPropagation());
+      // ✅ (요청 2) 최저/최대 대출금액
+      const loanLimits = document.createElement("div");
+      loanLimits.className = "admin-minloan";
+      loanLimits.addEventListener("click", (e) => e.stopPropagation());
 
-      const minLabel = document.createElement("span");
-      minLabel.className = "admin-minloan__label";
-      minLabel.textContent = "최저대출금액";
+      const makeLimit = (labelText, valueInit, onInput) => {
+        const wrap = document.createElement("div");
+        wrap.style.display = "flex";
+        wrap.style.gap = "8px";
+        wrap.style.alignItems = "center";
 
-      const minInput = document.createElement("input");
-      minInput.type = "number";
-      minInput.className = "admin-mini-input admin-minloan__input";
-      minInput.min = "0";
-      minInput.step = "1";
-      minInput.placeholder = "예) 500";
-      minInput.value = (lender.realEstateMinLoanAmount ?? "");
+        const lab = document.createElement("span");
+        lab.className = "admin-minloan__label";
+        lab.textContent = labelText;
 
-      minInput.addEventListener("input", () => {
-        updateLenderState(lender.id, { realEstateMinLoanAmount: minInput.value });
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.className = "admin-mini-input admin-minloan__input";
+        inp.min = "0";
+        inp.step = "1";
+        inp.placeholder = labelText.includes("최저") ? "예) 500" : "예) 10000";
+        inp.value = (valueInit ?? "");
+
+        inp.addEventListener("input", () => onInput(inp.value));
+
+        const unit = document.createElement("span");
+        unit.className = "admin-minloan__unit";
+        unit.textContent = "만원";
+
+        wrap.appendChild(lab);
+        wrap.appendChild(inp);
+        wrap.appendChild(unit);
+        return wrap;
+      };
+
+      const minLimit = makeLimit("최저대출금액", lender.realEstateMinLoanAmount, (v) => {
+        updateLenderState(lender.id, { realEstateMinLoanAmount: v });
+      });
+      const maxLimit = makeLimit("최대대출금액", lender.realEstateMaxLoanAmount, (v) => {
+        updateLenderState(lender.id, { realEstateMaxLoanAmount: v });
       });
 
-      const minUnit = document.createElement("span");
-      minUnit.className = "admin-minloan__unit";
-      minUnit.textContent = "만원";
-
-      minLoan.appendChild(minLabel);
-      minLoan.appendChild(minInput);
-      minLoan.appendChild(minUnit);
+      loanLimits.style.display = "flex";
+      loanLimits.style.gap = "14px";
+      loanLimits.style.flexWrap = "wrap";
+      loanLimits.appendChild(minLimit);
+      loanLimits.appendChild(maxLimit);
 
       helpRow.appendChild(mHelp);
-      helpRow.appendChild(minLoan);
+      helpRow.appendChild(loanLimits);
 
       const regionTabs = document.createElement("div");
       regionTabs.className = "admin-region-tabs";
@@ -2604,7 +2703,7 @@ function renderLendersList() {
         <tr>
           <th style="width:160px;">부동산 유형</th>
           <th class="cell-center" style="width:110px;">취급</th>
-          <th style="width:190px;">LTV 최대(%)</th>
+          <th style="width:420px;">LTV 최대(%)</th>
           <th>취급 대출 종류</th>
         </tr>
       `;
@@ -2640,9 +2739,13 @@ function renderLendersList() {
 
         tdEnable.appendChild(enableChip);
 
+        // ✅ LTV + LTV Up
         const tdLtv = document.createElement("td");
         const ltvWrap = document.createElement("div");
         ltvWrap.className = "admin-ltv-wrap";
+
+        const base = document.createElement("div");
+        base.className = "admin-ltv-base";
 
         const max = document.createElement("input");
         max.type = "number";
@@ -2661,21 +2764,77 @@ function renderLendersList() {
         pct.className = "admin-ltv-pct";
         pct.textContent = "%";
 
-        ltvWrap.appendChild(max);
-        ltvWrap.appendChild(pct);
+        base.appendChild(max);
+        base.appendChild(pct);
+
+        ltvWrap.appendChild(base);
+
+        // ✅ (요청 4) 서울/경기만 세부지역 LTV Up 표시
+        const subList = SUBREGION_LTV_UP[activeRegion] || null;
+        if (subList) {
+          const upWrap = document.createElement("div");
+          upWrap.className = "admin-ltvup";
+          upWrap.classList.toggle("is-disabled", !cell.enabled);
+
+          const upLabel = document.createElement("span");
+          upLabel.className = "admin-ltvup__label";
+          upLabel.textContent = "ltv up";
+
+          const chipRow = document.createElement("div");
+          chipRow.className = "admin-ltvup__chiprow";
+
+          const curUp = (cell.ltvUp && typeof cell.ltvUp === "object") ? cell.ltvUp : {};
+          subList.forEach((sr) => {
+            const chip = document.createElement("div");
+            chip.className = "admin-ltvup__chip";
+
+            const b = document.createElement("b");
+            b.textContent = sr.label;
+
+            const inp = document.createElement("input");
+            inp.type = "number";
+            inp.min = "0";
+            inp.step = "0.1";
+            inp.placeholder = "+x";
+            inp.value = (curUp[sr.key] ?? "");
+            inp.disabled = !cell.enabled;
+
+            inp.addEventListener("input", () => {
+              const cur = ensureLender(lender.id);
+              const target = cur.regions[activeRegion][pt.key];
+              if (!target.ltvUp || typeof target.ltvUp !== "object") target.ltvUp = {};
+              target.ltvUp[sr.key] = inp.value;
+              schedulePreviewUpdate();
+            });
+
+            const pct2 = document.createElement("span");
+            pct2.textContent = "%";
+
+            chip.appendChild(b);
+            chip.appendChild(inp);
+            chip.appendChild(pct2);
+            chipRow.appendChild(chip);
+          });
+
+          upWrap.appendChild(upLabel);
+          upWrap.appendChild(chipRow);
+          ltvWrap.appendChild(upWrap);
+        }
+
         tdLtv.appendChild(ltvWrap);
 
+        // 대출종류
         const tdLoans = document.createElement("td");
         const loanRow = document.createElement("div");
         loanRow.className = "admin-chip-row admin-chip-row--tight";
 
         let loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
 
-         // ✅ 토지(land)에서는 임대보증금반환대출 제외
-         if (pt.key === "land") {
-         loanTypes = loanTypes.filter(x => x.key !== "임대보증금반환대출");
-         }
-         
+        // 토지(land)에서는 임대보증금반환대출 제외
+        if (pt.key === "land") {
+          loanTypes = loanTypes.filter(x => x.key !== "임대보증금반환대출");
+        }
+
         loanTypes.forEach((lt) => {
           const label = document.createElement("label");
           label.className = "admin-chip-check admin-chip-check--tiny";
@@ -2723,10 +2882,15 @@ function renderLendersList() {
       matrixBox.appendChild(table);
 
       inner.appendChild(matrixBox);
+
+      // ✅ (요청 3) 추가조건을 매트릭스 아래로 이동
+      inner.appendChild(renderExtraConditionsBox(lender));
     } else {
+      // (원본 동작 유지) 부동산담보대출이 아니면 금융조건만
       inner.appendChild(renderFinanceInputsBox(lender));
     }
 
+    // 상담 채널
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
 
@@ -2777,6 +2941,7 @@ function renderLendersList() {
     contactBox.appendChild(contactGrid);
     inner.appendChild(contactBox);
 
+    // 저장 버튼
     const saveRow = document.createElement("div");
     saveRow.className = "lender-save-row";
     const saveBtn = document.createElement("button");
