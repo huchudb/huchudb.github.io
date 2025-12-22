@@ -1,5 +1,7 @@
 // /assets/navi-beta.js  (후추 네비게이션 – 베타용)
 // NOTE: stepper/단계 노출 제어 + Step6 1차 결과(업체명 비공개) + Step7 3컬럼(금리/플랫폼/중도상환) 렌더
+// PATCH(2025-12-22): (1) 거주형태(OCC) 항상 시세(PV) 위 + '거주형태' 텍스트 누적 방지
+//                   (2) 부동산담보대출 외 상품군은 지역/유형 스텝 숨김 → 바로 Step6(수수료범위) + Step7(가능업체리스트)
 
 // ------------------------------------------------------
 // 공통 상수 / 유틸
@@ -633,7 +635,7 @@ function setLabelText(labelEl, text) {
   labelEl.insertBefore(span, labelEl.firstChild);
 }
 
-// ✅ (추가) OCC 제목을 "거주형태"로 고정 + PV 위로 이동
+// ✅ (PATCH) OCC 제목 "거주형태" 1개만 유지 + PV 위로 이동 + 텍스트 누적 방지(완전 방어)
 function ensureOccBlockPlacementAndTitle() {
   const occChips = document.getElementById("naviOccupancyChips");
   if (!occChips) return;
@@ -641,32 +643,25 @@ function ensureOccBlockPlacementAndTitle() {
   const block = occChips.closest("label") || occChips.parentElement;
   if (!block) return;
 
-  // ------------------------------------------------------------
-  // 1) 과거 코드로 누적된 "거주형태" 텍스트/요소들을 먼저 정리(중복 제거)
-  // ------------------------------------------------------------
-
-  // (a) label 직계의 "비어있지 않은 텍스트 노드" 제거 (기존 label 텍스트 누적 방지)
+  // (1) label 직계 텍스트 노드 제거 (누적 방지)
   Array.from(block.childNodes).forEach((n) => {
     if (n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "") {
       block.removeChild(n);
     }
   });
 
-  // (b) 직계 자식 중 "거주형태"만 있는 요소(컨트롤 없음)는 중복 타이틀로 보고 제거
+  // (2) 컨트롤 없는 "거주형태" 단독 요소 제거 (중복 타이틀 방지)
   Array.from(block.children).forEach((el) => {
     const t = (el.textContent || "").trim();
     const hasControls =
       el.querySelector("button, input, select, textarea, #naviOccupancyChips, .navi-chip") != null;
 
-    // 우리가 이전에 만든 span들이 딱 이 케이스로 쌓임
     if (t === "거주형태" && !hasControls && el.getAttribute("data-occ-title") !== "1") {
       el.remove();
     }
   });
 
-  // ------------------------------------------------------------
-  // 2) 타이틀은 1개만 유지 (data-occ-title="1")
-  // ------------------------------------------------------------
+  // (3) 타이틀 1개 유지
   let titleEl = block.querySelector('[data-occ-title="1"]');
   if (!titleEl) {
     titleEl = document.createElement("div");
@@ -678,19 +673,16 @@ function ensureOccBlockPlacementAndTitle() {
   }
   titleEl.textContent = "거주형태";
 
-  // ------------------------------------------------------------
-  // 3) PV(시세) 라벨 위로 이동 (이미 위면 아무 것도 안 함)
-  // ------------------------------------------------------------
+  // (4) PV(시세) 라벨 앞에 항상 배치 (grid 밖에 있어도 grid로 끌어옴)
   const grid = document.querySelector("#navi-step5 .navi-field-grid");
   const pvInput = document.getElementById("naviInputPropertyValue");
   const pvLabel = pvInput ? pvInput.closest("label") : null;
 
   if (grid && pvLabel) {
-    // 같은 grid 안에 있을 때만 reorder
-    if (block.parentElement === grid) {
-      if (block !== pvLabel && block.nextSibling !== pvLabel) {
-        grid.insertBefore(block, pvLabel);
-      }
+    if (block.parentElement !== grid) {
+      grid.insertBefore(block, pvLabel);
+    } else if (block !== pvLabel && block.nextSibling !== pvLabel) {
+      grid.insertBefore(block, pvLabel);
     }
   }
 }
@@ -698,11 +690,13 @@ function ensureOccBlockPlacementAndTitle() {
 function applyStep5Schema() {
   ensureAssumedBurdenField();
 
-  // ✅ OCC(거주형태) 위치/제목 보정: PV 위로 이동 + 텍스트 "거주형태"
+  // ✅ OCC(거주형태) 위치/제목 보정: PV 위로 이동 + 텍스트 "거주형태"(누적 방지)
   ensureOccBlockPlacementAndTitle();
 
   const schema = getStep5Schema();
-  const occBlock = document.getElementById("naviOccupancyChips")?.parentElement; // OCC 레이블 블럭 전체
+  const occBlock =
+    document.getElementById("naviOccupancyChips")?.closest("label") ||
+    document.getElementById("naviOccupancyChips")?.parentElement; // ✅ PATCH: parentElement 고정 문제 보완
   const helpEl = document.getElementById("naviLoanTypeHelp");
 
   const fieldDefs = schema?.fields || [];
@@ -1168,6 +1162,13 @@ function setupResultButtons() {
   const showBtn = document.getElementById("naviShowResultBtn");
   if (showBtn) {
     showBtn.addEventListener("click", () => {
+      // ✅ PATCH: 부동산담보대출 외는 6-1 가드 없이 즉시 리스트
+      if (userState.mainCategory && userState.mainCategory !== "부동산담보대출") {
+        renderFinalResultNonRE({ autoScroll: true });
+        return;
+      }
+
+      // (기존) 부동산담보대출은 6-1 최소 1개 선택 가드
       if (!hasAnyExtraSelected()) {
         alert("업체명 공개를 위해 6-1(차주 추가정보)을 최소 1개 이상 선택해주세요.");
         const s61 = document.getElementById("navi-step6-1");
@@ -1582,9 +1583,23 @@ function updatePrimaryFeeUI(coreMatched) {
 function updateStepVisibility(primaryEligible) {
   setSectionVisible("navi-step1", true);
 
-  setSectionVisible("navi-step2", Boolean(userState.mainCategory));
-
   const isRE = userState.mainCategory === "부동산담보대출";
+  const hasCat = Boolean(userState.mainCategory);
+
+  // ✅ PATCH: 부동산담보대출 외 → 지역/유형/대출종류/핵심입력 숨김, 바로 6/7 노출
+  if (hasCat && !isRE) {
+    setSectionVisible("navi-step2", false);
+    setSectionVisible("navi-step3", false);
+    setSectionVisible("navi-step4", false);
+    setSectionVisible("navi-step5", false);
+
+    setSectionVisible("navi-step6", true);
+    setSectionVisible("navi-step6-1", false);
+    setSectionVisible("navi-step7", true);
+    return;
+  }
+
+  setSectionVisible("navi-step2", Boolean(userState.mainCategory));
 
   setSectionVisible("navi-step3", isRE && Boolean(userState.region));
   setSectionVisible("navi-step4", isRE && Boolean(userState.region) && Boolean(userState.propertyType));
@@ -1601,20 +1616,21 @@ function updateStepVisibility(primaryEligible) {
 
 function resolveActiveStep(primaryEligible) {
   if (!userState.mainCategory) return 1;
-  if (!userState.region) return 2;
 
-  if (userState.mainCategory === "부동산담보대출") {
-    if (!userState.propertyType) return 3;
-    if (!userState.realEstateLoanType) return 4;
-
-    if (!isStep5Complete()) return 5;
-    if (!primaryEligible) return 6;
-
-    if (uiState.hasRenderedResult) return 7;
-    return 6;
+  // ✅ PATCH: 부동산담보대출 외는 바로 6(범위) → 7(업체리스트)
+  if (userState.mainCategory !== "부동산담보대출") {
+    return uiState.hasRenderedResult ? 7 : 6;
   }
 
-  return 2;
+  // 부동산담보대출(기존 흐름)
+  if (!userState.region) return 2;
+  if (!userState.propertyType) return 3;
+  if (!userState.realEstateLoanType) return 4;
+
+  if (!isStep5Complete()) return 5;
+  if (!primaryEligible) return 6;
+
+  return uiState.hasRenderedResult ? 7 : 6;
 }
 
 function recalcAndUpdateSummary(onlyExtra = false) {
@@ -1658,6 +1674,37 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   if (realEstateLoanType) baseSummary += ` / 대출종류: ${realEstateLoanType}`;
   calcTextEl.textContent = baseSummary;
 
+  const isRE = mainCategory === "부동산담보대출";
+
+  // ======================================================
+  // ✅ PATCH: 부동산담보대출 외는 지역선택 없이 즉시 Step6/7
+  // ======================================================
+  if (!isRE) {
+    calcSubEl.textContent = "선택하신 상품군 기준으로 금리/수수료 범위와 가능한 온투업체 리스트를 표시합니다.";
+
+    const matched = filterLenders(false);
+
+    if (countInfoEl) {
+      countInfoEl.style.display = "inline-block";
+      countInfoEl.textContent = matched.length
+        ? `✅ 가능 온투업체 ${matched.length}곳 (상품군 기준)`
+        : "현재 상품군 기준으로 표시할 온투업체가 없습니다. 관리자 설정을 확인해주세요.";
+    }
+    if (extraCountEl) extraCountEl.style.display = "none";
+
+    updatePrimaryFeeUI(matched);
+    renderFinalResultNonRE({ autoScroll: false });
+
+    updateStepVisibility(Boolean(matched.length));
+    const active = resolveActiveStep(Boolean(matched.length));
+    renderStepper(active);
+
+    return;
+  }
+
+  // ------------------------------
+  // 부동산담보대출(기존 흐름)
+  // ------------------------------
   const { ltv, totalDebtAfter, baseValue } = calcLtv();
   if (ltv == null || !baseValue) {
     calcSubEl.textContent = "시세(또는 낙찰가) 등 핵심 정보가 부족하여 LTV를 계산할 수 없습니다.";
@@ -1668,8 +1715,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     calcSubEl.textContent = `예상 총 부담액은 약 ${totalStr}원, 담보가치는 약 ${baseStr}원으로 예상 LTV는 약 ${pct}% 수준입니다.`;
   }
 
-  const isRE = mainCategory === "부동산담보대출";
-  const step5Complete = isRE ? isStep5Complete() : false;
+  const step5Complete = isStep5Complete();
 
   const coreMatched = step5Complete ? filterLenders(false) : [];
   const extraMatched = step5Complete ? filterLenders(true) : [];
@@ -1679,7 +1725,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
 
   if (countInfoEl) {
-    if (!isRE || !userState.realEstateLoanType) {
+    if (!userState.realEstateLoanType) {
       countInfoEl.style.display = "none";
     } else if (!step5Complete) {
       countInfoEl.style.display = "inline-block";
@@ -1764,6 +1810,89 @@ function renderFee3Cols(lender) {
       </div>
     </div>
   `;
+}
+
+// ✅ PATCH: 부동산담보대출 외 상품군 → 즉시 Step7 업체리스트 표시
+function renderFinalResultNonRE({ autoScroll = false } = {}) {
+  const panel = document.getElementById("naviResultPanel");
+  const summaryEl = document.getElementById("naviResultSummary");
+  if (!panel || !summaryEl) return;
+
+  const cat = userState.mainCategory;
+  if (!cat) return;
+
+  const matched = filterLenders(false);
+
+  if (!matched.length) {
+    summaryEl.textContent = "현재 상품군 기준으로 표시할 온투업체가 없습니다.";
+    panel.innerHTML = `
+      <div class="navi-empty-card">
+        <div style="font-weight:600;margin-bottom:4px;">추천 가능한 온투업체가 없습니다.</div>
+        <div style="font-size:11px;">
+          · 관리자 설정에서 해당 상품군(loanCategories/products) 등록 여부를 확인해주세요.<br/>
+          · 제휴/활성 상태(isPartner/isActive/isNewLoanActive)도 함께 확인이 필요합니다.
+        </div>
+      </div>
+    `;
+    uiState.hasRenderedResult = false;
+    return;
+  }
+
+  summaryEl.textContent = `${cat} 기준 추천 온투업체 ${matched.length}곳`;
+
+  let html = "";
+  html += `<div style="margin-bottom:8px;font-size:12px;color:#374151;">
+    <div>요청 조건 요약: <strong>${cat}</strong></div>
+  </div>`;
+
+  matched.forEach((l) => {
+    const phone = l.channels?.phoneNumber || "";
+    const kakao = l.channels?.kakaoUrl || "";
+
+    html += `<div class="navi-lender-item">
+      <div class="navi-lender-name">${l.displayName || "(이름 없음)"}${
+        l.isPartner ? ` <span class="navi-tag" style="background:#111827;color:#f9fafb;border-color:#111827;">제휴 온투업체</span>` : ""
+      }</div>
+
+      ${renderFee3Cols(l)}
+
+      <div style="margin-top:8px;">
+        ${l.isPartner
+          ? `<span class="navi-tag">후추와 제휴된 온투업체 (광고비 지급)</span>
+             <span class="navi-tag">※ 제휴업체는 동일 조건일 때 보다 낮은 비용·우선 상담 가능</span>`
+          : `<span class="navi-tag">비제휴 온투업체 (정보제공용)</span>`}
+      </div>`;
+
+    if (l.isPartner) {
+      html += `<div class="navi-lender-actions">`;
+      if (phone) {
+        const telHref = phone.replace(/\s+/g, "");
+        html += `<a class="navi-btn-secondary" href="tel:${telHref}">유선 상담 (${phone})</a>`;
+      } else {
+        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">유선 상담 번호 미등록</span>`;
+      }
+      if (kakao) {
+        html += `<a class="navi-btn-primary" href="${kakao}" target="_blank" rel="noopener noreferrer">카카오톡 채팅상담 바로가기</a>`;
+      } else {
+        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">카카오톡 채널 미등록</span>`;
+      }
+      html += `</div>`;
+    } else {
+      html += `<div class="navi-help" style="margin-top:8px;">※ 비제휴 업체는 상담 채널을 공개하지 않습니다.</div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  panel.innerHTML = html;
+  uiState.hasRenderedResult = true;
+
+  renderStepper(7);
+
+  if (autoScroll) {
+    const s7 = document.getElementById("navi-step7");
+    if (s7) s7.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderFinalResult() {
