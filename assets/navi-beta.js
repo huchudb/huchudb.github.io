@@ -259,6 +259,9 @@ function normalizeLenderRecord(raw) {
     else l.extraConditions = [];
   }
 
+   l.extraConditions = Array.isArray(l.extraConditions) ? l.extraConditions : [];
+  }
+
   return l;
 }
 
@@ -1086,9 +1089,15 @@ function setupResultButtons() {
 
   const showBtn = document.getElementById("naviShowResultBtn");
   if (showBtn) {
-    showBtn.addEventListener("click", () => {
-      renderFinalResult();
-    });
+   showBtn.addEventListener("click", () => {
+  if (!hasAnyExtraSelected()) {
+    alert("업체명 공개를 위해 6-1(차주 추가정보)을 최소 1개 이상 선택해주세요.");
+    const s61 = document.getElementById("navi-step6-1");
+    if (s61) s61.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  renderFinalResult();
+});
   }
 
   const adjustBtn = document.getElementById("naviAdjustConditionBtn");
@@ -1327,15 +1336,35 @@ function filterLenders(applyExtras = false) {
       }
     }
 
-  // ✅ 추가조건(6-1) — admin의 lender.extraConditions(string[])와 매칭
-    if (applyExtras && mainCategory === "부동산담보대출") {
-      const extraTokens = buildExtraTokensFromUser(extra);
-      if (extraTokens.length) {
-        if (!lenderMatchesExtraSelections(l, extraTokens)) return false;
+      // ✅ 추가조건(6-1) — admin의 부동산담보대출 > 추가조건(extraConditions)와 매칭
+    if (applyExtras) {
+      const selected = [];
+      if (extra.incomeType) selected.push(extra.incomeType);
+      if (extra.creditBand) selected.push(extra.creditBand);
+      if (extra.repayPlan) selected.push(extra.repayPlan);
+      if (extra.needTiming) selected.push(extra.needTiming);
+      if (Array.isArray(extra.others) && extra.others.length) selected.push(...extra.others);
+
+      // 6-1을 하나라도 선택한 경우에만 매칭 적용
+      if (selected.length) {
+        const allowed = Array.isArray(l.extraConditions) ? l.extraConditions : [];
+
+        // ✅ (권장) 추가조건 미등록 업체는 Step7 추천에서 제외 → 정확매칭 목적
+        if (!allowed.length) return false;
+
+        // 문자열 강건 매칭: 완전일치 우선 + 포함매칭(“세금체납가능” 같은 케이스 대비)
+        for (const s of selected) {
+          const sv = normKey(s);
+          const ok = allowed.some((x) => {
+            const xv = normKey(x);
+            return xv === sv || xv.includes(sv);
+          });
+          if (!ok) return false;
+        }
       }
     }
 
-      if (extra.others && extra.others.length) {
+    if (extra.others && extra.others.length) {
         const blocked = l.blockedFlags || {};
         for (const tag of extra.others) {
           if (tag === "세금체납" && blocked["taxArrears"]) return false;
