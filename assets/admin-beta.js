@@ -41,9 +41,7 @@ async function fetchJsonNoCache(url, options = {}) {
     ...options,
     method: options.method || "GET",
     cache: "no-store",
-    headers: {
-      ...(options.headers || {})
-    }
+    headers: { ...(options.headers || {}) }
   });
 
   if (!res.ok) {
@@ -135,6 +133,15 @@ function parsePercentInput(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function setInfoMessage(targetEl, msg) {
+  if (!targetEl) return;
+  targetEl.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "admin-inline-note";
+  div.textContent = msg || "";
+  targetEl.appendChild(div);
+}
+
 /* ✅ 상품유형별 표에 "합계" 행을 법인신용대출 아래에 생성 */
 function ensureProductTotalsRow() {
   const tbody = document.getElementById("productRows");
@@ -160,22 +167,20 @@ function ensureProductTotalsRow() {
   const td1 = document.createElement("td");
   const ratio = document.createElement("input");
   ratio.type = "text";
-  ratio.className = "js-ratio stats-total-ratio";
+  ratio.className = "js-ratio stats-total-ratio admin-input-right";
   ratio.readOnly = true;
   ratio.disabled = true;
   ratio.placeholder = "-";
-  ratio.style.textAlign = "right";
   td1.appendChild(ratio);
 
   const td2 = document.createElement("td");
   const amt = document.createElement("input");
   amt.type = "text";
-  amt.className = "js-amount stats-total-amount";
+  amt.className = "js-amount stats-total-amount admin-input-right";
   amt.setAttribute("data-type", "money");
   amt.readOnly = true;
   amt.disabled = true;
   amt.placeholder = "-";
-  amt.style.textAlign = "right";
   td2.appendChild(amt);
 
   tr.appendChild(td0);
@@ -237,198 +242,8 @@ function setupMoneyInputs(root) {
 }
 
 /* =========================================================
-   ✅ (추가) 금융조건 수치 입력: 스타일 주입 + 유틸
+   ✅ (추가) 금융조건 수치 입력: 유틸
 ========================================================= */
-function ensureFinanceInputsStylesInjected() {
-  if (document.getElementById("financeInputsStyles")) return;
-
-  const style = document.createElement("style");
-  style.id = "financeInputsStyles";
-  style.textContent = `
-    .finance-inputs-wrap { margin-top: 10px; }
-    .finance-products { display: flex; flex-direction: column; gap: 10px; }
-    .finance-product-title {
-      font-weight: 900;
-      font-size: 12px;
-      color: #111827;
-      margin: 2px 0 0;
-    }
-    .finance-metrics {
-      border: 2px solid #111;
-      border-radius: 12px;
-      padding: 14px 14px 12px;
-      background: #fff;
-    }
-    .finance-metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      align-items: start;
-    }
-    .finance-metric {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-    .finance-metric-title {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.6px;
-      color: #111;
-      line-height: 1.1;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .finance-metric-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: nowrap;
-      justify-content: center;
-    }
-    .finance-metric-row .lab {
-      font-size: 18px;
-      font-weight: 900;
-      color: #111;
-      white-space: nowrap;
-    }
-    .finance-metric-row input {
-      width: 120px;
-      max-width: 100%;
-      height: 40px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 0 12px;
-      font-size: 16px;
-      font-weight: 800;
-      outline: none;
-      text-align: center;
-      background: #fff;
-    }
-    .finance-metric-row input:focus {
-      border-color: #111;
-      box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
-    }
-    .finance-metric-row .unit {
-      font-size: 18px;
-      font-weight: 900;
-      color: #111;
-      white-space: nowrap;
-    }
-
-    /* ✅ min/max/avg 3줄 레이아웃 */
-    .finance-metric-row--minmax { justify-content: center; }
-    .finance-metric-row--minmax input { width: 120px; }
-
-    @media (max-width: 520px) {
-      .finance-metric-title { font-size: 22px; }
-      .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
-      .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
-      .finance-metrics-grid { gap: 10px; }
-      .finance-metrics { padding: 12px; }
-    }
-
-    /* ✅ (추가) 온투 통계 - byLender 입력 UI */
-    .stats-byLender-box { margin-top: 12px; }
-    .stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-    .stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
-    .stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
-    .stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .stats-byLender-tools input[type="text"]{
-      height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
-      font-size: 13px; font-weight: 700;
-    }
-    .stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
-    .stats-byLender-tableWrap{
-      margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
-    }
-    .stats-byLender-tableWrap .scroll{
-      max-height: 360px; overflow:auto;
-    }
-    .stats-byLender-table{
-      width:100%; border-collapse:separate; border-spacing:0;
-      min-width: 980px;
-    }
-    .stats-byLender-table th, .stats-byLender-table td{
-      border-bottom:1px solid #f3f4f6;
-      padding: 8px 10px;
-      font-size: 12px;
-      vertical-align: middle;
-      white-space: nowrap;
-    }
-    .stats-byLender-table th{
-      position: sticky; top:0; z-index:2;
-      background:#f9fafb;
-      font-weight: 900;
-      color:#111827;
-    }
-    .stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
-      position: sticky; left:0; z-index:3;
-      background: #fff;
-      border-right:1px solid #f3f4f6;
-      min-width: 160px;
-      max-width: 220px;
-      overflow:hidden; text-overflow:ellipsis;
-    }
-    .stats-byLender-table th:first-child{
-      background:#f9fafb;
-      z-index:4;
-    }
-    .stats-byLender-money{
-      width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
-      font-size: 12px; font-weight: 800; text-align:right;
-    }
-    .stats-byLender-disabledNote{
-      margin-top:8px; font-size:12px; color:#6b7280;
-    }
-
-    /* ✅ (추가) 상품유형별 잔액 합계 행 */
-    #productRows tr.stats-total-row td {
-      background: #f3f4f6;
-      font-weight: 900;
-    }
-    #productRows tr.stats-total-row input {
-      background: #f3f4f6;
-      font-weight: 900;
-    }
-
-    /* ✅ (추가) LTV Up UI (세부지역) */
-    .admin-ltv-wrap { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-    .admin-ltv-base { display:flex; gap:6px; align-items:center; }
-    .admin-ltvup {
-      display:flex; align-items:center; gap:8px;
-      border-left: 2px solid #111;
-      padding-left: 10px;
-      margin-left: 2px;
-      flex-wrap:wrap;
-    }
-    .admin-ltvup__label {
-      font-weight: 900; font-size: 12px; color:#111;
-      white-space: nowrap;
-    }
-    .admin-ltvup__chiprow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .admin-ltvup__chip {
-      display:flex; gap:6px; align-items:center;
-      border:1px solid #e5e7eb; border-radius:999px;
-      padding: 6px 10px;
-      background:#fff;
-    }
-    .admin-ltvup__chip b { font-size: 12px; font-weight: 900; color:#111; }
-    .admin-ltvup__chip input{
-      width: 64px; height: 30px;
-      border:1px solid #d1d5db; border-radius:10px;
-      padding:0 8px;
-      font-size: 12px; font-weight: 900;
-      text-align:center;
-    }
-    .admin-ltvup__chip span{ font-size: 12px; font-weight: 900; color:#111; }
-    .admin-ltvup.is-disabled { opacity: 0.55; }
-  `;
-  document.head.appendChild(style);
-}
-
 function sanitizePercentString(v) {
   let s = String(v || "").replace(/[^0-9.]/g, "");
   const parts = s.split(".");
@@ -756,6 +571,7 @@ function _productsToByType(products) {
 
   return out;
 }
+
 /* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType, byLender}로 정규화 */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
   if (!json) return null;
@@ -969,7 +785,7 @@ function ensureByLenderSection() {
 }
 
 /* =========================================================
-   ✅ (FIX) byLender 렌더/모드UI/합산 함수
+   ✅ byLender 렌더/모드UI/합산 함수
 ========================================================= */
 function applyByLenderModeUI(enabled) {
   const ratioInputs = document.querySelectorAll("#productRows .js-ratio");
@@ -977,9 +793,7 @@ function applyByLenderModeUI(enabled) {
   const balEl = document.getElementById("statsBalance");
 
   // ✅ ratio 입력은 byLender 모드에서 계산값이므로 잠금
-  ratioInputs.forEach((el) => {
-    el.disabled = !!enabled;
-  });
+  ratioInputs.forEach((el) => { el.disabled = !!enabled; });
 
   // ✅ amount는 항상 표시용(읽기전용)
   amountInputs.forEach((el) => {
@@ -994,7 +808,7 @@ function applyByLenderModeUI(enabled) {
   }
 
   const note = document.getElementById("statsByLenderDisabledNote");
-  if (note) note.style.opacity = enabled ? "1" : "0.65";
+  if (note) note.classList.toggle("is-strong", !!enabled);
 }
 
 function renderByLenderSection(monthKey) {
@@ -1006,7 +820,7 @@ function renderByLenderSection(monthKey) {
 
   if (!monthKey) monthKey = getCurrentMonthKey();
   if (!monthKey) {
-    scroll.innerHTML = `<div style="padding:10px;font-size:12px;color:#6b7280;">조회년월을 먼저 선택해주세요.</div>`;
+    setInfoMessage(scroll, "조회년월을 먼저 선택해주세요.");
     return;
   }
 
@@ -1056,7 +870,7 @@ function renderByLenderSection(monthKey) {
   });
 
   if (visibleIds.length === 0) {
-    scroll.innerHTML = `<div style="padding:10px;font-size:12px;color:#6b7280;">표시할 업체가 없습니다. (활성 업체만 체크/검색어를 확인)</div>`;
+    setInfoMessage(scroll, "표시할 업체가 없습니다. (활성 업체만 체크/검색어를 확인)");
     return;
   }
 
@@ -1388,6 +1202,7 @@ const SUBREGION_LTV_UP = {
     { key: "ilsan", label: "일산" }
   ]
 };
+
 /* =========================================================
    ✅ 추가조건(선택) — 정의서(단일 소스)
 ========================================================= */
@@ -1611,7 +1426,7 @@ function ensureLender(id) {
       isPartner: false,
       partnerOrder: 0,
       realEstateMinLoanAmount: "",
-      realEstateMaxLoanAmount: "", // ✅ (추가)
+      realEstateMaxLoanAmount: "",
       extraConditions: [],
       financialInputs: {},
       products: [],
@@ -1671,13 +1486,11 @@ function ensureLenderDeepDefaults(lender) {
     }
     const obj = lender.financialInputs[pgKey];
 
-    // ✅ 기존 avg-only 3종은 유지 + 문자열화
     ["interestAvg", "platformFeeAvg", "prepayFeeAvg"].forEach((field) => {
       if (obj[field] == null) obj[field] = "";
       else obj[field] = String(obj[field]);
     });
 
-    // ✅ (추가) 플랫폼수수료 / 중도상환수수료: min/max 지원 + 평균 자동(호환 저장)
     const ensureMinMax = (minKey, maxKey, avgKey) => {
       if (obj[minKey] == null) obj[minKey] = "";
       else obj[minKey] = String(obj[minKey]);
@@ -1690,7 +1503,6 @@ function ensureLenderDeepDefaults(lender) {
         (String(obj[maxKey] || "").trim() !== "");
       const hasAvg = String(obj[avgKey] || "").trim() !== "";
 
-      // 과거 데이터(avg만 존재) → min/max로 씨딩
       if (!hasMinMax && hasAvg) {
         obj[minKey] = String(obj[avgKey]);
         obj[maxKey] = String(obj[avgKey]);
@@ -1700,7 +1512,6 @@ function ensureLenderDeepDefaults(lender) {
     ensureMinMax("platformFeeMin", "platformFeeMax", "platformFeeAvg");
     ensureMinMax("prepayFeeMin", "prepayFeeMax", "prepayFeeAvg");
 
-    // ✅ 부동산담보대출: 금리 최소/최대 입력 지원 + 평균 자동(호환 저장)
     if (pgKey === "부동산담보대출") {
       if (obj.interestMin == null) obj.interestMin = "";
       else obj.interestMin = String(obj.interestMin);
@@ -1728,13 +1539,11 @@ function ensureLenderDeepDefaults(lender) {
     PROPERTY_TYPES.forEach((pt) => {
       const prev = lender.regions[r.key][pt.key] || {};
 
-      // loanTypes 정리
       let loanTypes = Array.isArray(prev.loanTypes) ? uniq(prev.loanTypes) : [];
       if (pt.key === "land") {
         loanTypes = loanTypes.filter((x) => x !== "임대보증금반환대출");
       }
 
-      // ✅ (추가) LTV Up 기본값 (서울/경기만)
       const subList = SUBREGION_LTV_UP[r.key] || null;
       let ltvUp = {};
       if (subList) {
@@ -1751,7 +1560,7 @@ function ensureLenderDeepDefaults(lender) {
         enabled: !!prev.enabled,
         ltvMax: prev.ltvMax ?? "",
         ltvMin: prev.ltvMin ?? "",
-        ltvUp, // ✅ (추가)
+        ltvUp,
         loanTypes
       };
     });
@@ -1792,7 +1601,7 @@ function mergeLendersWithMaster() {
       isPartner: typeof existing.isPartner === "boolean" ? existing.isPartner : false,
       partnerOrder: typeof existing.partnerOrder === "number" ? existing.partnerOrder : 0,
       realEstateMinLoanAmount: (existing.realEstateMinLoanAmount ?? ""),
-      realEstateMaxLoanAmount: (existing.realEstateMaxLoanAmount ?? ""), // ✅ (추가)
+      realEstateMaxLoanAmount: (existing.realEstateMaxLoanAmount ?? ""),
       extraConditions: Array.isArray(existing.extraConditions) ? uniq(existing.extraConditions) : [],
       financialInputs: (existing.financialInputs && typeof existing.financialInputs === "object") ? existing.financialInputs : {},
       products: Array.isArray(existing.products) ? uniq(existing.products) : [],
@@ -2026,7 +1835,7 @@ async function postLendersConfigToServer(successText) {
 }
 
 /* =========================================================
-   ✅ (추가) 금융조건 수치 입력 UI 렌더 (min/max + avg 자동)
+   ✅ 금융조건 수치 입력 UI 렌더 (min/max + avg 자동)
 ========================================================= */
 function renderFinanceInputsBox(lender) {
   const box = document.createElement("div");
@@ -2093,7 +1902,6 @@ function renderFinanceInputsBox(lender) {
     h.textContent = metricTitle;
     col.appendChild(h);
 
-    // ✅ avg-only (기존 방식)도 유지할 수 있게 분기
     if (!enableMinMax) {
       const row = document.createElement("div");
       row.className = "finance-metric-row";
@@ -2135,70 +1943,38 @@ function renderFinanceInputsBox(lender) {
     const minInit = (finObj && finObj[keys.min] != null) ? String(finObj[keys.min]) : "";
     const maxInit = (finObj && finObj[keys.max] != null) ? String(finObj[keys.max]) : "";
 
-    const rowMin = document.createElement("div");
-    rowMin.className = "finance-metric-row finance-metric-row--minmax";
+    const makeRow = (labText, inputEl, readOnly) => {
+      const row = document.createElement("div");
+      row.className = "finance-metric-row finance-metric-row--minmax";
 
-    const labMin = document.createElement("span");
-    labMin.className = "lab";
-    labMin.textContent = "최소";
+      const lab = document.createElement("span");
+      lab.className = "lab";
+      lab.textContent = labText;
+
+      const unit = document.createElement("span");
+      unit.className = "unit";
+      unit.textContent = "%";
+
+      inputEl.type = "text";
+      inputEl.inputMode = "decimal";
+      inputEl.placeholder = readOnly ? "-" : "숫자입력";
+      inputEl.readOnly = !!readOnly;
+      inputEl.disabled = !!readOnly;
+
+      row.appendChild(lab);
+      row.appendChild(inputEl);
+      row.appendChild(unit);
+      return row;
+    };
 
     const inputMin = document.createElement("input");
-    inputMin.type = "text";
-    inputMin.inputMode = "decimal";
-    inputMin.placeholder = "숫자입력";
     inputMin.value = minInit;
 
-    const unitMin = document.createElement("span");
-    unitMin.className = "unit";
-    unitMin.textContent = "%";
-
-    rowMin.appendChild(labMin);
-    rowMin.appendChild(inputMin);
-    rowMin.appendChild(unitMin);
-
-    const rowMax = document.createElement("div");
-    rowMax.className = "finance-metric-row finance-metric-row--minmax";
-
-    const labMax = document.createElement("span");
-    labMax.className = "lab";
-    labMax.textContent = "최대";
-
     const inputMax = document.createElement("input");
-    inputMax.type = "text";
-    inputMax.inputMode = "decimal";
-    inputMax.placeholder = "숫자입력";
     inputMax.value = maxInit;
 
-    const unitMax = document.createElement("span");
-    unitMax.className = "unit";
-    unitMax.textContent = "%";
-
-    rowMax.appendChild(labMax);
-    rowMax.appendChild(inputMax);
-    rowMax.appendChild(unitMax);
-
-    const rowAvg = document.createElement("div");
-    rowAvg.className = "finance-metric-row finance-metric-row--minmax";
-
-    const labAvg = document.createElement("span");
-    labAvg.className = "lab";
-    labAvg.textContent = "평균";
-
     const inputAvg = document.createElement("input");
-    inputAvg.type = "text";
-    inputAvg.inputMode = "decimal";
-    inputAvg.placeholder = "-";
     inputAvg.value = computeAvgStr2(inputMin.value, inputMax.value);
-    inputAvg.readOnly = true;
-    inputAvg.disabled = true;
-
-    const unitAvg = document.createElement("span");
-    unitAvg.className = "unit";
-    unitAvg.textContent = "%";
-
-    rowAvg.appendChild(labAvg);
-    rowAvg.appendChild(inputAvg);
-    rowAvg.appendChild(unitAvg);
 
     const syncAndSave = (mode /* "input" | "blur" */) => {
       if (mode === "input") {
@@ -2215,7 +1991,6 @@ function renderFinanceInputsBox(lender) {
       const avgStr = computeAvgStr2(inputMin.value, inputMax.value);
       inputAvg.value = avgStr;
 
-      // ✅ 저장: min/max + avg(자동)까지 같이 저장
       patchFinancialInputs(lenderId, pgKey, {
         [keys.min]: inputMin.value,
         [keys.max]: inputMax.value,
@@ -2228,9 +2003,9 @@ function renderFinanceInputsBox(lender) {
     inputMin.addEventListener("blur", () => syncAndSave("blur"));
     inputMax.addEventListener("blur", () => syncAndSave("blur"));
 
-    col.appendChild(rowMin);
-    col.appendChild(rowMax);
-    col.appendChild(rowAvg);
+    col.appendChild(makeRow("최소", inputMin, false));
+    col.appendChild(makeRow("최대", inputMax, false));
+    col.appendChild(makeRow("평균", inputAvg, true));
 
     return col;
   };
@@ -2250,13 +2025,11 @@ function renderFinanceInputsBox(lender) {
     const grid = document.createElement("div");
     grid.className = "finance-metrics-grid";
 
-    // 금리: 부동산담보대출만 min/max + avg 자동, 그 외는 avg-only 유지
     const interestMinMax = (pgKey === "부동산담보대출");
     grid.appendChild(makeMinMaxAvgMetric(pgKey, lender.id, fin, "금리", {
       min: "interestMin", max: "interestMax", avg: "interestAvg"
     }, interestMinMax));
 
-    // ✅ 요청사항(1): 플랫폼수수료 / 중도상환수수료도 금리처럼 min/max + avg 자동
     grid.appendChild(makeMinMaxAvgMetric(pgKey, lender.id, fin, "플랫폼수수료", {
       min: "platformFeeMin", max: "platformFeeMax", avg: "platformFeeAvg"
     }, true));
@@ -2274,7 +2047,7 @@ function renderFinanceInputsBox(lender) {
 }
 
 /* =========================================================
-   ✅ 추가조건(선택) UI 렌더
+   ✅ 추가조건(선택) UI 렌더 (인라인 style 제거)
 ========================================================= */
 function renderExtraConditionsBox(lender) {
   const box = document.createElement("div");
@@ -2295,19 +2068,13 @@ function renderExtraConditionsBox(lender) {
 
   EXTRA_CONDITIONS.groups.forEach((g) => {
     const gTitle = document.createElement("div");
-    gTitle.style.marginTop = "10px";
-    gTitle.style.fontWeight = "900";
-    gTitle.style.fontSize = "13px";
-    gTitle.style.color = "#111827";
+    gTitle.className = "extra-group-title";
     gTitle.textContent = g.label;
     box.appendChild(gTitle);
 
     (g.sections || []).forEach((s) => {
       const sTitle = document.createElement("div");
-      sTitle.style.marginTop = "8px";
-      sTitle.style.fontWeight = "900";
-      sTitle.style.fontSize = "12px";
-      sTitle.style.color = "#374151";
+      sTitle.className = "extra-section-title";
       sTitle.textContent = `- ${s.label}`;
       box.appendChild(sTitle);
 
@@ -2514,7 +2281,7 @@ function renderLendersList() {
 
     const order = document.createElement("div");
     order.className = "lender-order";
-    order.style.display = lender.isPartner ? "flex" : "none";
+    order.classList.toggle("hide", !lender.isPartner);
     order.addEventListener("click", (e) => e.stopPropagation());
 
     const orderTitle = document.createElement("span");
@@ -2605,10 +2372,8 @@ function renderLendersList() {
     const hasRealEstate = Array.isArray(lender.products) && lender.products.includes("부동산담보대출");
 
     if (hasRealEstate) {
-      // ✅ 금융조건
       inner.appendChild(renderFinanceInputsBox(lender));
 
-      // ✅ (요청 3) 위치 교체: 매트릭스 먼저, 추가조건은 아래로
       const matrixBox = document.createElement("div");
       matrixBox.className = "admin-subbox";
 
@@ -2623,16 +2388,13 @@ function renderLendersList() {
       mHelp.className = "admin-subbox-help";
       mHelp.textContent = "지역 탭을 선택한 뒤, 부동산 유형별로 취급여부(칩) / LTV 최대(%) / (서울·경기) LTV Up / 취급 대출 종류를 설정하세요.";
 
-      // ✅ (요청 2) 최저/최대 대출금액
       const loanLimits = document.createElement("div");
       loanLimits.className = "admin-minloan";
       loanLimits.addEventListener("click", (e) => e.stopPropagation());
 
       const makeLimit = (labelText, valueInit, onInput) => {
         const wrap = document.createElement("div");
-        wrap.style.display = "flex";
-        wrap.style.gap = "8px";
-        wrap.style.alignItems = "center";
+        wrap.className = "admin-loanlimit-row";
 
         const lab = document.createElement("span");
         lab.className = "admin-minloan__label";
@@ -2658,18 +2420,12 @@ function renderLendersList() {
         return wrap;
       };
 
-      const minLimit = makeLimit("최저대출금액", lender.realEstateMinLoanAmount, (v) => {
+      loanLimits.appendChild(makeLimit("최저대출금액", lender.realEstateMinLoanAmount, (v) => {
         updateLenderState(lender.id, { realEstateMinLoanAmount: v });
-      });
-      const maxLimit = makeLimit("최대대출금액", lender.realEstateMaxLoanAmount, (v) => {
+      }));
+      loanLimits.appendChild(makeLimit("최대대출금액", lender.realEstateMaxLoanAmount, (v) => {
         updateLenderState(lender.id, { realEstateMaxLoanAmount: v });
-      });
-
-      loanLimits.style.display = "flex";
-      loanLimits.style.gap = "14px";
-      loanLimits.style.flexWrap = "wrap";
-      loanLimits.appendChild(minLimit);
-      loanLimits.appendChild(maxLimit);
+      }));
 
       helpRow.appendChild(mHelp);
       helpRow.appendChild(loanLimits);
@@ -2699,14 +2455,29 @@ function renderLendersList() {
       table.className = "admin-matrix";
 
       const thead = document.createElement("thead");
-      thead.innerHTML = `
-        <tr>
-          <th style="width:160px;">부동산 유형</th>
-          <th class="cell-center" style="width:110px;">취급</th>
-          <th style="width:420px;">LTV 최대(%)</th>
-          <th>취급 대출 종류</th>
-        </tr>
-      `;
+      const trh = document.createElement("tr");
+
+      const thType = document.createElement("th");
+      thType.className = "col-type";
+      thType.textContent = "부동산 유형";
+
+      const thOn = document.createElement("th");
+      thOn.className = "cell-center col-enabled";
+      thOn.textContent = "취급";
+
+      const thLtv = document.createElement("th");
+      thLtv.className = "col-ltv";
+      thLtv.textContent = "LTV 최대(%)";
+
+      const thLoans = document.createElement("th");
+      thLoans.className = "col-loans";
+      thLoans.textContent = "취급 대출 종류";
+
+      trh.appendChild(thType);
+      trh.appendChild(thOn);
+      trh.appendChild(thLtv);
+      trh.appendChild(thLoans);
+      thead.appendChild(trh);
       table.appendChild(thead);
 
       const tbody = document.createElement("tbody");
@@ -2739,7 +2510,6 @@ function renderLendersList() {
 
         tdEnable.appendChild(enableChip);
 
-        // ✅ LTV + LTV Up
         const tdLtv = document.createElement("td");
         const ltvWrap = document.createElement("div");
         ltvWrap.className = "admin-ltv-wrap";
@@ -2769,7 +2539,6 @@ function renderLendersList() {
 
         ltvWrap.appendChild(base);
 
-        // ✅ (요청 4) 서울/경기만 세부지역 LTV Up 표시
         const subList = SUBREGION_LTV_UP[activeRegion] || null;
         if (subList) {
           const upWrap = document.createElement("div");
@@ -2823,14 +2592,12 @@ function renderLendersList() {
 
         tdLtv.appendChild(ltvWrap);
 
-        // 대출종류
         const tdLoans = document.createElement("td");
         const loanRow = document.createElement("div");
         loanRow.className = "admin-chip-row admin-chip-row--tight";
 
         let loanTypes = (pt.loanSet === "aptv") ? LOAN_TYPES_APTVILLA : LOAN_TYPES_BASE;
 
-        // 토지(land)에서는 임대보증금반환대출 제외
         if (pt.key === "land") {
           loanTypes = loanTypes.filter(x => x.key !== "임대보증금반환대출");
         }
@@ -2862,7 +2629,7 @@ function renderLendersList() {
           loanRow.appendChild(label);
         });
 
-        if (!cell.enabled) loanRow.classList.add("is-disabled");
+        loanRow.classList.toggle("is-disabled", !cell.enabled);
 
         tdLoans.appendChild(loanRow);
 
@@ -2883,14 +2650,11 @@ function renderLendersList() {
 
       inner.appendChild(matrixBox);
 
-      // ✅ (요청 3) 추가조건을 매트릭스 아래로 이동
       inner.appendChild(renderExtraConditionsBox(lender));
     } else {
-      // (원본 동작 유지) 부동산담보대출이 아니면 금융조건만
       inner.appendChild(renderFinanceInputsBox(lender));
     }
 
-    // 상담 채널
     const contactBox = document.createElement("div");
     contactBox.className = "admin-subbox";
 
@@ -2941,7 +2705,6 @@ function renderLendersList() {
     contactBox.appendChild(contactGrid);
     inner.appendChild(contactBox);
 
-    // 저장 버튼
     const saveRow = document.createElement("div");
     saveRow.className = "lender-save-row";
     const saveBtn = document.createElement("button");
@@ -3020,8 +2783,6 @@ function setupLendersSaveButton() {
 
 /* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
-  ensureFinanceInputsStylesInjected();
-
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
@@ -3040,7 +2801,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadLendersConfigFromServer();
 
-  // 초기 month가 이미 선택되어 있으면 byLender 섹션 렌더
   const m = getCurrentMonthKey();
   if (m) {
     ensureMonthNode(m);
