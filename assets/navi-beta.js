@@ -252,6 +252,13 @@ function normalizeLenderRecord(raw) {
     l.realEstateConfig = deriveRealEstateConfigFromRegions(l.regions);
   }
 
+  // ✅ 추가조건(admin) 정규화
+  if (!Array.isArray(l.extraConditions)) {
+    if (Array.isArray(l.extraCondition)) l.extraConditions = l.extraCondition;
+    else if (Array.isArray(l.extraConditionIds)) l.extraConditions = l.extraConditionIds;
+    else l.extraConditions = [];
+  }
+
   return l;
 }
 
@@ -1320,13 +1327,13 @@ function filterLenders(applyExtras = false) {
       }
     }
 
-    // ✅ 추가조건(6-1) — 아직 admin 필드 매핑이 완벽하지 않아서
-    // 현재는 "기존 구조가 있을 때만" 제한적으로 적용 (추후 admin 스키마 확정 후 매핑 강화)
-    if (applyExtras) {
-      if (extra.creditBand) {
-        const bands = l.allowedCreditBands || [];
-        if (bands.length && !includesNorm(bands, extra.creditBand)) return false;
+  // ✅ 추가조건(6-1) — admin의 lender.extraConditions(string[])와 매칭
+    if (applyExtras && mainCategory === "부동산담보대출") {
+      const extraTokens = buildExtraTokensFromUser(extra);
+      if (extraTokens.length) {
+        if (!lenderMatchesExtraSelections(l, extraTokens)) return false;
       }
+    }
 
       if (extra.others && extra.others.length) {
         const blocked = l.blockedFlags || {};
@@ -1472,9 +1479,22 @@ function updateStepVisibility(primaryEligible) {
   // step6: step5가 보여질 때 같이 보여줌(미완료면 안내)
   setSectionVisible("navi-step6", isRE && Boolean(userState.realEstateLoanType));
 
-  // step6-1 / step7: 1차 결과 '가능'일 때만
+  // 6-1은 1차 결과 가능일 때만 열어줌
   setSectionVisible("navi-step6-1", Boolean(primaryEligible));
-  setSectionVisible("navi-step7", Boolean(primaryEligible));
+
+  // ✅ Step7(업체명 공개)는 6-1을 1개 이상 선택했을 때만
+  setSectionVisible("navi-step7", Boolean(primaryEligible && extraSelected));
+}
+
+function hasAnyExtraSelected() {
+  const e = userState.extra || {};
+  return Boolean(
+    e.incomeType ||
+    e.creditBand ||
+    e.repayPlan ||
+    e.needTiming ||
+    (Array.isArray(e.others) && e.others.length)
+  );
 }
 
 function resolveActiveStep(primaryEligible) {
@@ -1679,6 +1699,55 @@ function renderFinalResult() {
     alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
     return;
   }
+
+  // ------------------------------------------------------
+// Step6-1 추가조건(admin extraConditions) 매칭
+// ------------------------------------------------------
+
+function buildExtraTokensFromUser(extra) {
+  const tokens = [];
+  if (extra?.incomeType) tokens.push({ prefix: "incomeType", value: extra.incomeType });
+  if (extra?.creditBand) tokens.push({ prefix: "creditBand", value: extra.creditBand });
+  if (extra?.repayPlan) tokens.push({ prefix: "repayPlan", value: extra.repayPlan });
+  if (extra?.needTiming) tokens.push({ prefix: "needTiming", value: extra.needTiming });
+  (extra?.others || []).forEach((v) => tokens.push({ prefix: "etc", value: v }));
+  return tokens;
+}
+
+function extraTokenCandidates(prefix, value) {
+  const p = String(prefix || "");
+  const v = String(value || "");
+  // admin 저장 포맷이 약간 달라도 매칭되게 후보를 여러 개 둠
+  return [
+    `${p}:${v}`,
+    `${p}=${v}`,
+    `${p}_${v}`,
+    `${p}-${v}`,
+    v, // (혹시 admin이 값만 저장한 경우)
+  ].map(normKey);
+}
+
+function lenderExtraConditionSet(l) {
+  const arr = Array.isArray(l?.extraConditions) ? l.extraConditions : [];
+  return new Set(arr.map(normKey));
+}
+
+function lenderMatchesExtraSelections(l, extraTokens) {
+  if (!extraTokens || !extraTokens.length) return true; // 선택 안했으면 필터링 X
+
+  const set = lenderExtraConditionSet(l);
+
+  // ✅ 정책(엄격): 차주가 뭔가 선택했는데 admin이 extraConditions를 아예 안 넣었으면 "매칭 불가"
+  //    (만약 "미등록은 통과"로 하고 싶으면 -> 아래 줄을 `if (set.size === 0) return true;` 로 바꾸면 됨)
+  if (set.size === 0) return false;
+
+  for (const t of extraTokens) {
+    const cands = extraTokenCandidates(t.prefix, t.value);
+    const ok = cands.some((c) => set.has(c));
+    if (!ok) return false;
+  }
+  return true;
+}
 
   const matched = filterLenders(true);
 
