@@ -651,3 +651,194 @@
   color:#6b7280;
   font-size:13px;
 }
+
+/* =========================================================
+   (moved from admin-beta.js) Finance Inputs + Stats byLender + totals + LTV Up
+========================================================= */
+.finance-inputs-wrap { margin-top: 10px; }
+.finance-products { display: flex; flex-direction: column; gap: 10px; }
+.finance-product-title {
+  font-weight: 900;
+  font-size: 12px;
+  color: #111827;
+  margin: 2px 0 0;
+}
+.finance-metrics {
+  border: 2px solid #111;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  background: #fff;
+}
+.finance-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.finance-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.finance-metric-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  color: #111;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+.finance-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+.finance-metric-row .lab {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111;
+  white-space: nowrap;
+}
+.finance-metric-row input {
+  width: 120px;
+  max-width: 100%;
+  height: 40px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+  text-align: center;
+  background: #fff;
+}
+.finance-metric-row input:focus {
+  border-color: #111;
+  box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
+}
+.finance-metric-row .unit {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111;
+  white-space: nowrap;
+}
+
+/* min/max/avg 3줄 레이아웃 */
+.finance-metric-row--minmax { justify-content: center; }
+.finance-metric-row--minmax input { width: 120px; }
+
+@media (max-width: 520px) {
+  .finance-metric-title { font-size: 22px; }
+  .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
+  .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
+  .finance-metrics-grid { gap: 10px; }
+  .finance-metrics { padding: 12px; }
+}
+
+/* 온투 통계 - byLender 입력 UI */
+.stats-byLender-box { margin-top: 12px; }
+.stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
+.stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
+.stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.stats-byLender-tools input[type="text"]{
+  height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+  font-size: 13px; font-weight: 700;
+}
+.stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
+.stats-byLender-tableWrap{
+  margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
+}
+.stats-byLender-tableWrap .scroll{
+  max-height: 360px; overflow:auto;
+}
+.stats-byLender-table{
+  width:100%; border-collapse:separate; border-spacing:0;
+  min-width: 980px;
+}
+.stats-byLender-table th, .stats-byLender-table td{
+  border-bottom:1px solid #f3f4f6;
+  padding: 8px 10px;
+  font-size: 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.stats-byLender-table th{
+  position: sticky; top:0; z-index:2;
+  background:#f9fafb;
+  font-weight: 900;
+  color:#111827;
+}
+.stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
+  position: sticky; left:0; z-index:3;
+  background: #fff;
+  border-right:1px solid #f3f4f6;
+  min-width: 160px;
+  max-width: 220px;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.stats-byLender-table th:first-child{
+  background:#f9fafb;
+  z-index:4;
+}
+.stats-byLender-money{
+  width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+  font-size: 12px; font-weight: 800; text-align:right;
+}
+.stats-byLender-disabledNote{
+  margin-top:8px; font-size:12px; color:#6b7280;
+}
+
+/* 상품유형별 잔액 합계 행 */
+#productRows tr.stats-total-row td {
+  background: #f3f4f6;
+  font-weight: 900;
+}
+#productRows tr.stats-total-row input {
+  background: #f3f4f6;
+  font-weight: 900;
+  text-align: right;
+}
+
+/* (옵션) 상품유형별 기본 정렬 */
+#productRows .js-ratio,
+#productRows .js-amount {
+  text-align: right;
+}
+
+/* LTV Up UI (세부지역) */
+.admin-ltv-wrap { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+.admin-ltv-base { display:flex; gap:6px; align-items:center; }
+.admin-ltvup {
+  display:flex; align-items:center; gap:8px;
+  border-left: 2px solid #111;
+  padding-left: 10px;
+  margin-left: 2px;
+  flex-wrap:wrap;
+}
+.admin-ltvup__label {
+  font-weight: 900; font-size: 12px; color:#111;
+  white-space: nowrap;
+}
+.admin-ltvup__chiprow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.admin-ltvup__chip {
+  display:flex; gap:6px; align-items:center;
+  border:1px solid #e5e7eb; border-radius:999px;
+  padding: 6px 10px;
+  background:#fff;
+}
+.admin-ltvup__chip b { font-size: 12px; font-weight: 900; color:#111; }
+.admin-ltvup__chip input{
+  width: 64px; height: 30px;
+  border:1px solid #d1d5db; border-radius:10px;
+  padding:0 8px;
+  font-size: 12px; font-weight: 900;
+  text-align:center;
+}
+.admin-ltvup__chip span{ font-size: 12px; font-weight: 900; color:#111; }
+.admin-ltvup.is-disabled { opacity: 0.55; }
