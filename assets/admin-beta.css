@@ -536,12 +536,7 @@
 .cell-center{ text-align:center; }
 
 /* ✅ LTV 입력 + LTV Up (통합 정의) */
-.admin-ltv-wrap{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:nowrap; /* ✅ LTV 최대(%) 오른쪽에 LTV Up 고정 */
-}
+.admin-ltv-wrap{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;}
 .admin-ltv-base{
   display:flex;
   align-items:center;
@@ -552,36 +547,19 @@
   color:#6b7280;
 }
 
-.admin-ltvup{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex:1 1 auto;
-  min-width:0;
-  border-left:1px solid #e5e7eb;
-  padding-left:12px;
-  margin-left:0;
-}
-.admin-ltvup__label{
-  flex:0 0 auto;
-  font-size:12px;
-  font-weight:900;
-  color:#6b7280;
-  text-transform:lowercase;
-  line-height:1;
-}
+.admin-ltvup{display:flex;align-items:center;gap:8px;border-left:1px solid #e5e7eb;padding-left:12px;margin-left:2px;flex-wrap:wrap;}
+.admin-ltvup__label{display:none;}
 .admin-ltvup__chiprow{
-  flex:1 1 auto;
-  min-width:0;
   display:flex;
-  flex-wrap:wrap;
   gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
 }
 .admin-ltvup__chip{
-  display:inline-flex;
-  align-items:center;
+  display:flex;
   gap:6px;
-  border:1px solid #d1d5db;
+  align-items:center;
+  border:1px solid #e5e7eb;
   border-radius:999px;
   padding:6px 10px;
   background:#fff;
@@ -784,14 +762,7 @@
 }
 .admin-page #productRows .js-ratio,
 .admin-page #productRows .js-amount { text-align: right; }
-
-/* ✅ (반응형) 좁은 화면에서는 LTV Up을 아래로 내려서 깨짐 방지 */
-@media (max-width: 980px){
-  .admin-ltv-wrap{ flex-wrap:wrap; align-items:flex-start; }
-  .admin-ltvup{
-    width:100%;
-    border-left:none;
-    padding-left:0;
-    margin-left:0;
-  }
-}
+/* LTV header: show LTV Up label on the right */
+.ltv-th{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ltv-th__title{font-weight:900;}
+.ltv-th__up{font-size:12px;font-weight:900;color:#6b7280;}
