@@ -239,7 +239,192 @@ function setupMoneyInputs(root) {
 /* =========================================================
    ✅ (추가) 금융조건 수치 입력: 스타일 주입 + 유틸
 ========================================================= */
+function ensureFinanceInputsStylesInjected() {
+  if (document.getElementById("financeInputsStyles")) return;
 
+  const style = document.createElement("style");
+  style.id = "financeInputsStyles";
+  style.textContent = `
+    .finance-inputs-wrap { margin-top: 10px; }
+    .finance-products { display: flex; flex-direction: column; gap: 10px; }
+    .finance-product-title {
+      font-weight: 900;
+      font-size: 12px;
+      color: #111827;
+      margin: 2px 0 0;
+    }
+    .finance-metrics {
+      border: 2px solid #111;
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      background: #fff;
+    }
+    .finance-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    .finance-metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .finance-metric-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      color: #111;
+      line-height: 1.1;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .finance-metric-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      justify-content: center;
+    }
+    .finance-metric-row .lab {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+    .finance-metric-row input {
+      width: 120px;
+      max-width: 100%;
+      height: 40px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+      text-align: center;
+      background: #fff;
+    }
+    .finance-metric-row input:focus {
+      border-color: #111;
+      box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
+    }
+    .finance-metric-row .unit {
+      font-size: 18px;
+      font-weight: 900;
+      color: #111;
+      white-space: nowrap;
+    }
+
+    /* ✅ min/max/avg 3줄 레이아웃 */
+    .finance-metric-row--minmax { justify-content: center; }
+    .finance-metric-row--minmax input { width: 120px; }
+
+    @media (max-width: 520px) {
+      .finance-metric-title { font-size: 22px; }
+      .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
+      .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
+      .finance-metrics-grid { gap: 10px; }
+      .finance-metrics { padding: 12px; }
+    }
+
+    /* ✅ (추가) 온투 통계 - byLender 입력 UI */
+    .stats-byLender-box { margin-top: 12px; }
+    .stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
+    .stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
+    .stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .stats-byLender-tools input[type="text"]{
+      height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 13px; font-weight: 700;
+    }
+    .stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
+    .stats-byLender-tableWrap{
+      margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
+    }
+    .stats-byLender-tableWrap .scroll{
+      max-height: 360px; overflow:auto;
+    }
+    .stats-byLender-table{
+      width:100%; border-collapse:separate; border-spacing:0;
+      min-width: 980px;
+    }
+    .stats-byLender-table th, .stats-byLender-table td{
+      border-bottom:1px solid #f3f4f6;
+      padding: 8px 10px;
+      font-size: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .stats-byLender-table th{
+      position: sticky; top:0; z-index:2;
+      background:#f9fafb;
+      font-weight: 900;
+      color:#111827;
+    }
+    .stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
+      position: sticky; left:0; z-index:3;
+      background: #fff;
+      border-right:1px solid #f3f4f6;
+      min-width: 160px;
+      max-width: 220px;
+      overflow:hidden; text-overflow:ellipsis;
+    }
+    .stats-byLender-table th:first-child{
+      background:#f9fafb;
+      z-index:4;
+    }
+    .stats-byLender-money{
+      width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
+      font-size: 12px; font-weight: 800; text-align:right;
+    }
+    .stats-byLender-disabledNote{
+      margin-top:8px; font-size:12px; color:#6b7280;
+    }
+
+    /* ✅ (추가) 상품유형별 잔액 합계 행 */
+    #productRows tr.stats-total-row td {
+      background: #f3f4f6;
+      font-weight: 900;
+    }
+    #productRows tr.stats-total-row input {
+      background: #f3f4f6;
+      font-weight: 900;
+    }
+
+    /* ✅ (추가) LTV Up UI (세부지역) */
+    .admin-ltv-wrap { display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:center; }
+    .admin-ltv-base { display:flex; gap:6px; align-items:center; }
+    .admin-ltvup {
+      display:flex; align-items:center; gap:8px;
+      border-left: 1px solid #e5e7eb;
+      padding-left: 12px;
+      margin-left: 2px;
+      flex-wrap:wrap;
+    }
+    .admin-ltvup__label { display:none; }
+    .admin-ltvup__chiprow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .admin-ltvup__chip {
+      display:flex; gap:6px; align-items:center;
+      border:1px solid #e5e7eb; border-radius:999px;
+      padding: 6px 10px;
+      background:#fff;
+    }
+    .admin-ltvup__chip b { font-size: 12px; font-weight: 900; color:#111; }
+    .admin-ltvup__chip input{
+      width: 64px; height: 30px;
+      border:1px solid #d1d5db; border-radius:10px;
+      padding:0 8px;
+      font-size: 12px; font-weight: 900;
+      text-align:center;
+    }
+    .admin-ltvup__chip span{ font-size: 12px; font-weight: 900; color:#111; }
+    .admin-ltvup.is-disabled { opacity: 0.55; }
+  `;
+  document.head.appendChild(style);
+}
 
 function sanitizePercentString(v) {
   let s = String(v || "").replace(/[^0-9.]/g, "");
@@ -877,7 +1062,9 @@ function renderByLenderSection(monthKey) {
 
   // 헤더
   const thead = document.createElement("thead");
-  const trh = document.createElement("tr");
+  
+      const ltvHead = SUBREGION_LTV_UP[activeRegion] ? '<span class="ltv-th__up">LTV Up</span>' : "";
+const trh = document.createElement("tr");
 
   const th0 = document.createElement("th");
   th0.textContent = "업체";
@@ -1021,9 +1208,9 @@ function setupStatsInteractions() {
           ...serverStat,
           ui: {
             ...(statsRoot.byMonth[m]?.ui || {}),
-            useByLender: (typeof statsRoot.byMonth[m]?.ui?.useByLender === "boolean")
-              ? statsRoot.byMonth[m].ui.useByLender
-              : ((serverStat.byLender && Object.keys(serverStat.byLender).length > 0) ? true : false)
+            useByLender: (serverStat.byLender && Object.keys(serverStat.byLender).length > 0)
+              ? true
+              : (statsRoot.byMonth[m]?.ui?.useByLender || false)
           }
         };
         saveStatsToStorage();
@@ -1580,15 +1767,6 @@ function schedulePreviewUpdate() {
     _previewRAF = 0;
     updateLendersConfigPreview();
     scheduleLoanConfigBackupSave();
-
-    // ✅ lenders 변경이 byLender(업체별 입력) UI에 즉시 반영되도록(특히 '제휴/신규' 필터)
-    const mk = getCurrentMonthKey();
-    if (mk && document.getElementById("statsByLenderBox")) {
-      const onlyActive = !!document.getElementById("statsOnlyActive")?.checked;
-      if (onlyActive || isByLenderMode(mk)) {
-        renderByLenderSection(mk);
-      }
-    }
   });
 }
 
@@ -2119,13 +2297,19 @@ function renderExtraConditionsBox(lender) {
 
   EXTRA_CONDITIONS.groups.forEach((g) => {
     const gTitle = document.createElement("div");
-    gTitle.className = "extra-group-title";
+    gTitle.style.marginTop = "10px";
+    gTitle.style.fontWeight = "900";
+    gTitle.style.fontSize = "13px";
+    gTitle.style.color = "#111827";
     gTitle.textContent = g.label;
     box.appendChild(gTitle);
 
     (g.sections || []).forEach((s) => {
       const sTitle = document.createElement("div");
-      sTitle.className = "extra-section-title";
+      sTitle.style.marginTop = "8px";
+      sTitle.style.fontWeight = "900";
+      sTitle.style.fontSize = "12px";
+      sTitle.style.color = "#374151";
       sTitle.textContent = `- ${s.label}`;
       box.appendChild(sTitle);
 
@@ -2448,7 +2632,9 @@ function renderLendersList() {
 
       const makeLimit = (labelText, valueInit, onInput) => {
         const wrap = document.createElement("div");
-        wrap.className = "admin-loanlimit-item";
+        wrap.style.display = "flex";
+        wrap.style.gap = "8px";
+        wrap.style.alignItems = "center";
 
         const lab = document.createElement("span");
         lab.className = "admin-minloan__label";
@@ -2481,7 +2667,9 @@ function renderLendersList() {
         updateLenderState(lender.id, { realEstateMaxLoanAmount: v });
       });
 
-      loanLimits.classList.add("admin-loanlimits");
+      loanLimits.style.display = "flex";
+      loanLimits.style.gap = "14px";
+      loanLimits.style.flexWrap = "wrap";
       loanLimits.appendChild(minLimit);
       loanLimits.appendChild(maxLimit);
 
@@ -2517,7 +2705,7 @@ function renderLendersList() {
         <tr>
           <th style="width:160px;">부동산 유형</th>
           <th class="cell-center" style="width:110px;">취급</th>
-          <th style="width:420px;">LTV 최대(%)</th>
+          <th class="ltv-th" style="width:420px;"><span class="ltv-th__title">LTV 최대(%)</span>${ltvHead}</th>
           <th>취급 대출 종류</th>
         </tr>
       `;
@@ -2590,10 +2778,6 @@ function renderLendersList() {
           upWrap.className = "admin-ltvup";
           upWrap.classList.toggle("is-disabled", !cell.enabled);
 
-          const upLabel = document.createElement("span");
-          upLabel.className = "admin-ltvup__label";
-          upLabel.textContent = "ltv up";
-
           const chipRow = document.createElement("div");
           chipRow.className = "admin-ltvup__chiprow";
 
@@ -2630,7 +2814,6 @@ function renderLendersList() {
             chipRow.appendChild(chip);
           });
 
-          upWrap.appendChild(upLabel);
           upWrap.appendChild(chipRow);
           ltvWrap.appendChild(upWrap);
         }
@@ -2834,6 +3017,8 @@ function setupLendersSaveButton() {
 
 /* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
+  ensureFinanceInputsStylesInjected();
+
   setupBetaMenu();
   setupAdminTabs();
   setupMoneyInputs();
