@@ -537,10 +537,15 @@
 
 /* ✅ LTV 입력 + LTV Up (통합 정의) */
 .admin-ltv-wrap{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns: 118px 1fr;
+  column-gap:12px;
+  row-gap:6px;
+  align-items:start;
+}
+/* LTV Up이 없는 지역에서는 LTV 최대 입력이 가로 전체를 쓰도록 */
+.admin-ltv-wrap > .admin-ltv-base:only-child{
+  grid-column: 1 / -1;
 }
 .admin-ltv-base{
   display:flex;
@@ -552,19 +557,21 @@
   color:#6b7280;
 }
 
+/* LTV Up은 항상 LTV 최대(%) 오른쪽 영역(2열)에 고정 */
 .admin-ltvup{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:8px;
-  border-left: 2px solid #111;
-  padding-left: 10px;
-  margin-left: 2px;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 12px;
+  margin-left: 0;
   flex-wrap:wrap;
+  min-width:0;
 }
 .admin-ltvup__label{
   font-weight:900;
   font-size:12px;
-  color:#111;
+  color:#374151;
   white-space:nowrap;
 }
 .admin-ltvup__chiprow{
@@ -572,6 +579,7 @@
   gap:8px;
   flex-wrap:wrap;
   align-items:center;
+  min-width:0;
 }
 .admin-ltvup__chip{
   display:flex;
@@ -584,7 +592,7 @@
 }
 .admin-ltvup__chip b{ font-size:12px; font-weight:900; color:#111; }
 .admin-ltvup__chip input{
-  width:64px;
+  width:56px;
   height:30px;
   border:1px solid #d1d5db;
   border-radius:10px;
@@ -780,30 +788,3 @@
 }
 .admin-page #productRows .js-ratio,
 .admin-page #productRows .js-amount { text-align: right; }
-
-/* =========================================================
-   ✅ (추가) JS inline style → CSS로 이동
-========================================================= */
-.extra-group-title {
-  margin-top: 10px;
-  font-weight: 900;
-  font-size: 13px;
-  color: #111827;
-}
-.extra-section-title {
-  margin-top: 8px;
-  font-weight: 900;
-  font-size: 12px;
-  color: #374151;
-}
-.admin-loanlimits {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.admin-loanlimit-item {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
