@@ -488,174 +488,51 @@
   cursor:not-allowed;
 }
 
-/* =========================================================
-   ✅ 매트릭스(지역/유형/LTV/대출종류) — 이미지처럼
-========================================================= */
-table.admin-matrix {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  overflow: hidden;
+/* 지역 탭 + 매트릭스 */
+.admin-region-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0 12px;
+}
+.admin-region-tab{
+  padding:7px 10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#111827;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.admin-region-tab.is-active{
+  background:#111827;
+  border-color:#111827;
+  color:#fff;
 }
 
-table.admin-matrix thead th {
-  background: #fff;
-  color: #111827;
-  font-weight: 900;
-  font-size: 13px;
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
+.admin-matrix{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:hidden;
 }
-
-table.admin-matrix tbody td {
-  padding: 16px 12px;
-  border-bottom: 1px solid #eef2f7;
-  vertical-align: middle;
+.admin-matrix thead th{
+  padding:10px 10px;
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+  background:#f9fafb;
+  border-bottom:1px solid #e5e7eb;
 }
-
-table.admin-matrix tbody tr:last-child td {
-  border-bottom: none;
+.admin-matrix tbody td{
+  padding:10px 10px;
+  border-top:1px solid #f1f5f9;
+  vertical-align:middle;
+  font-size:12px;
 }
-
-.admin-th-underline {
-  display: inline-block;
-  padding-bottom: 2px;
-  border-bottom: 2px solid #111827;
-}
-
-.admin-muted {
-  color: #9ca3af;
-  font-weight: 800;
-}
-
-/* LTV 최대(%) 셀: input + % 정렬 */
-.admin-td-ltvmax .admin-ltv-base,
-.admin-td-ltvmax {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.admin-td-ltvmax input[type="number"],
-.admin-td-ltvmax input[type="text"] {
-  height: 36px;
-  width: 92px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.admin-td-ltvmax .pct,
-.admin-td-ltvmax .admin-ltv-pct {
-  color: #111827;
-  font-weight: 900;
-}
-
-/* LTV Up 셀(강남/서초/송파): 작은 네모 입력 + % */
-.admin-td-ltvup .admin-ltvup-cell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  align-items: center;
-}
-
-.admin-ltvup__chip,
-.admin-td-ltvup .admin-ltvup-cell > * {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.admin-td-ltvup b,
-.admin-ltvup__chip b,
-.admin-td-ltvup .label {
-  font-size: 12px;
-  font-weight: 900;
-  color: #6b7280;
-}
-
-.admin-td-ltvup input[type="number"],
-.admin-td-ltvup input[type="text"] {
-  width: 34px;
-  height: 30px;
-  border: 1px solid #9ca3af;
-  border-radius: 6px;
-  text-align: center;
-  padding: 0;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.admin-td-ltvup span,
-.admin-td-ltvup .unit {
-  font-size: 12px;
-  font-weight: 900;
-  color: #6b7280;
-}
-
-/* 취급 토글 버튼(알약) */
-.admin-chip-toggle {
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  font-weight: 900;
-  font-size: 13px;
-}
-
-.admin-chip-toggle.is-on,
-.admin-chip-toggle[aria-pressed="true"],
-.admin-chip-toggle[data-on="1"] {
-  background: #111827;
-  border-color: #111827;
-  color: #fff;
-}
-
-/* 취급 대출 종류 칩: 체크박스 숨기고 pill 버튼처럼 */
-.admin-chip-row--tight {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.admin-chip-check--tiny {
-  position: relative;
-  display: inline-flex;
-}
-
-.admin-chip-check--tiny input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.admin-chip-check--tiny span {
-  display: inline-flex;
-  align-items: center;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #111827;
-  font-size: 12px;
-  font-weight: 900;
-  user-select: none;
-}
-
-.admin-chip-check--tiny input:checked + span {
-  background: #111827;
-  border-color: #111827;
-  color: #fff;
-}
-
 .cell-center{ text-align:center; }
 
 /* ✅ LTV 입력 + LTV Up (통합 정의) */
@@ -903,73 +780,3 @@ table.admin-matrix tbody tr:last-child td {
 }
 .admin-page #productRows .js-ratio,
 .admin-page #productRows .js-amount { text-align: right; }
-}
-
-/* =========================================================
-   ✅ 금융조건 입력 — 크기/타이포/인풋 높이 톤 정리
-========================================================= */
-#lendersConfig .finance-metrics,
-.finance-metrics {
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px;
-  background: #fff;
-}
-
-#lendersConfig .finance-card,
-.finance-card {
-  border: 1px solid #eef2f7;
-  border-radius: 14px;
-  padding: 14px;
-  background: #fff;
-}
-
-#lendersConfig .finance-metric-title,
-.finance-metric-title {
-  font-size: 16px;
-  font-weight: 900;
-  margin: 0 0 10px;
-  letter-spacing: -0.2px;
-}
-
-#lendersConfig .finance-row,
-.finance-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  align-items: center;
-}
-
-#lendersConfig .finance-label,
-.finance-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: #374151;
-  min-width: 76px;
-}
-
-#lendersConfig input.finance-num,
-.finance-num {
-  height: 34px;
-  width: 92px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-#lendersConfig .finance-unit,
-.finance-unit {
-  font-size: 12px;
-  font-weight: 900;
-  color: #6b7280;
-}
-
-/* 섹션 전체 글자 크기도 과하게 크면 살짝 내리기 */
-#lendersConfig .finance-help,
-.finance-help {
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.45;
-}
