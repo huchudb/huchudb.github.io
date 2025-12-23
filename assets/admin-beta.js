@@ -3021,105 +3021,6 @@ function setupLendersSaveButton() {
   });
 }
 
-/* =========================================================
-   ✅ Lenders Matrix 레이아웃 정규화 (이미지처럼: LTV Up 컬럼 분리)
-========================================================= */
-function findLendersMatrixTable() {
-  const tables = Array.from(document.querySelectorAll("table"));
-  for (const t of tables) {
-    const ths = Array.from(t.querySelectorAll("thead th")).map((x) =>
-      (x.textContent || "").replace(/\s+/g, " ").trim()
-    );
-    // 헤더에 '부동산 유형' + 'LTV 최대'가 있으면 그 테이블을 매트릭스로 간주
-    const hasType = ths.some((s) => s.includes("부동산") && s.includes("유형"));
-    const hasLtvMax = ths.some((s) => s.includes("LTV") && s.includes("최대"));
-    if (hasType && hasLtvMax) return t;
-  }
-  return null;
-}
-
-function normalizeLendersMatrixLayout() {
-  const table = findLendersMatrixTable();
-  if (!table) return;
-
-  // 이미 처리했으면 종료
-  if (table.dataset.matrixNormalized === "1") return;
-
-  // 테이블 클래스 부여(=CSS 적용 타겟)
-  table.classList.add("admin-matrix");
-  table.dataset.matrixNormalized = "1";
-
-  const theadRow = table.querySelector("thead tr");
-  const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
-  if (!theadRow || bodyRows.length === 0) return;
-
-  const ths = Array.from(theadRow.querySelectorAll("th"));
-  const thTexts = ths.map((th) => (th.textContent || "").replace(/\s+/g, " ").trim());
-
-  const ltvMaxIdx = thTexts.findIndex((t) => t.includes("LTV") && t.includes("최대"));
-  if (ltvMaxIdx < 0) return;
-
-  // 이미 'LTV Up' 헤더가 있으면(=구조가 이미 분리돼있으면) 클래스만 적용하고 끝
-  const alreadyHasUp = thTexts.some((t) => t.replace(/\s+/g, "").includes("LTVUp"));
-  if (!alreadyHasUp) {
-    const upTh = document.createElement("th");
-    upTh.innerHTML = `<span class="admin-th-underline">LTV Up</span>`;
-    // LTV 최대 바로 뒤에 삽입
-    theadRow.insertBefore(upTh, ths[ltvMaxIdx].nextSibling);
-
-    // 폭(원하면 조정)
-    ths[ltvMaxIdx].style.width = ths[ltvMaxIdx].style.width || "220px";
-    upTh.style.width = "280px";
-  }
-
-  // 각 행에서 "LTV Up 래퍼"를 찾아서 새 TD로 분리
-  for (const tr of bodyRows) {
-    const tds = Array.from(tr.querySelectorAll("td"));
-    if (tds.length <= ltvMaxIdx) continue;
-
-    const ltvTd = tds[ltvMaxIdx];
-
-    // 다양한 구현을 고려해 후보 셀렉터 여러 개로 탐색
-    const upWrap =
-      ltvTd.querySelector(".admin-ltvup, .admin-ltv-up, .ltv-up, .ltvUpWrap, [data-role='ltv-up']") ||
-      // 텍스트 기반(강남/서초/송파가 들어있는 블록) 백업 탐색
-      Array.from(ltvTd.querySelectorAll("div, section, article")).find((el) => {
-        const s = (el.textContent || "").trim();
-        return s.includes("강남") || s.includes("서초") || s.includes("송파");
-      });
-
-    const newTd = document.createElement("td");
-    newTd.className = "admin-td-ltvup";
-
-    if (upWrap) {
-      // 기존 LTV TD에서 분리
-      upWrap.classList.add("admin-ltvup-cell");
-      newTd.appendChild(upWrap);
-    } else {
-      // LTV Up 대상이 없는 행은 비워둠
-      newTd.innerHTML = `<span class="admin-muted">-</span>`;
-    }
-
-    // LTV 최대 TD 바로 뒤에 삽입
-    tr.insertBefore(newTd, ltvTd.nextSibling);
-
-    // LTV 최대 셀은 "최대 input + %" 정렬을 위해 클래스만 부여(이미 있으면 그대로)
-    ltvTd.classList.add("admin-td-ltvmax");
-  }
-}
-
-function installMatrixLayoutObserver() {
-  // 최초 1회
-  try { normalizeLendersMatrixLayout(); } catch (e) {}
-
-  // 이후 렌더가 다시 일어나는 경우(탭 전환/재렌더/저장 후) 대비
-  const obs = new MutationObserver(() => {
-    try { normalizeLendersMatrixLayout(); } catch (e) {}
-  });
-  obs.observe(document.body, { childList: true, subtree: true });
-  window.__huchu_matrix_obs__ = obs;
-}
-
 /* ---------------- 초기화 ---------------- */
 document.addEventListener("DOMContentLoaded", () => {
   ensureFinanceInputsStylesInjected();
@@ -3141,8 +3042,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLendersSaveButton();
 
   loadLendersConfigFromServer();
-
-  installMatrixLayoutObserver();
 
   // 초기 month가 이미 선택되어 있으면 byLender 섹션 렌더
   const m = getCurrentMonthKey();
