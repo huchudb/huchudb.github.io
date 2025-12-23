@@ -154,7 +154,7 @@
   line-height:1.55;
 }
 
-/* ===== 추가: 부동산담보 섹션 안내문 우측 '최저대출금액' ===== */
+/* ===== 부동산담보 섹션 안내문 우측 '최저대출금액' ===== */
 .admin-subbox-headrow{
   display:flex;
   align-items:flex-start;
@@ -188,17 +188,20 @@
   color:#6b7280;
 }
 
-/* admin-mini-input이 파일에 없을 수도 있어서 안전하게 정의 */
+/* ✅ mini input (단일 정의로 통합) */
 .admin-mini-input{
   padding:8px 10px;
   border:1px solid #d1d5db;
   border-radius:10px;
   font-size:13px;
   background:#fff;
-}
-.admin-minloan__input{
   width:90px;
 }
+.admin-mini-input:disabled{
+  background:#f3f4f6;
+  color:#9ca3af;
+}
+.admin-minloan__input{ width:90px; }
 
 @media (max-width:600px){
   .admin-subbox-headrow{
@@ -255,23 +258,19 @@
 }
 
 /* =========================================================
-   ✅ 납작한 토글 버튼(칩) 스타일
+   납작한 토글 버튼(칩) 스타일
 ========================================================= */
 .admin-chip-row{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
 }
-
-/* label은 컨테이너 역할만 */
 .admin-chip-check{
   display:inline-flex;
   position:relative;
   cursor:pointer;
   user-select:none;
 }
-
-/* 체크박스는 시각적으로 숨김 (접근성 유지) */
 .admin-chip-check input{
   position:absolute;
   opacity:0;
@@ -279,8 +278,6 @@
   height:1px;
   pointer-events:none;
 }
-
-/* span을 “납작한 버튼”으로 */
 .admin-chip-check span{
   display:inline-flex;
   align-items:center;
@@ -294,33 +291,23 @@
   color:#374151;
   line-height:1;
 }
-
-/* ON */
 .admin-chip-check input:checked + span{
   background:var(--admin-primary);
   border-color:var(--admin-primary);
   color:#ffffff;
 }
-
-/* 포커스(키보드) */
 .admin-chip-check input:focus + span{
   outline:2px solid rgba(37,99,235,0.25);
   outline-offset:2px;
 }
-
-/* hover */
-.admin-chip-check:hover span{
-  background:#f3f4f6;
-}
+.admin-chip-check:hover span{ background:#f3f4f6; }
 .admin-chip-check:hover input:checked + span{
   background:var(--admin-primary-hover);
   border-color:var(--admin-primary-hover);
 }
 
-/* ✅ “대출종류”용 더 촘촘한 버전 */
-.admin-chip-row--tight{
-  gap:6px;
-}
+/* 대출종류 촘촘 */
+.admin-chip-row--tight{ gap:6px; }
 .admin-chip-check--tiny span{
   padding:6px 10px;
   border-radius:10px;
@@ -339,8 +326,6 @@
   font-weight:900;
   color:#374151;
 }
-
-/* iOS/크롬 공통 토글 */
 .admin-switch input[type="checkbox"]{
   appearance:none;
   width:42px;
@@ -382,8 +367,6 @@
   border:1px solid var(--admin-line);
   background:#ffffff;
 }
-
-/* ✅ 헤더: 한 줄 + 컴팩트 + 클릭으로 펼침 */
 .lender-head{
   width:100%;
   padding:10px 12px;
@@ -402,22 +385,17 @@
   letter-spacing:-0.01em;
   white-space:nowrap;
 }
-
 .lender-badges{
   display:inline-flex;
   align-items:center;
   gap:6px;
 }
-
 .lender-name-link{
   color:inherit;
   text-decoration:none;
 }
-.lender-name-link:hover{
-  text-decoration:underline;
-}
+.lender-name-link:hover{ text-decoration:underline; }
 
-/* 배지 */
 .lender-badge{
   display:inline-flex;
   align-items:center;
@@ -428,17 +406,10 @@
   border:1px solid rgba(0,0,0,0.06);
   white-space:nowrap;
 }
-.lender-badge--partner{
-  background:var(--admin-accent);
-  color:#111827;
-}
-.lender-badge--active{
-  background:var(--admin-good);
-  color:#ffffff;
-}
+.lender-badge--partner{ background:var(--admin-accent); color:#111827; }
+.lender-badge--active{ background:var(--admin-good); color:#ffffff; }
 .lender-badge.is-off{ opacity:0.35; }
 
-/* 헤더 스위치 묶음 */
 .lender-switches{
   display:flex;
   align-items:center;
@@ -469,13 +440,7 @@
   font-weight:900;
   color:#374151;
 }
-
-/* 순서 칩(원형) */
-.admin-order-chips{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
+.admin-order-chips{ display:flex; align-items:center; gap:6px; }
 .admin-order-chip{
   width:26px;
   height:26px;
@@ -488,9 +453,7 @@
   cursor:pointer;
   line-height:1;
 }
-.admin-order-chip:hover{
-  background:#f3f4f6;
-}
+.admin-order-chip:hover{ background:#f3f4f6; }
 .admin-order-chip.is-active{
   background:var(--admin-primary);
   border-color:var(--admin-primary);
@@ -498,15 +461,9 @@
 }
 
 /* 펼침 패널 */
-.lender-panel{
-  padding:0 0 16px;
-  background:#ffffff;
-}
+.lender-panel{ padding:0 0 16px; background:#ffffff; }
 .lender-panel.hide{ display:none; }
-
-.lender-panel__inner{
-  padding:16px 18px;
-}
+.lender-panel__inner{ padding:16px 18px; }
 
 /* 카드별 저장 */
 .lender-save-row{
@@ -531,9 +488,7 @@
   cursor:not-allowed;
 }
 
-/* --------------------------
-   ✅ (B) 지역 탭 + 매트릭스
--------------------------- */
+/* 지역 탭 + 매트릭스 */
 .admin-region-tabs{
   display:flex;
   flex-wrap:wrap;
@@ -580,27 +535,66 @@
 }
 .cell-center{ text-align:center; }
 
-/* LTV 입력 */
+/* ✅ LTV 입력 + LTV Up (통합 정의) */
 .admin-ltv-wrap{
   display:flex;
+  align-items:flex-start;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.admin-ltv-base{
+  display:flex;
   align-items:center;
-  gap:8px;
-}
-.admin-mini-input{
-  width:90px;
-  padding:8px 10px;
-  border:1px solid #d1d5db;
-  border-radius:10px;
-  font-size:13px;
-}
-.admin-mini-input:disabled{
-  background:#f3f4f6;
-  color:#9ca3af;
+  gap:6px;
 }
 .admin-ltv-pct{
   font-weight:900;
   color:#6b7280;
 }
+
+.admin-ltvup{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-left: 2px solid #111;
+  padding-left: 10px;
+  margin-left: 2px;
+  flex-wrap:wrap;
+}
+.admin-ltvup__label{
+  font-weight:900;
+  font-size:12px;
+  color:#111;
+  white-space:nowrap;
+}
+.admin-ltvup__chiprow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.admin-ltvup__chip{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  border:1px solid #e5e7eb;
+  border-radius:999px;
+  padding:6px 10px;
+  background:#fff;
+}
+.admin-ltvup__chip b{ font-size:12px; font-weight:900; color:#111; }
+.admin-ltvup__chip input{
+  width:64px;
+  height:30px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  padding:0 8px;
+  font-size:12px;
+  font-weight:900;
+  text-align:center;
+}
+.admin-ltvup__chip span{ font-size:12px; font-weight:900; color:#111; }
+.admin-ltvup.is-disabled{ opacity:0.55; }
 
 /* 취급 칩 토글 */
 .admin-chip-toggle{
@@ -622,27 +616,17 @@
   border-color:#111827;
   color:#fff;
 }
-
-.admin-chip-row.is-disabled{
-  opacity:0.45;
-}
+.admin-chip-row.is-disabled{ opacity:0.45; }
 
 /* 반응형 */
 @media (max-width:600px){
   .admin-page{ padding:0 14px; }
   .admin-field-grid{ grid-template-columns:1fr; }
-
-  /* 헤더는 모바일에서 줄바꿈 허용 */
-  .lender-head{
-    flex-wrap:wrap;
-    gap:8px;
-  }
-  .lender-switches{
-    margin-left:0;
-  }
+  .lender-head{ flex-wrap:wrap; gap:8px; }
+  .lender-switches{ margin-left:0; }
 }
 
-/* ===== 검색 결과 없음 ===== */
+/* 검색 결과 없음 */
 .admin-empty{
   padding:14px 12px;
   border:1px dashed #d1d5db;
@@ -653,36 +637,37 @@
 }
 
 /* =========================================================
-   (moved from admin-beta.js) Finance Inputs + Stats byLender + totals + LTV Up
+   ✅ (스코프 고정) Finance Inputs + Stats byLender + totals
+   - 기존 기능 유지, 관리자 밖으로 누수 방지
 ========================================================= */
-.finance-inputs-wrap { margin-top: 10px; }
-.finance-products { display: flex; flex-direction: column; gap: 10px; }
-.finance-product-title {
+.admin-page .finance-inputs-wrap { margin-top: 10px; }
+.admin-page .finance-products { display: flex; flex-direction: column; gap: 10px; }
+.admin-page .finance-product-title {
   font-weight: 900;
   font-size: 12px;
   color: #111827;
   margin: 2px 0 0;
 }
-.finance-metrics {
+.admin-page .finance-metrics {
   border: 2px solid #111;
   border-radius: 12px;
   padding: 14px 14px 12px;
   background: #fff;
 }
-.finance-metrics-grid {
+.admin-page .finance-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
 }
-.finance-metric {
+.admin-page .finance-metric {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
-.finance-metric-title {
+.admin-page .finance-metric-title {
   font-size: 28px;
   font-weight: 900;
   letter-spacing: -0.6px;
@@ -691,20 +676,21 @@
   text-align: center;
   white-space: nowrap;
 }
-.finance-metric-row {
+.admin-page .finance-metric-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
   justify-content: center;
 }
-.finance-metric-row .lab {
+.admin-page .finance-metric-row .lab,
+.admin-page .finance-metric-row .unit{
   font-size: 18px;
   font-weight: 900;
   color: #111;
   white-space: nowrap;
 }
-.finance-metric-row input {
+.admin-page .finance-metric-row input {
   width: 120px;
   max-width: 100%;
   height: 40px;
@@ -717,64 +703,57 @@
   text-align: center;
   background: #fff;
 }
-.finance-metric-row input:focus {
+.admin-page .finance-metric-row input:focus {
   border-color: #111;
   box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
 }
-.finance-metric-row .unit {
-  font-size: 18px;
-  font-weight: 900;
-  color: #111;
-  white-space: nowrap;
-}
-
-/* min/max/avg 3줄 레이아웃 */
-.finance-metric-row--minmax { justify-content: center; }
-.finance-metric-row--minmax input { width: 120px; }
+.admin-page .finance-metric-row--minmax { justify-content: center; }
+.admin-page .finance-metric-row--minmax input { width: 120px; }
 
 @media (max-width: 520px) {
-  .finance-metric-title { font-size: 22px; }
-  .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
-  .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
-  .finance-metrics-grid { gap: 10px; }
-  .finance-metrics { padding: 12px; }
+  .admin-page .finance-metric-title { font-size: 22px; }
+  .admin-page .finance-metric-row .lab,
+  .admin-page .finance-metric-row .unit { font-size: 16px; }
+  .admin-page .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
+  .admin-page .finance-metrics-grid { gap: 10px; }
+  .admin-page .finance-metrics { padding: 12px; }
 }
 
 /* 온투 통계 - byLender 입력 UI */
-.stats-byLender-box { margin-top: 12px; }
-.stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-.stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
-.stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
-.stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.stats-byLender-tools input[type="text"]{
+.admin-page .stats-byLender-box { margin-top: 12px; }
+.admin-page .stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.admin-page .stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
+.admin-page .stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
+.admin-page .stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.admin-page .stats-byLender-tools input[type="text"]{
   height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
   font-size: 13px; font-weight: 700;
 }
-.stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
-.stats-byLender-tableWrap{
+.admin-page .stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
+.admin-page .stats-byLender-tableWrap{
   margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
 }
-.stats-byLender-tableWrap .scroll{
-  max-height: 360px; overflow:auto;
-}
-.stats-byLender-table{
+.admin-page .stats-byLender-tableWrap .scroll{ max-height: 360px; overflow:auto; }
+.admin-page .stats-byLender-table{
   width:100%; border-collapse:separate; border-spacing:0;
   min-width: 980px;
 }
-.stats-byLender-table th, .stats-byLender-table td{
+.admin-page .stats-byLender-table th,
+.admin-page .stats-byLender-table td{
   border-bottom:1px solid #f3f4f6;
   padding: 8px 10px;
   font-size: 12px;
   vertical-align: middle;
   white-space: nowrap;
 }
-.stats-byLender-table th{
+.admin-page .stats-byLender-table th{
   position: sticky; top:0; z-index:2;
   background:#f9fafb;
   font-weight: 900;
   color:#111827;
 }
-.stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
+.admin-page .stats-byLender-table td:first-child,
+.admin-page .stats-byLender-table th:first-child{
   position: sticky; left:0; z-index:3;
   background: #fff;
   border-right:1px solid #f3f4f6;
@@ -782,63 +761,22 @@
   max-width: 220px;
   overflow:hidden; text-overflow:ellipsis;
 }
-.stats-byLender-table th:first-child{
-  background:#f9fafb;
-  z-index:4;
-}
-.stats-byLender-money{
+.admin-page .stats-byLender-table th:first-child{ background:#f9fafb; z-index:4; }
+.admin-page .stats-byLender-money{
   width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
   font-size: 12px; font-weight: 800; text-align:right;
 }
-.stats-byLender-disabledNote{
-  margin-top:8px; font-size:12px; color:#6b7280;
-}
+.admin-page .stats-byLender-disabledNote{ margin-top:8px; font-size:12px; color:#6b7280; }
 
 /* 상품유형별 잔액 합계 행 */
-#productRows tr.stats-total-row td {
+.admin-page #productRows tr.stats-total-row td {
   background: #f3f4f6;
   font-weight: 900;
 }
-#productRows tr.stats-total-row input {
+.admin-page #productRows tr.stats-total-row input {
   background: #f3f4f6;
   font-weight: 900;
   text-align: right;
 }
-
-/* (옵션) 상품유형별 기본 정렬 */
-#productRows .js-ratio,
-#productRows .js-amount {
-  text-align: right;
-}
-
-/* LTV Up UI (세부지역) */
-.admin-ltv-wrap { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-.admin-ltv-base { display:flex; gap:6px; align-items:center; }
-.admin-ltvup {
-  display:flex; align-items:center; gap:8px;
-  border-left: 2px solid #111;
-  padding-left: 10px;
-  margin-left: 2px;
-  flex-wrap:wrap;
-}
-.admin-ltvup__label {
-  font-weight: 900; font-size: 12px; color:#111;
-  white-space: nowrap;
-}
-.admin-ltvup__chiprow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.admin-ltvup__chip {
-  display:flex; gap:6px; align-items:center;
-  border:1px solid #e5e7eb; border-radius:999px;
-  padding: 6px 10px;
-  background:#fff;
-}
-.admin-ltvup__chip b { font-size: 12px; font-weight: 900; color:#111; }
-.admin-ltvup__chip input{
-  width: 64px; height: 30px;
-  border:1px solid #d1d5db; border-radius:10px;
-  padding:0 8px;
-  font-size: 12px; font-weight: 900;
-  text-align:center;
-}
-.admin-ltvup__chip span{ font-size: 12px; font-weight: 900; color:#111; }
-.admin-ltvup.is-disabled { opacity: 0.55; }
+.admin-page #productRows .js-ratio,
+.admin-page #productRows .js-amount { text-align: right; }
