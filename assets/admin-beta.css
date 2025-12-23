@@ -1,4 +1,4 @@
-/* /assets/admin-beta.css?v=20251223-clean1 */
+/* /assets/admin-beta.css?v=20251215-admin */
 /* =========================================================
    Huchu Admin (Beta) — 관리자 전용 CSS (B 스타일)
    - beta 공통 styles.css와 "충돌 최소화" 목적
@@ -26,8 +26,6 @@
   --admin-radius:16px;
 }
 
-.hide{ display:none !important; }
-
 /* 전체 구조 */
 .admin-page{
   max-width:1200px;
@@ -51,42 +49,6 @@
   color:var(--admin-muted);
   line-height:1.55;
 }
-
-/* 베타 메뉴(최소) */
-.beta-menu{
-  display:flex;
-  justify-content:flex-end;
-  margin-bottom:10px;
-}
-.beta-menu-toggle{
-  border:1px solid var(--admin-line);
-  background:#fff;
-  border-radius:999px;
-  padding:8px 12px;
-  font-weight:900;
-  cursor:pointer;
-}
-.beta-menu-panel{
-  position:absolute;
-  margin-top:44px;
-  right:20px;
-  background:#fff;
-  border:1px solid var(--admin-line);
-  border-radius:14px;
-  padding:10px;
-  min-width:180px;
-  box-shadow:0 10px 20px rgba(15,23,42,0.10);
-}
-.beta-menu-panel a{
-  display:block;
-  padding:8px 10px;
-  border-radius:10px;
-  color:#111827;
-  text-decoration:none;
-  font-weight:800;
-  font-size:13px;
-}
-.beta-menu-panel a:hover{ background:var(--admin-soft); }
 
 /* 탭 버튼 */
 .admin-tabs{
@@ -116,6 +78,9 @@
   border-color:var(--admin-primary);
   color:#ffffff;
 }
+
+/* 패널 숨김 */
+.admin-tab-panel.hide{ display:none; }
 
 /* 공통 카드 */
 .admin-card{
@@ -189,7 +154,7 @@
   line-height:1.55;
 }
 
-/* 안내문 + 우측 최소/최대 */
+/* ===== 추가: 부동산담보 섹션 안내문 우측 '최저대출금액' ===== */
 .admin-subbox-headrow{
   display:flex;
   align-items:flex-start;
@@ -201,23 +166,16 @@
   flex:1;
 }
 
-/* 최저/최대 대출금액 */
 .admin-minloan{
   display:flex;
   align-items:center;
-  gap:14px;
+  gap:8px;
   padding:8px 10px;
   border:1px solid var(--admin-line);
   background:#ffffff;
   border-radius:12px;
   white-space:nowrap;
   box-shadow:0 2px 6px rgba(15,23,42,0.04);
-  flex-wrap:wrap;
-}
-.admin-loanlimit-row{
-  display:flex;
-  gap:8px;
-  align-items:center;
 }
 .admin-minloan__label{
   font-size:12px;
@@ -230,7 +188,7 @@
   color:#6b7280;
 }
 
-/* 숫자 작은 인풋 */
+/* admin-mini-input이 파일에 없을 수도 있어서 안전하게 정의 */
 .admin-mini-input{
   padding:8px 10px;
   border:1px solid #d1d5db;
@@ -238,7 +196,9 @@
   font-size:13px;
   background:#fff;
 }
-.admin-minloan__input{ width:90px; }
+.admin-minloan__input{
+  width:90px;
+}
 
 @media (max-width:600px){
   .admin-subbox-headrow{
@@ -302,12 +262,16 @@
   flex-wrap:wrap;
   gap:8px;
 }
+
+/* label은 컨테이너 역할만 */
 .admin-chip-check{
   display:inline-flex;
   position:relative;
   cursor:pointer;
   user-select:none;
 }
+
+/* 체크박스는 시각적으로 숨김 (접근성 유지) */
 .admin-chip-check input{
   position:absolute;
   opacity:0;
@@ -315,6 +279,8 @@
   height:1px;
   pointer-events:none;
 }
+
+/* span을 “납작한 버튼”으로 */
 .admin-chip-check span{
   display:inline-flex;
   align-items:center;
@@ -328,50 +294,53 @@
   color:#374151;
   line-height:1;
 }
+
+/* ON */
 .admin-chip-check input:checked + span{
   background:var(--admin-primary);
   border-color:var(--admin-primary);
   color:#ffffff;
 }
+
+/* 포커스(키보드) */
 .admin-chip-check input:focus + span{
   outline:2px solid rgba(37,99,235,0.25);
   outline-offset:2px;
 }
-.admin-chip-check:hover span{ background:#f3f4f6; }
+
+/* hover */
+.admin-chip-check:hover span{
+  background:#f3f4f6;
+}
 .admin-chip-check:hover input:checked + span{
   background:var(--admin-primary-hover);
   border-color:var(--admin-primary-hover);
 }
 
-/* 대출종류 타이트 */
-.admin-chip-row--tight{ gap:6px; }
+/* ✅ “대출종류”용 더 촘촘한 버전 */
+.admin-chip-row--tight{
+  gap:6px;
+}
 .admin-chip-check--tiny span{
   padding:6px 10px;
   border-radius:10px;
   font-size:11px;
 }
-.admin-chip-row.is-disabled{
-  opacity:0.55;
-  pointer-events:none;
-}
-
-/* 취급 토글 칩 */
-.admin-chip-toggle{
-  border:1px solid var(--admin-line);
-  border-radius:999px;
-  padding:6px 10px;
-  font-size:12px;
-  font-weight:900;
-  background:#fff;
-  cursor:pointer;
-}
-.admin-chip-toggle.is-on{
-  background:var(--admin-primary);
-  border-color:var(--admin-primary);
-  color:#fff;
-}
 
 /* 스위치 */
+.admin-switch-field{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.admin-switch-label{
+  font-size:13px;
+  font-weight:900;
+  color:#374151;
+}
+
+/* iOS/크롬 공통 토글 */
 .admin-switch input[type="checkbox"]{
   appearance:none;
   width:42px;
@@ -413,6 +382,8 @@
   border:1px solid var(--admin-line);
   background:#ffffff;
 }
+
+/* ✅ 헤더: 한 줄 + 컴팩트 + 클릭으로 펼침 */
 .lender-head{
   width:100%;
   padding:10px 12px;
@@ -423,6 +394,7 @@
   cursor:pointer;
 }
 .lender-head:hover{ background:#eaeef3; }
+
 .lender-name{
   font-size:14px;
   font-weight:900;
@@ -430,17 +402,22 @@
   letter-spacing:-0.01em;
   white-space:nowrap;
 }
+
 .lender-badges{
   display:inline-flex;
   align-items:center;
   gap:6px;
 }
+
 .lender-name-link{
   color:inherit;
   text-decoration:none;
 }
-.lender-name-link:hover{ text-decoration:underline; }
+.lender-name-link:hover{
+  text-decoration:underline;
+}
 
+/* 배지 */
 .lender-badge{
   display:inline-flex;
   align-items:center;
@@ -461,6 +438,7 @@
 }
 .lender-badge.is-off{ opacity:0.35; }
 
+/* 헤더 스위치 묶음 */
 .lender-switches{
   display:flex;
   align-items:center;
@@ -479,6 +457,7 @@
   color:#374151;
 }
 
+/* 제휴 순서 */
 .lender-order{
   display:flex;
   align-items:center;
@@ -491,6 +470,7 @@
   color:#374151;
 }
 
+/* 순서 칩(원형) */
 .admin-order-chips{
   display:flex;
   align-items:center;
@@ -508,7 +488,9 @@
   cursor:pointer;
   line-height:1;
 }
-.admin-order-chip:hover{ background:#f3f4f6; }
+.admin-order-chip:hover{
+  background:#f3f4f6;
+}
 .admin-order-chip.is-active{
   background:var(--admin-primary);
   border-color:var(--admin-primary);
@@ -516,8 +498,15 @@
 }
 
 /* 펼침 패널 */
-.lender-panel{ padding:0 0 16px; background:#ffffff; }
-.lender-panel__inner{ padding:16px 18px; }
+.lender-panel{
+  padding:0 0 16px;
+  background:#ffffff;
+}
+.lender-panel.hide{ display:none; }
+
+.lender-panel__inner{
+  padding:16px 18px;
+}
 
 /* 카드별 저장 */
 .lender-save-row{
@@ -543,7 +532,7 @@
 }
 
 /* --------------------------
-   ✅ 지역 탭 + 매트릭스
+   ✅ (B) 지역 탭 + 매트릭스
 -------------------------- */
 .admin-region-tabs{
   display:flex;
@@ -590,221 +579,75 @@
   font-size:12px;
 }
 .cell-center{ text-align:center; }
-.col-type{ width:160px; }
-.col-enabled{ width:110px; }
-.col-ltv{ width:420px; }
-.col-loans{ width:auto; }
 
-/* LTV 입력 + LTV Up */
-.admin-ltv-wrap{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-.admin-ltv-base{ display:flex; gap:6px; align-items:center; }
-.admin-ltv-pct{ font-weight:900; color:#111; }
-
-.admin-ltvup{
-  display:flex; align-items:center; gap:8px;
-  border-left:2px solid #111;
-  padding-left:10px;
-  margin-left:2px;
-  flex-wrap:wrap;
+/* LTV 입력 */
+.admin-ltv-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
-.admin-ltvup__label{
-  font-weight:900; font-size:12px; color:#111;
-  white-space:nowrap;
+.admin-mini-input{
+  width:90px;
+  padding:8px 10px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-size:13px;
 }
-.admin-ltvup__chiprow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.admin-ltvup__chip{
-  display:flex; gap:6px; align-items:center;
-  border:1px solid #e5e7eb; border-radius:999px;
-  padding:6px 10px;
-  background:#fff;
+.admin-mini-input:disabled{
+  background:#f3f4f6;
+  color:#9ca3af;
 }
-.admin-ltvup__chip b{ font-size:12px; font-weight:900; color:#111; }
-.admin-ltvup__chip input{
-  width:64px; height:30px;
-  border:1px solid #d1d5db; border-radius:10px;
-  padding:0 8px;
-  font-size:12px; font-weight:900;
-  text-align:center;
-}
-.admin-ltvup__chip span{ font-size:12px; font-weight:900; color:#111; }
-.admin-ltvup.is-disabled{ opacity:0.55; }
-
-/* ===============================
-   ✅ JS에서 이관: Finance Inputs UI
-=============================== */
-.finance-inputs-wrap { margin-top: 10px; }
-.finance-products { display: flex; flex-direction: column; gap: 10px; }
-.finance-product-title {
-  font-weight: 900;
-  font-size: 12px;
-  color: #111827;
-  margin: 2px 0 0;
-}
-.finance-metrics {
-  border: 2px solid #111;
-  border-radius: 12px;
-  padding: 14px 14px 12px;
-  background: #fff;
-}
-.finance-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
-}
-.finance-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.finance-metric-title {
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: -0.6px;
-  color: #111;
-  line-height: 1.1;
-  text-align: center;
-  white-space: nowrap;
-}
-.finance-metric-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-.finance-metric-row .lab {
-  font-size: 18px;
-  font-weight: 900;
-  color: #111;
-  white-space: nowrap;
-}
-.finance-metric-row input {
-  width: 120px;
-  max-width: 100%;
-  height: 40px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 0 12px;
-  font-size: 16px;
-  font-weight: 800;
-  outline: none;
-  text-align: center;
-  background: #fff;
-}
-.finance-metric-row input:focus {
-  border-color: #111;
-  box-shadow: 0 0 0 3px rgba(17,17,17,0.08);
-}
-.finance-metric-row .unit {
-  font-size: 18px;
-  font-weight: 900;
-  color: #111;
-  white-space: nowrap;
-}
-.finance-metric-row--minmax { justify-content: center; }
-.finance-metric-row--minmax input { width: 120px; }
-
-@media (max-width: 520px) {
-  .finance-metric-title { font-size: 22px; }
-  .finance-metric-row .lab, .finance-metric-row .unit { font-size: 16px; }
-  .finance-metric-row input { width: 96px; height: 38px; font-size: 15px; }
-  .finance-metrics-grid { gap: 10px; }
-  .finance-metrics { padding: 12px; }
-}
-
-/* ===============================
-   ✅ JS에서 이관: Stats byLender UI
-=============================== */
-.stats-byLender-box { margin-top: 12px; }
-.stats-byLender-head { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-.stats-byLender-title { font-weight: 900; font-size: 13px; color:#111827; }
-.stats-byLender-help { margin:6px 0 0; font-size:12px; color:#4b5563; line-height:1.4; }
-.stats-byLender-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.stats-byLender-tools input[type="text"]{
-  height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
-  font-size: 13px; font-weight: 700;
-}
-.stats-byLender-tools label{ display:flex; gap:6px; align-items:center; font-size:12px; font-weight:800; color:#111; }
-.stats-byLender-tableWrap{
-  margin-top:10px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;
-}
-.stats-byLender-tableWrap .scroll{ max-height: 360px; overflow:auto; }
-.stats-byLender-table{
-  width:100%; border-collapse:separate; border-spacing:0;
-  min-width: 980px;
-}
-.stats-byLender-table th, .stats-byLender-table td{
-  border-bottom:1px solid #f3f4f6;
-  padding: 8px 10px;
-  font-size: 12px;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.stats-byLender-table th{
-  position: sticky; top:0; z-index:2;
-  background:#f9fafb;
-  font-weight: 900;
-  color:#111827;
-}
-.stats-byLender-table td:first-child, .stats-byLender-table th:first-child{
-  position: sticky; left:0; z-index:3;
-  background: #fff;
-  border-right:1px solid #f3f4f6;
-  min-width: 160px;
-  max-width: 220px;
-  overflow:hidden; text-overflow:ellipsis;
-}
-.stats-byLender-table th:first-child{
-  background:#f9fafb;
-  z-index:4;
-}
-.stats-byLender-money{
-  width: 132px; height: 34px; border:1px solid #d1d5db; border-radius:10px; padding:0 10px;
-  font-size: 12px; font-weight: 800; text-align:right;
-}
-.stats-byLender-disabledNote{
-  margin-top:8px; font-size:12px; color:#6b7280;
-  opacity:0.65;
-}
-.stats-byLender-disabledNote.is-strong{ opacity:1; }
-
-/* 상품유형별 잔액 합계 행 */
-#productRows tr.stats-total-row td { background: #f3f4f6; font-weight: 900; }
-#productRows tr.stats-total-row input { background: #f3f4f6; font-weight: 900; }
-
-.admin-input-right{ text-align:right; }
-
-/* 빈 메시지/안내(인라인 style 제거) */
-.admin-inline-note{
-  padding:10px;
-  font-size:12px;
+.admin-ltv-pct{
+  font-weight:900;
   color:#6b7280;
 }
 
-/* ExtraConditions 제목(인라인 style 제거) */
-.extra-group-title{
-  margin-top:10px;
-  font-weight:900;
-  font-size:13px;
+/* 취급 칩 토글 */
+.admin-chip-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#fff;
   color:#111827;
-}
-.extra-section-title{
-  margin-top:8px;
-  font-weight:900;
   font-size:12px;
-  color:#374151;
+  font-weight:900;
+  cursor:pointer;
+  min-width:76px;
+}
+.admin-chip-toggle.is-on{
+  background:#111827;
+  border-color:#111827;
+  color:#fff;
 }
 
-/* 기타 */
+.admin-chip-row.is-disabled{
+  opacity:0.45;
+}
+
+/* 반응형 */
+@media (max-width:600px){
+  .admin-page{ padding:0 14px; }
+  .admin-field-grid{ grid-template-columns:1fr; }
+
+  /* 헤더는 모바일에서 줄바꿈 허용 */
+  .lender-head{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .lender-switches{
+    margin-left:0;
+  }
+}
+
+/* ===== 검색 결과 없음 ===== */
 .admin-empty{
-  padding:10px 12px;
-  border:1px dashed #e5e7eb;
+  padding:14px 12px;
+  border:1px dashed #d1d5db;
   border-radius:12px;
-  background:#fff;
+  background:#fafafa;
   color:#6b7280;
   font-size:13px;
-  font-weight:800;
 }
