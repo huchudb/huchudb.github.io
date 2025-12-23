@@ -1386,6 +1386,9 @@ const SUBREGION_LTV_UP = {
     { key: "bundang", label: "분당" },
     { key: "hanam", label: "하남" },
     { key: "ilsan", label: "일산" }
+  ],
+  incheon: [
+    { key: "songdo", label: "송도" },
   ]
 };
 /* =========================================================
