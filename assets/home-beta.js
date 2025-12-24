@@ -173,6 +173,130 @@ const DEFAULT_ONTU_STATS = {
 
 // ───────── API 베이스 ─────────
 const API_BASE  = "https://huchudb-github-io.vercel.app";
+
+/* =========================================================
+   ✅ Navi stats widget (beta): /api/navi-stats
+========================================================= */
+const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
+
+function escapeHtml(input){
+  const s = String(input ?? "");
+  return s.replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+}
+
+function formatNumber(n){
+  const v = Number(n) || 0;
+  try { return v.toLocaleString("ko-KR"); } catch { return String(v); }
+}
+
+function getKstMonthKey(d = new Date()) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit" }).format(d); // YYYY-MM
+  } catch {
+    const tzOffsetMs = 9 * 60 * 60 * 1000;
+    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 7);
+  }
+}
+
+function formatMonthLabel(monthKey) {
+  const [y, m] = String(monthKey || "").split("-");
+  const mm = String(Number(m || "0"));
+  if (!y || !m) return "";
+  return `${y}년 ${mm}월`;
+}
+
+const NAVI_REGION_LABEL = {
+  seoul: "서울",
+  gyeonggi: "경기",
+  incheon: "인천",
+  chungcheong: "충청",
+  jeolla: "전라",
+  gyeongsang: "경상",
+  gangwon: "강원",
+  jeju: "제주",
+};
+
+function naviAmountBucketLabel(bucketKey) {
+  switch (bucketKey) {
+    case "0_3000": return "0~3,000만원";
+    case "3000_5000": return "3,000~5,000만원";
+    case "5000_10000": return "5,000~1억원";
+    case "10000_20000": return "1~2억원";
+    case "20000_30000": return "2~3억원";
+    case "30000_50000": return "3~5억원";
+    case "50000_plus": return "5억원 이상";
+    default: return "기타";
+  }
+}
+
+function topNFromMap(mapObj, n = 3) {
+  const arr = Object.entries(mapObj || {}).map(([k, v]) => [k, Number(v) || 0]).filter(([, v]) => v > 0);
+  arr.sort((a, b) => b[1] - a[1]);
+  return arr.slice(0, n);
+}
+
+async function fetchNaviStats(monthKey) {
+  const mk = monthKey || getKstMonthKey();
+  const url = `${NAVI_STATS_ENDPOINT}?month=${encodeURIComponent(mk)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`navi-stats ${res.status}`);
+  return await res.json();
+}
+
+function renderNaviStatsWidget(payload) {
+  const mount = document.getElementById("naviStatsMount");
+  if (!mount) return;
+
+  const monthKey = payload?.monthKey || getKstMonthKey();
+  const monthLabel = formatMonthLabel(monthKey);
+
+  const regionsTop = topNFromMap(payload?.regions, 3).map(([k, v]) => ({ label: NAVI_REGION_LABEL[k] || k, count: v }));
+  const loanTop = topNFromMap(payload?.loanTypes, 3).map(([k, v]) => ({ label: k, count: v }));
+  const amountTop = topNFromMap(payload?.amountBuckets, 3).map(([k, v]) => ({ label: naviAmountBucketLabel(k), count: v }));
+
+  const renderList = (items) => {
+    if (!items || items.length === 0) return `<div class="navi-stats-empty">아직 집계된 데이터가 없습니다.</div>`;
+    return `<ol class="navi-stats-list">${items.map(x => `<li><b>${escapeHtml(x.label)}</b> <span class="navi-stats-count">${formatNumber(x.count)}</span></li>`).join("")}</ol>`;
+  };
+
+  mount.innerHTML = `
+    <div class="navi-stats-card">
+      <div class="navi-stats-head">
+        <div class="navi-stats-title">후추 네비게이션 이용 통계</div>
+        <div class="navi-stats-month">${escapeHtml(monthLabel)}</div>
+      </div>
+      <div class="navi-stats-grid">
+        <div class="navi-stats-col">
+          <h4>지역 TOP3</h4>
+          ${renderList(regionsTop)}
+        </div>
+        <div class="navi-stats-col">
+          <h4>대출종류 TOP3</h4>
+          ${renderList(loanTop)}
+        </div>
+        <div class="navi-stats-col">
+          <h4>필요금액 TOP3</h4>
+          ${renderList(amountTop)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function initNaviStatsWidget() {
+  const mount = document.getElementById("naviStatsMount");
+  if (!mount) return;
+
+  const monthKey = getKstMonthKey();
+  try {
+    const data = await fetchNaviStats(monthKey);
+    renderNaviStatsWidget(data);
+  } catch (e) {
+    console.warn("navi-stats widget failed:", e);
+    renderNaviStatsWidget({ monthKey, regions: {}, loanTypes: {}, amountBuckets: {} });
+  }
+}
+
 const ONTU_API  = `${API_BASE}/api/ontu-stats`;
 
 // ───────── 온투업 통계 가져오기 ─────────
@@ -488,6 +612,8 @@ function setupBetaMenu() {
 
 // DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
+  initNaviStatsWidget();
+
   initOntuStats();
   setupBetaMenu();
 
