@@ -1,3 +1,64 @@
+/* =========================================================
+   ✅ Navi stats (beta): /api/navi-stats
+   - 저장 시점: Step5 완료 후 '결과 확인하기' 버튼 클릭
+========================================================= */
+const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
+
+function getKstDateKey(d = new Date()) {
+  // YYYY-MM-DD (KST)
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  } catch {
+    const tzOffsetMs = 9 * 60 * 60 * 1000;
+    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 10);
+  }
+}
+
+async function postNaviStatsOncePerClick(payload) {
+  try {
+    await fetch(NAVI_STATS_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    });
+  } catch (e) {
+    // 통계 저장 실패는 UX를 막지 않음
+    console.warn("navi-stats post failed:", e);
+  }
+}
+
+function setStep6Visible(isOn) {
+  const sec6 = document.getElementById("navi-step6");
+  if (sec6) sec6.classList.toggle("hide", !isOn);
+}
+
+function setStep6_1Visible(isOn) {
+  const sec61 = document.getElementById("navi-step6-1");
+  if (sec61) sec61.classList.toggle("hide", !isOn);
+}
+
+function setConfirmUIState() {
+  const btn = document.getElementById("naviConfirmBtn");
+  const hint = document.getElementById("naviConfirmHint");
+  if (!btn) return;
+
+  const ready = step5Complete(uiState);
+  btn.disabled = !ready;
+
+  if (hint) {
+    if (!ready) hint.textContent = "필수 입력을 완료하면 활성화됩니다.";
+    else if (!uiState.confirmed) hint.textContent = "버튼을 누르면 계산 결과가 표시되고 1회 저장됩니다.";
+    else hint.textContent = "입력값이 변경되면 다시 확인이 필요합니다.";
+  }
+}
+
+function invalidateConfirmed() {
+  if (!uiState.confirmed) return;
+  uiState.confirmed = false;
+  setStep6Visible(false);
+  setStep6_1Visible(false);
+  setConfirmUIState();
+}
 // /assets/navi-beta.js  (후추 네비게이션 – 베타용)
 // NOTE: stepper/단계 노출 제어 + Step6 1차 결과(업체명 비공개) + Step7 3컬럼(금리/플랫폼/중도상환) 렌더
 
@@ -391,6 +452,7 @@ async function loadNaviLoanConfig() {
 // ------------------------------------------------------
 
 const uiState = {
+  confirmed: false,
   hasRenderedResult: false,
 };
 
@@ -988,6 +1050,38 @@ function setupStep4() {
 
 function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
+
+  const confirmBtn = $("#naviConfirmBtn");
+  if (confirmBtn && !confirmBtn.__bound) {
+    confirmBtn.__bound = true;
+    confirmBtn.addEventListener("click", async () => {
+      if (!step5Complete(uiState)) {
+        toast("필수 항목을 먼저 입력해 주세요.");
+        setConfirmUIState();
+        return;
+      }
+
+      uiState.confirmed = true;
+      setStep6Visible(true);
+      invalidateConfirmed();
+      recalcAndUpdateSummary(false);
+
+      const payload = {
+        ts: Date.now(),
+        dateKst: getKstDateKey(),
+        regionKey: uiState.region || "",
+        propertyTypeKey: uiState.propertyType || "",
+        loanTypeKey: uiState.realEstateLoanType || "",
+        amountMan: Number(uiState.requestedAmount) || 0,
+      };
+      postNaviStatsOncePerClick(payload);
+
+      setConfirmUIState();
+      const target = document.getElementById("navi-step6");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+  setConfirmUIState();
   const occContainer = document.getElementById("naviOccupancyChips");
 
   [
@@ -1003,6 +1097,7 @@ function setupStep5() {
     if (!el) return;
     el.addEventListener("input", () => {
       uiState.hasRenderedResult = false;
+      invalidateConfirmed();
       recalcAndUpdateSummary();
     });
   });
@@ -1019,6 +1114,7 @@ function setupStep5() {
       applyStep5Schema();
 
       uiState.hasRenderedResult = false;
+      invalidateConfirmed();
       recalcAndUpdateSummary();
     });
   }
@@ -1749,8 +1845,8 @@ function updateStepVisibility(primaryEligible) {
     setSectionVisible("navi-step3", Boolean(userState.region));
     setSectionVisible("navi-step4", Boolean(userState.region) && Boolean(userState.propertyType));
     setSectionVisible("navi-step5", Boolean(userState.region) && Boolean(userState.propertyType) && Boolean(userState.realEstateLoanType));
-    setSectionVisible("navi-step6", Boolean(userState.realEstateLoanType));
-  } else {
+    setSectionVisible("navi-step6", uiState.confirmed && step5Complete(uiState));
+} else {
     setSectionVisible("navi-step2", false);
     setSectionVisible("navi-step3", false);
     setSectionVisible("navi-step4", false);
@@ -1758,10 +1854,9 @@ function updateStepVisibility(primaryEligible) {
     setSectionVisible("navi-step6", true); // 바로 1차결과 노출
   }
 
-  setSectionVisible("navi-step6-1", Boolean(primaryEligible));
-
-  const extraSelected = hasAnyExtraSelected();
-  setSectionVisible("navi-step7", Boolean(primaryEligible && extraSelected));
+  setSectionVisible("navi-step6-1", uiState.confirmed && Boolean(primaryEligible));
+const extraSelected = hasAnyExtraSelected();
+  setSectionVisible("navi-step7", uiState.confirmed && Boolean(primaryEligible && extraSelected));
 }
 
 function resolveActiveStep(primaryEligible) {
@@ -1786,6 +1881,16 @@ function resolveActiveStep(primaryEligible) {
 }
 
 function recalcAndUpdateSummary(onlyExtra = false) {
+  // __CONFIRM_GUARD__
+  // Step5 확정 전에는 Step6/6-1을 렌더하지 않는다.
+  if (!uiState.confirmed) {
+    setStep6Visible(false);
+    setStep6_1Visible(false);
+    if (onlyExtra) return;
+  } else {
+    setStep6Visible(true);
+  }
+
   syncInputsToState();
 
   const isRE = userState.mainCategory === "부동산담보대출";
@@ -1949,6 +2054,8 @@ function recalcAndUpdateSummary(onlyExtra = false) {
       `;
     }
   }
+
+  setConfirmUIState();
 }
 
 // ------------------------------------------------------
