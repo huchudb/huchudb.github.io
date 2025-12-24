@@ -884,6 +884,20 @@ function isStep5Complete() {
   return true;
 }
 
+/**
+ * Step5 '결과확인하기' 버튼 활성화 조건
+ * - 필수 입력이 완료되어 있고
+ * - 아직 '확인'을 누르지 않은 상태일 때만 활성화
+ */
+function step5Complete(state) {
+  try {
+    return !!(isStep5Complete() && !(state && state.confirmed));
+  } catch {
+    return false;
+  }
+}
+
+
 // ------------------------------------------------------
 // UI 이벤트 바인딩
 // ------------------------------------------------------
@@ -1051,7 +1065,7 @@ function setupStep4() {
 function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
 
-  const confirmBtn = $("#naviConfirmBtn");
+  const confirmBtn = document.getElementById("naviConfirmBtn");
   if (confirmBtn && !confirmBtn.__bound) {
     confirmBtn.__bound = true;
     confirmBtn.addEventListener("click", async () => {
@@ -1063,7 +1077,6 @@ function setupStep5() {
 
       uiState.confirmed = true;
       setStep6Visible(true);
-      invalidateConfirmed();
       recalcAndUpdateSummary(false);
 
       const payload = {
