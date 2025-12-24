@@ -1784,9 +1784,22 @@ function getStep5Schema() {
 
   const keys = Object.keys(byProp || {});
   const foundKey = keys.find((k) => normKey(k) === normKey(loan));
-  const schema = foundKey ? byProp[foundKey] : null;
+  const raw = foundKey ? byProp[foundKey] : null;
 
-  if (!schema || !schema.supported) return null;
+  if (!raw || !raw.supported) return null;
+
+  // ✅ 원본을 건드리지 않도록 복제(필드 주입/제거)
+  const schema = {
+    ...raw,
+    fields: Array.isArray(raw.fields) ? raw.fields.map((f) => ({ ...f })) : [],
+  };
+
+  // ✅ 거주형태(OCC): '임대보증금반환대출'만 제외하고 필수
+  const needOcc = normKey(loan) !== normKey("임대보증금반환대출");
+  const hasOcc = schema.fields.some((f) => f.code === "OCC");
+  if (needOcc && !hasOcc) schema.fields.push({ code: "OCC", label: "거주형태", required: true });
+  if (!needOcc && hasOcc) schema.fields = schema.fields.filter((f) => f.code !== "OCC");
+
   return schema;
 }
 
@@ -2039,12 +2052,59 @@ function isStep5Complete() {
   return true;
 }
 
+function getStep5MissingRequiredLabels() {
+  // 최신 입력 반영
+  syncInputsToState();
+
+  const schema = getStep5Schema();
+  if (!schema) return ["지역/부동산유형/대출종류"];
+
+  const missing = [];
+  for (const f of (schema.fields || [])) {
+    if (!f || !f.required) continue;
+
+    const code = f.code;
+    const label = f.label || f.code;
+
+    let ok = true;
+    switch (code) {
+      case "REQ":
+        ok = !!userState.requestedAmount;
+        break;
+      case "PV":
+        ok = !!userState.propertyValue;
+        break;
+      case "SL":
+        ok = !!userState.seniorLoan;
+        break;
+      case "DEP":
+        ok = !!userState.deposit;
+        break;
+      case "OCC":
+        ok = !!userState.occupancyType;
+        break;
+      case "SB":
+        ok = (userState.assumedBurden === 0 || userState.assumedBurden === 1);
+        break;
+      default:
+        ok = true;
+    }
+
+    if (!ok) missing.push(label);
+  }
+  return missing;
+}
+
+
 /**
  * Step5 '결과확인하기' 버튼 활성화 조건
  * - 필수 입력이 완료되어 있고
  * - 아직 '확인'을 누르지 않은 상태일 때만 활성화
  */
 function step5Complete(state) {
+  // 자동완성/붙여넣기/모바일 키패드 등으로 input 이벤트가 늦게 반영되는 케이스 대비
+  syncInputsToState();
+
   const confirmed = state?.confirmed ? true : false;
   return isStep5Complete() && !confirmed;
 }
@@ -2221,13 +2281,19 @@ function setupStep5() {
   if (confirmBtn && !confirmBtn.__bound) {
     confirmBtn.__bound = true;
     confirmBtn.addEventListener("click", async () => {
+      // ✅ Step5 입력값을 최신화(자동완성/붙여넣기 등 대비) 후 확정 가능 여부 재검증
+      syncInputsToState();
+      applyStep5Schema();
+      setConfirmUIState();
+
       if (!step5Complete(uiState)) {
-        toast("필수 항목을 먼저 입력해 주세요.");
-        setConfirmUIState();
+        const missing = getStep5MissingRequiredLabels();
+        const msg = missing.length ? `필수 입력: ${missing.join(", ")}` : "필수 항목을 먼저 입력해 주세요.";
+        toast(msg);
         return;
       }
 
-      uiState.confirmed = true;
+uiState.confirmed = true;
       setStep6Visible(true);
       recalcAndUpdateSummary(false);
 
