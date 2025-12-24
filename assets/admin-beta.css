@@ -533,12 +533,18 @@
   vertical-align:middle;
   font-size:12px;
 }
+/* LTV 컬럼(3번째)은 LTV Up 리스트 때문에 상단 정렬 */
+.admin-matrix tbody td:nth-child(3){
+  vertical-align:top;
+}
+
 .cell-center{ text-align:center; }
 
 /* ✅ LTV 입력 + LTV Up (통합 정의) */
 .admin-ltv-wrap{
   display:flex;
   align-items:flex-start;
+  justify-content:flex-start;
   gap:10px;
   flex-wrap:wrap;
 }
@@ -781,45 +787,6 @@
 .admin-page #productRows .js-ratio,
 .admin-page #productRows .js-amount { text-align: right; }
 
-/* =========================================================
-   ✅ LTV 헤더: LTV Up 1회 표기 + 정렬
-========================================================= */
-.admin-matrix th .ltv-th{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-}
-.admin-matrix th .ltv-th__title{
-  font-weight:900;
-}
-.admin-matrix th .ltv-th__up{
-  font-size:12px;
-  font-weight:900;
-  color:#6B7280;
-}
-
-/* =========================================================
-   ✅ LTV 입력 + LTV Up 레이아웃 정리
-========================================================= */
-.admin-ltv-wrap.has-ltvup{
-  flex-wrap:nowrap;
-  align-items:center;
-}
-.admin-ltv-wrap.has-ltvup .admin-ltvup{
-  margin-left:6px;
-  padding-left:12px;
-  border-left:1px solid #E5E7EB;
-}
-
-@media (max-width: 860px){
-  .admin-ltv-wrap.has-ltvup{
-    flex-wrap:wrap;
-    align-items:flex-start;
-  }
-  .admin-ltv-wrap.has-ltvup .admin-ltvup{
-    border-left:0;
-    padding-left:0;
-    margin-left:0;
-  }
+.admin-matrix tbody td:nth-child(3) .admin-ltv-wrap{
+  padding-top:2px;
 }
