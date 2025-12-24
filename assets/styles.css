@@ -2278,3 +2278,75 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   }
 }
 
+
+/* =========================================================
+   ✅ Navi (beta): confirm flow + stats widget
+========================================================= */
+.navi-confirm-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.navi-confirm-hint{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.navi-stats-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px 14px 12px;
+}
+.navi-stats-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.navi-stats-title{
+  font-weight:800;
+  font-size:15px;
+}
+.navi-stats-month{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.navi-stats-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+@media (max-width: 860px){
+  .navi-stats-grid{ grid-template-columns:1fr; }
+}
+.navi-stats-col{
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  border-radius:12px;
+  padding:10px;
+}
+.navi-stats-col h4{
+  margin:0 0 8px 0;
+  font-size:13px;
+}
+.navi-stats-list{
+  margin:0;
+  padding-left:18px;
+  font-size:13px;
+}
+.navi-stats-list li{
+  margin:4px 0;
+}
+.navi-stats-count{
+  color:var(--muted);
+  margin-left:6px;
+}
+.navi-stats-empty{
+  font-size:13px;
+  color:var(--muted);
+}
