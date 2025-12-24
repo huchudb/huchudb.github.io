@@ -94,13 +94,6 @@ function formatKoreanCurrencyJo(num) {
 }
 
 // 'YYYY-MM' → 'YYYY년 M월'
-function formatMonthLabel(ym) {
-  if (!ym || typeof ym !== "string") return "";
-  const [y, m] = ym.split("-");
-  if (!y || !m) return "";
-  return `${y}년 ${Number(m)}월`;
-}
-
 // ───────── 대출현황 금액 텍스트 자동 폰트 축소 ─────────
 function autoFitLoanStatusText() {
   const els = document.querySelectorAll(".beta-loanstatus-item__value .loan-amount-text");
