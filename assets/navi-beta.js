@@ -2061,57 +2061,39 @@ function isStep5Complete() {
 }
 
 function getStep5MissingRequiredLabels() {
-  const schema = getStep5Schema();
-  const required = Array.isArray(schema.required) ? schema.required : [];
-
-  const labelMap = {
-    KB: "KB시세/시세/감정가",
-    PV: "KB시세/시세/감정가",
-    SL: "선순위 대출금액",
-    REQ: "필요 대출금액",
-    DEP: "인수되는 금액",
-    OCC: "거주형태",
-    REF: "대환대출 금액",
-    SB: "인수 권리 여부",
-  };
-
+  // ⚠️ schema가 아직 준비되지 않은 상태(초기 로딩/선택 미완료)에서도 호출될 수 있어
+  // null 접근으로 콘솔 에러가 나지 않도록 방어합니다.
   const missing = [];
 
-  for (const code of required) {
-    const label = labelMap[code] || code;
+  // Step1~4(선택) 단계가 아직 끝나지 않으면 Step5 스키마 자체가 null일 수 있음
+  if (!userState.propertyType) missing.push("부동산유형");
+  if (!userState.realEstateLoanType) missing.push("대출종류");
+  if (missing.length > 0) return missing;
 
-    let ok = true;
-    switch (code) {
-      case "KB":
-        ok = Number.isFinite(userState.kbPrice) && userState.kbPrice > 0;
-        break;
-      case "PV":
-        ok = Number.isFinite(userState.propertyValue) && userState.propertyValue > 0;
-        break;
-      case "SL":
-        ok = Number.isFinite(userState.seniorLoan) && userState.seniorLoan >= 0;
-        break;
-      case "REQ":
-        ok = Number.isFinite(userState.requestedAmount) && userState.requestedAmount > 0;
-        break;
-      case "DEP":
-        ok = Number.isFinite(userState.deposit) && userState.deposit >= 0;
-        break;
-      case "OCC":
-        ok = !!userState.occupancy;
-        break;
-      case "REF":
-        ok = Number.isFinite(userState.refinanceAmount) && userState.refinanceAmount > 0;
-        break;
-      case "SB":
-        ok = (userState.assumedBurden === 0 || userState.assumedBurden === 1);
-        break;
-      default:
-        ok = true;
+  const schema = getStep5Schema();
+  if (!schema || typeof schema !== "object") return missing;
+
+  const required = Array.isArray(schema.required) ? schema.required : [];
+  if (required.length === 0) return missing;
+
+  const labelMap = {
+    propertyValue: "KB시세/시세/감정가",
+    seniorLoan: "선순위 대출금액",
+    requestedAmount: "필요 대출금액",
+    deposit: "인수되는 금액",
+    occupancy: "거주형태"
+  };
+
+  required.forEach((key) => {
+    if (key === "occupancy") {
+      if (!userState.occupancy) missing.push(labelMap[key] || key);
+      return;
     }
 
-    if (!ok) missing.push(label);
-  }
+    const v = userState[key];
+    const ok = (typeof v === "number") ? (v > 0) : !!v;
+    if (!ok) missing.push(labelMap[key] || key);
+  });
 
   return missing;
 }
