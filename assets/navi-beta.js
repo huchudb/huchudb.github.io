@@ -37,17 +37,26 @@ function setStep6_1Visible(isOn) {
 }
 
 function setConfirmUIState() {
-  const btn = document.getElementById("naviConfirmBtn");
+  const confirmBtn = document.getElementById("naviConfirmBtn");
   const hint = document.getElementById("naviConfirmHint");
-  if (!btn) return;
-
   const ready = step5Complete(uiState);
-  btn.disabled = !ready;
+
+  if (confirmBtn) confirmBtn.disabled = !ready;
 
   if (hint) {
-    if (!ready) hint.textContent = "필수 입력을 완료하면 활성화됩니다.";
-    else if (!uiState.confirmed) hint.textContent = "버튼을 누르면 계산 결과가 표시되고 1회 저장됩니다.";
-    else hint.textContent = "입력값이 변경되면 다시 확인이 필요합니다.";
+    if (ready) {
+      hint.textContent = "버튼을 누르면 결과가 표시됩니다.";
+    } else {
+      const missing = (typeof getStep5MissingRequiredLabels === "function") ? getStep5MissingRequiredLabels() : [];
+      hint.textContent = missing.length
+        ? `필수 입력을 완료하면 활성화됩니다. (누락: ${missing.join(", ")})`
+        : "필수 입력을 완료하면 활성화됩니다.";
+    }
+  }
+
+  // Confirm 이후에는 "다시 입력/재계산" 흐름을 유지
+  if (uiState.confirmed && hint) {
+    hint.textContent = "입력 변경 시 다시 활성화됩니다.";
   }
 }
 
@@ -1845,47 +1854,46 @@ function ensureOccBlockPlacementAndTitle() {
   const occChips = document.getElementById("naviOccupancyChips");
   if (!occChips) return;
 
-  const block = occChips.closest("label") || occChips.parentElement;
+  // Prefer an explicit wrapper if present, otherwise fall back to the closest container.
+  const explicit = document.getElementById("occBlock");
+  const block = explicit || occChips.closest("label") || occChips.closest(".navi-occblock") || occChips.parentElement;
   if (!block) return;
 
+  block.id = "occBlock";
+  block.classList.add("navi-occblock");
+
+  const pvLabel = document.querySelector('label[for="naviPropertyValue"]');
+  const grid = pvLabel ? pvLabel.closest(".navi-field-grid") : null;
+  if (!grid || !pvLabel) return;
+
+  // ✅ Ensure it sits right above KB시세/시세/감정가 입력(= naviPropertyValue 라벨) — even if it started outside the grid.
+  if (block.parentElement !== grid || block.nextElementSibling !== pvLabel) {
+    grid.insertBefore(block, pvLabel);
+  }
+
+  // Normalize the title (avoid duplicated '거주형태' text nodes)
+  const titleEl =
+    block.querySelector(".navi-occupancy-label") ||
+    block.querySelector("strong") ||
+    block.querySelector("span") ||
+    null;
+
+  if (titleEl) {
+    titleEl.textContent = "거주형태";
+  } else {
+    // Ensure there is a label-like title if missing
+    const t = document.createElement("div");
+    t.className = "navi-occupancy-label";
+    t.textContent = "거주형태";
+    block.insertBefore(t, block.firstChild);
+  }
+
+  // Remove stray text nodes that may have accumulated (e.g. repeated "거주형태" strings)
   Array.from(block.childNodes).forEach((n) => {
-    if (n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "") {
-      block.removeChild(n);
+    if (n.nodeType === Node.TEXT_NODE && (n.textContent || "").trim()) {
+      n.textContent = "";
     }
   });
-
-  Array.from(block.children).forEach((el) => {
-    const t = (el.textContent || "").trim();
-    const hasControls =
-      el.querySelector("button, input, select, textarea, #naviOccupancyChips, .navi-chip") != null;
-
-    if (t === "거주형태" && !hasControls && el.getAttribute("data-occ-title") !== "1") {
-      el.remove();
-    }
-  });
-
-  let titleEl = block.querySelector('[data-occ-title="1"]');
-  if (!titleEl) {
-    titleEl = document.createElement("div");
-    titleEl.setAttribute("data-occ-title", "1");
-    titleEl.style.display = "block";
-    titleEl.style.fontWeight = "600";
-    titleEl.style.marginBottom = "6px";
-    block.insertBefore(titleEl, block.firstChild);
-  }
-  titleEl.textContent = "거주형태";
-
-  const grid = document.querySelector("#navi-step5 .navi-field-grid");
-  const pvInput = document.getElementById("naviInputPropertyValue");
-  const pvLabel = pvInput ? pvInput.closest("label") : null;
-
-  if (grid && pvLabel) {
-    if (block.parentElement === grid) {
-      if (block !== pvLabel && block.nextSibling !== pvLabel) {
-        grid.insertBefore(block, pvLabel);
-      }
-    }
-  }
 }
 
 function applyStep5Schema() {
@@ -2053,35 +2061,47 @@ function isStep5Complete() {
 }
 
 function getStep5MissingRequiredLabels() {
-  // 최신 입력 반영
-  syncInputsToState();
-
   const schema = getStep5Schema();
-  if (!schema) return ["지역/부동산유형/대출종류"];
+  const required = Array.isArray(schema.required) ? schema.required : [];
+
+  const labelMap = {
+    KB: "KB시세/시세/감정가",
+    PV: "KB시세/시세/감정가",
+    SL: "선순위 대출금액",
+    REQ: "필요 대출금액",
+    DEP: "인수되는 금액",
+    OCC: "거주형태",
+    REF: "대환대출 금액",
+    SB: "인수 권리 여부",
+  };
 
   const missing = [];
-  for (const f of (schema.fields || [])) {
-    if (!f || !f.required) continue;
 
-    const code = f.code;
-    const label = f.label || f.code;
+  for (const code of required) {
+    const label = labelMap[code] || code;
 
     let ok = true;
     switch (code) {
-      case "REQ":
-        ok = !!userState.requestedAmount;
+      case "KB":
+        ok = Number.isFinite(userState.kbPrice) && userState.kbPrice > 0;
         break;
       case "PV":
-        ok = !!userState.propertyValue;
+        ok = Number.isFinite(userState.propertyValue) && userState.propertyValue > 0;
         break;
       case "SL":
-        ok = !!userState.seniorLoan;
+        ok = Number.isFinite(userState.seniorLoan) && userState.seniorLoan >= 0;
+        break;
+      case "REQ":
+        ok = Number.isFinite(userState.requestedAmount) && userState.requestedAmount > 0;
         break;
       case "DEP":
-        ok = !!userState.deposit;
+        ok = Number.isFinite(userState.deposit) && userState.deposit >= 0;
         break;
       case "OCC":
-        ok = !!userState.occupancyType;
+        ok = !!userState.occupancy;
+        break;
+      case "REF":
+        ok = Number.isFinite(userState.refinanceAmount) && userState.refinanceAmount > 0;
         break;
       case "SB":
         ok = (userState.assumedBurden === 0 || userState.assumedBurden === 1);
@@ -2092,8 +2112,11 @@ function getStep5MissingRequiredLabels() {
 
     if (!ok) missing.push(label);
   }
+
   return missing;
 }
+
+
 
 
 /**
@@ -2703,6 +2726,7 @@ function setupResultButtons() {
 
 function syncInputsToState() {
   userState.propertyValue = getMoneyValueById("naviInputPropertyValue");
+  userState.kbPrice = userState.propertyValue; // valueMode=KB fallback
   const shareEl = document.getElementById("naviInputSharePercent");
   userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 100;
 
@@ -3456,7 +3480,7 @@ function renderFinalResult() {
 // ------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ navi-beta.js loaded");
+  console.log("✅ navi-beta.js loaded (v20251226-beta5)");
   setupBetaMenu();
   ensureStepper();
   ensureLoanTypeChips();
