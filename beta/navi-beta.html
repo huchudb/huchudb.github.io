@@ -11,7 +11,7 @@
   <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script type="module" src="/assets/navi-beta.js?v=20251211-beta4"></script>
+  <script type="module" src="/assets/navi-beta.js?v=20251226-beta5"></script>
 </head>
 <body class="beta-body">
 
@@ -150,7 +150,15 @@
             ※ 부동산 담보대출 기준 예시입니다. 선택하신 대출종류에 따라 자동 계산 방식이 달라집니다.
           </p>
 
-          <div class="navi-field-grid">
+          
+<div style="margin-top:8px;">
+            <span style="font-size:12px;color:#374151;">거주형태 / 임대계획</span>
+            <div class="navi-chip-group" id="naviOccupancyChips" style="margin-top:4px;">
+              <button type="button" class="navi-chip" data-occ="self">본인거주(예정)</button>
+              <button type="button" class="navi-chip" data-occ="rental">임대(예정)</button>
+            </div>
+          </div>
+<div class="navi-field-grid">
             <label>
               시세 / 낙찰가 (원)
               <input type="text" id="naviInputPropertyValue" data-type="money" placeholder="예) 500000000" />
@@ -179,13 +187,7 @@
             </label>
           </div>
 
-          <div style="margin-top:8px;">
-            <span style="font-size:12px;color:#374151;">거주형태 / 임대계획</span>
-            <div class="navi-chip-group" id="naviOccupancyChips" style="margin-top:4px;">
-              <button type="button" class="navi-chip" data-occ="self">본인거주(예정)</button>
-              <button type="button" class="navi-chip" data-occ="rental">임대(예정)</button>
-            </div>
-          </div>
+          
 
           <p id="naviAmountWarning" class="navi-warning" style="display:none;"></p>
       <div class="navi-confirm-row">
