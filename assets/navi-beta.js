@@ -65,7 +65,29 @@ function invalidateConfirmed() {
 // 공통 상수 / 유틸
 // ------------------------------------------------------
 
-const API_BASE = "https://huchudb-github-io.vercel.app";
+const DEFAULT_API_BASE = "https://huchudb-github-io.vercel.app";
+
+function resolveApiBase() {
+  try {
+    const w = (typeof window !== "undefined") ? window : null;
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+    if (base) return base.replace(/\/+$/g, "");
+
+    const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+    const isLocal =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal");
+
+    return isLocal ? "" : DEFAULT_API_BASE;
+  } catch {
+    return DEFAULT_API_BASE;
+  }
+}
+
+const API_BASE = resolveApiBase();
 const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
 const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
 const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
@@ -127,6 +149,20 @@ function normKey(s) {
 function includesNorm(list, value) {
   const v = normKey(value);
   return (list || []).some((x) => normKey(x) === v);
+}
+
+
+// --------- 상품군 alias (Admin↔Navi 매칭 보강) ----------
+const MAIN_CATEGORY_ALIASES = {
+  // Navi UI에서는 '스탁론' 1개로 보여주되, Admin/설정에서는 (상장)/(비상장)으로 관리되는 케이스를 흡수
+  "스탁론": ["스탁론(상장)", "스탁론(비상장)"],
+};
+
+function expandMainCategoryKeys(category) {
+  const c = String(category || "").trim();
+  const aliases = MAIN_CATEGORY_ALIASES[c];
+  if (Array.isArray(aliases) && aliases.length) return [c, ...aliases];
+  return [c];
 }
 function includesRegion(regions, region) {
   if (!region) return true;
@@ -410,20 +446,20 @@ async function loadNaviLoanConfig() {
     console.warn("loan-config API 불러오기 실패:", e);
   }
 
-  // 2) lenders-config (뷰 endpoint) 우선 적용
+  // 2) loan-config 우선 적용 (Admin/Upstash 단일 소스)
+  if (fromLoanConfig && Array.isArray(fromLoanConfig.lenders) && fromLoanConfig.lenders.length) {
+    naviLoanConfig = fromLoanConfig;
+    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
+    console.log("✅ naviLoanConfig ← loan-config 적용:", naviLoanConfig.lenders.length);
+    return;
+  }
+
+  // 3) lenders-config fallback (뷰 endpoint)
   const lendersConfig = await loadLendersConfig();
   if (lendersConfig && Array.isArray(lendersConfig.lenders) && lendersConfig.lenders.length) {
     naviLoanConfig = { version: lendersConfig.version ?? 1, lenders: lendersConfig.lenders };
     localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
     console.log("✅ naviLoanConfig ← lenders-config 적용:", naviLoanConfig.lenders.length);
-    return;
-  }
-
-  // 3) loan-config fallback
-  if (fromLoanConfig && Array.isArray(fromLoanConfig.lenders) && fromLoanConfig.lenders.length) {
-    naviLoanConfig = fromLoanConfig;
-    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
-    console.log("✅ naviLoanConfig ← loan-config 적용:", naviLoanConfig.lenders.length);
     return;
   }
 
@@ -1623,7 +1659,11 @@ function filterLenders(applyExtras = false) {
 
     if (mainCategory) {
       const cats = l.loanCategories || [];
-      if (cats.length && !includesNorm(cats, mainCategory)) return false;
+      if (cats.length) {
+        const keys = expandMainCategoryKeys(mainCategory);
+        const ok = keys.some((k) => includesNorm(cats, k));
+        if (!ok) return false;
+      }
     }
 
     if (mainCategory === "부동산담보대출") {
@@ -1777,11 +1817,15 @@ function getFinancialInputsForCategory(lender, category) {
   const fin = lender?.financialInputs || {};
   if (!category) return null;
 
-  if (fin[category]) return fin[category];
-
   const keys = Object.keys(fin);
-  const k = keys.find((x) => normKey(x) === normKey(category));
-  return k ? fin[k] : null;
+  const candidates = expandMainCategoryKeys(category);
+
+  for (const c of candidates) {
+    if (fin[c]) return fin[c];
+    const k = keys.find((x) => normKey(x) === normKey(c));
+    if (k) return fin[k];
+  }
+  return null;
 }
 
 function calcFeeRanges(lenders, category) {
