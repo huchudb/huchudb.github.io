@@ -12,8 +12,21 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script type="module" src="/assets/navi-beta.js?v=20251226-beta6"></script>
+
+  <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
+  <style>
+    /* CSS 로드 전에도 hide 클래스가 즉시 적용되도록(FOUC 방지) */
+    .hide { display: none !important; }
+
+    /* 넓은 화면에서 콘텐츠가 너무 중앙에 몰리는 문제 개선 */
+    body.navi-wide .beta-inner,
+    body.navi-wide .beta-header__inner {
+      max-width: none;
+    }
+  </style>
+
 </head>
-<body class="beta-body">
+<body class="beta-body navi-wide">
 
   <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
