@@ -12,9 +12,19 @@ body.navi-wide .beta-header__inner{
 /* ======================= NAVI (후추 네비게이션 베타) ======================= */
 
 .navi-main{
-  max-width:960px;
-  margin:0 auto;
-  padding:24px 0 40px;
+  /* NOTE: 이 div는 beta-inner 클래스와 함께 사용됨.
+     - 기존 960px 제한 때문에 본문이 헤더/푸터보다 좁게 보였음
+     - 헤더/공통 컨테이너와 동일한 폭(1200px) + 동일한 좌우 패딩(24px)으로 통일 */
+  max-width:1200px;
+  margin:0 auto 0;
+  width:100%;
+  padding:24px 24px 40px;
+  box-sizing:border-box;
+}
+
+/* (옵션) wide 모드가 필요할 때만 수동으로 body에 navi-wide를 붙이면 전체폭으로 확장 */
+body.navi-wide .navi-main{
+  max-width:none;
 }
 
 /* 섹션 기본 타이틀/텍스트 */
