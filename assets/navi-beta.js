@@ -39,17 +39,20 @@ function setStep6_1Visible(isOn) {
 function setConfirmUIState() {
   const confirmBtn = document.getElementById("naviConfirmBtn");
   const hint = document.getElementById("naviConfirmHint");
-  const ready = step5Complete(uiState);
+  const complete = step5Complete(uiState);
+  const ready = complete && !uiState.confirmed;
 
   if (confirmBtn) confirmBtn.disabled = !ready;
 
   if (hint) {
-    if (ready) {
+    if (uiState.confirmed) {
+      hint.textContent = "입력 변경 시 다시 활성화됩니다.";
+    } else if (complete) {
       hint.textContent = "버튼을 누르면 결과가 표시됩니다.";
     } else {
-      const missing = (typeof getStep5MissingRequiredLabels === "function") ? getStep5MissingRequiredLabels() : [];
+      const missing = getStep5MissingRequiredLabels(uiState);
       hint.textContent = missing.length
-        ? `필수 입력을 완료하면 활성화됩니다. (누락: ${missing.join(", ")})`
+        ? `필수 입력 누락: ${missing.join(", ")}`
         : "필수 입력을 완료하면 활성화됩니다.";
     }
   }
@@ -2015,7 +2018,8 @@ function isStep5Complete() {
   if (!schema) return false;
 
   for (const f of schema.fields || []) {
-    if (!f.required) continue;
+    const isOccField = (f.code === "OCC" || f.key === "occupancy");
+    if (!f.required && !(forceOcc && isOccField)) continue;
 
     if (f.code === "OCC") {
       if (!userState.occupancy) return false;
@@ -2057,6 +2061,7 @@ function isStep5Complete() {
     }
   }
 
+  if (forceOcc && !state.occupancy) return false;
   return true;
 }
 
@@ -2107,12 +2112,15 @@ function getStep5MissingRequiredLabels() {
  * - 아직 '확인'을 누르지 않은 상태일 때만 활성화
  */
 function step5Complete(state) {
-  // 자동완성/붙여넣기/모바일 키패드 등으로 input 이벤트가 늦게 반영되는 케이스 대비
   syncInputsToState();
-
-  const confirmed = state?.confirmed ? true : false;
-  return isStep5Complete() && !confirmed;
+  return isStep5Complete();
 }
+
+function step5ReadyToConfirm(state) {
+  syncInputsToState();
+  return isStep5Complete() && !state?.confirmed;
+}
+
 
 
 // ------------------------------------------------------
