@@ -41,7 +41,7 @@ function setConfirmUIState() {
   const hint = document.getElementById("naviConfirmHint");
   if (!btn) return;
 
-  const ready = step5Complete(uiState);
+  const ready = isStep5Complete();
   btn.disabled = !ready;
 
   if (hint) {
@@ -1051,11 +1051,12 @@ function setupStep4() {
 function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
 
-  const confirmBtn = $("#naviConfirmBtn");
+  const confirmBtn = document.getElementById("naviConfirmBtn");
+  if (!confirmBtn) return;
   if (confirmBtn && !confirmBtn.__bound) {
     confirmBtn.__bound = true;
     confirmBtn.addEventListener("click", async () => {
-      if (!step5Complete(uiState)) {
+      if (!isStep5Complete()) {
         toast("필수 항목을 먼저 입력해 주세요.");
         setConfirmUIState();
         return;
@@ -1845,7 +1846,7 @@ function updateStepVisibility(primaryEligible) {
     setSectionVisible("navi-step3", Boolean(userState.region));
     setSectionVisible("navi-step4", Boolean(userState.region) && Boolean(userState.propertyType));
     setSectionVisible("navi-step5", Boolean(userState.region) && Boolean(userState.propertyType) && Boolean(userState.realEstateLoanType));
-    setSectionVisible("navi-step6", uiState.confirmed && step5Complete(uiState));
+    setSectionVisible("navi-step6", uiState.confirmed && isStep5Complete());
 } else {
     setSectionVisible("navi-step2", false);
     setSectionVisible("navi-step3", false);
