@@ -1109,8 +1109,10 @@ function setupStep5() {
       }
 
       uiState.confirmed = true;
-      setStep6Visible(true);
-      invalidateConfirmed();
+      // ✅ Confirm 후에는 Step6/6-1/7 렌더가 가능해야 함
+      // (기존 코드의 invalidateConfirmed()가 confirmed를 즉시 false로 되돌려
+      //  다음 단계가 노출되지 않는 버그가 발생)
+      uiState.hasRenderedResult = false;
       recalcAndUpdateSummary(false);
 
       const payload = {
