@@ -547,7 +547,17 @@ function renderStepper(activeKey) {
 function setSectionVisible(sectionId, visible) {
   const el = document.getElementById(sectionId);
   if (!el) return;
-  el.style.display = visible ? "" : "none";
+
+  // 섹션은 기본적으로 .hide(display:none)로 숨김 처리되어 있으므로
+  // 보여줄 때는 반드시 hide 클래스를 제거해야 합니다.
+  if (visible) {
+    el.classList.remove("hide");
+    // 이전에 inline 으로 숨김 처리된 경우를 대비해 display를 초기화
+    el.style.display = "";
+  } else {
+    el.classList.add("hide");
+    el.style.display = "none";
+  }
 }
 
 // ------------------------------------------------------
