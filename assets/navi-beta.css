@@ -1,0 +1,289 @@
+/* =========================================================
+   Navi beta styles
+   - extracted from /assets/styles.css (common) on 2025-12-29
+   - includes Navi-only UI + wide layout rules for Navi page
+========================================================= */
+
+body.navi-wide .beta-inner,
+body.navi-wide .beta-header__inner{
+  max-width:none;
+}
+
+/* ======================= NAVI (후추 네비게이션 베타) ======================= */
+
+.navi-main{
+  max-width:960px;
+  margin:0 auto;
+  padding:24px 0 40px;
+}
+
+/* 섹션 기본 타이틀/텍스트 */
+.navi-section{
+  margin-bottom:18px;
+}
+.navi-section-title{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:6px;
+  color:#111827;
+}
+.navi-section-sub{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:8px;
+}
+.navi-help{
+  font-size:11px;
+  color:#9ca3af;
+  margin-top:4px;
+}
+
+/* 칩 그룹 / 칩 */
+.navi-chip-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.navi-chip{
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  font-size:12px;
+  color:#374151;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.navi-chip.is-selected{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#111827;
+}
+
+/* 입력 필드 그리드 */
+.navi-field-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px 12px;
+  margin-top:8px;
+}
+.navi-field-grid label{
+  font-size:12px;
+  color:#374151;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.navi-field-grid input[type="text"],
+.navi-field-grid input[type="number"]{
+  font-size:12px;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+}
+
+/* 카드 */
+.navi-card{
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  padding:12px 14px;
+  margin-top:8px;
+}
+
+/* 결과 헤더 */
+.navi-result-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+.navi-result-title{
+  font-size:15px;
+  font-weight:700;
+  color:#111827;
+}
+.navi-result-count{
+  font-size:12px;
+  color:#4b5563;
+}
+
+/* 버튼 */
+.navi-btn-primary,
+.navi-btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+  border:1px solid transparent;
+  background:transparent;
+}
+.navi-btn-primary{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#111827;
+}
+.navi-btn-secondary{
+  background:#f9fafb;
+  color:#374151;
+  border-color:#d1d5db;
+}
+
+/* 태그/뱃지 */
+.navi-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  border:1px solid #e5e7eb;
+  background:#f3f4f6;
+  color:#4b5563;
+  margin-right:4px;
+  margin-bottom:2px;
+}
+
+/* 온투업 리스트 */
+.navi-lender-item{
+  border-top:1px dashed #e5e7eb;
+  padding-top:8px;
+  margin-top:8px;
+}
+.navi-lender-name{
+  font-size:14px;
+  font-weight:700;
+  color:#111827;
+  margin-bottom:4px;
+}
+.navi-lender-meta{
+  font-size:11px;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.navi-lender-actions{
+  margin-top:4px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+/* 경고/안내 */
+.navi-warning{
+  font-size:11px;
+  color:#b91c1c;
+  margin-top:4px;
+}
+.navi-info-chip{
+  font-size:11px;
+  color:#2563eb;
+  background:#eff6ff;
+  border-radius:999px;
+  padding:2px 8px;
+  display:inline-block;
+  margin-top:4px;
+}
+
+/* 결과 없을 때 카드 */
+.navi-empty-card{
+  border-radius:10px;
+  border:1px dashed #d1d5db;
+  background:#f9fafb;
+  padding:16px;
+  text-align:center;
+  font-size:12px;
+  color:#6b7280;
+}
+.navi-tip-list{
+  padding-left:16px;
+  margin:6px 0 0;
+  font-size:11px;
+  color:#4b5563;
+}
+
+/* 네비 – 모바일 레이아웃 */
+@media (max-width:768px){
+  .navi-main{
+    padding:18px 0 32px;
+  }
+  .navi-field-grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+
+
+/* =========================================================
+   ✅ Navi (beta): confirm flow + stats widget
+========================================================= */
+.navi-confirm-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.navi-confirm-hint{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.navi-stats-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px 14px 12px;
+}
+.navi-stats-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.navi-stats-title{
+  font-weight:800;
+  font-size:15px;
+}
+.navi-stats-month{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.navi-stats-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+@media (max-width: 860px){
+  .navi-stats-grid{ grid-template-columns:1fr; }
+}
+.navi-stats-col{
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  border-radius:12px;
+  padding:10px;
+}
+.navi-stats-col h4{
+  margin:0 0 8px 0;
+  font-size:13px;
+}
+.navi-stats-list{
+  margin:0;
+  padding-left:18px;
+  font-size:13px;
+}
+.navi-stats-list li{
+  margin:4px 0;
+}
+.navi-stats-count{
+  color:var(--muted);
+  margin-left:6px;
+}
+.navi-stats-empty{
+  font-size:13px;
+  color:var(--muted);
+}
