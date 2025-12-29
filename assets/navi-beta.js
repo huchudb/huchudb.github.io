@@ -37,30 +37,37 @@ function setStep6_1Visible(isOn) {
 }
 
 function setConfirmUIState() {
-  const confirmBtn = document.getElementById("naviConfirmBtn");
-  const hint = document.getElementById("naviConfirmHint");
+  const btn = document.getElementById("naviConfirmBtn");
+  const hintEl = document.getElementById("naviConfirmHint");
+  if (!btn || !hintEl) return;
+
   const complete = step5Complete(uiState);
-  const ready = complete && !uiState.confirmed;
+  const confirmed = !!uiState.confirmed;
+  const ready = complete && !confirmed;
 
-  if (confirmBtn) confirmBtn.disabled = !ready;
+  btn.disabled = !ready;
+  btn.classList.toggle("is-disabled", !ready);
 
-  if (hint) {
-    if (uiState.confirmed) {
-      hint.textContent = "입력 변경 시 다시 활성화됩니다.";
-    } else if (complete) {
-      hint.textContent = "버튼을 누르면 결과가 표시됩니다.";
+  if (confirmed) {
+    hintEl.textContent = "입력 변경 시 다시 활성화됩니다.";
+    hintEl.classList.remove("is-warn");
+    return;
+  }
+
+  if (!ready) {
+    const missing = getStep5MissingRequiredLabels();
+    if (missing.length > 0) {
+      hintEl.textContent = `필수 입력: ${missing.join(", ")}`;
+      hintEl.classList.add("is-warn");
     } else {
-      const missing = getStep5MissingRequiredLabels(uiState);
-      hint.textContent = missing.length
-        ? `필수 입력 누락: ${missing.join(", ")}`
-        : "필수 입력을 완료하면 활성화됩니다.";
+      hintEl.textContent = "필수 입력을 완료하면 활성화됩니다.";
+      hintEl.classList.remove("is-warn");
     }
+    return;
   }
 
-  // Confirm 이후에는 "다시 입력/재계산" 흐름을 유지
-  if (uiState.confirmed && hint) {
-    hint.textContent = "입력 변경 시 다시 활성화됩니다.";
-  }
+  hintEl.textContent = "결과 확인하기를 누르면 1회 저장 + 결과를 표시합니다.";
+  hintEl.classList.remove("is-warn");
 }
 
 function invalidateConfirmed() {
@@ -1952,10 +1959,16 @@ function applyStep5Schema() {
       setLabelText(label, txt);
     }
   });
-
   if (occBlock) {
-    occBlock.style.display = visibleCodes.has("OCC") ? "" : "none";
-    if (!visibleCodes.has("OCC")) {
+    const isDepositReturn = (String(userState.realEstateLoanType || "") === "임대보증금반환대출");
+    const forceOcc = shouldForceOccupancy();
+    const occShouldShow = (!isDepositReturn) && (forceOcc || visibleCodes.has("OCC"));
+
+    occBlock.style.display = occShouldShow ? "" : "none";
+    // ✅ 강제 필요 케이스면 required 느낌(스타일용 data-required)도 올려둠
+    occBlock.toggleAttribute("data-required", Boolean(forceOcc));
+
+    if (!occShouldShow) {
       userState.occupancy = null;
       document
         .querySelectorAll("#naviOccupancyChips .navi-chip")
@@ -2013,7 +2026,26 @@ function isRentalOcc() {
   return userState.occupancy === "rental";
 }
 
+function updateOccBlockVisibility() {
+  // (deprecated) 예전 패치 호환용: 임대보증금반환대출에서만 강제 숨김
+  const occBlock = document.getElementById("occBlock");
+  if (!occBlock) return;
+  const lt = String(userState.realEstateLoanType || "");
+  if (lt === "임대보증금반환대출") {
+    occBlock.style.display = "none";
+    userState.occupancy = null;
+  }
+}
+
+function shouldForceOccupancy() {
+  // 거주형태(OCC)는 대부분의 부동산담보대출에서 필요(임대보증금반환대출은 제외)
+  const lt = String(userState.realEstateLoanType || "");
+  if (!lt) return false;
+  return lt !== "임대보증금반환대출";
+}
+
 function isStep5Complete() {
+  const forceOcc = shouldForceOccupancy();
   const schema = getStep5Schema();
   if (!schema) return false;
 
@@ -2061,7 +2093,7 @@ function isStep5Complete() {
     }
   }
 
-  if (forceOcc && !state.occupancy) return false;
+  if (forceOcc && !userState.occupancy) return false;
   return true;
 }
 
@@ -2079,7 +2111,6 @@ function getStep5MissingRequiredLabels() {
   if (!schema || typeof schema !== "object") return missing;
 
   const required = Array.isArray(schema.required) ? schema.required : [];
-  if (required.length === 0) return missing;
 
   const labelMap = {
     propertyValue: "KB시세/시세/감정가",
@@ -2099,6 +2130,12 @@ function getStep5MissingRequiredLabels() {
     const ok = (typeof v === "number") ? (v > 0) : !!v;
     if (!ok) missing.push(labelMap[key] || key);
   });
+
+  const forceOcc = shouldForceOccupancy();
+  if (forceOcc && !userState.occupancy) {
+    const occLabel = labelMap.occupancy || "거주형태";
+    if (!missing.includes(occLabel)) missing.push(occLabel);
+  }
 
   return missing;
 }
