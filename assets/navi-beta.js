@@ -2,7 +2,6 @@
    ✅ Navi stats (beta): /api/navi-stats
    - 저장 시점: Step5 완료 후 '결과 확인하기' 버튼 클릭
 ========================================================= */
-const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
 
 function getKstDateKey(d = new Date()) {
   // YYYY-MM-DD (KST)
@@ -69,6 +68,7 @@ function invalidateConfirmed() {
 const API_BASE = "https://huchudb-github-io.vercel.app";
 const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
 const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
+const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
 const NAVI_LOAN_CONFIG_LOCAL_KEY = "huchu_navi_loan_config_v1";
 
 /**
