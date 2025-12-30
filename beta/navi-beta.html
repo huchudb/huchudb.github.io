@@ -7,21 +7,26 @@
   <meta name="description" content="온투업(P2P) 담보대출·개인신용대출·스탁론 등 다양한 온투업 대출 상품을 조건에 맞게 탐색하고, 적합한 온투업체를 추천받는 후추 네비게이션(베타)입니다.">
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
-  <link rel="stylesheet" href="/assets/navi-beta.css?v=20251229-layout1" />
 
   <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script type="module" src="/assets/navi-beta.js?v=20251229-fix1"></script>
+  <script type="module" src="/assets/navi-beta.js?v=20251226-beta6"></script>
 
   <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
   <style>
     /* CSS 로드 전에도 hide 클래스가 즉시 적용되도록(FOUC 방지) */
     .hide { display: none !important; }
+
+    /* 넓은 화면에서 콘텐츠가 너무 중앙에 몰리는 문제 개선 */
+    body.navi-wide .beta-inner,
+    body.navi-wide .beta-header__inner {
+      max-width: none;
+    }
   </style>
 
 </head>
-<body class="beta-body">
+<body class="beta-body navi-wide">
 
   <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
@@ -68,7 +73,7 @@
             후추 네비게이션 (베타)
           </h1>
           <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
-            입력하신 조건에 맞춰 <strong>온투업 대출상품·온투업체</strong>를 탐색해주는 네비게이션 도우미입니다.
+            입력하신 조건에 맞춰 <strong>온투업 대출상품</strong>과<strong>온투업체</strong>를 탐색해주는 네비게이션 도우미입니다.
           </p>
           <p style="margin:0;font-size:11px;color:#9ca3af;">
             · 1~6단계까지 간단히 선택·입력하면, 7단계에서 추천 가능한 온투업체를 보여드립니다.
@@ -114,6 +119,14 @@
           <button type="button" class="navi-chip" data-region="강원도">강원</button>
           <button type="button" class="navi-chip" data-region="제주도">제주</button>
         </div>
+
+        <!-- (추가) 세부지역 LTV Up (서울/경기/인천 등) -->
+        <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
+          <div class="navi-subregion-title">세부지역(LTV Up)</div>
+          <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
+          <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
+        </div>
+
       </section>
 
       <!-- 3. 부동산 유형 선택 (부동산담보대출 일 때만) -->
