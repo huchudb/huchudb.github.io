@@ -8,25 +8,20 @@
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
 
-  <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
+    <link rel="stylesheet" href="/assets/navi-beta.css?v=20251230-fixdup1" />
+<!-- 캡처용 라이브러리 (이미지 저장 기능) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script type="module" src="/assets/navi-beta.js?v=20251226-beta6"></script>
+  <script type="module" src="/assets/navi-beta.js?v=20251230-fixdup1"></script>
 
   <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
   <style>
     /* CSS 로드 전에도 hide 클래스가 즉시 적용되도록(FOUC 방지) */
     .hide { display: none !important; }
-
-    /* 넓은 화면에서 콘텐츠가 너무 중앙에 몰리는 문제 개선 */
-    body.navi-wide .beta-inner,
-    body.navi-wide .beta-header__inner {
-      max-width: none;
-    }
   </style>
 
 </head>
-<body class="beta-body navi-wide">
+<body class="beta-body">
 
   <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
@@ -73,7 +68,7 @@
             후추 네비게이션 (베타)
           </h1>
           <p style="margin:0 0 4px;font-size:13px;color:#4b5563;">
-            입력하신 조건에 맞춰 <strong>온투업 대출상품</strong>과<strong>온투업체</strong>를 탐색해주는 네비게이션 도우미입니다.
+            입력하신 조건에 맞춰 <strong>온투업 대출상품·온투업체</strong>를 탐색해주는 네비게이션 도우미입니다.
           </p>
           <p style="margin:0;font-size:11px;color:#9ca3af;">
             · 1~6단계까지 간단히 선택·입력하면, 7단계에서 추천 가능한 온투업체를 보여드립니다.
