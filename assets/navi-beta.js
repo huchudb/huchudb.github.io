@@ -1019,11 +1019,8 @@ function isStep5Complete() {
   // ✅ 부동산담보대출 + (서울/경기/인천 등) LTV UP 지역인 경우: 반드시 1번 클릭해야 Step6 진행 가능
   const isRE = userState.mainCategory === "부동산담보대출";
   if (isRE) {
-    const meta = getMeta();
     const regionKey = regionKeyFromLabel(userState.region);
-    const list = (meta && meta.SUBREGION_LTV_UP && regionKey && Array.isArray(meta.SUBREGION_LTV_UP[regionKey]))
-      ? meta.SUBREGION_LTV_UP[regionKey]
-      : [];
+    const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
     if (list.length) {
       // null = 미선택, "" = 선택안함(클릭 완료)
       if (userState.subregionKey === null) return false;
@@ -1162,17 +1159,72 @@ function renderLoanTypeChipsFromMeta() {
 }
 
 // Step2 세부지역(LTV Up)
+// ------------------------------------------------------
+// Step2: LTV UP 세부지역(서브리전) — 표시/필수 선택/필터링
+//  - meta.SUBREGION_LTV_UP 는 "후보 리스트"만 제공
+//  - 실제 노출은 lenders[*].regions[*][*].ltvUp 에 숫자(>0)가 존재하는 것만 노출
+// ------------------------------------------------------
+
+function hasAnyLtvUpValue(regionKey, subKey, lenders) {
+  if (!regionKey || !subKey) return false;
+  const arr = Array.isArray(lenders) ? lenders : [];
+  for (const l of arr) {
+    const regionCfg = l && l.regions && l.regions[regionKey];
+    if (!regionCfg || typeof regionCfg !== "object") continue;
+
+    for (const cell of Object.values(regionCfg)) {
+      if (!cell || typeof cell !== "object") continue;
+
+      // enabled 셀만 의미 있는 설정으로 간주
+      const enabled = cell.enabled === true || cell.enabled === "true";
+      if (!enabled) continue;
+
+      const up = cell.ltvUp;
+      if (!up || typeof up !== "object") continue;
+
+      const v = parseNumberLoose(up[subKey]);
+      if (v != null && v > 0) return true;
+    }
+  }
+  return false;
+}
+
+function getAvailableSubregionsForRegion(regionKey) {
+  const meta = getMeta();
+  const raw = (meta && meta.SUBREGION_LTV_UP && regionKey && Array.isArray(meta.SUBREGION_LTV_UP[regionKey]))
+    ? meta.SUBREGION_LTV_UP[regionKey]
+    : [];
+
+  const items = [];
+  raw.forEach((it) => {
+    const key = String(it && (it.key ?? it.id ?? it.code ?? "")).trim();
+    if (!key) return;
+    const label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
+    items.push({ key, label });
+  });
+
+  if (!items.length) return [];
+
+  const lenders = (naviLoanConfig && Array.isArray(naviLoanConfig.lenders)) ? naviLoanConfig.lenders : [];
+  if (!lenders.length) return items; // lenders 미로딩 시엔 후보 리스트 그대로 노출
+
+  return items.filter((it) => hasAnyLtvUpValue(regionKey, it.key, lenders));
+}
+
+function isSubregionRequiredForCurrentRegion() {
+  const regionKey = regionKeyFromLabel(userState.region);
+  if (!regionKey) return false;
+  return getAvailableSubregionsForRegion(regionKey).length > 0;
+}
+
+
 function renderSubregionChips() {
   const wrap = document.getElementById("naviSubregionWrap");
   const container = document.getElementById("naviSubregionChips");
   if (!wrap || !container) return;
 
-  const meta = getMeta();
   const regionKey = regionKeyFromLabel(userState.region);
-
-  const list = (meta && meta.SUBREGION_LTV_UP && regionKey && Array.isArray(meta.SUBREGION_LTV_UP[regionKey]))
-    ? meta.SUBREGION_LTV_UP[regionKey]
-    : [];
+  const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
 
   if (!list.length) {
     wrap.classList.add("hide");
@@ -2227,10 +2279,16 @@ function updateStepVisibility(primaryEligible) {
 
   // ✅ 부동산담보대출 플로우
   setSectionVisible("navi-step2", true);
-  setSectionVisible("navi-step3", Boolean(userState.region));
-  setSectionVisible("navi-step4", Boolean(userState.propertyType));
 
-  const s5Ready = Boolean(userState.propertyType && userState.realEstateLoanType);
+  // ✅ LTV UP(세부지역) 선택이 필요한 지역이면, 세부지역을 1번 클릭(선택안함 포함)해야 Step3 진행
+  const needsSub = isSubregionRequiredForCurrentRegion();
+  const subDone = !needsSub || userState.subregionKey !== null; // ""(선택안함)도 완료로 간주
+  const s3Ready = Boolean(userState.region && subDone);
+
+  setSectionVisible("navi-step3", s3Ready);
+  setSectionVisible("navi-step4", Boolean(s3Ready && userState.propertyType));
+
+  const s5Ready = Boolean(s3Ready && userState.propertyType && userState.realEstateLoanType);
   setSectionVisible("navi-step5", s5Ready);
 
   const canShowStep6 = Boolean(uiState.confirmed && isStep5Complete());
@@ -2251,6 +2309,10 @@ function resolveActiveStep(primaryEligible) {
 
   if (isRE) {
     if (!userState.region) return 2;
+
+    // ✅ LTV UP(세부지역) 선택이 필요한 지역이면, 세부지역 선택 전까지는 Step2로 유지
+    if (isSubregionRequiredForCurrentRegion() && userState.subregionKey === null) return 2;
+
     if (!userState.propertyType) return 3;
     if (!userState.realEstateLoanType) return 4;
     if (!isStep5Complete()) return 5;
