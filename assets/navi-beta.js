@@ -1229,7 +1229,7 @@ function escapeHtmlAttr(s) {
 }
 
 function setupStep1() {
-  const container = document.getElementById("naviMainCats");
+  const container = document.getElementById("naviLoanCategoryChips");
   if (!container) return;
 
   container.addEventListener("click", (e) => {
@@ -1246,7 +1246,7 @@ function setupStep1() {
     if (prev === next) return;
 
     // UI 선택 상태
-    document.querySelectorAll("#naviMainCats .navi-chip").forEach((b) => b.classList.remove("is-selected"));
+    document.querySelectorAll("#naviLoanCategoryChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
     btn.classList.add("is-selected");
 
     // ✅ 상품군 변경 시: 작성 중이던 부동산담보대출 입력/선택은 모두 리셋
@@ -2617,7 +2617,14 @@ function renderFinalResult() {
 // ------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ navi-beta.js loaded");
+  console.log("✅ navi-beta.js loaded (20251230-fix-step1-bind)");
+  // ✅ meta 로딩 전(약 1~2초)에는 하드코딩된 칩이 잠깐 보일 수 있어, 먼저 "불러오는 중"으로 덮어씀
+  try {
+    const step1 = document.getElementById("naviLoanCategoryChips");
+    if (step1) {
+      step1.innerHTML = '<button type="button" class="navi-chip" disabled style="opacity:.65;cursor:default;">불러오는 중…</button>';
+    }
+  } catch (_) {}
   setupBetaMenu();
   ensureStepper();
   ensureLoanTypeChips();
