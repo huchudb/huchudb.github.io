@@ -1078,6 +1078,21 @@ function renderLoanTypeChipsFromMeta() {
     const label = String(x.label || x.key || "");
     return `<button type="button" class="navi-chip" data-loan-type="${escapeHtmlAttr(k)}" data-loan-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
   }).join("");
+
+  // ✅ (UX) 재렌더링 이후에도 선택된 대출종류 칩의 강조(검정 배경)를 유지
+  // - recalcAndUpdateSummary()에서 Step4 칩을 재구성하는 흐름이 있어, 선택 표시가 초기화될 수 있음
+  const chosenKey = userState.realEstateLoanTypeKey || "";
+  const chosenLabel = userState.realEstateLoanType || "";
+  if (chosenKey || chosenLabel) {
+    const btns = Array.from(container.querySelectorAll(".navi-chip"));
+    const hitByKey = chosenKey ? btns.find((b) => b.getAttribute("data-loan-type") === chosenKey) : null;
+    const hitByLabel = (!hitByKey && chosenLabel)
+      ? btns.find((b) => (b.getAttribute("data-loan-label") || b.textContent || "") === chosenLabel)
+      : null;
+    const hit = hitByKey || hitByLabel;
+    if (hit) singleSelectChip(container, hit);
+  }
+
 }
 
 // Step2 세부지역(LTV Up)
@@ -1305,7 +1320,6 @@ function setupStep5() {
 
       uiState.confirmed = true;
       setStep6Visible(true);
-      invalidateConfirmed();
       recalcAndUpdateSummary(false);
 
       const payload = {
