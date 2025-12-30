@@ -1503,6 +1503,28 @@ const EXTRA_CONDITIONS = {
   ]
 };
 
+// ------------------------------------------------------
+// ✅ Navi 렌더를 위한 meta (admin을 SoT로 사용)
+// - navi는 이 meta를 그대로 받아서 Step1~Step4 선택지를 렌더한다.
+// - SUBREGION_LTV_UP(서울/경기/인천)도 meta로 함께 저장한다.
+// ------------------------------------------------------
+function buildNaviMeta() {
+  return {
+    version: "v1",
+    productGroups: PRODUCT_GROUPS,
+    regions: REGIONS,
+    propertyTypes: PROPERTY_TYPES,
+    loanTypes: {
+      base: LOAN_TYPES_BASE,
+      aptv: LOAN_TYPES_APTVILLA,
+    },
+    SUBREGION_LTV_UP: SUBREGION_LTV_UP,
+    extraConditions: EXTRA_CONDITIONS,
+  };
+}
+
+
+
 function buildExtraConditionIndex(def) {
   const map = {};
   (def?.groups || []).forEach((g) => {
@@ -2004,7 +2026,7 @@ function setPartnerOrderUnique(targetId, orderNum) {
 }
 
 async function postLendersConfigToServer(successText) {
-  const payload = lendersConfig;
+  const payload = { ...lendersConfig, meta: buildNaviMeta() };
 
   const res = await fetch(`${API_BASE}/api/loan-config`, {
     method: "POST",
