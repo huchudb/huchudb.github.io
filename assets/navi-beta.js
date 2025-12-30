@@ -623,29 +623,6 @@ function setSectionVisible(sectionId, visible) {
 // Step4: 아파트/빌라만 7개 대출종류 노출 (JS로 칩 추가)
 // ------------------------------------------------------
 
-function ensureLoanTypeChips() {
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  if (!container) return;
-
-  const need = [
-    { t: "매입잔금(일반)", label: "매입잔금(일반)" },
-    { t: "매입잔금(분양)", label: "매입잔금(분양)" },
-  ];
-
-  need.forEach((x) => {
-    const exists = Array.from(container.querySelectorAll(".navi-chip")).some(
-      (b) => b.getAttribute("data-loan-type") === x.t
-    );
-    if (!exists) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "navi-chip";
-      btn.setAttribute("data-loan-type", x.t);
-      btn.textContent = x.label;
-      container.appendChild(btn);
-    }
-  });
-}
 
 function ensureLoanTypeChips() {
   // meta가 있으면 propertyType loanSet에 맞춰 칩을 재구성
