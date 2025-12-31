@@ -243,38 +243,108 @@ function renderNaviStatsWidget(payload) {
   const monthKey = payload?.monthKey || getKstMonthKey();
   const monthLabel = formatMonthLabel(monthKey);
 
-  const regionsTop = topNFromMap(payload?.regions, 3).map(([k, v]) => ({ label: NAVI_REGION_LABEL[k] || k, count: v }));
-  const loanTop = topNFromMap(payload?.loanTypes, 3).map(([k, v]) => ({ label: k, count: v }));
-  const amountTop = topNFromMap(payload?.amountBuckets, 3).map(([k, v]) => ({ label: naviAmountBucketLabel(k), count: v }));
+  // ✅ 메인 위젯 9개 항목(서버 집계 키 고정)
+  const groups = [
+    { key: "re_collateral",   label: "부동산 담보대출",    icon: "home" },
+    { key: "personal_credit", label: "개인 신용대출",      icon: "id" },
+    { key: "corporate_credit",label: "법인 신용대출",      icon: "building" },
+    { key: "stock",           label: "스탁론",            icon: "trend" },
+    { key: "medical",         label: "의료사업자대출",     icon: "medical" },
+    { key: "art",             label: "미술품 담보대출",    icon: "art" },
+    { key: "receivable",      label: "매출채권 유동화",    icon: "receipt" },
+    { key: "eao",             label: "전자어음",          icon: "note" },
+    { key: "auction",         label: "경매배당금 담보대출", icon: "gavel" },
+  ];
 
-  const renderList = (items) => {
-    if (!items || items.length === 0) return `<div class="navi-stats-empty">아직 집계된 데이터가 없습니다.</div>`;
-    return `<ol class="navi-stats-list">${items.map(x => `<li><b>${escapeHtml(x.label)}</b> <span class="navi-stats-count">${formatNumber(x.count)}</span></li>`).join("")}</ol>`;
+  const data = payload?.productGroups || {};
+
+  const iconSvg = (name) => {
+    // 단색(line) 아이콘: currentColor로 통일
+    switch (name) {
+      case "home":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>`;
+      case "id":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 15c1.2-1.8 6.8-1.8 8 0"/><path d="M9 10.2c0 1.3 1 2.3 2.3 2.3s2.3-1 2.3-2.3S12.6 7.9 11.3 7.9 9 8.9 9 10.2z"/></svg>`;
+      case "building":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V4h9v16"/><path d="M15 8h3v12"/><path d="M9 8h3"/><path d="M9 12h3"/><path d="M9 16h3"/><path d="M6 20h15"/></svg>`;
+      case "trend":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l6-6 4 4 6-8"/><path d="M20 6v6h-6"/></svg>`;
+      case "medical":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v4H9z"/><path d="M6 7h12v14H6z"/><path d="M12 10v8"/><path d="M8 14h8"/></svg>`;
+      case "art":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><path d="M9 21V7a3 3 0 0 1 6 0v14"/><path d="M6 10h12"/></svg>`;
+      case "receipt":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h6"/></svg>`;
+      case "note":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10v18H7z"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg>`;
+      case "gavel":
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3l7 7"/><path d="M11 6l7 7"/><path d="M2 21l9-9"/><path d="M16 13l3 3"/><path d="M3 20l4 1 1-4"/></svg>`;
+      default:
+        return "";
+    }
   };
+
+  const tileHtml = groups.map((g, i) => {
+    const raw = Number(data?.[g.key]) || 0;
+    const count = Math.max(0, raw);
+    const delay = i * 80;
+    return `
+      <div class="navi-tile" style="animation-delay:${delay}ms">
+        <div class="navi-tile__top">
+          <div class="navi-tile__icon" aria-hidden="true">${iconSvg(g.icon)}</div>
+        </div>
+        <div class="navi-tile__label">${escapeHtml(g.label)}</div>
+        <div class="navi-tile__count"><span class="num" data-target="${count}">0</span><span class="unit">건</span></div>
+      </div>
+    `;
+  }).join("");
 
   mount.innerHTML = `
     <div class="navi-stats-card">
       <div class="navi-stats-head">
-        <div class="navi-stats-title">후추 네비게이션 이용 통계</div>
+        <div class="navi-stats-title">
+          <span class="navi-live"><span class="navi-live__dot" aria-hidden="true"></span>LIVE</span>
+          <span>후추 네비게이션 이용 현황</span>
+        </div>
         <div class="navi-stats-month">${escapeHtml(monthLabel)}</div>
       </div>
-      <div class="navi-stats-grid">
-        <div class="navi-stats-col">
-          <h4>지역 TOP3</h4>
-          ${renderList(regionsTop)}
-        </div>
-        <div class="navi-stats-col">
-          <h4>대출종류 TOP3</h4>
-          ${renderList(loanTop)}
-        </div>
-        <div class="navi-stats-col">
-          <h4>필요금액 TOP3</h4>
-          ${renderList(amountTop)}
-        </div>
+      <div class="navi-stats-tiles">
+        ${tileHtml}
       </div>
     </div>
   `;
+
+  // 숫자 카운트업 애니메이션(가벼운 UX)
+  try {
+    const nums = mount.querySelectorAll(".navi-tile .num[data-target]");
+    const dur = 650;
+    nums.forEach((el) => {
+      const target = Number(el.getAttribute("data-target")) || 0;
+      if (!Number.isFinite(target) || target <= 0) {
+        el.textContent = "0";
+        return;
+      }
+      const start = performance.now();
+      const step = (t) => {
+        const p = Math.min(1, (t - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+        const v = Math.floor(target * eased);
+        el.textContent = formatNumber(v);
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  } catch (_) {
+    // ignore
+    mount.querySelectorAll(".navi-tile .num[data-target]").forEach((el) => {
+      const target = Number(el.getAttribute("data-target")) || 0;
+      el.textContent = formatNumber(target);
+    });
+  }
 }
+
+
+
 
 async function initNaviStatsWidget() {
   const mount = document.getElementById("naviStatsMount");
@@ -286,7 +356,7 @@ async function initNaviStatsWidget() {
     renderNaviStatsWidget(data);
   } catch (e) {
     console.warn("navi-stats widget failed:", e);
-    renderNaviStatsWidget({ monthKey, regions: {}, loanTypes: {}, amountBuckets: {} });
+    renderNaviStatsWidget({ monthKey, productGroups: {} });
   }
 }
 
