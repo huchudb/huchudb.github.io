@@ -1,10 +1,13 @@
-// /api/navi-stats.js
-// Huchu Navi usage stats (monthly aggregation)
-// - Incremented on navi page events (Step1 product click / Step5 confirm)
-// - Exposes monthly stats for main page hero widget
+import { Redis } from "@upstash/redis";
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = Redis.fromEnv();
+
+/* =========================================================
+   ✅ Navi Stats API (Vercel)
+   - GET  /api/navi-stats?month=YYYY-MM            : 월별 통계 조회
+   - GET  /api/navi-stats?track=1&event=product_click&k=... : Step1 상품군 클릭 카운트(월별)
+   - POST /api/navi-stats                           : (기존) Step5 제출 기반 집계 유지
+========================================================= */
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -12,159 +15,162 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function getKstMonthKey(d = new Date()) {
-  try {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Seoul",
-      year: "numeric",
-      month: "2-digit",
-    }).format(d); // YYYY-MM
-  } catch {
-    const tzOffsetMs = 9 * 60 * 60 * 1000;
-    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 7);
-  }
+function getKstMonthKey(now = new Date()) {
+  // KST(+09:00) 기준 YYYY-MM
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
 }
 
-function normalizeMonthKey(m) {
-  const s = String(m || "").trim();
+function normalizeMonthKey(input) {
+  const s = String(input ?? "").trim();
+  if (!s) return "";
   if (/^\d{4}-\d{2}$/.test(s)) return s;
-  return null;
-}
-
-function amountBucket(amountMan) {
-  const a = Number(amountMan);
-  if (!Number.isFinite(a) || a <= 0) return "unknown";
-  if (a < 3000) return "0_3000";
-  if (a < 5000) return "3000_5000";
-  if (a < 10000) return "5000_10000";
-  if (a < 20000) return "10000_20000";
-  if (a < 30000) return "20000_30000";
-  if (a < 50000) return "30000_50000";
-  return "50000_plus";
-}
-
-async function upstash(command, args = []) {
-  if (!UPSTASH_URL || !UPSTASH_TOKEN) throw new Error("Missing Upstash env");
-  const url = `${UPSTASH_URL}/${command}/${args.map(encodeURIComponent).join("/")}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
-  if (!res.ok) throw new Error(`Upstash ${command} failed: ${res.status}`);
-  const data = await res.json();
-  return data?.result;
+  return "";
 }
 
 async function kvGetJson(key) {
-  const raw = await upstash("get", [key]);
+  const raw = await redis.get(key);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    return (typeof raw === "string") ? JSON.parse(raw) : raw;
   } catch {
     return null;
   }
 }
 
 async function kvSetJson(key, obj) {
-  return await upstash("set", [key, JSON.stringify(obj)]);
+  // Upstash Redis는 객체 저장도 되지만, 환경 차이 대비해 JSON 문자열로 통일
+  await redis.set(key, JSON.stringify(obj));
+}
+
+function inc(obj, key, delta = 1) {
+  if (!obj || !key) return;
+  obj[key] = (Number(obj[key]) || 0) + delta;
+}
+
+const PRODUCT_KEYS = new Set([
+  "re_collateral",
+  "personal_credit",
+  "corporate_credit",
+  "stock",
+  "medical",
+  "art",
+  "receivable",
+  "enote",
+  "auction_dividend",
+]);
+
+function normalizeProductKey(input) {
+  const k = String(input ?? "").trim();
+  if (!k) return "";
+  return PRODUCT_KEYS.has(k) ? k : "";
 }
 
 function initStats(monthKey) {
+  const now = Date.now();
   return {
-    version: 2,
     monthKey,
-    updatedAt: Date.now(),
-    totals: {
-      // all events combined
-      requests: 0,
-      // Step1 "대출상품군 선택" 클릭 집계
-      productClicks: 0,
-      // Step5 확인(결과보기) 집계 (legacy/optional)
-      confirms: 0,
-      error: 0
-    },
-    // Step1 클릭 기반: 9개 상품군(메인 위젯)
-    productGroups: {
-      re_collateral: 0,      // 부동산 담보대출
-      personal_credit: 0,    // 개인 신용대출
-      corporate_credit: 0,   // 법인 신용대출
-      stock: 0,              // 스탁론(상장/비상장 통합)
-      medical: 0,            // 의료사업자대출
-      art: 0,                // 미술품 담보대출
-      receivable: 0,         // 매출채권 유동화(선정산 포함)
-      eao: 0,                // 전자어음
-      auction: 0             // 경매배당금 담보대출
-    },
-    // legacy: Step5 confirm에서만 집계(사용 중이면 유지)
+    totals: { requests: 0, productClicks: 0 },
+    // ✅ 메인 페이지 9개 카드용 (Step1 클릭 집계)
+    productGroups: {},
+    // (기존) Step5 제출 기반 집계
     regions: {},
     loanTypes: {},
-    amountBuckets: {}
+    amountBuckets: {},
+    createdAt: now,
+    updatedAt: now,
   };
-}
-
-
-function inc(map, key, by = 1) {
-  const k = String(key || "").trim() || "unknown";
-  map[k] = (Number(map[k]) || 0) + by;
 }
 
 export default async function handler(req, res) {
   setCors(res);
-  if (req.method === "OPTIONS") return res.status(204).end();
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
 
   try {
+    // =========================================================
+    // ✅ GET: 통계 조회 OR 트래킹
+    // =========================================================
     if (req.method === "GET") {
-      const mk = normalizeMonthKey(req.query?.month) || getKstMonthKey();
-      const key = `huchu:navi-stats:v1:${mk}`;
-      const stats = (await kvGetJson(key)) || initStats(mk);
+      const isTrack = String(req.query?.track ?? "") === "1";
+
+      // --- 트래킹 모드 (명시적 flag가 있을 때만 side-effect 발생)
+      if (isTrack) {
+        const event = String(req.query?.event ?? "").trim();
+        if (event !== "product_click") {
+          return res.status(400).json({ ok: false, error: "Unsupported event" });
+        }
+
+        const key = normalizeProductKey(req.query?.k ?? req.query?.key);
+        if (!key) {
+          return res.status(400).json({ ok: false, error: "Invalid product key" });
+        }
+
+        const monthKey = getKstMonthKey();
+        const redisKey = `huchu:navi-stats:v1:${monthKey}`;
+
+        const stats = (await kvGetJson(redisKey)) || initStats(monthKey);
+        stats.totals = stats.totals || { requests: 0, productClicks: 0 };
+        stats.productGroups = stats.productGroups || {};
+
+        inc(stats.productGroups, key, 1);
+        stats.totals.productClicks = (Number(stats.totals.productClicks) || 0) + 1;
+        stats.updatedAt = Date.now();
+
+        await kvSetJson(redisKey, stats);
+        return res.status(200).json({ ok: true, monthKey, key, value: stats.productGroups[key] });
+      }
+
+      // --- 조회 모드
+      const qMonth = normalizeMonthKey(req.query?.month);
+      const monthKey = qMonth || getKstMonthKey();
+      const redisKey = `huchu:navi-stats:v1:${monthKey}`;
+
+      const stats = (await kvGetJson(redisKey)) || initStats(monthKey);
+
+      // 하위호환: 예전 데이터에 totals/productGroups가 없을 수 있음
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0 };
+      if (!stats.productGroups) stats.productGroups = {};
+
       return res.status(200).json(stats);
     }
 
+    // =========================================================
+    // ✅ POST: (기존) Step5 제출 기반 집계 유지
+    // =========================================================
     if (req.method === "POST") {
-      const mk = getKstMonthKey();
-      const key = `huchu:navi-stats:v1:${mk}`;
+      const monthKey = getKstMonthKey();
+      const redisKey = `huchu:navi-stats:v1:${monthKey}`;
+
       const body = (typeof req.body === "string") ? JSON.parse(req.body) : (req.body || {});
+      const region = String(body.region ?? "").trim();
+      const loanType = String(body.loanType ?? "").trim();
+      const amountBucket = String(body.amountBucket ?? "").trim();
 
-      const event = String(body.event || body.evt || "confirm");
+      const stats = (await kvGetJson(redisKey)) || initStats(monthKey);
 
-// Step1 선택: product_click (메인 9개 집계)
-const productGroupKey = body.productGroupKey || body.productGroup || body.mainCategoryKey || body.mainCategory || "";
+      stats.totals = stats.totals || { requests: 0, productClicks: 0 };
+      stats.regions = stats.regions || {};
+      stats.loanTypes = stats.loanTypes || {};
+      stats.amountBuckets = stats.amountBuckets || {};
 
-// Step5 확인: confirm (legacy)
-const regionKey = body.regionKey || body.region || "unknown";
-const loanTypeKey = body.loanTypeKey || body.loanType || "unknown";
-const amountMan = body.amountMan ?? body.amount ?? 0;
+      stats.totals.requests = (Number(stats.totals.requests) || 0) + 1;
+      if (region) inc(stats.regions, region, 1);
+      if (loanType) inc(stats.loanTypes, loanType, 1);
+      if (amountBucket) inc(stats.amountBuckets, amountBucket, 1);
 
-const b = amountBucket(amountMan);
+      stats.updatedAt = Date.now();
 
-const stats = (await kvGetJson(key)) || initStats(mk);
-stats.monthKey = mk;
-stats.updatedAt = Date.now();
-
-if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
-stats.totals.requests = (Number(stats.totals?.requests) || 0) + 1;
-
-if (event === "product_click") {
-  if (!stats.productGroups) stats.productGroups = {};
-  // 등록된 9개 키만 안전하게 증가
-  const pg = String(productGroupKey || "").trim();
-  if (isAllowedProductKey(pg)) inc(stats.productGroups, pg, 1);
-  stats.totals.productClicks = (Number(stats.totals?.productClicks) || 0) + 1;
-} else {
-  // confirm (기존 집계)
-  if (!stats.regions) stats.regions = {};
-  if (!stats.loanTypes) stats.loanTypes = {};
-  if (!stats.amountBuckets) stats.amountBuckets = {};
-  inc(stats.regions, regionKey, 1);
-  inc(stats.loanTypes, loanTypeKey, 1);
-  inc(stats.amountBuckets, b, 1);
-  stats.totals.confirms = (Number(stats.totals?.confirms) || 0) + 1;
-}
-
-      await kvSetJson(key, stats);
-      return res.status(200).json({ ok: true, monthKey: mk });
+      await kvSetJson(redisKey, stats);
+      return res.status(200).json({ ok: true, monthKey });
     }
 
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   } catch (e) {
-    console.error("navi-stats error:", e);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 }
