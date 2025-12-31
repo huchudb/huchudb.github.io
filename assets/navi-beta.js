@@ -26,47 +26,6 @@ async function postNaviStatsOncePerClick(payload) {
   }
 }
 
-
-/* =========================================================
-   ✅ Navi stats (A안)
-   - Step1 '대출상품군 선택' 클릭 시: 메인페이지 9개 항목 카운팅
-   - Step5 confirm은 event='confirm'으로 별도 집계(옵션)
-========================================================= */
-function toProductGroupStatKey(rawMainCategory) {
-  const s = String(rawMainCategory || "").replace(/\s+/g, "");
-  if (!s) return "";
-
-  if (s === "부동산담보대출") return "re_collateral";
-  if (s === "개인신용대출") return "personal_credit";
-  if (s === "법인신용대출") return "corporate_credit";
-
-  // 스탁론(상장/비상장) → 스탁론
-  if (s.startsWith("스탁론")) return "stock";
-
-  if (s === "의료사업자대출") return "medical";
-  if (s === "미술품담보대출") return "art";
-
-  // 매출채권유동화 + 선정산 → 매출채권 유동화
-  if (s.includes("매출채권") || s.includes("선정산")) return "receivable";
-
-  if (s === "전자어음") return "eao";
-  if (s.includes("경매배당금")) return "auction";
-
-  return "";
-}
-
-function trackProductGroupClick(rawMainCategory) {
-  const key = toProductGroupStatKey(rawMainCategory);
-  if (!key) return;
-
-  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
-  postNaviStatsOncePerClick({
-    event: "product_click",
-    productGroupKey: key,
-    productGroupRaw: String(rawMainCategory || "")
-  });
-}
-
 function setStep6Visible(isOn) {
   const sec6 = document.getElementById("navi-step6");
   if (sec6) sec6.classList.toggle("hide", !isOn);
@@ -110,6 +69,45 @@ const API_BASE = "https://huchudb-github-io.vercel.app";
 const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
 const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
 const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
+
+/* =========================================================
+   ✅ Step1 '대출 상품군 선택' 클릭 카운트 (메인 페이지 9개 카드 집계)
+   - 네비 페이지 Step1에서 상품군을 선택할 때마다 집계
+   - CORS preflight 회피: GET + query (track=1)
+========================================================= */
+function mapMainCategoryToProductGroupKey(mainCat){
+  const s = String(mainCat ?? "").replace(/\s+/g, "");
+  if (!s) return "";
+  if (s.includes("부동산담보대출")) return "re_collateral";
+  if (s.includes("개인신용대출")) return "personal_credit";
+  if (s.includes("법인신용대출")) return "corporate_credit";
+
+  // ✅ 스탁론(상장)/스탁론(비상장) → 스탁론(통합)
+  if (s.includes("스탁론")) return "stock";
+
+  if (s.includes("의료사업자대출")) return "medical";
+  if (s.includes("미술품담보대출") || s.includes("미술품담보")) return "art";
+
+  // ✅ 매출채권유동화/선정산 → 매출채권 유동화(통합)
+  if (s.includes("매출채권유동화") || s.includes("선정산")) return "receivable";
+
+  if (s.includes("전자어음")) return "enote";
+
+  if (s.includes("경매배당금담보대출") || s.includes("경매배당금담보")) return "auction_dividend";
+
+  return "";
+}
+
+function trackMainCategoryClick(mainCat){
+  const key = mapMainCategoryToProductGroupKey(mainCat);
+  if (!key) return;
+  try{
+    const url = `${NAVI_STATS_ENDPOINT}?track=1&event=product_click&k=${encodeURIComponent(key)}`;
+    // ✅ fire-and-forget (실패해도 UX 영향 없음)
+    fetch(url, { method:"GET", mode:"cors", cache:"no-store" }).catch(()=>{});
+  }catch(_e){}
+}
+
 const NAVI_LOAN_CONFIG_LOCAL_KEY = "huchu_navi_loan_config_v1";
 
 /**
@@ -1344,8 +1342,9 @@ function setupStep1() {
 
     // ✅ 상품군 변경 시: 작성 중이던 부동산담보대출 입력/선택은 모두 리셋
     userState.mainCategory = next;
-    // ✅ Step1 클릭 집계(메인페이지 9개)
-    trackProductGroupClick(next);
+
+    // ✅ Step1 선택 즉시 카운트
+    trackMainCategoryClick(next);
 
     resetRealEstateDraftState();
 
@@ -1529,10 +1528,8 @@ function setupStep5() {
       recalcAndUpdateSummary(false);
 
       const payload = {
-        event: "confirm",
         ts: Date.now(),
         dateKst: getKstDateKey(),
-        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
         regionKey: uiState.region || "",
         propertyTypeKey: uiState.propertyType || "",
         loanTypeKey: uiState.realEstateLoanType || "",
