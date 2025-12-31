@@ -26,6 +26,47 @@ async function postNaviStatsOncePerClick(payload) {
   }
 }
 
+
+/* =========================================================
+   ✅ Navi stats (A안)
+   - Step1 '대출상품군 선택' 클릭 시: 메인페이지 9개 항목 카운팅
+   - Step5 confirm은 event='confirm'으로 별도 집계(옵션)
+========================================================= */
+function toProductGroupStatKey(rawMainCategory) {
+  const s = String(rawMainCategory || "").replace(/\s+/g, "");
+  if (!s) return "";
+
+  if (s === "부동산담보대출") return "re_collateral";
+  if (s === "개인신용대출") return "personal_credit";
+  if (s === "법인신용대출") return "corporate_credit";
+
+  // 스탁론(상장/비상장) → 스탁론
+  if (s.startsWith("스탁론")) return "stock";
+
+  if (s === "의료사업자대출") return "medical";
+  if (s === "미술품담보대출") return "art";
+
+  // 매출채권유동화 + 선정산 → 매출채권 유동화
+  if (s.includes("매출채권") || s.includes("선정산")) return "receivable";
+
+  if (s === "전자어음") return "eao";
+  if (s.includes("경매배당금")) return "auction";
+
+  return "";
+}
+
+function trackProductGroupClick(rawMainCategory) {
+  const key = toProductGroupStatKey(rawMainCategory);
+  if (!key) return;
+
+  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
+  postNaviStatsOncePerClick({
+    event: "product_click",
+    productGroupKey: key,
+    productGroupRaw: String(rawMainCategory || "")
+  });
+}
+
 function setStep6Visible(isOn) {
   const sec6 = document.getElementById("navi-step6");
   if (sec6) sec6.classList.toggle("hide", !isOn);
@@ -1303,6 +1344,9 @@ function setupStep1() {
 
     // ✅ 상품군 변경 시: 작성 중이던 부동산담보대출 입력/선택은 모두 리셋
     userState.mainCategory = next;
+    // ✅ Step1 클릭 집계(메인페이지 9개)
+    trackProductGroupClick(next);
+
     resetRealEstateDraftState();
 
     // ✅ 추가조건(선택) 리셋
@@ -1485,8 +1529,10 @@ function setupStep5() {
       recalcAndUpdateSummary(false);
 
       const payload = {
+        event: "confirm",
         ts: Date.now(),
         dateKst: getKstDateKey(),
+        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
         regionKey: uiState.region || "",
         propertyTypeKey: uiState.propertyType || "",
         loanTypeKey: uiState.realEstateLoanType || "",
