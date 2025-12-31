@@ -1,170 +1,212 @@
-/* =========================================================
-   ✅ HERO 우측: 후추 네비게이션 이용 현황 (패치)
-   - (1) 카드 높이 = HERO 배너 높이
-   - (2) LIVE 빨간 점 깜박임
-   - (3) 9개 타일 내용 중앙정렬 + 아이콘 이미지
-========================================================= */
+// /api/navi-stats.js
+// Huchu Navi usage stats (monthly aggregation)
+//
+// ✅ 메인페이지(Hero) 위젯:
+// - Step1 '대출상품군 선택' 클릭 시 9개 상품군 카운팅 (event='product_click')
+// - 메인페이지에서는 monthKey 기준으로 productGroups를 조회(GET)
+//
+// ⚠️ CORS: GitHub Pages(https://www.huchulab.com) → Vercel Functions 호출을 위해 CORS 헤더 필수
 
-/* HERO 우측 영역이 좌측 배너 높이를 그대로 따라가도록 */
-.beta-hero-grid{ align-items:stretch; }
-.beta-hero-right{ height:100%; display:flex; flex-direction:column; }
-.beta-hero-right--empty{ height:100%; display:flex; flex-direction:column; }
-.beta-hero-placeholder{ height:100%; display:flex; flex-direction:column; }
-#naviStatsMount{ height:100%; display:flex; }
-#naviStatsMount > .navi-stats-card{ flex:1 1 auto; }
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-/* Navi stats card */
-.navi-stats-card{
-  background:#fff;
-  border:1px solid rgba(15,23,42,.10);
-  border-radius:24px;
-  padding:16px 16px 18px;
-  box-shadow:0 10px 28px rgba(15,23,42,.06);
-  height:100%;
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400");
 }
 
-.navi-stats-head{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
+const ALLOWED_PRODUCT_KEYS = new Set([
+  "re_collateral",
+  "personal_credit",
+  "corporate_credit",
+  "stock",
+  "medical",
+  "art",
+  "receivable",
+  "eao",
+  "auction",
+]);
+
+function isAllowedProductKey(key) {
+  return ALLOWED_PRODUCT_KEYS.has(String(key || "").trim());
 }
 
-.navi-stats-title{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  font-size:14px;
-  font-weight:900;
-  color:#0f172a;
-  letter-spacing:-0.02em;
-  line-height:1.15;
+function getKstMonthKey(d = new Date()) {
+  // YYYY-MM (KST)
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+    }).format(d);
+  } catch {
+    const tzOffsetMs = 9 * 60 * 60 * 1000;
+    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 7);
+  }
 }
 
-.navi-live{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:4px 8px;
-  border-radius:999px;
-  background:rgba(239,68,68,.10);
-  color:#ef4444;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:0.02em;
+function normalizeMonthKey(m) {
+  const s = String(m || "").trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  return null;
 }
 
-.navi-live__dot{
-  width:8px;
-  height:8px;
-  border-radius:999px;
-  background:#ef4444;
-  box-shadow:0 0 0 0 rgba(239,68,68,.55);
-  animation:naviLiveBlink 1.05s ease-in-out infinite;
+function amountBucket(amountMan) {
+  const a = Number(amountMan);
+  if (!Number.isFinite(a) || a <= 0) return "unknown";
+  if (a < 3000) return "0_3000";
+  if (a < 5000) return "3000_5000";
+  if (a < 10000) return "5000_10000";
+  if (a < 20000) return "10000_20000";
+  if (a < 30000) return "20000_30000";
+  if (a < 50000) return "30000_50000";
+  return "50000_plus";
 }
 
-@keyframes naviLiveBlink{
-  0%{ opacity:1; transform:scale(1);   box-shadow:0 0 0 0 rgba(239,68,68,.55); }
-  60%{opacity:.25; transform:scale(.85); box-shadow:0 0 0 8px rgba(239,68,68,0); }
-  100%{opacity:1; transform:scale(1);  box-shadow:0 0 0 0 rgba(239,68,68,0); }
+async function upstash(command, args = []) {
+  if (!UPSTASH_URL || !UPSTASH_TOKEN) throw new Error("Missing Upstash env");
+  const url = `${UPSTASH_URL}/${command}/${args.map(encodeURIComponent).join("/")}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+  if (!res.ok) throw new Error(`Upstash ${command} failed: ${res.status}`);
+  const data = await res.json();
+  return data?.result;
 }
 
-.navi-stats-month{
-  font-size:12px;
-  font-weight:800;
-  color:#6b7280;
-  white-space:nowrap;
-  margin-top:2px;
+async function kvGetJson(key) {
+  const raw = await upstash("get", [key]);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
-/* 3x3 grid */
-.navi-stats-tiles{
-  display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  gap:10px;
-  flex:1 1 auto;
+async function kvSetJson(key, obj) {
+  return await upstash("set", [key, JSON.stringify(obj)]);
 }
 
-/* tile (center) */
-.navi-tile{
-  background:#fff;
-  border:1px solid rgba(15,23,42,.10);
-  border-radius:18px;
-  padding:14px 10px 12px;
-  min-height:82px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  gap:6px;
-  overflow:hidden;
-
-  opacity:0;
-  transform:translateY(6px);
-  animation:naviTileIn .55s ease forwards;
-
-  /* 캔바처럼 아래쪽 살짝 그림자 */
-  box-shadow:0 6px 0 rgba(15,23,42,.05);
+function initStats(monthKey) {
+  return {
+    version: 2,
+    monthKey,
+    updatedAt: Date.now(),
+    totals: { requests: 0, productClicks: 0, confirms: 0, error: 0 },
+    productGroups: {
+      re_collateral: 0,
+      personal_credit: 0,
+      corporate_credit: 0,
+      stock: 0,
+      medical: 0,
+      art: 0,
+      receivable: 0,
+      eao: 0,
+      auction: 0,
+    },
+    // legacy(선택): Step5 confirm을 쓰는 경우만 증가
+    regions: {},
+    loanTypes: {},
+    amountBuckets: {},
+  };
 }
 
-@keyframes naviTileIn{
-  to{ opacity:1; transform:translateY(0); }
+function inc(map, key, by = 1) {
+  const k = String(key || "").trim() || "unknown";
+  map[k] = (Number(map[k]) || 0) + by;
 }
 
-.navi-tile__iconimg{
-  width:52px;
-  height:52px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+function safeParseBody(req) {
+  const b = req?.body;
+
+  if (!b) return {};
+
+  // 문자열(JSON)
+  if (typeof b === "string") {
+    try { return JSON.parse(b); } catch { return {}; }
+  }
+
+  // Buffer
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(b)) {
+    try { return JSON.parse(b.toString("utf8")); } catch { return {}; }
+  }
+
+  // 이미 객체로 파싱된 경우
+  if (typeof b === "object") return b;
+
+  return {};
 }
 
-.navi-tile__img{
-  width:52px;
-  height:52px;
-  object-fit:contain;
-  display:block;
-}
+export default async function handler(req, res) {
+  setCors(res);
 
-.navi-tile__label{
-  font-size:12px;
-  font-weight:900;
-  color:#0f172a;
-  letter-spacing:-0.02em;
-  line-height:1.2;
-}
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
 
-.navi-tile__count{
-  display:flex;
-  align-items:baseline;
-  justify-content:center;
-  gap:6px;
-  line-height:1;
-  margin-top:4px;
-}
+  try {
+    if (req.method === "GET") {
+      const mk = normalizeMonthKey(req.query?.month) || getKstMonthKey();
+      const key = `huchu:navi-stats:v1:${mk}`;
+      const stats = (await kvGetJson(key)) || initStats(mk);
 
-.navi-tile__count .num{
-  font-size:18px;
-  font-weight:900;
-  letter-spacing:-0.02em;
-  color:#16a34a;
-}
+      // 누락 필드 방어(구버전/수동 수정 대비)
+      stats.version = 2;
+      stats.monthKey = mk;
+      stats.updatedAt = Date.now();
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
+      if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
 
-.navi-tile__count .unit{
-  font-size:12px;
-  font-weight:800;
-  color:#6b7280;
-}
+      return res.status(200).json(stats);
+    }
 
-/* 모바일에서 너무 빽빽하면 아이콘/패딩만 살짝 축소 */
-@media (max-width:520px){
-  .navi-stats-tiles{ gap:8px; }
-  .navi-tile{ padding:12px 8px 10px; }
-  .navi-tile__iconimg, .navi-tile__img{ width:44px; height:44px; }
+    if (req.method === "POST") {
+      const mk = getKstMonthKey();
+      const key = `huchu:navi-stats:v1:${mk}`;
+      const body = safeParseBody(req);
+
+      const event = String(body.event || body.evt || "confirm").trim();
+      const stats = (await kvGetJson(key)) || initStats(mk);
+
+      // 누락 필드 방어
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
+      if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
+
+      stats.monthKey = mk;
+      stats.updatedAt = Date.now();
+      stats.totals.requests = (Number(stats.totals.requests) || 0) + 1;
+
+      if (event === "product_click") {
+        const pg = String(body.productGroupKey || body.productGroup || body.mainCategoryKey || body.mainCategory || "").trim();
+        if (isAllowedProductKey(pg)) {
+          inc(stats.productGroups, pg, 1);
+        } else {
+          // 잘못된 키는 버림(통계 오염 방지)
+          stats.totals.error = (Number(stats.totals.error) || 0) + 1;
+        }
+        stats.totals.productClicks = (Number(stats.totals.productClicks) || 0) + 1;
+      } else {
+        // legacy: Step5 confirm
+        const regionKey = body.regionKey || body.region || "unknown";
+        const loanTypeKey = body.loanTypeKey || body.loanType || "unknown";
+        const amountMan = body.amountMan ?? body.amount ?? 0;
+        const b = amountBucket(amountMan);
+
+        if (!stats.regions) stats.regions = {};
+        if (!stats.loanTypes) stats.loanTypes = {};
+        if (!stats.amountBuckets) stats.amountBuckets = {};
+
+        inc(stats.regions, regionKey, 1);
+        inc(stats.loanTypes, loanTypeKey, 1);
+        inc(stats.amountBuckets, b, 1);
+        stats.totals.confirms = (Number(stats.totals.confirms) || 0) + 1;
+      }
+
+      await kvSetJson(key, stats);
+      return res.status(200).json({ ok: true, monthKey: mk });
+    }
+
+    return res.status(405).json({ error: "Method Not Allowed" });
+  } catch (e) {
+    console.error("navi-stats error:", e);
+    // CORS 헤더는 이미 setCors()로 설정됨
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 }
