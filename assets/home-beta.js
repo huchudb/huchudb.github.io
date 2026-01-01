@@ -1,708 +1,2321 @@
-// /assets/home-beta.js
-
-// ───────── 도넛 안 % 라벨 플러그인 ─────────
-const donutInsideLabelsPlugin = {
-  id: "donutInsideLabels",
-  afterDraw(chart) {
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data) return;
-
-    const { ctx } = chart;
-    const data = chart.data;
-
-    ctx.save();
-    ctx.font = "bold 11px Arial";
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    meta.data.forEach((elem, idx) => {
-      const raw = data.datasets[0].data[idx];
-      if (!raw || raw <= 0) return;
-      const pos = elem.tooltipPosition();
-      const text = `${Number(raw).toFixed(1)}%`;
-      ctx.fillText(text, pos.x, pos.y);
-    });
-
-    ctx.restore();
-  }
-};
-
-// Chart.js v3/v4용 플러그인 등록
-if (window.Chart && Chart.register) {
-  Chart.register(donutInsideLabelsPlugin);
+:root{
+  --primary:#1a365d; --accent:#d4af37;
+  --bg:#ffffff; --card:#fff; --line:#d0d7e2;
+  --muted:#555; --info:#2b6cb0;
+  --chip-bg:#f1f5f9; --chip-line:#e2e8f0;
 }
 
-// ───────── 유틸 ─────────
-const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
-const toNumber   = (s) => Number(onlyDigits(s)) || 0;
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:Arial,sans-serif;
+  background:var(--bg);
+  margin:0;
+  padding:24px;
+}
+@media(max-width:520px){
+  body{padding:16px}
+}
+.hide{display:none!important}
 
-/**
- * '조/억/만원/원'을 HTML(span)로 포맷
- * - 숫자: .money-number
- * - 단위: .money-unit
- */
-function formatKoreanCurrencyJo(num) {
-  const n = Math.max(0, Math.floor(num));
+/* ======================= 공통 로고 ======================= */
 
-  const ONE_MAN = 10_000;
-  const ONE_EOK = 100_000_000;
-  const ONE_JO  = 1_000_000_000_000;
+.huchu-logo{
+  display:inline-flex;
+  align-items:center;
+  text-decoration:none;
+  gap:10px;
+}
+.logo-img{display:block;width:auto;height:28px}
+.logo-fallback{display:none}
+.logo-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  border:1px solid #bfe9e4;
+  background:linear-gradient(180deg,#d9fbf6,#bdf2ea);
+  color:#0F172A;
+  font-weight:900;
+}
+.logo-text{font:800 16px/1 Arial;color:#1a2542}
 
-  const parts = [];
+/* ======================= 상단 통계(계산기) ======================= */
 
-  const pushPart = (value, unit) => {
-    if (!value) return;
-    parts.push(
-      `<span class="money-number">${value.toLocaleString("ko-KR")}</span>` +
-      `<span class="money-unit">${unit}</span>`
-    );
-  };
+.top-stats{
+  max-width:720px;
+  margin:14px auto;
+}
+.stat-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 16px;
+  box-shadow:none;
+}
+.stat-label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#42526e;
+  font-weight:700;
+}
+.stat-dot{width:10px;height:10px;border-radius:50%;background:var(--info)}
+.stat-value{
+  display:flex;
+  align-items:baseline;
+  gap:4px;
+  font-variant-numeric:tabular-nums;
+}
+.stat-value .num{
+  font-weight:800;
+  font-size:22px;
+  color:#0b2a66;
+  line-height:1;
+}
+.stat-value .suffix{
+  font-size:14px;
+  color:#6b7a99;
+  line-height:1;
+}
+.type-chip-wrap{margin-top:8px}
+.type-chips{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.type-chip{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  border-radius:999px;
+  padding:8px 10px;
+  min-width:0;
+}
+.type-chip .label{
+  font-size:12px;
+  color:#42526e;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.type-chip .val{
+  font-size:14px;
+  font-weight:800;
+  color:#0b2a66;
+  margin-left:8px;
+}
 
-  // 1만원 이상: 조/억/만원 분해
-  if (n >= ONE_MAN) {
-    let remain = n;
+/* ======================= 계산기 컨테이너 ======================= */
 
-    const jo  = Math.floor(remain / ONE_JO);
-    remain   %= ONE_JO;
+.container{
+  max-width:720px;
+  margin:0 auto;
+  background:var(--card);
+  padding:22px;
+  border-radius:14px;
+  box-shadow:none;
+}
+@media(max-width:520px){
+  .container{padding:16px}
+}
 
-    const eok = Math.floor(remain / ONE_EOK);
-    remain   %= ONE_EOK;
+h1{
+  margin:0 0 8px;
+  font-size:24px;
+  color:#1a365d;
+}
+.subtitle{
+  margin:0 0 18px;
+  color:var(--muted);
+  line-height:1.55;
+  font-size:14px;
+}
 
-    const man = Math.floor(remain / ONE_MAN);
+.step{
+  margin:16px 0;
+  padding:14px;
+  border-radius:12px;
+  background:#f1f4f9;
+  border:1px solid var(--line);
+  box-shadow:none;
+}
+label{
+  display:block;
+  font-weight:700;
+  margin-bottom:6px;
+  color:#1a365d;
+}
 
-    pushPart(jo,  "조");
-    pushPart(eok, "억");
-    pushPart(man, "만원");
+#calcSteps{counter-reset:step}
+.steplabel{
+  position:relative;
+  padding-left:30px;
+  font-weight:800;
+  color:#1a365d;
+  line-height:1.2;
+  display:block;
+}
+.steplabel::before{
+  counter-increment:step;
+  content:counter(step);
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;
+  height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:#1a365d;
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  border:2px solid var(--accent);
+  box-shadow:none;
+}
+.steplabel.no-badge-before{padding-left:0}
+.steplabel.no-badge-before::before{
+  display:none;
+  counter-increment:none;
+}
 
-    return parts.join(" ");
+.badge-inline{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  margin:0 6px;
+  border-radius:50%;
+  background:#1a365d;
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  border:2px solid var(--accent);
+  line-height:1;
+  vertical-align:middle;
+  position:relative;
+  top:-1px;
+}
+
+.amount-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+  width:100%;
+}
+.amount-row input{
+  flex:0 0 336px;
+  width:336px;
+  min-width:0;
+}
+@media(max-width:520px){
+  .amount-row input{
+    flex:0 0 252px;
+    width:252px;
   }
+}
+.amount-display{
+  flex:0 0 auto;
+  white-space:nowrap;
+  font-size:13px;
+  color:#334155;
+  background:#F1F5F9;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #E2E8F0;
+  text-align:left;
+}
 
-  // 1만원 미만 ~ 1원 이상: '원'
-  if (n > 0) {
-    return (
-      `<span class="money-number">${n.toLocaleString("ko-KR")}</span>` +
-      `<span class="money-unit">원</span>`
-    );
+select,input,textarea{
+  width:100%;
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:14px;
+  background:#fff;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:0;
+  border-radius:8px;
+  background:#1a365d;
+  color:#fff;
+  font-size:16px;
+  cursor:pointer;
+  transition:background .15s;
+}
+button:hover{background:#153154}
+
+/* ======================= 모달 & 버튼 ======================= */
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+}
+.modal .overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(2,6,23,.55);
+  backdrop-filter:saturate(120%) blur(2px);
+}
+.modal .panel{
+  position:relative;
+  z-index:1;
+  margin:auto;
+  margin-top:8vh;
+  width:min(92vw,760px);
+  max-height:86vh;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:none;
+  display:flex;
+  flex-direction:column;
+}
+.modal .panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px dashed #cfd8ea;
+}
+.modal .panel-title{
+  font-weight:800;
+  color:#0b2a66;
+}
+.modal .panel-body{
+  padding:16px 20px;
+  overflow:auto;
+  flex:1 1 auto;
+}
+.modal .panel-footer{
+  border-top:1px solid #e6ecf5;
+  padding:12px 16px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.btn{
+  appearance:none;
+  border:0;
+  border-radius:10px;
+  cursor:pointer;
+  padding:12px 16px;
+  font-weight:800;
+  font-size:14px;
+  line-height:1;
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+}
+.btn-primary:hover{ filter:brightness(1.05); }
+.btn-primary:active{ transform:translateY(1px); }
+.btn-primary:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  filter:none;
+  transform:none;
+}
+
+.btn-secondary{
+  background:#f1f5f9;
+  color:#334155;
+  border:1px solid #d6dbe6;
+}
+.btn-kakao{
+  background:#FEE500;
+  color:#3C1E1E;
+  border:1px solid #f4d000;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:800;
+}
+
+/* ======================= 상태 칩 ======================= */
+
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:6px 10px;
+  font:800 12px/1 Arial;
+  border:1px solid var(--line);
+  background:#f8fafc;
+  color:#0f172a;
+}
+.status-pill.info{
+  background:#eff6ff;
+  border-color:#bfdbfe;
+  color:#1e40af;
+}
+.status-pill.success{
+  background:#ecfdf5;
+  border-color:#bbf7d0;
+  color:#166534;
+}
+.status-pill.error{
+  background:#fef2f2;
+  border-color:#fecaca;
+  color:#991b1b;
+}
+
+/* ======================= 결과 카드 ======================= */
+
+.kpis{
+  margin:12px 0 18px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.kpi{
+  background:#fff;
+  border:1px solid #e3e9f2;
+  border-radius:12px;
+  padding:14px 16px;
+  box-shadow:none;
+}
+.kpi-label{font-size:12px;color:#5f6b85}
+.kpi-value{
+  font-size:clamp(15px, 2.4vw, 19px);
+  font-weight:800;
+  color:#0b2a66;
+  margin-top:4px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.section-title{
+  margin:16px 0 10px;
+  font-weight:800;
+  color:#0b2a66;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.chip-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.chip{
+  display:inline-flex;
+  align-items:baseline;
+  gap:8px;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-line);
+  border-radius:999px;
+  padding:9px 14px;
+  color:#1f2a3a;
+  white-space:nowrap;
+}
+.chip .label,
+.chip .val{
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.chip .label{
+  font-size:13px;
+  color:#42526e;
+  font-weight:700;
+}
+.chip .label.rate-min{color:#0ea5e9;font-weight:800}
+.chip .label.rate-max{color:#ef4444;font-weight:800}
+.chip .val{
+  font-size:clamp(14px, 3.2vw, 16px);
+  font-weight:800;
+  color:#0b2a66;
+}
+.chip-tilde{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 6px;
+  font-size:18px;
+  line-height:1;
+  font-weight:800;
+  color:#6b7a99;
+}
+
+.breakdown-card{
+  background:#fff;
+  border:1px solid #e6ecf5;
+  border-radius:14px;
+  box-shadow:none;
+  padding:18px;
+}
+.card-section + .card-section{
+  border-top:1px dashed #e3e9f2;
+  margin-top:12px;
+  padding-top:12px;
+}
+.rowlist{
+  margin-top:10px;
+  border-top:1px dashed #e3e9f2;
+}
+.rowlist .row{
+  display:grid;
+  grid-template-columns:14px auto 1fr;
+  column-gap:10px;
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px dashed #e3e9f2;
+}
+.rowlist .row:last-child{border-bottom:none}
+.icon-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  display:inline-block;
+}
+.dot-blue{background:#2b6cb0}
+.dot-gold{background:#d4af37}
+.dot-navy{background:#1a365d}
+.dot-green{background:#2f855a}
+.dot-slate{background:#6b7a99}
+.row .label{
+  color:#42526e;
+  font-weight:700;
+  white-space:nowrap;
+}
+.row .value{
+  color:#0b2a66;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ======================= Footer ======================= */
+
+.huchu-footer{
+  margin-top:24px;
+  background:#fff;
+  border-top:1px solid var(--line);
+}
+.huchu-footer__inner{
+  max-width:1200px;
+  margin:0 auto;
+  padding:18px 16px;
+}
+.huchu-footer__bar{
+  border-top:1px solid var(--line);
+  text-align:center;
+  padding:10px 16px;
+  background:#f9fafb;
+  color:#6b7280;
+}
+
+/* 안내 박스 */
+.notice{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 14px;
+  background:#fff;
+}
+.notice.info{border-color:#bfdbfe;background:#eff6ff}
+.notice.success{border-color:#bbf7d0;background:#ecfdf5}
+.notice.error{border-color:#fecaca;background:#fef2f2}
+
+/* ======================= * 그라데이션 별표 ======================= */
+
+.hero-note-star{
+  background:linear-gradient(90deg,#ff5757,#8c52ff,#004aad);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  font-weight:700;
+  display:inline-block;
+  margin-right:5px;
+  line-height:1;
+  vertical-align:middle;
+}
+
+/* ======================= 베타 전용 상단 레이아웃/헤더 ======================= */
+
+body.beta-body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+}
+/* 혹시 body 바로 아래 옛날 텍스트 링크 숨기기 */
+body.beta-body > a{display:none;}
+
+.huchu-header{
+  position:relative;
+  z-index:100;
+  background:#ffffff;
+}
+
+/* 헤더 안쪽 컨테이너 */
+.huchu-header__inner,
+.beta-header__inner{
+  max-width:1200px;
+  margin:0 auto;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:24px 24px;
+  min-height:72px;
+  box-sizing:border-box;
+}
+
+/* 헤더 하단 라인 전체폭 */
+body.beta-body .beta-header{border-bottom:0;}
+body.beta-body .beta-header::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:0;
+  width:100vw;
+  height:1px;
+  background:var(--line);
+}
+
+/* MENU 버튼 공통 */
+.beta-menu{position:relative;}
+.beta-menu-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 22px;
+  border-radius:10px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+  width:auto;
+  box-shadow:none;
+  letter-spacing:.08em;
+}
+.beta-menu-toggle::before{
+  content:"";
+  display:inline-block;
+  width:14px;
+  height:2px;
+  border-radius:999px;
+  background:#ffffff;
+  box-shadow:0 -4px 0 #ffffff, 0 4px 0 #ffffff;
+}
+.beta-menu-toggle:hover{
+  background:#111827;
+  box-shadow:0 6px 14px rgba(15,23,42,.35);
+}
+
+/* 모바일 – 햄버거만 */
+@media (max-width:640px){
+  body.beta-body .beta-menu-toggle{
+    width:34px;
+    height:34px;
+    padding:0;
+    border-radius:8px;
+    gap:0;
+    justify-content:center;
   }
+  body.beta-body .beta-menu-toggle__label{
+    display:none;
+  }
+  body.beta-body .beta-menu-toggle::before{
+    width:16px;
+    height:2px;
+    box-shadow:0 -6px 0 #ffffff, 0 6px 0 #ffffff;
+  }
+}
 
-  // 0 처리
-  return (
-    `<span class="money-number">0</span>` +
-    `<span class="money-unit">원</span>`
+.beta-menu-toggle__icon{
+  display:inline-flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:3px;
+}
+.beta-menu-toggle__icon span{
+  width:14px;
+  height:2px;
+  border-radius:999px;
+  background:#ffffff;
+}
+
+/* 드롭다운 패널 */
+.beta-menu-panel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  min-width:210px;
+  background:#ffffff;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 12px 30px rgba(15,23,42,.18);
+  padding:6px 0;
+  z-index:200;
+}
+.beta-menu-link{
+  display:block;
+  padding:8px 14px;
+  font-size:12px;
+  font-weight:600;
+  color:#111827;
+  text-decoration:none;
+  white-space:nowrap;
+}
+.beta-menu-link:hover{background:#f3f4f6;}
+
+/* 베타 페이지 기본: 버튼 width 자동 */
+body.beta-body button{width:auto;}
+
+/* ======================= 관리자 전용 – 지역 버튼 ======================= */
+
+#adminLoanConfigSection .admin-region-list{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  padding:8px 0;
+  background:transparent;
+}
+#adminLoanConfigSection .admin-region-btn{
+  flex:0 0 auto;
+  min-width:60px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid #d4d4d8;
+  background:#ffffff !important;
+  color:#111827 !important;
+  font-size:13px;
+  font-weight:700;
+  text-align:center;
+  line-height:1;
+  cursor:pointer;
+}
+#adminLoanConfigSection .admin-region-btn.is-active{
+  background:#FFC001 !important;
+  border-color:#FFC001;
+  color:#111827 !important;
+}
+#adminLoanConfigSection .admin-region-btn:focus{
+  outline:2px solid #facc15;
+  outline-offset:1px;
+}
+
+/* 관리자 공통: 메인 액션 버튼 */
+.admin-primary-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:9px 18px;
+  border-radius:999px;
+  border:0;
+  background:#111827;
+  color:#f9fafb;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.02em;
+  box-shadow:0 8px 18px rgba(15,23,42,.35);
+  cursor:pointer;
+  width:auto !important;
+}
+.admin-primary-btn:hover{
+  background:#020617;
+}
+
+/* ======================= 온투업 대출상품정보(허브/상세) ======================= */
+
+.products-main{
+  max-width:1200px;
+  margin:0 auto 40px;
+  padding:16px;
+}
+
+/* 히어로(상단) – 상세 */
+.products-hero{
+  margin-top:20px;
+  margin-bottom:18px;
+}
+.products-hero__title{
+  margin:0 0 14px;
+  font-size:24px;
+  font-weight:800;
+  color:#111827;
+}
+
+/* 섹션 타이틀 */
+.products-section{
+  margin-bottom:28px;
+}
+.products-section__title{
+  margin:0 0 12px;
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+}
+
+/* 허브 카드 묶음 */
+.product-hub{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+/* 공통 카드 */
+.product-card{
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 6px 16px rgba(15,23,42,.06);
+  padding:16px 18px 18px;
+}
+.product-card__title{
+  margin:0 0 6px;
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+}
+.product-card__desc{
+  margin:0 0 10px;
+  font-size:13px;
+  line-height:1.6;
+  color:#4b5563;
+}
+.product-card__bullets{
+  margin:0 0 10px;
+  padding-left:18px;
+  font-size:13px;
+  color:#4b5563;
+}
+.product-card__bullets li+li{margin-top:4px}
+
+/* 해시태그 */
+.product-card__tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.product-card__tags span,
+.product-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  font-size:11px;
+  color:#4b5563;
+  white-space:nowrap;
+}
+.products-hero__desc{
+  margin:0;
+  line-height:1.6;
+  font-size:17px;
+  color:#4b5563;
+}
+.products-hero__note{
+  margin:2px 0 32px;
+  font-size:17px;
+  color:#4b5563;
+}
+
+/* 상세보기 버튼 그룹 */
+.product-card__buttons{
+  margin-top:8px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:flex-start;
+}
+.product-card__buttons .product-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 11px;
+  border-radius:999px;
+  background:#3A3A3A;
+  color:#ffffff;
+  font-size:11px;
+  font-weight:800;
+  text-decoration:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  border:0;
+  white-space:nowrap;
+  width:auto;
+}
+.product-card__buttons .product-btn:hover{
+  background:#C9A227;
+}
+.product-card__buttons .product-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
+}
+
+/* 링크형 버튼 */
+.product-card__link{
+  display:inline-flex;
+  margin-top:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#1d4ed8;
+  text-decoration:underline;
+}
+.product-card__link:hover{color:#1e40af}
+
+/* 하단 안내 카드 그리드 */
+.products-info-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+@media(max-width:768px){
+  .products-info-grid{grid-template-columns:1fr;}
+}
+.product-info-card{
+  background:#f3f4f6;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+  padding:16px 18px 18px;
+  font-size:13px;
+}
+.product-info-card h3{
+  margin:0 0 6px;
+  font-size:14px;
+  font-weight:800;
+  color:#111827;
+}
+.product-info-card p{
+  margin:0 0 6px;
+  font-size:13px;
+  line-height:1.7;
+  color:#4b5563;
+}
+.product-info-card ul{
+  margin:4px 0 8px;
+  padding-left:20px;
+}
+.product-info-card li{line-height:1.7;}
+.product-info-card li+li{margin-top:2px}
+
+/* ===== 아파트 일반담보대출 상세 – 히어로 카드 ===== */
+
+.hero-card{
+  padding:16px 18px 18px;
+}
+.hero-card h2{
+  position:relative;
+  display:inline-block;
+  margin:0 0 12px;
+  font-size:20px;
+  font-weight:800;
+  color:#0F172A;
+  padding-bottom:6px;
+}
+.hero-card h2::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  background:linear-gradient(
+    90deg,
+    rgba(59,130,246,0),
+    #3B82F6,
+    #60A5FA,
+    rgba(96,165,250,0)
   );
 }
-
-// 'YYYY-MM' → 'YYYY년 M월'
-// ───────── 대출현황 금액 텍스트 자동 폰트 축소 ─────────
-function autoFitLoanStatusText() {
-  const els = document.querySelectorAll(".beta-loanstatus-item__value .loan-amount-text");
-
-  els.forEach((el) => {
-    const parent = el.parentElement;
-    if (!parent) return;
-
-    // 현재 적용된 폰트 크기를 기준으로 시작
-    const computed = window.getComputedStyle(el);
-    let fontSize = parseFloat(computed.fontSize) || 18;
-    const minSize = 9;  // 이 이하로는 안 줄임
-
-    el.style.whiteSpace = "nowrap";
-
-    while (el.scrollWidth > parent.clientWidth && fontSize > minSize) {
-      fontSize -= 1;
-      el.style.fontSize = fontSize + "px";
-    }
-  });
+.hero-card .hero-intro{
+  font-size:15px;
+  font-weight:500;
+  margin-bottom:14px;
+}
+.hero-card p{
+  margin:0 0 3px;
+  line-height:1.5;
+}
+.hero-summary-note{
+  font-size:11px;
+  color:#6b7280;
+  line-height:1.5;
+  margin:0 !important;
+}
+.hero-note-main{margin-top:8px !important;}
+.hero-note-sub{margin-top:0 !important;}
+.extend-note{
+  display:inline-block;
+  font-size:12px;
+  color:#6b7280;
+  margin-left:4px;
 }
 
-// ───────── 기본 샘플 통계 (2025년 10월) ─────────
-const DEFAULT_ONTU_STATS = {
-  month: "2025-10",
-  summary: {
-    registeredFirms: 51,
-    dataFirms: 49,
-    // 18조 3,580억 776만원
-    totalLoan: 18_358_007_760_000,
-    // 16조 9,241억 4,401만원
-    totalRepaid: 16_924_144_010_000,
-    // 1조 4,338억 6,375만원
-    balance: 1_433_867_500_000
-  },
-  byType: {
-    // 퍼센트는 공시 비율 기준 (합계 ≒ 100%)
-    "부동산담보": {
-      ratio: 0.43,
-      // 6조 1,650억 6,141만원
-      amount: 6_165_061_410_000
-    },
-    "부동산PF": {
-      ratio: 0.02,
-      // 286억 7,727만원
-      amount: 286_077_270_000
-    },
-    "어음·매출채권담보": {
-      ratio: 0.09,
-      // 1조 2,900억 4,773만원
-      amount: 1_290_047_730_000
-    },
-    "기타담보(주식 등)": {
-      ratio: 0.38,
-      // 5조 4,480억 6,822만원
-      amount: 5_448_068_220_000
-    },
-    "개인신용": {
-      ratio: 0.06,
-      // 860억 3,182만원
-      amount: 860_031_820_000
-    },
-    "법인신용": {
-      ratio: 0.03,
-      // 430억 1,591만원
-      amount: 430_015_910_000
-    }
-  }
-};
+/* 상세 하단 뒤로가기 칩 */
+.back-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 14px;
+  border-radius:999px;
+  background:#111827;
+  border:1px solid #111827;
+  color:#ffffff;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  line-height:1;
+}
+.back-chip:hover{background:#B8860B}
 
-// ───────── API 베이스 ─────────
-const API_BASE  = "https://huchudb-github-io.vercel.app";
+/* 담보대출 계산기 안내 2컬럼 */
+.calculator-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-top:24px;
+  margin-bottom:24px;
+}
+.product-hub > .calculator-section-grid{
+  margin-top:18px;
+  margin-bottom:36px;
+}
+@media(max-width:768px){
+  .calculator-section-grid{grid-template-columns:1fr;}
+}
+
+/* 카드 세로 플렉스 */
+.calculator-card,
+.calculator-extra-card{
+  display:flex;
+  flex-direction:column;
+}
+
+.calculator-card h3{
+  margin:0 0 10px;
+}
+.calculator-card ul{
+  margin:0;
+  padding-left:20px;
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+}
+.calculator-card ul li{margin-bottom:4px;}
+
+.calculator-last-li{
+  margin-top:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.calculator-last-li span{flex:1 1 auto;}
+.calculator-last-li .product-card__buttons{margin-top:0;}
+
+/* 계산기 바로가기 버튼 – 그라데이션 */
+.product-card__buttons .product-btn.product-btn--calculator{
+  background:linear-gradient(90deg,#faee21,#6fe600,#00ffff);
+  color:#111827;
+  box-shadow:none;
+}
+.product-card__buttons .product-btn.product-btn--calculator:hover{
+  background:linear-gradient(90deg,#f5e307,#65d400,#06e5ff);
+}
+.product-card__buttons .product-btn.product-btn--calculator:active{
+  transform:translateY(1px);
+  box-shadow:none;
+}
+
+/* 오른쪽 카드(네이버 블로그) */
+.calculator-extra-subtitle{
+  margin:0 0 12px !important;
+  font-size:14px;
+  font-weight:800;
+  color:#111827;
+}
+.calculator-extra-text{
+  margin:0;
+  font-size:13px;
+  line-height:1.7;
+  color:#4b5563;
+}
+.naver-blog-text{
+  color:#2dbe3c;
+  font-weight:700;
+}
+.calculator-extra-card .product-card__buttons{
+  margin-top:18px;
+  justify-content:flex-end;
+}
+
+/* 스크린리더용 텍스트 */
+.visually-hidden{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* ======================= 베타 홈 레이아웃 (공통) ======================= */
+
+/* 전체 페이지 폭 컨테이너 */
+.beta-inner{
+  max-width:1200px;
+  margin:0 auto 0;
+  padding:0 24px 0px;
+  box-sizing:border-box;
+}
+
+/* 섹션 안 회색 띠 – 화면 끝까지 */
+.beta-section{
+  margin-bottom:0;
+}
+
+/* 회색 배경은 화면 전체(100vw), 안의 내용 폭은 다시 1200px로 제한 */
+.beta-section-surface{
+  position:relative;
+  left:50%;
+  right:50%;
+  width:100vw;
+  margin-left:-50vw;
+  margin-right:-50vw;
+  background:#f3f4f6;
+  padding:28px 0 32px;         /* 위·아래 여백만 여기서 줌 */
+}
+
+/* 섹션 안 실제 내용들(헤더, 그리드 등)은 다시 가운데 1200px로 정렬 */
+.beta-section-surface > *{
+  max-width:1200px;
+  margin-left:auto;
+  margin-right:auto;
+  padding:0 24px;              /* 위에 hero 영역과 맞추려고 좌우 24px */
+  box-sizing:border-box;
+}
+
+/* 반응형 padding 조정 */
+@media(max-width:1024px){
+  .beta-section-surface{
+    padding:22px 0 26px;
+  }
+  .beta-section-surface > *{
+    padding:0 18px;
+  }
+}
+.beta-section__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.beta-section__title-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.beta-section__title{
+  margin:0;
+  font-size:30px;
+  font-weight:800;
+  color:#111827;
+}
+.beta-section__meta{
+  font-size:11px;
+  color:#6b7280;
+}
+
+/* 히어로 영역(그리드) */
+.beta-hero{
+  margin-top:16px;
+  margin-bottom:24px;
+}
+.beta-hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+  gap:24px;
+  align-items:start;
+}
+@media(max-width:768px){
+  .beta-hero-grid{grid-template-columns:1fr;}
+}
+
+/* 왼쪽 배너 – 이미지 전용 */
+.beta-hero-banner{
+  position:relative;
+  display:block;
+  border-radius:32px;
+  overflow:hidden;
+  padding:0;
+  background:#020617;
+  box-shadow:none;
+  aspect-ratio:16/9;   /* ✅ 높이 확보 */
+}
+
+.beta-hero-banner img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* 여러 장 배너 슬라이드 */
+.beta-hero-banner__slide{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .4s ease;
+}
+.beta-hero-banner__slide.is-active{
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* 좌우 화살표 네비 */
+.hero-nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  border:0;
+  background:transparent !important; /* 완전 투명 */
+  box-shadow:none !important;
+  color:#ffffff;
+  font-size:32px;
+  font-weight:700;
+  cursor:pointer;
+  padding:8px 12px;
+  line-height:1;
+  text-shadow:0 0 8px rgba(0,0,0,0.7);
+}
+.hero-nav--prev{
+  left:0;   /* 제일 좌측 */
+}
+.hero-nav--next{
+  right:0;  /* 제일 우측 */
+}
+.hero-nav:focus{outline:none;}
+
+/* 오른쪽 히어로 영역 */
+.beta-hero-right{min-height:100%;}
+.beta-hero-right--empty{display:flex;}
+.beta-hero-placeholder{
+  flex:1 1 auto;
+  border-radius:24px;
+  background:transparent;
+}
+@media(max-width:768px){
+  .beta-hero-banner{
+    display:block !important;
+  }
+}
+
+/* ======================= 홈: 대출현황 + 상품유형 대시보드 (통합 타이틀 + 5카드) ======================= */
+
+/* 상단 대표 타이틀 */
+.beta-dashboard-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-start;
+}
+.beta-dashboard-title{
+  margin:0;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  font-weight:800;
+  color:#111827;
+  font-size:26px;
+}
+.beta-dashboard-title-main{
+  letter-spacing:-0.02em;
+}
+.beta-dashboard-title-month{
+  font-size:14px;
+  font-weight:600;
+  color:#6b7280;
+}
+
+/* 메인 그리드: 좌측 KPI / 우측 상품유형별 카드 */
+.beta-dashboard-grid{
+  margin-top:32px;
+  display:grid;
+  grid-template-columns:minmax(0,0.35fr) minmax(0,1.0fr);
+  column-gap:28px;
+  align-items:stretch;
+}
+.beta-dashboard-left,
+.beta-dashboard-right{
+  width:100%;
+}
+@media (max-width:1024px){
+  .beta-dashboard-grid{
+    grid-template-columns:1fr;
+    row-gap:20px;
+  }
+}
+
+/* 대출현황 카드 그리드 – 세로 1열 고정 */
+.beta-loanstatus-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+/* 모바일 & 작은 화면: 대출현황 2x2 카드 배치 + 우측 정렬 */
+@media (max-width: 900px){
+  .beta-loanstatus-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+
+  .beta-loanstatus-item__value{
+    display:flex;
+    align-items:baseline;
+    justify-content:flex-end;   /* 오른쪽 정렬 */
+    gap:4px;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+    font-size:18px;
+    line-height:1.4;
+    width:100%;                 /* 카드 너비 꽉 채움 */
+  }
+
+  .beta-loanstatus-item__value .money-number{
+    font-weight:800;
+    color:#111827;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .beta-loanstatus-item__value .money-unit{
+    font-weight:600;
+    color:#737373;
+    font-size:0.85em;
+    margin-left:2px;
+  }
+
+  .beta-loanstatus-item__label{
+    font-size:12px;
+  }
+}
+
+.beta-loanstatus-item{
+  background:#ffffff;
+  border-radius:16px;
+  padding:14px 18px;
+  box-shadow:none;
+  border:1px solid #e5e7eb;
+}
+
+.beta-loanstatus-item__label{
+  font-size:13px;
+  color:#737373;
+  margin-bottom:6px;
+}
+
+.beta-loanstatus-item__value{
+  text-align:right;
+  font-size:18px;
+  font-weight:800;
+  line-height:1.3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+@media (max-width: 768px){
+  .beta-loanstatus-item__value{
+    font-size:clamp(14px, 3.5vw, 16px);
+  }
+  .beta-loanstatus-item__label{
+    font-size:12px;
+  }
+}
+.loan-amount-text{
+  display:inline-block;
+}
+
+/* 홈 전용 상품유형 섹션 래퍼 */
+.beta-product-section{
+  width:100%;
+}
+
+/* 상품유형별 대출잔액 – 전체 카드 */
+.beta-product-card{
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  padding:18px 20px 20px;
+}
+.beta-product-card__header{
+  margin-bottom:12px;
+}
+.beta-product-card__title{
+  font-size:13px;
+  font-weight:nomal;
+  color:#737373;
+}
+
+/* 상품유형별 대출잔액 – 출처 문구 (카드 바깥) */
+.beta-product-source-note{
+  margin-top:6px;
+  font-size:13px;
+  color:#737373;
+  text-align:right;
+}
+
+/* 상품유형별 도넛 + 카드 레이아웃 (홈) */
+.beta-product-grid{
+  display:grid;
+  grid-template-columns:minmax(0,0.9fr) minmax(0,1.4fr);
+  gap:18px;
+  align-items:center;
+}
+
+/* 도넛 카드 내부 */
+.beta-product-donut-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.beta-product-donut-inner{
+  width:100%;
+  max-width:270px;
+  aspect-ratio:1/1;
+  margin:0 auto;
+}
+
+/* 오래된 브라우저 대비 높이 fallback */
+@supports not (aspect-ratio:1 / 1){
+  .beta-product-donut-inner{
+    height:260px;
+  }
+}
+
+.beta-product-donut-inner canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* 도넛 중앙 색상 칩 */
+.beta-product-donut-center__chip{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  background:transparent;
+  flex-shrink:0;
+}
+
+/* 라벨(상품유형명) + 칩 한 줄 정렬 */
+.beta-product-donut-center__label-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+
+/* 가운데 라벨 텍스트 */
+.beta-product-donut-center__label{
+  font-size:13px;
+  font-weight:700;
+  color:#4b5563;
+}
+
+/* 가운데 금액 텍스트 */
+.beta-product-donut-center__value{
+  font-size:15px;
+  font-weight:800;
+  color:#111827;
+  white-space:nowrap;
+}
+
+/* 금액 숫자 / 단위 공통 스타일 */
+.money-number{
+  font-size:1em;
+  font-weight:800;
+  color:#111827;
+}
+
+.money-unit{
+  font-size:0.78em;
+  font-weight:700;
+  color:#737373;
+  margin-left:2px;
+}
+
+/* 가운데 텍스트/칩 */
+.beta-product-donut-center{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  pointer-events:none;
+  z-index:1;
+}
+
+/* PC 화면에서는 도넛 가운데 텍스트 숨기기 */
+@media (min-width: 769px){
+  .beta-product-donut-center{
+    display:none;
+  }
+}
+
+/* 상품유형별 카드 묶음: 2열 그리드 */
+.beta-product-boxes{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+/* 개별 카드 */
+.beta-product-box{
+  position:relative;
+  background:#ffffff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  padding:10px 20px 8px 24px;
+  min-height:75px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+/* 왼쪽 컬러 바 */
+.beta-product-box::before{
+  content:"";
+  position:absolute;
+  left:10px;
+  top:12px;
+  bottom:12px;
+  width:3px;
+  border-radius:999px;
+  background:var(--product-color,#e5e7eb);
+}
+
+/* 라벨(부동산담보, 어음·매출채권 등) */
+.beta-product-box__title{
+  margin:0 0 10px;
+  font-size:15px;
+  font-weight:700;
+  color:#111827;
+  white-space:nowrap;
+}
+
+/* 금액 */
+.beta-product-box__amount{
+  font-size:18px;
+  font-weight:800;
+  color:#111827;
+  line-height:1.35;
+  white-space:nowrap;
+  text-align:right;
+}
+  
+/* 반응형 – 상품유형 영역 */
+@media(max-width:900px){
+  .beta-product-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* 모바일(좁은 화면): 도넛만 보여주고 카드 숨기기, 타이틀 폰트/레이아웃 조정 */
+@media(max-width:768px){
+  .beta-dashboard-title{
+    flex-direction:column-reverse;
+    align-items:flex-start;
+    font-size:22px;
+    gap:4px;
+  }
+  .beta-dashboard-title-month{
+    font-size:14px;
+  }
+  .beta-product-boxes{
+    display:none;
+  }
+}
+
+/* 베타 푸터 */
+.beta-footer{
+  margin-top:0;
+  background:#020617;
+  color:#9ca3af;
+  padding:18px 16px 26px;
+}
+.beta-footer__top{
+  max-width:1200px;
+  margin:0 auto 10px;
+  padding:0 24px;
+  display:flex;
+  gap:18px;
+  font-size:12px;
+}
+.beta-footer__top a{
+  color:#e5e7eb;
+  text-decoration:none;
+}
+.beta-footer__top a:hover{text-decoration:underline;}
+.beta-footer__bottom{
+  max-width:1200px;
+  margin:0 auto;
+  padding:0 24px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  font-size:11px;
+  line-height:1.6;
+}
+.beta-footer__brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+.beta-footer__logo-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:#facc15;
+  color:#111827;
+  font-size:13px;
+  font-weight:900;
+}
+.beta-footer__logo-text{
+  font-weight:800;
+  color:#e5e7eb;
+  letter-spacing:.06em;
+}
+.beta-footer__info p{margin:0;}
+.beta-footer__info p + p{margin-top:2px;}
+.beta-footer__logo-img{
+  display:block;
+  height:18px;
+  width:auto;
+}
+
+/* ======================= ONTU STATS PAGE 전용 ======================= */
+
+/* 페이지 컨테이너 */
+body.ontu-stats-page .beta-inner{
+  max-width:1120px;
+  padding:24px 20px 32px;
+}
+
+/* 상단 타이틀 + 캘린더 정렬 */
+body.ontu-stats-page .beta-stats-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+body.ontu-stats-page .beta-stats-header__left{
+  flex:1 1 auto;
+}
+body.ontu-stats-page .beta-stats-title{
+  margin:0 0 4px;
+  text-align:left;
+  font-size:1.5rem;
+  font-weight:700;
+  margin-bottom:1rem;
+  color:#111827;
+}
+body.ontu-stats-page .beta-stats-subtitle{
+  font-size:1.0rem;
+  line-height:1.5;
+  margin-top:0.4rem;
+  margin-bottom:0.5rem;
+  color:#4b5563;
+}
+body.ontu-stats-page .beta-month-picker{
+  display:inline-flex;
+  flex-direction:row;
+  align-items:center;
+  gap:6px;
+  margin-top:0;
+}
+body.ontu-stats-page .beta-month-picker__label{display:none;}
+body.ontu-stats-page .beta-month-picker input[type="month"]{
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  font-size:12px;
+}
+@media (max-width:640px){
+  body.ontu-stats-page .beta-stats-header{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
+
+/* 초록 패널 공통 */
+body.ontu-stats-page .stats-panel{
+  background:#059669;
+  border-radius:24px;
+  padding:22px 24px 24px;
+  box-shadow:none;
+  color:#ffffff;
+}
+body.ontu-stats-page .stats-panel__header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:16px;
+}
+body.ontu-stats-page .stats-panel__title{
+  margin:0;
+  font-size:clamp(18px,2.1vw,22px);
+  font-weight:800;
+  color:#ffffff;
+}
+body.ontu-stats-page .stats-panel__meta{
+  position:absolute;
+  right:0;
+  bottom:2px;
+  font-size:11px;
+  color:rgba(255,255,255,0.8);
+}
+
+/* 슬라이더 레이아웃 – 하단 rail 제거 */
+body.ontu-stats-page .stats-panel__slider::after,
+body.ontu-stats-page .stats-panel__nav,
+body.ontu-stats-page .stats-panel__rail{
+  display:none!important;
+}
+body.ontu-stats-page .stats-panel__slider{
+  position:relative;
+  padding-bottom:0;
+}
+
+/* 가로 스크롤 + 스냅 */
+body.ontu-stats-page .stats-panel__viewport{
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+}
+body.ontu-stats-page .stats-panel__viewport::-webkit-scrollbar{display:none;}
+body.ontu-stats-page .stats-panel__track{
+  display:flex;
+  gap:16px;
+}
+
+/* 카드 공통 */
+body.ontu-stats-page .stats-card{
+  background:#ffffff;
+  border-radius:16px;
+  padding:22px 18px 18px;
+  box-shadow:0 8px 20px rgba(15,23,42,0.18);
+  display:flex;
+  flex-direction:column;
+  min-height:230px;
+  scroll-snap-align:center;
+}
+
+/* 데스크탑: 4장 */
+@media (min-width:900px){
+  body.ontu-stats-page .stats-panel__track .stats-card{
+    flex:0 0 calc((100% - 3 * 16px) / 4);
+  }
+}
+/* 모바일/태블릿: 1장 */
+@media (max-width:899px){
+  body.ontu-stats-page .stats-panel__track .stats-card{
+    flex:0 0 100%;
+  }
+}
+
+/* 카드 타이포 */
+body.ontu-stats-page .stats-card__label{
+  margin:0 0 10px;
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  color:#4b5563;
+}
+body.ontu-stats-page .stats-card__number,
+body.ontu-stats-page .stats-panel .money-number{
+  font-size:clamp(22px,2.2vw,26px);
+  font-weight:800;
+  color:#111827;
+}
+body.ontu-stats-page .stats-card__unit,
+body.ontu-stats-page .stats-panel .money-unit{
+  font-size:clamp(11px,1.3vw,14px);
+  font-weight:600;
+  color:#6b7280;
+}
+body.ontu-stats-page .stats-card__share{
+  font-size:12px;
+  font-weight:700;
+  color:#0f172a;
+}
+
+/* 상품유형별 패널 – 점유비 숨김 */
+body.ontu-stats-page .stats-panel--products .stats-card__share{display:none;}
+body.ontu-stats-page .stats-panel--products .stats-card__bottom-row{
+  justify-content:flex-end;
+}
+
+/* 전월 대비 */
+body.ontu-stats-page .stats-card__bottom-row{
+  margin-top:auto;
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:8px;
+}
+body.ontu-stats-page .stats-card__delta-wrap{
+  text-align:right;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+}
+body.ontu-stats-page .stats-card__delta-label{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:700;
+  color:#9ca3af;
+}
+body.ontu-stats-page .stats-card__delta-rate{
+  margin-top:3px;
+  font-size:16px;
+  font-weight:800;
+  color:#4b5563;
+  white-space:nowrap;
+}
+body.ontu-stats-page .stats-card__delta{
+  margin-top:4px;
+  font-size:18px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  white-space:nowrap;
+}
+body.ontu-stats-page .stats-card__delta .delta-arrow{font-size:.9em;}
+body.ontu-stats-page .stats-card__delta.delta-up{color:#dc2626;}
+body.ontu-stats-page .stats-card__delta.delta-down{color:#1d4ed8;}
+body.ontu-stats-page .stats-card__delta.delta-flat{color:#6b7280;}
+
+/* hover 효과 */
+@media (hover:hover) and (pointer:fine){
+  body.ontu-stats-page .stats-card{
+    transition:transform .12s ease-out,box-shadow .12s ease-out;
+  }
+  body.ontu-stats-page .stats-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 24px rgba(15,23,42,0.22);
+  }
+}
+
+/* 헤더 타이틀 + 월선택기 정렬 보완 */
+body.ontu-stats-page .beta-stats-header__top-row{
+  display:flex;
+  align-items:center;
+  gap:1.2rem;
+  flex-wrap:wrap;
+}
+body.ontu-stats-page #ontuMonthInput{line-height:1;}
+body.ontu-stats-page .beta-section:last-of-type{
+  margin-bottom:0;
+}
+body.ontu-stats-page .beta-month-picker{
+  position:relative;
+  top:-6px;
+}
+
+/* 메인 금액 값 폭 */
+body.ontu-stats-page .stats-card__value--main{
+  margin:10px auto 16px;
+  display:inline-flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:4px;
+  width:180px;
+  max-width:100%;
+  white-space:nowrap;
+  text-align:center;
+}
+@media (min-width:900px){
+  body.ontu-stats-page .stats-card__value--main{
+    width:240px;
+  }
+}
+
+/* 데이터 없는 월용 빈 카드 */
+.stats-card--empty{
+  max-width:320px;
+  margin:40px auto;
+  color:#111827;
+}
+.stats-card--empty .stats-card__empty-inner{
+  min-height:200px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.stats-card--empty .stats-card__empty-line{
+  margin:4px 0;
+  font-size:.95rem;
+  color:#111827;
+}
+
+/* 상품유형별 대출잔액 – 도넛+카드 레이아웃(초록패널 안) */
+body.ontu-stats-page .stats-panel--products .stats-panel__content{
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
+  gap:18px;
+  align-items:stretch;
+}
+body.ontu-stats-page .stats-panel--products .stats-panel__chart{
+  background:#047857;
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+body.ontu-stats-page .stats-panel--products .stats-panel__grid--products{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+@media(max-width:768px){
+  body.ontu-stats-page .stats-panel--products .stats-panel__content{
+    grid-template-columns:1fr;
+  }
+  body.ontu-stats-page .stats-panel--products .stats-panel__grid--products{
+    grid-template-columns:1fr;
+  }
+}
+
+/* 온투 통계: 출처 문구 */
+body.ontu-stats-page .ontu-source-note{
+  max-width:1120px;
+  margin:12px auto 8px;
+  padding:0 24px 0;
+  text-align:right;
+  font-size:13px;
+  line-height:1.5;
+  color:#6b7280;
+}
+
+/* 모바일 폰트 튜닝 */
+@media (max-width:768px){
+  body.ontu-stats-page .stats-card__label{
+    font-size:1.6rem;
+  }
+  body.ontu-stats-page .stats-panel .money-number{
+    font-size:2.4rem;
+  }
+  body.ontu-stats-page .money-text{
+    font-size:2.2rem;
+  }
+  body.ontu-stats-page .stats-card__number{
+    font-size:3.2rem;
+  }
+  body.ontu-stats-page .stats-card__unit,
+  body.ontu-stats-page .stats-card__delta-label,
+  body.ontu-stats-page .stats-card__delta-rate,
+  body.ontu-stats-page .stats-card__share{
+    font-size:1.2rem;
+  }
+  body.ontu-stats-page .beta-stats-title{
+    font-size:2.0rem;
+    line-height:1.2;
+  }
+  body.ontu-stats-page .beta-stats-subtitle{
+    font-size:0.9rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+}
+
+/* 온투 헤더 정렬 보완 */
+.ontu-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+}
+.ontu-month-picker{
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+}
+.ontu-month-label{
+  font-size:0.9rem;
+  color:#4b5563;
+}
+@media (max-width:768px){
+  .ontu-header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0.75rem;
+  }
+}
+
+/* 카드 제목/금액 사이 간격 */
+.stats-card__label{margin-bottom:0.4rem;}
+.stats-panel + .stats-panel{margin-top:4rem;}
+body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__number{
+  font-size:5rem;
+  line-height:1.1;
+  font-weight:700;
+}
+
+/* ======================= HERO 오른쪽 버튼 / SUBINFO ======================= */
+
+.beta-hero-links{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:10px;
+}
+.hero-link-btn{
+  width:100%;
+  min-height:44px;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#ffffff;
+  color:#111827;
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(15,23,42,0.04);
+}
+.hero-link-btn::after{
+  content:"›";
+  font-size:14px;
+  opacity:.6;
+}
+.hero-link-btn:hover{background:#f3f4f6;}
+@media (max-width:768px){
+  .hero-link-btn{
+    min-height:40px;
+    font-size:12px;
+  }
+}
+
+/* 계산기 이용자수 + 개인정보 배너 1:1 */
+.beta-subinfo{
+  margin-top:8px;
+  display:flex;
+  flex-direction:row;
+  gap:10px;
+  align-items:stretch;
+}
+.beta-subinfo__left,
+.beta-subinfo__right{
+  flex:0 0 50%;
+}
+.beta-subinfo__metric-row{width:100%;}
+
+.beta-subinfo__banner{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:20px;
+  overflow:hidden;
+  background:#e5e7eb;
+}
+.beta-subinfo__banner img{
+  display:block;
+  width:100%;
+  max-width:260px;
+  aspect-ratio:3 / 1;
+  object-fit:cover;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+}
+@media (max-width:640px){
+  .beta-subinfo{flex-direction:column;}
+  .beta-subinfo__left,
+  .beta-subinfo__right{flex:0 0 auto;}
+}
 
 /* =========================================================
-   ✅ Navi stats widget (beta): /api/navi-stats
-   - 메인 Hero 우측: 9개 상품군 월간 클릭 집계
+   ✅ Navi Stats Widget (Hero 우측)
 ========================================================= */
-const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
-
-const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
-
-function escapeHtml(input){
-  const s = String(input ?? "");
-  return s.replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+.beta-hero .beta-hero-right,
+.beta-hero .beta-hero-placeholder,
+#naviStatsMount{
+  height: 100%;
 }
 
-function formatNumber(n){
-  const v = Number(n) || 0;
-  try { return v.toLocaleString("ko-KR"); } catch { return String(v); }
+.navi-stats-card{
+  height: 100%;
+  background: #fff;
+  border: 1px solid #e6edf5;
+  border-radius: 18px;
+  padding: 14px 14px 16px;
+  box-shadow: 0 6px 18px rgba(16,24,40,.06);
+  display: flex;
+  flex-direction: column;
 }
 
-function getKstMonthKey(d = new Date()) {
-  try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit" }).format(d); // YYYY-MM
-  } catch {
-    const tzOffsetMs = 9 * 60 * 60 * 1000;
-    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 7);
+.navi-stats-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 10px;
+}
+
+.navi-stats-title{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.navi-stats-month{
+  font-weight: 800;
+  color: #334155;
+  font-size: 14px;
+}
+
+.navi-live{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  color: #0f172a;
+}
+
+.navi-live__dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff3b30;
+  box-shadow: 0 0 0 0 rgba(255,59,48,.55);
+  animation: naviLivePulse 1.1s infinite;
+}
+
+@keyframes naviLivePulse{
+  0%   { transform: scale(.92); opacity: .55; box-shadow: 0 0 0 0 rgba(255,59,48,.55); }
+  55%  { transform: scale(1);   opacity: 1;   box-shadow: 0 0 0 7px rgba(255,59,48,0); }
+  100% { transform: scale(.92); opacity: .55; box-shadow: 0 0 0 0 rgba(255,59,48,0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .navi-live__dot{ animation: none; }
+}
+
+.navi-stats-tiles{
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.navi-tile{
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* ✅ 가운데 정렬 */
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  min-height: 0;
+}
+
+.navi-tile__icon{
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  place-items: center;
+}
+
+.navi-tile__img{
+  width: 44px;          /* ✅ 실제 노출 크기 */
+  height: 44px;
+  object-fit: contain;
+  display: block;
+}
+
+.navi-tile__label{
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.2;
+text-align:center;
+}
+
+.navi-tile__count{
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 900;
+}
+
+.navi-tile__count .num{
+  font-size: 22px;
+  color: #16a34a; /* green */
+  letter-spacing: -0.4px;
+}
+
+.navi-tile__count .unit{
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 800;
+}
+
+/* 모바일에서 높이 강제 금지 */
+@media (max-width: 860px){
+  .beta-hero .beta-hero-right,
+  .beta-hero .beta-hero-placeholder,
+  #naviStatsMount{
+    height: auto;
+  }
+  .navi-stats-card{
+    height: auto;
+  }
+  .navi-stats-tiles{
+    gap: 10px;
+  }
+  .navi-tile{
+    min-height: 0;
+}
+  .navi-tile__count .num{
+    font-size: 20px;
   }
 }
 
-// 'YYYY-MM' → 'YYYY년 M월'
-function formatMonthLabel(monthKey) {
-  const [y, m] = String(monthKey || "").split("-");
-  const mm = String(Number(m || "0"));
-  if (!y || !m) return "";
-  return `${y}년 ${mm}월`;
+
+/* =========================================================
+   ✅ FIX (2025-12-31): Hero/Menu/Icon layout stabilization
+   - Hero 배너가 우측 위젯을 침범하지 않도록 grid/stretch 영향 최소화
+   - 우측 상단 MENU 드롭다운 정렬 개선
+   - Navi 통계 카드 아이콘 크기/표현(동영상 스타일) 보정
+========================================================= */
+
+/* 1) Hero 배너가 grid stretch로 과도하게 늘어나는 문제 방지 */
+.beta-hero-banner{
+  align-self: start;
+  position: relative;
+  z-index: 1;
+}
+.beta-hero-right{
+  position: relative;
+  z-index: 2;
 }
 
-// ✅ 메인 위젯 9개 항목(서버 집계 키 고정)
-const NAVI_GROUPS = [
-  { key: "re_collateral",   label: "부동산 담보대출",     iconSrc: "/assets/navi-icons/re_collateral.png" },
-  { key: "personal_credit", label: "개인 신용대출",       iconSrc: "/assets/navi-icons/personal_credit.png" },
-  { key: "corporate_credit",label: "법인 신용대출",       iconSrc: "/assets/navi-icons/corporate_credit.png" },
-  { key: "stock",           label: "스탁론",             iconSrc: "/assets/navi-icons/stock.png" },
-  { key: "medical",         label: "의료사업자대출",      iconSrc: "/assets/navi-icons/medical.png" },
-  { key: "art",             label: "미술품 담보대출",     iconSrc: "/assets/navi-icons/art.png" },
-  { key: "receivable",      label: "매출채권 유동화",     iconSrc: "/assets/navi-icons/receivable.png" },
-  { key: "eao",             label: "전자어음",           iconSrc: "/assets/navi-icons/eao.png" },
-  { key: "auction",         label: "경매배당금 담보대출",  iconSrc: "/assets/navi-icons/auction.png" },
-];
-
-async function fetchNaviStats(monthKey) {
-  const mk = monthKey || getKstMonthKey();
-  const url = `${NAVI_STATS_ENDPOINT}?month=${encodeURIComponent(mk)}&_t=${Date.now()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`navi-stats ${res.status}`);
-  return await res.json();
+/* 2) 우측 상단 MENU 드롭다운이 우측으로 쏠리는 문제 보정 */
+.beta-menu{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  flex: 0 0 auto;
+}
+.beta-menu-panel{
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+  max-width: min(320px, calc(100vw - 24px));
 }
 
-function renderNaviStatsWidget(payload, opts = {}) {
-  const mount = document.getElementById("naviStatsMount");
-  if (!mount) return;
-
-  const animate = opts.animate !== false;
-  const monthKey = payload?.monthKey || getKstMonthKey();
-  const monthLabel = formatMonthLabel(monthKey);
-  const data = payload?.productGroups || {};
-
-  const tileHtml = NAVI_GROUPS.map((g) => {
-    const raw = Number(data?.[g.key]) || 0;
-    const count = Math.max(0, raw);
-
-    // 아이콘은 img로 (영상 제공 이미지로 교체 가능)
-    // onerror: 아이콘 로드 실패 시 자연스럽게 숨김
-    return `
-      <div class="navi-tile">
-        <div class="navi-tile__icon" aria-hidden="true">
-          <img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy"
-               onerror="this.style.display='none';" />
-        </div>
-        <div class="navi-tile__label">${escapeHtml(g.label)}</div>
-        <div class="navi-tile__count">
-          <span class="num" data-target="${count}">${animate ? "0" : formatNumber(count)}</span>
-          <span class="unit">건</span>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  mount.innerHTML = `
-    <div class="navi-stats-card" data-ready="true">
-      <div class="navi-stats-head">
-        <div class="navi-stats-title">
-          <span class="navi-live" aria-label="라이브">
-            <span class="navi-live__dot" aria-hidden="true"></span>LIVE
-          </span>
-          <span>후추 네비게이션 이용 현황</span>
-        </div>
-        <div class="navi-stats-month">${escapeHtml(monthLabel)}</div>
-      </div>
-
-      <div class="navi-stats-tiles">
-        ${tileHtml}
-      </div>
-    </div>
-  `;
-
-  // 숫자 카운트업(원하면 유지) — 실패/캐시 렌더 시엔 animate=false로 호출
-  if (!animate) return;
-
-  try {
-    const nums = mount.querySelectorAll(".navi-tile .num[data-target]");
-    const dur = 520;
-    nums.forEach((el) => {
-      const target = Number(el.getAttribute("data-target")) || 0;
-      if (!Number.isFinite(target) || target <= 0) {
-        el.textContent = "0";
-        return;
-      }
-      const start = performance.now();
-      const step = (t) => {
-        const p = Math.min(1, (t - start) / dur);
-        const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
-        const v = Math.floor(target * eased);
-        el.textContent = formatNumber(v);
-        if (p < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    });
-  } catch (_) {
-    mount.querySelectorAll(".navi-tile .num[data-target]").forEach((el) => {
-      const target = Number(el.getAttribute("data-target")) || 0;
-      el.textContent = formatNumber(target);
-    });
-  }
+/* 3) Navi 통계 아이콘: 동영상처럼 더 크게(배경 박스 제거) */
+.navi-tile__icon{
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.navi-tile__img{
+  display: block !important;
+  width: clamp(34px, 3.2vw, 52px) !important;
+  height: auto !important;
+  max-height: 52px !important;
 }
 
-async function initNaviStatsWidget() {
-  const mount = document.getElementById("naviStatsMount");
-  if (!mount) return;
-
-  const monthKey = getKstMonthKey();
-
-  // 1) 캐시 먼저 (화면 안정성)
-  try {
-    const cached = localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey));
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && (parsed.monthKey || parsed.monthKey === "") && parsed.productGroups) {
-        renderNaviStatsWidget(parsed, { animate: false });
-      }
-    }
-  } catch (_) {}
-
-  // 2) 최신 데이터 fetch
-  try {
-    const data = await fetchNaviStats(monthKey);
-    try { localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(data)); } catch (_) {}
-    renderNaviStatsWidget(data, { animate: true });
-  } catch (e) {
-    // 통계 로드 실패는 UI를 막지 않음 (캐시가 없으면 0으로)
-    console.warn("navi-stats widget failed:", e);
-    renderNaviStatsWidget({ monthKey, productGroups: {} }, { animate: false });
-  }
+/* (옵션) 아이콘이 너무 위로 붙는 경우를 대비한 여백 */
+.navi-tile{
+  gap: 8px !important;
 }
 
+/* 1-추가) grid에서 가로 overflow로 겹침이 생기는 경우 방지 */
+.beta-hero-grid > *{ min-width: 0; }
+.beta-hero-banner{ max-width: 100%; overflow: hidden; }
 
-const ONTU_API  = `${API_BASE}/api/ontu-stats`;
 
-// ───────── 온투업 통계 가져오기 ─────────
-async function fetchOntuStats() {
-  try {
-    const res = await fetch(`${ONTU_API}?t=${Date.now()}`, {
-      method: "GET",
-      mode: "cors",
-      credentials: "omit",
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const json = await res.json();
-    if (!json || json.ok === false || !json.summary || !json.byType) {
-      throw new Error("invalid ontu-stats payload");
-    }
-
-    // 메인에서 필요한 형태로만 리턴
-    return {
-      month:   json.month,
-      summary: json.summary,
-      byType:  json.byType
-    };
-  } catch (e) {
-    console.error("[ontu-stats] API 실패, 기본 샘플 사용:", e);
-    return { ...DEFAULT_ONTU_STATS };
-  }
-}
-
-// ───────── 대출현황 렌더 ─────────
-function renderLoanStatus(summary, monthStr) {
-  const container = document.getElementById("ontuLoanStatus");
-  const monthEl   = document.getElementById("dashboardMonth");
-  if (!container) return;
-
-  if (!summary) {
-    container.innerHTML = `
-      <div class="notice error">
-        <p>온투업 통계를 불러오지 못했습니다.</p>
-      </div>
-    `;
-    if (monthEl) monthEl.textContent = "";
-    return;
-  }
-
-  if (monthEl) {
-    monthEl.textContent = formatMonthLabel(monthStr);
-  }
-
-  const items = [
-    {
-      // 49개 → 숫자/단위 분리
-      label: "데이터 수집 온투업체수",
-      value: summary.dataFirms != null
-        ? (
-            `<span class="money-number">${summary.dataFirms.toLocaleString("ko-KR")}</span>` +
-            `<span class="money-unit">개</span>`
-          )
-        : "-"
-    },
-    {
-      label: "누적대출금액",
-      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-"
-    },
-    {
-      label: "누적상환금액",
-      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-"
-    },
-    {
-      label: "대출잔액",
-      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-"
-    }
-  ];
-
-  container.innerHTML = `
-    <div class="beta-loanstatus-grid">
-      ${items
-        .map(
-          (it) => `
-        <div class="beta-loanstatus-item">
-          <div class="beta-loanstatus-item__label">${it.label}</div>
-          <div class="beta-loanstatus-item__value">
-            <span class="loan-amount-text">${it.value}</span>
-          </div>
-        </div>
-      `
-        )
-        .join("")}
-    </div>
-  `;
-
-  autoFitLoanStatusText();
-}
-
-// ───────── 상품유형별 대출잔액 렌더 ─────────
-
-// 도넛 & 우측 카드 공통 색상 (라벨 순서와 매칭)
-const PRODUCT_COLORS = [
-  "#1d4ed8", // 부동산담보
-  "#f97316", // 부동산PF
-  "#f43f5e", // 어음·매출채권담보
-  "#facc15", // 기타담보(주식 등)
-  "#22c55e", // 개인신용
-  "#a855f7"  // 법인신용
-];
-
-let donutChart = null;
-
-function renderProductSection(summary, byType) {
-  const section = document.getElementById("ontuProductSection");
-  if (!section) return;
-
-  if (!summary || !byType || !Object.keys(byType).length) {
-    section.innerHTML = `
-      <div class="notice error">
-        <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const balance = Number(summary.balance || 0);
-
-  const labels   = [];
-  const percents = [];
-  const amounts  = [];
-
-  for (const [name, cfg] of Object.entries(byType)) {
-    const ratio  = Number(cfg.ratio ?? cfg.share ?? 0);
-    const amount =
-      cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
-
-    labels.push(name);
-    percents.push(Math.round(ratio * 1000) / 10); // 0.425 → 42.5
-    amounts.push(amount);
-  }
-
-  // 메인 카드 + 도넛 + 유형별 금액 카드
-  section.innerHTML = `
-    <div class="beta-product-card">
-      <div class="beta-product-card__header">
-        <span class="beta-product-card__title">상품유형별 대출잔액</span>
-      </div>
-      <div class="beta-product-grid">
-        <div class="beta-product-donut-wrap">
-          <div class="beta-product-donut-inner">
-            <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
-            <div class="beta-product-donut-center" id="productDonutCenter">
-              <div class="beta-product-donut-center__label-row">
-                <span class="beta-product-donut-center__chip"></span>
-                <span class="beta-product-donut-center__label"></span>
-              </div>
-              <div class="beta-product-donut-center__value"></div>
-            </div>
-          </div>
-        </div>
-        <div class="beta-product-boxes">
-          ${labels
-            .map((name, idx) => {
-              const color = PRODUCT_COLORS[idx] || "#e5e7eb";
-              return `
-                <div class="beta-product-box" style="--product-color:${color};">
-                  <div class="beta-product-box__title">${name}</div>
-                  <div class="beta-product-box__amount">${formatKoreanCurrencyJo(
-                    amounts[idx]
-                  )}</div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    </div>
-    <div class="beta-product-source-note">
-      ※출처: 온라인투자연계금융업 중앙기록관리기관
-    </div>
-  `;
-
-  const canvas   = document.getElementById("productDonut");
-  const centerEl = document.getElementById("productDonutCenter");
-
-  let centerChipEl  = null;
-  let centerLabelEl = null;
-  let centerValueEl = null;
-
-  if (centerEl) {
-    centerChipEl  = centerEl.querySelector(".beta-product-donut-center__chip");
-    centerLabelEl = centerEl.querySelector(".beta-product-donut-center__label");
-    centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
-  }
-
-  // 도넛 중앙 텍스트/칩 갱신
-  function updateCenter(index) {
-    if (!centerLabelEl || !centerValueEl) return;
-
-    if (index == null || index < 0 || index >= labels.length) {
-      index = 0;
-    }
-
-    centerLabelEl.textContent = labels[index];
-    centerValueEl.innerHTML   = formatKoreanCurrencyJo(amounts[index]);
-
-    if (centerChipEl) {
-      const color = PRODUCT_COLORS[index] || "#e5e7eb";
-      centerChipEl.style.visibility = "visible";
-      centerChipEl.style.backgroundColor = color;
-    }
-  }
-
-  // 기본 상태: 0번(부동산담보) 정보 표시
-  updateCenter(0);
-
-  if (!canvas || !window.Chart) return;
-
-  const ctx = canvas.getContext("2d");
-  if (donutChart) {
-    donutChart.destroy();
-    donutChart = null;
-  }
-
-  donutChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [
-        {
-          data: percents,
-          backgroundColor: PRODUCT_COLORS,
-          borderWidth: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "60%",
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false }
-      },
-      layout: { padding: 4 },
-      onClick: (evt, elements) => {
-        if (!elements || !elements.length) {
-          updateCenter(0);
-          return;
-        }
-        const idx = elements[0].index;
-        updateCenter(idx);
-      },
-      onHover: (evt, elements) => {
-        const target = evt?.native?.target || evt?.target;
-        if (target && target.style) {
-          target.style.cursor = elements && elements.length ? "pointer" : "default";
-        }
-      }
-    }
-  });
-}
-
-// ───────── 초기화 ─────────
-async function initOntuStats() {
-  try {
-    let data = await fetchOntuStats();
-    if (!data || !data.summary || !Object.keys(data.byType || {}).length) {
-      data = { ...DEFAULT_ONTU_STATS };
-    }
-    const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
-    const summary = data.summary || DEFAULT_ONTU_STATS.summary;
-    const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
-
-    renderLoanStatus(summary, month);
-    renderProductSection({ ...summary, month }, byType);
-  } catch (e) {
-    console.error("[initOntuStats] 치명적 오류:", e);
-    renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
-    renderProductSection(
-      { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
-      DEFAULT_ONTU_STATS.byType
-    );
-  }
-}
-
-// 상단 MENU 드롭다운
-function setupBetaMenu() {
-  const btn   = document.getElementById("betaMenuToggle");
-  const panel = document.getElementById("betaMenuPanel");
-  if (!btn || !panel) return;
-
-  const close = () => {
-    panel.classList.add("hide");
-    btn.setAttribute("aria-expanded", "false");
-  };
-  const open = () => {
-    panel.classList.remove("hide");
-    btn.setAttribute("aria-expanded", "true");
-  };
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const expanded = btn.getAttribute("aria-expanded") === "true";
-    if (expanded) close();
-    else open();
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!panel.contains(e.target) && !btn.contains(e.target)) {
-      close();
-    }
-  });
-}
-
-// DOM 로드 후 실행
-document.addEventListener("DOMContentLoaded", () => {
-  initNaviStatsWidget();
-
-  initOntuStats();
-  setupBetaMenu();
-
-  window.addEventListener("resize", () => {
-    autoFitLoanStatusText();
-  });
-});
-
-// ===== 메인 히어로 배너 슬라이드 =====
-const heroSlides = document.querySelectorAll(".beta-hero-banner__slide");
-const heroPrev   = document.querySelector(".hero-nav--prev");
-const heroNext   = document.querySelector(".hero-nav--next");
-
-const HERO_SLIDE_INTERVAL = 5000;
-
-let heroIndex = 0;
-let heroTimer = null;
-
-function showHeroSlide(index) {
-  heroSlides.forEach((slide, i) => {
-    slide.classList.toggle("is-active", i === index);
-  });
-  heroIndex = index;
-}
-
-function showNextHero() {
-  const next = (heroIndex + 1) % heroSlides.length;
-  showHeroSlide(next);
-}
-
-function showPrevHero() {
-  const prev = (heroIndex - 1 + heroSlides.length) % heroSlides.length;
-  showHeroSlide(prev);
-}
-
-function startHeroAutoSlide() {
-  if (heroTimer) clearInterval(heroTimer);
-  heroTimer = setInterval(showNextHero, HERO_SLIDE_INTERVAL);
-}
-
-if (heroSlides.length > 0) {
-  showHeroSlide(0);
-  startHeroAutoSlide();
-
-  if (heroPrev) {
-    heroPrev.addEventListener("click", () => {
-      showPrevHero();
-      startHeroAutoSlide();
-    });
-  }
-
-  if (heroNext) {
-    heroNext.addEventListener("click", () => {
-      showNextHero();
-      startHeroAutoSlide();
-    });
-  }
-}
+/* ✅ Navi LIVE dot blinking */
+.navi-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.55);animation:naviLivePulse 1.2s ease-in-out infinite;}
+@keyframes naviLivePulse{0%{transform:scale(1);opacity:1;box-shadow:0 0 0 0 rgba(255,59,48,.55);}70%{transform:scale(1.35);opacity:.35;box-shadow:0 0 0 10px rgba(255,59,48,0);}100%{transform:scale(1);opacity:1;box-shadow:0 0 0 0 rgba(255,59,48,0);}}
