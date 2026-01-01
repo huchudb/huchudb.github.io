@@ -2248,3 +2248,66 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
     font-size: 20px;
   }
 }
+
+
+/* =========================================================
+   ✅ FIX (2025-12-31): Hero/Menu/Icon layout stabilization
+   - Hero 배너가 우측 위젯을 침범하지 않도록 grid/stretch 영향 최소화
+   - 우측 상단 MENU 드롭다운 정렬 개선
+   - Navi 통계 카드 아이콘 크기/표현(동영상 스타일) 보정
+========================================================= */
+
+/* 1) Hero 배너가 grid stretch로 과도하게 늘어나는 문제 방지 */
+.beta-hero-banner{
+  align-self: start;
+  position: relative;
+  z-index: 1;
+}
+.beta-hero-right{
+  position: relative;
+  z-index: 2;
+}
+
+/* 2) 우측 상단 MENU 드롭다운이 우측으로 쏠리는 문제 보정 */
+.beta-menu{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  flex: 0 0 auto;
+}
+.beta-menu-panel{
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+  max-width: min(320px, calc(100vw - 24px));
+}
+
+/* 3) Navi 통계 아이콘: 동영상처럼 더 크게(배경 박스 제거) */
+.navi-tile__icon{
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.navi-tile__img{
+  display: block !important;
+  width: clamp(34px, 3.2vw, 52px) !important;
+  height: auto !important;
+  max-height: 52px !important;
+}
+
+/* (옵션) 아이콘이 너무 위로 붙는 경우를 대비한 여백 */
+.navi-tile{
+  gap: 8px !important;
+}
+
+/* 1-추가) grid에서 가로 overflow로 겹침이 생기는 경우 방지 */
+.beta-hero-grid > *{ min-width: 0; }
+.beta-hero-banner{ max-width: 100%; overflow: hidden; }
