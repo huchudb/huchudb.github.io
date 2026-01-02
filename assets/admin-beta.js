@@ -801,6 +801,10 @@ function normalizeOntuStatsResponseToMonth(json, monthKey) {
     }
 
     if (json.summary || json.products || json.byType || json.byLender) {
+      const got = String(json.monthKey ?? json.month ?? "").trim();
+      if (monthKey && got && got !== monthKey) return null;
+      if (monthKey && !got) return null;
+
       return {
         summary: json.summary || {},
         products: json.products || null,
@@ -1196,8 +1200,9 @@ function setupStatsInteractions() {
   const monthInput = document.getElementById("statsMonth");
   if (monthInput) {
     monthInput.addEventListener("change", async () => {
-      const m = getCurrentMonthKey();
-      if (!m) { clearStatsForm(); return; }
+      const m = String(monthInput.value || "").trim();
+      clearStatsForm();
+      if (!m) { return; }
 
       ensureByLenderSection();
 
