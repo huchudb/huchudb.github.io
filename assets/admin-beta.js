@@ -758,62 +758,46 @@ function _productsToByType(products) {
 }
 /* ✅ 서버 응답 형태가 어떤 것이든 monthKey 기준으로 {summary, products, byType, byLender}로 정규화 */
 function normalizeOntuStatsResponseToMonth(json, monthKey) {
-  if (!json) return null;
+  if (!json || !monthKey) return null;
 
-  // 1) {byMonth: { "2025-12": {...}}}
+  // Case A) { byMonth: { "YYYY-MM": {...} } }
   if (json.byMonth && typeof json.byMonth === "object") {
-    const hit = json.byMonth[monthKey];
-    if (hit && typeof hit === "object") {
+    const byMonth = json.byMonth;
+    const item = byMonth[monthKey];
+    if (item && typeof item === "object") {
       return {
-        summary: hit.summary || {},
-        products: hit.products || null,
-        byType: hit.byType || null,
-        byLender: hit.byLender || {}
+        monthKey,
+        summary: item.summary || null,
+        products: item.products || null,
+        byType: item.byType || null,
+        byLender: item.byLender || null,
+        ui: item.ui || null
       };
     }
+    return null;
   }
 
-  // 2) [ {month:"2025-12", ...}, ... ]
-  if (Array.isArray(json)) {
-    const found = json.find((x) => x && typeof x === "object" && ((x.monthKey === monthKey) || (x.month === monthKey)));
-    if (found) {
-      return {
-        summary: found.summary || {},
-        products: found.products || null,
-        byType: found.byType || null,
-        byLender: found.byLender || {}
-      };
-    }
+  // Case B) 단일 월 페이로드는 반드시 "month/monthKey"가 요청 monthKey와 일치해야만 수용
+  const respKey =
+    (json.monthKey || json.month || (json.summary && (json.summary.monthKey || json.summary.month)) || null);
+
+  if (respKey && String(respKey) === String(monthKey)) {
+    return {
+      monthKey,
+      summary: json.summary || null,
+      products: json.products || null,
+      byType: json.byType || null,
+      byLender: json.byLender || null,
+      ui: json.ui || null
+    };
   }
 
-  // 3) 단일 객체 {month:"2025-12", summary, byType/products/byLender}
-  if (typeof json === "object") {
-    if (json.data && typeof json.data === "object") {
-      const d = json.data;
-      if (d.summary || d.products || d.byType || d.byLender) {
-        return {
-          summary: d.summary || {},
-          products: d.products || null,
-          byType: d.byType || null,
-          byLender: d.byLender || {}
-        };
-      }
-    }
-
-    if (json.summary || json.products || json.byType || json.byLender) {
-      const got = String(json.monthKey ?? json.month ?? "").trim();
-      if (monthKey && got && got !== monthKey) return null;
-      if (monthKey && !got) return null;
-
-      return {
-        summary: json.summary || {},
-        products: json.products || null,
-        byType: json.byType || null,
-        byLender: json.byLender || {}
-      };
-    }
+  // Case C) { data: {...} } 래퍼
+  if (json.data && typeof json.data === "object") {
+    return normalizeOntuStatsResponseToMonth(json.data, monthKey);
   }
 
+  // ✅ monthKey 정보가 없거나 불일치면 "잘못된 월 데이터"로 간주하고 버린다.
   return null;
 }
 
@@ -1200,9 +1184,8 @@ function setupStatsInteractions() {
   const monthInput = document.getElementById("statsMonth");
   if (monthInput) {
     monthInput.addEventListener("change", async () => {
-      const m = String(monthInput.value || "").trim();
-      clearStatsForm();
-      if (!m) { return; }
+      const m = getCurrentMonthKey();
+      if (!m) { clearStatsForm(); return; }
 
       ensureByLenderSection();
 
