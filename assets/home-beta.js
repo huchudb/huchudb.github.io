@@ -165,7 +165,28 @@ const DEFAULT_ONTU_STATS = {
 };
 
 // ───────── API 베이스 ─────────
-const API_BASE  = "https://huchudb-github-io.vercel.app";
+const API_BASE = (function resolveApiBase(){
+  try{
+    const w = (typeof window !== "undefined") ? window : null;
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+
+    if (!base) {
+      const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+      const isLocal =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host.endsWith(".local");
+
+      // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
+      // 필요 시 window.API_BASE 로 언제든 override 가능
+      base = isLocal ? "" : "";
+    }
+
+    return base.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+})();
 
 /* =========================================================
    ✅ Navi stats widget (beta): /api/navi-stats
@@ -207,35 +228,49 @@ function syncNaviStatsHeight() {
   const card = document.querySelector(".navi-stats-card");
   if (!banner || !card) return;
 
-  // 모바일(1열 스택)에서는 자동 높이
-  const stacked = window.matchMedia("(max-width: 980px)").matches;
+  // 모바일(세로 스택)에서는 높이 강제하지 않음
+  const stacked = window.matchMedia && window.matchMedia("(max-width: 980px)").matches;
   if (stacked) {
     card.style.height = "";
     return;
   }
 
   const h = Math.round(banner.getBoundingClientRect().height);
-  if (h > 0) card.style.height = `${h}px`;
+  if (!h) return;
+
+  const prev = parseInt(String(card.style.height || "").replace("px", ""), 10) || 0;
+  if (Math.abs(prev - h) <= 2) return; // 미세 차이는 무시(깜빡임 방지)
+
+  card.style.height = `${h}px`;
 }
 const syncNaviStatsHeightDebounced = debounce(syncNaviStatsHeight, 120);
 
 function hookHeroBannerHeightSync() {
+  // 중복 바인딩 방지
+  if (window.__naviHeroSyncBound) {
+    syncNaviStatsHeightDebounced();
+    return;
+  }
+  window.__naviHeroSyncBound = true;
+
   const banner = document.querySelector(".beta-hero-banner");
   if (!banner) return;
 
-  // 이미지 로드 이후 정확한 높이 재계산
-  banner.querySelectorAll("img").forEach((img) => {
-    if (!img.complete) img.addEventListener("load", syncNaviStatsHeightDebounced, { once: true });
+  const sync = () => syncNaviStatsHeightDebounced();
+
+  // 초기 1회(레이아웃 안정화 후)
+  requestAnimationFrame(sync);
+
+  // 이미지 로딩 후 1회
+  [...banner.querySelectorAll("img")].forEach((img) => {
+    if (!img.complete) img.addEventListener("load", sync, { once: true });
   });
 
-  window.addEventListener("resize", syncNaviStatsHeightDebounced);
+  // 리사이즈(디바운스)
+  window.addEventListener("resize", sync);
 
-  // 첫 렌더 후 몇 번 재시도(폰트/이미지 로딩 타이밍 보정)
-  requestAnimationFrame(() => {
-    syncNaviStatsHeightDebounced();
-    setTimeout(syncNaviStatsHeightDebounced, 250);
-    setTimeout(syncNaviStatsHeightDebounced, 900);
-  });
+  // 페이지 로드 완료 후 1회
+  window.addEventListener("load", sync, { once: true });
 }
 
 
@@ -273,89 +308,81 @@ function renderNaviStatsWidget(payload, opts = {}) {
   if (!mount) return;
 
   const animate = opts.animate !== false;
-  const monthKey = payload?.monthKey || getKstMonthKey();
-  const monthLabel = formatMonthLabel(monthKey);
-  const data = payload?.productGroups || {};
+  const monthKey = (payload && payload.monthKey) ? String(payload.monthKey) : getKstMonthKey();
+  const counts = (payload && payload.productGroups) ? payload.productGroups : {};
 
-  const tileHtml = NAVI_GROUPS.map((g) => {
-    const raw = Number(data?.[g.key]) || 0;
-    const count = Math.max(0, raw);
+  const tilesHtml = NAVI_GROUPS.map((g, i) => {
+    const v = Number(counts[g.key] || 0) || 0;
+    const initial = animate ? 0 : v;
 
-    // 아이콘은 img로 (영상 제공 이미지로 교체 가능)
-    // onerror: 아이콘 로드 실패 시 자연스럽게 숨김
     return `
-      <div class="navi-tile">
+      <div class="navi-tile" data-key="${escapeHtml(g.key)}" style="--delay:${i * 45}ms">
         <div class="navi-tile__icon" aria-hidden="true">
-          <img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy"
-               onerror="this.style.display='none';" />
+          ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
+        </div>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
+          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
-        <div class="navi-tile__count">
-          <span class="num" data-target="${count}">${animate ? "0" : formatNumber(count)}</span>
-          <span class="unit">건</span>
-        </div>
       </div>
     `;
   }).join("");
 
   mount.innerHTML = `
-    <div class="navi-stats-card" data-ready="true">
-      <div class="navi-stats-head">
-        <div class="navi-stats-title">
-          <span class="navi-live" aria-label="라이브">
-            <span class="navi-live__dot" aria-hidden="true"></span>LIVE
-          </span>
-          <span>후추 네비게이션 이용 현황</span>
+    <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
+      <header class="navi-stats-header">
+        <div class="navi-stats-left">
+          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
+          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
         </div>
-        <div class="navi-stats-month">${escapeHtml(monthLabel)}</div>
-      </div>
-
-      <div class="navi-stats-tiles">
-        ${tileHtml}
-      </div>
-    </div>
+        <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
+      </header>
+      <div class="navi-stats-tiles">${tilesHtml}</div>
+    </section>
   `;
 
-  // --- PATCH: 타일 스태거(순차 등장) 애니메이션 트리거 ---
-  try {
-    const card = mount.querySelector(".navi-stats-card");
-    const tiles = Array.from(mount.querySelectorAll(".navi-tile"));
-    tiles.forEach((t, i) => t.style.setProperty("--d", `${i * 70}ms`));
-    if (card) {
-      card.classList.remove("is-enter");
-      void card.offsetWidth; // reflow
-      card.classList.add("is-enter");
-    }
-  } catch (_) {}
+  // ✅ 숫자 카운트업(레이아웃 영향 없음)
+  if (animate) {
+    const prefersReduced =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // 숫자 카운트업(원하면 유지) — 실패/캐시 렌더 시엔 animate=false로 호출
-  if (!animate) return;
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+    const animateCountUp = (el, target, duration = 900) => {
+      if (!el) return;
+      const from = Number(String(el.textContent || "0").replace(/[^\d.-]/g, "")) || 0;
+      const to = Number(target) || 0;
 
-  try {
-    const nums = mount.querySelectorAll(".navi-tile .num[data-target]");
-    const dur = 520;
-    nums.forEach((el) => {
-      const target = Number(el.getAttribute("data-target")) || 0;
-      if (!Number.isFinite(target) || target <= 0) {
-        el.textContent = "0";
+      if (prefersReduced || duration <= 0 || from === to) {
+        el.textContent = String(to);
         return;
       }
+
       const start = performance.now();
-      const step = (t) => {
-        const p = Math.min(1, (t - start) / dur);
-        const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
-        const v = Math.floor(target * eased);
-        el.textContent = formatNumber(v);
+      const step = (now) => {
+        const p = Math.min(1, (now - start) / duration);
+        const v = Math.round(from + (to - from) * easeOutCubic(p));
+        el.textContent = String(v);
         if (p < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
+    };
+
+    // 타일 입장 애니메이션은 CSS로 처리, 여기서는 숫자만 업데이트
+    mount.querySelectorAll(".navi-tile__count .num").forEach((el) => {
+      const target = Number(el.getAttribute("data-target") || "0") || 0;
+      animateCountUp(el, target, 900);
     });
-  } catch (_) {
-    mount.querySelectorAll(".navi-tile .num[data-target]").forEach((el) => {
-      const target = Number(el.getAttribute("data-target")) || 0;
-      el.textContent = formatNumber(target);
-    });
+
+    // 애니메이션 클래스는 1회만(재렌더 시에도 깜빡임 최소화)
+    setTimeout(() => {
+      const card = mount.querySelector(".navi-stats-card");
+      if (card) card.classList.remove("is-anim");
+    }, 900);
   }
+
+  // ✅ 배너와 높이 동기화(안정 버전)
+  hookHeroBannerHeightSync();
+  syncNaviStatsHeightDebounced();
 }
 
 async function initNaviStatsWidget() {
@@ -364,27 +391,31 @@ async function initNaviStatsWidget() {
 
   const monthKey = getKstMonthKey();
 
-  // 1) 캐시 먼저 (화면 안정성)
+  // 1) 캐시(또는 0값)로 즉시 렌더 + 애니메이션(숫자/타일은 레이아웃 영향 없음)
+  let cached = null;
   try {
-    const cached = localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey));
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && (parsed.monthKey || parsed.monthKey === "") && parsed.productGroups) {
-        renderNaviStatsWidget(parsed, { animate: true });
-      }
-    }
-  } catch (_) {}
-
-  // 2) 최신 데이터 fetch
-  try {
-    const data = await fetchNaviStats(monthKey);
-    try { localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(data)); } catch (_) {}
-    renderNaviStatsWidget(data, { animate: true });
-  } catch (e) {
-    // 통계 로드 실패는 UI를 막지 않음 (캐시가 없으면 0으로)
-    console.warn("navi-stats widget failed:", e);
-    renderNaviStatsWidget({ monthKey, productGroups: {} }, { animate: false });
+    cached = JSON.parse(localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey)) || "null");
+  } catch {
+    cached = null;
   }
+
+  const seed = (cached && typeof cached === "object")
+    ? { ...cached, monthKey }
+    : { monthKey, productGroups: {} };
+
+  // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
+  requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
+
+  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
+  // try {
+  //   const fresh = await fetchNaviStats(monthKey);
+  //   if (fresh && fresh.productGroups) {
+  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+  //   }
+  // } catch (e) {
+  //   // 무시: 캐시만으로도 동작
+  // }
 }
 
 
@@ -406,16 +437,6 @@ async function fetchOntuStats() {
     let month = String(json?.month || "").trim();
     let summary = json?.summary || null;
     let byType = json?.byType || json?.products?.byType || null;
-
-
-    // --- PATCH: 서버 month 값이 구버전일 때 byMonth 최댓값을 우선 사용 ---
-    try {
-      if (json && json.byMonth && typeof json.byMonth === "object") {
-        const keys = Object.keys(json.byMonth).filter(isMonthKey).sort();
-        const maxKey = keys.length ? keys[keys.length - 1] : "";
-        if (maxKey && (!month || maxKey > month)) month = maxKey;
-      }
-    } catch (_) {}
 
     // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
     if (json && json.byMonth && typeof json.byMonth === "object") {
