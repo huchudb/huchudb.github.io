@@ -316,6 +316,18 @@ function renderNaviStatsWidget(payload, opts = {}) {
     </div>
   `;
 
+  // --- PATCH: 타일 스태거(순차 등장) 애니메이션 트리거 ---
+  try {
+    const card = mount.querySelector(".navi-stats-card");
+    const tiles = Array.from(mount.querySelectorAll(".navi-tile"));
+    tiles.forEach((t, i) => t.style.setProperty("--d", `${i * 70}ms`));
+    if (card) {
+      card.classList.remove("is-enter");
+      void card.offsetWidth; // reflow
+      card.classList.add("is-enter");
+    }
+  } catch (_) {}
+
   // 숫자 카운트업(원하면 유지) — 실패/캐시 렌더 시엔 animate=false로 호출
   if (!animate) return;
 
@@ -358,7 +370,7 @@ async function initNaviStatsWidget() {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && (parsed.monthKey || parsed.monthKey === "") && parsed.productGroups) {
-        renderNaviStatsWidget(parsed, { animate: false });
+        renderNaviStatsWidget(parsed, { animate: true });
       }
     }
   } catch (_) {}
@@ -394,6 +406,16 @@ async function fetchOntuStats() {
     let month = String(json?.month || "").trim();
     let summary = json?.summary || null;
     let byType = json?.byType || json?.products?.byType || null;
+
+
+    // --- PATCH: 서버 month 값이 구버전일 때 byMonth 최댓값을 우선 사용 ---
+    try {
+      if (json && json.byMonth && typeof json.byMonth === "object") {
+        const keys = Object.keys(json.byMonth).filter(isMonthKey).sort();
+        const maxKey = keys.length ? keys[keys.length - 1] : "";
+        if (maxKey && (!month || maxKey > month)) month = maxKey;
+      }
+    } catch (_) {}
 
     // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
     if (json && json.byMonth && typeof json.byMonth === "object") {
