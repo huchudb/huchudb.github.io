@@ -485,7 +485,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_MONTH,
+      month: (DEFAULT_ONTU_STATS && DEFAULT_ONTU_STATS.month) ? DEFAULT_ONTU_STATS.month : "",
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -600,6 +600,10 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
+  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const errorPct = balance ? (Math.abs(balance - byTypeSum) / balance) * 100 : 0;
+  const errorPctText = errorPct.toFixed(8);
+
   // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
@@ -637,9 +641,19 @@ function renderProductSection(summary, byType) {
       </div>
     </div>
     <div class="beta-product-source-note">
-      ※출처: 온라인투자연계금융업 중앙기록관리기관
+      <span class="beta-product-source-note__text">
+        ※출처: 온라인투자연계금융업 중앙기록관리기관, 오차범위 : ±${errorPctText}%
+      </span>
+      <span class="beta-source-tooltip" data-tooltip>
+        <button type="button" class="beta-info-icon" aria-label="오차범위 안내" aria-expanded="false">?</button>
+        <div class="beta-tooltip" role="tooltip">
+          표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
+        </div>
+      </span>
     </div>
   `;
+
+  bindProductSourceTooltip(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -720,6 +734,66 @@ function renderProductSection(summary, byType) {
       }
     }
   });
+}
+
+
+/* =========================================================
+   ✅ 상품유형별 출처/오차범위 툴팁 (hover + click)
+========================================================= */
+let __productSourceTooltipDocBound = false;
+
+function bindProductSourceTooltip(rootEl){
+  if (!rootEl) return;
+
+  const wrap = rootEl.querySelector(".beta-source-tooltip");
+  const btn  = wrap ? wrap.querySelector(".beta-info-icon") : null;
+
+  if (!wrap || !btn) return;
+
+  // 기존 바인딩 중복 방지
+  if (wrap.dataset.bound === "1") return;
+  wrap.dataset.bound = "1";
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = wrap.classList.toggle("is-open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+
+  // ESC로 닫기
+  btn.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      wrap.classList.remove("is-open");
+      btn.setAttribute("aria-expanded", "false");
+      btn.blur();
+    }
+  });
+
+  // 문서 단위: 바깥 클릭 시 닫기 (1회만 바인딩)
+  if (!__productSourceTooltipDocBound) {
+    __productSourceTooltipDocBound = true;
+
+    document.addEventListener("click", (e) => {
+      document.querySelectorAll(".beta-source-tooltip.is-open").forEach((el) => {
+        if (!el.contains(e.target)) {
+          el.classList.remove("is-open");
+          const b = el.querySelector(".beta-info-icon");
+          if (b) b.setAttribute("aria-expanded", "false");
+        }
+      });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        document.querySelectorAll(".beta-source-tooltip.is-open").forEach((el) => {
+          el.classList.remove("is-open");
+          const b = el.querySelector(".beta-info-icon");
+          if (b) b.setAttribute("aria-expanded", "false");
+        });
+      }
+    });
+  }
 }
 
 // ───────── 초기화 ─────────
