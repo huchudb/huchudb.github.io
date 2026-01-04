@@ -13,7 +13,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- 베타 홈 전용 JS -->
-  <script type="module" src="/assets/home-beta.js?v=20251211-home"></script>
+  <script>
+  // Vercel Functions API base (override 가능)
+  window.API_BASE = "https://huchudb-github-io.vercel.app";
+</script>
+  <script type="module" src="/assets/home-beta.js?v=20260104-mainfix1"></script>
 </head>
 <body class="beta-body">
 
