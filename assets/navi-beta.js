@@ -18,6 +18,13 @@ async function postNaviStatsOncePerClick(payload) {
   try {
     const body = JSON.stringify(payload || {});
 
+    // ✅ 메인페이지 위젯 즉시 갱신 트리거(베스트에포트)
+    try {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("huchu:navi-stats-posted", { detail: payload || {} }));
+      }
+    } catch {}
+
     // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적, preflight 없음)
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
       const blob = new Blob([body], { type: "text/plain" });
