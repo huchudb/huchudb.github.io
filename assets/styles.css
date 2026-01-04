@@ -1388,8 +1388,86 @@ body.beta-body button{width:auto;}
   margin-top:6px;
   font-size:13px;
   color:#737373;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
   text-align:right;
 }
+
+.beta-product-source-note__text{
+  display:inline-block;
+}
+
+/* 오차범위 안내 아이콘 + 툴팁 */
+.beta-source-tooltip{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+
+.beta-info-icon{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#f3f4f6;
+  color:#6b7280;
+  font-weight:800;
+  font-size:12px;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  cursor:pointer;
+  user-select:none;
+}
+
+.beta-info-icon:focus{
+  outline:2px solid rgba(59,130,246,0.35);
+  outline-offset:2px;
+}
+
+.beta-tooltip{
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  width:min(360px, 86vw);
+  background:#111827;
+  color:#ffffff;
+  font-size:12px;
+  line-height:1.45;
+  padding:10px 12px;
+  border-radius:12px;
+  box-shadow:0 12px 28px rgba(15,23,42,0.22);
+  z-index:50;
+
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(-4px);
+  transition:opacity .15s ease, transform .15s ease, visibility .15s ease;
+}
+
+.beta-tooltip::before{
+  content:"";
+  position:absolute;
+  right:8px;
+  top:-6px;
+  border-width:0 6px 6px 6px;
+  border-style:solid;
+  border-color:transparent transparent #111827 transparent;
+}
+
+.beta-source-tooltip:hover .beta-tooltip,
+.beta-source-tooltip:focus-within .beta-tooltip,
+.beta-source-tooltip.is-open .beta-tooltip{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+
 
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
