@@ -706,8 +706,12 @@ const errorPctText = `±${errorPct.toFixed(8)}%`;
       </div>
     </div>
     <div class="beta-product-source-note">
-      <span class="source-text">※출처: 온라인투자연계금융업 중앙기록관리기관,</span>
-      <span class="error-text">오차범위 : ${errorPctText}</span>
+      <span class="source-text source-text--pc">※출처: 온라인투자연계금융업 중앙기록관리기관,</span>
+      <span class="source-text source-text--m">※출처: 온라인투자연계금융업 중앙기록관리기관</span>
+
+      <span class="error-text error-text--pc">오차범위 : ${errorPctText}</span>
+      <span class="error-text error-text--m">※오차범위 : ${errorPctText}</span>
+
       <span class="huchu-errinfo-wrap">
         <button type="button" class="huchu-errinfo-btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
         <div class="huchu-errinfo-tip" role="tooltip">
