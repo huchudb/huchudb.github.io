@@ -177,12 +177,12 @@ const API_BASE = (function resolveApiBase(){
         host === "127.0.0.1" ||
         host.endsWith(".local");
 
-      // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
+      // ✅ 기본: 운영(GitHub Pages 등)에서는 Vercel Functions API 사용
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      base = isLocal ? "" : "https://huchudb-github-io.vercel.app";
     }
 
-    return base.replace(/\/+$/, "");
+    return base.replace(/\/+\$/, "");
   } catch {
     return "";
   }
@@ -406,16 +406,16 @@ async function initNaviStatsWidget() {
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
-  // try {
-  //   const fresh = await fetchNaviStats(monthKey);
-  //   if (fresh && fresh.productGroups) {
-  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-  //   }
-  // } catch (e) {
-  //   // 무시: 캐시만으로도 동작
-  // }
+  // 2) 서버 최신값으로 한번 더 갱신 (2번 애니메이션 방지)
+  try {
+    const fresh = await fetchNaviStats(monthKey);
+    if (fresh && fresh.productGroups) {
+      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+      renderNaviStatsWidget(fresh, { animate: false });
+    }
+  } catch (e) {
+    // 무시: 캐시만으로도 동작
+  }
 }
 
 
@@ -463,7 +463,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_MONTH,
+      month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
