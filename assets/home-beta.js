@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      base = isLocal ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
@@ -195,6 +195,27 @@ const API_BASE = (function resolveApiBase(){
 const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
 
 const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
+
+// 메인 내에서 네비 클릭으로 통계가 업데이트되면(베스트에포트) 위젯을 한번 더 갱신
+let _naviStatsRefreshT = null;
+function scheduleNaviStatsRefresh(monthKey) {
+  if (_naviStatsRefreshT) clearTimeout(_naviStatsRefreshT);
+  _naviStatsRefreshT = setTimeout(async () => {
+    try {
+      const mk = monthKey || getKstMonthKey();
+      const fresh = await fetchNaviStats(mk);
+      if (fresh && fresh.productGroups) {
+        localStorage.setItem(NAVI_STATS_CACHE_KEY(mk), JSON.stringify(fresh));
+        renderNaviStatsWidget(fresh, { animate: false });
+      }
+    } catch {
+      // ignore
+    }
+  }, 250);
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("huchu:navi-stats-posted", () => scheduleNaviStatsRefresh(getKstMonthKey()));
+}
 
 function escapeHtml(input){
   const s = String(input ?? "");
@@ -406,16 +427,17 @@ async function initNaviStatsWidget() {
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
-  // try {
-  //   const fresh = await fetchNaviStats(monthKey);
-  //   if (fresh && fresh.productGroups) {
-  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-  //   }
-  // } catch (e) {
-  //   // 무시: 캐시만으로도 동작
-  // }
+  // 2)   // (선택) 서버 최신값으로 한번 더 갱신 (2번 애니메이션 방지)
+  try {
+    const fresh = await fetchNaviStats(monthKey);
+    if (fresh && fresh.productGroups) {
+      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+      renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+    }
+  } catch (e) {
+    // ignore
+  }
+
 }
 
 
