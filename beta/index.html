@@ -7,13 +7,17 @@
   <meta name="description" content="온라인투자연계금융업 중앙기록관리기관 공시자료를 바탕으로, 온투업 담보대출 현황을 한눈에 정리한 페이지입니다.">
 
   <!-- 공용 스타일 -->
-  <link rel="stylesheet" href="/assets/styles.css?v=20260104-mainfix2h1" />
+  <link rel="stylesheet" href="/assets/styles.css?v=20251206-beta-home" />
 
   <!-- Chart.js (도넛 차트용) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- 베타 홈 전용 JS -->
-  <script type="module" src="/assets/home-beta.js?v=20260104-mainfix2h1"></script>
+  <script>
+  // Vercel Functions API base (override 가능)
+  window.API_BASE = "https://huchudb-github-io.vercel.app";
+</script>
+  <script type="module" src="/assets/home-beta.js?v=20260104-mainfix1"></script>
 </head>
 <body class="beta-body">
 
