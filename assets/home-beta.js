@@ -192,7 +192,7 @@ const API_BASE = (function resolveApiBase(){
    ✅ Navi stats widget (beta): /api/navi-stats
    - 메인 Hero 우측: 9개 상품군 월간 클릭 집계
 ========================================================= */
-const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
+const NAVI_STATS_ENDPOINT = `${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/navi-stats`;
 
 const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
 
@@ -441,12 +441,12 @@ async function initNaviStatsWidget() {
 }
 
 
-const ONTU_API  = `${API_BASE}/api/ontu-stats`;
+const ONTU_API  = `${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/ontu-stats`;
 
 // ───────── 온투업 통계 가져오기 ─────────
 async function fetchOntuStats() {
   try {
-    const res = await fetch(`${API_BASE}/api/ontu-stats?t=${Date.now()}`, {
+    const res = await fetch(`${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/ontu-stats?t=${Date.now()}`, {
       headers: { "Accept": "application/json" },
       cache: "no-store",
     });
@@ -485,7 +485,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: (DEFAULT_ONTU_STATS && DEFAULT_ONTU_STATS.month) ? DEFAULT_ONTU_STATS.month : "",
+      month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -586,6 +586,65 @@ function renderProductSection(summary, byType) {
 
   const balance = Number(summary.balance || 0);
 
+
+function bindErrInfo(root) {
+  try {
+    const wrap = root.querySelector(".huchu-errinfo-wrap");
+    const btn  = root.querySelector(".huchu-errinfo-btn");
+    const tip  = root.querySelector(".huchu-errinfo-tip");
+    if (!wrap || !btn || !tip) return;
+
+    const open = () => {
+      tip.classList.add("is-open");
+      btn.setAttribute("aria-expanded", "true");
+    };
+    const close = () => {
+      tip.classList.remove("is-open");
+      btn.setAttribute("aria-expanded", "false");
+    };
+    const toggle = () => {
+      const isOpen = tip.classList.contains("is-open");
+      if (isOpen) close();
+      else open();
+    };
+
+    // hover/focus for PC
+    wrap.addEventListener("mouseenter", open);
+    wrap.addEventListener("mouseleave", close);
+    btn.addEventListener("focus", open);
+    btn.addEventListener("blur", close);
+
+    // click/tap for mobile
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    });
+
+    // global outside-click to close (wire once)
+    if (typeof window !== "undefined" && !window.__HUCHU_ERRINFO_WIRED__) {
+      window.__HUCHU_ERRINFO_WIRED__ = true;
+
+      document.addEventListener("click", (e) => {
+        // 클릭이 아이콘/툴팁 내부가 아니면 모두 닫기
+        const target = e.target;
+        const inside = target && (target.closest?.(".huchu-errinfo-wrap"));
+        if (inside) return;
+        document.querySelectorAll(".huchu-errinfo-tip.is-open").forEach((el) => el.classList.remove("is-open"));
+        document.querySelectorAll(".huchu-errinfo-btn[aria-expanded='true']").forEach((b) => b.setAttribute("aria-expanded", "false"));
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        document.querySelectorAll(".huchu-errinfo-tip.is-open").forEach((el) => el.classList.remove("is-open"));
+        document.querySelectorAll(".huchu-errinfo-btn[aria-expanded='true']").forEach((b) => b.setAttribute("aria-expanded", "false"));
+      });
+    }
+  } catch {
+    // ignore
+  }
+}
+
   const labels   = [];
   const percents = [];
   const amounts  = [];
@@ -600,10 +659,16 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
-  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  const errorPct = balance ? (Math.abs(balance - byTypeSum) / balance) * 100 : 0;
-  const errorPctText = errorPct.toFixed(8);
 
+// ───────── 오차범위 계산 (A=요약 대출잔액, B=상품유형별 합계) ─────────
+const byTypeSum = amounts.reduce((acc, v) => acc + Number(v || 0), 0);
+const A = Number(balance || 0);
+const B = Number(byTypeSum || 0);
+const diff = (B - A);                 // 편차(=B-A)
+const half = Math.abs(diff) / 2;      // 오차범위(±원)
+const mid  = (A + B) / 2;             // 중앙값
+const errorPct = mid ? (half / mid) * 100 : 0;
+const errorPctText = `±${errorPct.toFixed(8)}%`;
   // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
@@ -641,19 +706,19 @@ function renderProductSection(summary, byType) {
       </div>
     </div>
     <div class="beta-product-source-note">
-      <span class="beta-product-source-note__text">
-        ※출처: 온라인투자연계금융업 중앙기록관리기관, 오차범위 : ±${errorPctText}%
-      </span>
-      <span class="beta-source-tooltip" data-tooltip>
-        <button type="button" class="beta-info-icon" aria-label="오차범위 안내" aria-expanded="false">?</button>
-        <div class="beta-tooltip" role="tooltip">
+      <span class="source-text">※출처: 온라인투자연계금융업 중앙기록관리기관,</span>
+      <span class="error-text">오차범위 : ${errorPctText}</span>
+      <span class="huchu-errinfo-wrap">
+        <button type="button" class="huchu-errinfo-btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
+        <div class="huchu-errinfo-tip" role="tooltip">
           표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
         </div>
       </span>
     </div>
   `;
 
-  bindProductSourceTooltip(section);
+  // 오차범위 안내(툴팁) 바인딩
+  bindErrInfo(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -734,66 +799,6 @@ function renderProductSection(summary, byType) {
       }
     }
   });
-}
-
-
-/* =========================================================
-   ✅ 상품유형별 출처/오차범위 툴팁 (hover + click)
-========================================================= */
-let __productSourceTooltipDocBound = false;
-
-function bindProductSourceTooltip(rootEl){
-  if (!rootEl) return;
-
-  const wrap = rootEl.querySelector(".beta-source-tooltip");
-  const btn  = wrap ? wrap.querySelector(".beta-info-icon") : null;
-
-  if (!wrap || !btn) return;
-
-  // 기존 바인딩 중복 방지
-  if (wrap.dataset.bound === "1") return;
-  wrap.dataset.bound = "1";
-
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const open = wrap.classList.toggle("is-open");
-    btn.setAttribute("aria-expanded", open ? "true" : "false");
-  });
-
-  // ESC로 닫기
-  btn.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      wrap.classList.remove("is-open");
-      btn.setAttribute("aria-expanded", "false");
-      btn.blur();
-    }
-  });
-
-  // 문서 단위: 바깥 클릭 시 닫기 (1회만 바인딩)
-  if (!__productSourceTooltipDocBound) {
-    __productSourceTooltipDocBound = true;
-
-    document.addEventListener("click", (e) => {
-      document.querySelectorAll(".beta-source-tooltip.is-open").forEach((el) => {
-        if (!el.contains(e.target)) {
-          el.classList.remove("is-open");
-          const b = el.querySelector(".beta-info-icon");
-          if (b) b.setAttribute("aria-expanded", "false");
-        }
-      });
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        document.querySelectorAll(".beta-source-tooltip.is-open").forEach((el) => {
-          el.classList.remove("is-open");
-          const b = el.querySelector(".beta-info-icon");
-          if (b) b.setAttribute("aria-expanded", "false");
-        });
-      }
-    });
-  }
 }
 
 // ───────── 초기화 ─────────
