@@ -2312,13 +2312,13 @@ text-align:center;
 /* ✅ PATCH (2026-01-05): Navi 이용현황 카드 레이아웃 (아이콘 좌측 / 카운트 우측 / 라벨 하단 좌측) */
 #naviStatsMount .navi-tile{
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
   align-items: start;
-  justify-items: start;
-  text-align: left;
-  gap: 10px;
-  padding: 12px 12px;
+  justify-items: center;
+  text-align: center;
+  gap: 10px 8px;
+  padding: 12px 14px;
 }
 
 #naviStatsMount .navi-tile__icon{
@@ -2326,6 +2326,8 @@ text-align:center;
   grid-row: 1;
   width: 60px;
   height: 60px;
+  display: grid;
+  place-items: center;
 }
 
 #naviStatsMount .navi-tile__img{
@@ -2336,10 +2338,13 @@ text-align:center;
 #naviStatsMount .navi-tile__count{
   grid-column: 2;
   grid-row: 1;
-  justify-self: end;
+  justify-self: center;
   align-self: start;
-  text-align: right;
+  text-align: center;
 }
+
+#naviStatsMount .navi-tile__count .unit{ display:none; }
+
 
 #naviStatsMount .navi-tile__count .unit{ display:none !important; }
 
@@ -2347,10 +2352,11 @@ text-align:center;
   grid-column: 1 / -1;
   grid-row: 2;
   align-self: end;
-  justify-self: start;
+  justify-self: center;
   margin-top: auto;
-  text-align: left !important;
+  text-align: center !important;
   line-height: 1.15;
+  word-break: keep-all;
 }
 
 @media (max-width: 860px){
