@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      base = (isLocal || host === "huchudb-github-io.vercel.app") ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
@@ -320,8 +320,8 @@ function renderNaviStatsWidget(payload, opts = {}) {
         <div class="navi-tile__icon" aria-hidden="true">
           ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
         </div>
-        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
-          <span class="num" data-target="${v}">${initial}</span>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
+          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
       </div>
@@ -330,10 +330,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-head">
-        <div class="navi-stats-title">
-          <span class="navi-live"><span class="navi-live__dot" aria-hidden="true"></span>LIVE</span>
-          <span>후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-header">
+        <div class="navi-stats-left">
+          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
+          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -423,52 +423,126 @@ const ONTU_API  = `${API_BASE}/api/ontu-stats`;
 
 // ───────── 온투업 통계 가져오기 ─────────
 async function fetchOntuStats() {
+  // ✅ 1) 서버 최신값(ontu-stats:latest) 우선 시도
+  // ✅ 2) 서버 latest가 오래된 값으로 내려오거나(예: 2025-10) 누락되면
+  //    현재(KST) 기준 최근 월들을 순차 probe 해서 실제 존재하는 가장 최신 월을 가져옴
   try {
-    const res = await fetch(`${API_BASE}/api/ontu-stats?t=${Date.now()}`, {
+    const isMonthKey = (k) => /^\d{4}-\d{2}$/.test(String(k || "").trim());
+
+    const monthIndex = (k) => {
+      const s = String(k || "").trim();
+      if (!isMonthKey(s)) return -1;
+      const [y, m] = s.split("-").map((n) => parseInt(n, 10));
+      if (!y || !m) return -1;
+      return y * 12 + (m - 1);
+    };
+
+    const getKstMonthKey = () => {
+      // KST 기준 monthKey (YYYY-MM)
+      const kst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      const y = kst.getFullYear();
+      const m = String(kst.getMonth() + 1).padStart(2, "0");
+      return `${y}-${m}`;
+    };
+
+    const shiftMonthKey = (k, delta) => {
+      const idx = monthIndex(k);
+      if (idx < 0) return String(k || "").trim();
+      const next = idx + (Number(delta) || 0);
+      const y = Math.floor(next / 12);
+      const m = String((next % 12) + 1).padStart(2, "0");
+      return `${y}-${m}`;
+    };
+
+    const normalizeOntu = (json) => {
+      const out = { month: "", summary: null, byType: null };
+      if (!json || typeof json !== "object") return out;
+
+      // 응답 스키마 변화 대응
+      // - { month, summary, byType }
+      // - { month, summary, products: { byType } }
+      // - { byMonth: { "YYYY-MM": { summary, byType... } } }
+      let month = String(json?.month || "").trim();
+      let summary = json?.summary || null;
+      let byType = json?.byType || json?.products?.byType || null;
+
+      if ((!isMonthKey(month) || !summary || !byType) && json?.byMonth && typeof json.byMonth === "object") {
+        const keys = Object.keys(json.byMonth).filter(isMonthKey).sort();
+        const latestKey = keys[keys.length - 1] || "";
+        const node = json.byMonth?.[latestKey] || null;
+        month = latestKey;
+        summary = node?.summary || node?.summary?.summary || node?.summary || summary;
+        byType = node?.byType || node?.products?.byType || node?.productsByType || byType;
+      }
+
+      out.month = isMonthKey(month) ? month : "";
+      out.summary = summary;
+      out.byType = byType;
+
+      // products.byType가 배열/맵 형태로 들어오는 경우 방어
+      if (out.byType && typeof out.byType !== "object") out.byType = null;
+
+      return out;
+    };
+
+    const fetchMonth = async (monthKey) => {
+      const url = `${API_BASE}/api/ontu-stats?month=${encodeURIComponent(monthKey)}&t=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: { "Accept": "application/json" },
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      return normalizeOntu(json);
+    };
+
+    // 1) 서버 최신값 시도
+    const latestUrl = `${API_BASE}/api/ontu-stats?t=${Date.now()}`;
+    const latestRes = await fetch(latestUrl, {
       headers: { "Accept": "application/json" },
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!latestRes.ok) throw new Error(`HTTP ${latestRes.status}`);
+    const latestJson = await latestRes.json();
+    const latest = normalizeOntu(latestJson);
 
-    const json = await res.json();
+    // 정상 최신이면 그대로 반환
+    const nowKey = getKstMonthKey();
+    const nowIdx = monthIndex(nowKey);
+    const latestIdx = monthIndex(latest.month);
 
-    // ✅ 서버 응답 형태가 바뀌어도(예: byMonth 루트, products.byType 등) 최신 월을 자동으로 잡아서 렌더링
-    const isMonthKey = (k) => /^\d{4}-\d{2}$/.test(String(k || ""));
-    let month = String(json?.month || "").trim();
-    let summary = json?.summary || null;
-    let byType = json?.byType || json?.products?.byType || null;
+    // 서버 latest가 없거나, KST 기준 최근 2개월보다 더 과거면(예: 2025-10) 최근 월들을 probe
+    const seemsStale = (latestIdx < 0) || (nowIdx >= 0 && latestIdx < (nowIdx - 2));
 
-    // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
-    if (json && json.byMonth && typeof json.byMonth === "object") {
-      const keys = Object.keys(json.byMonth).filter(isMonthKey).sort();
-      const latest = keys.length ? keys[keys.length - 1] : "";
-      const node = latest ? (json.byMonth[latest] || {}) : {};
-
-      month = latest || month;
-      summary = node.summary || node?.products?.summary || summary;
-      byType = node.byType || node?.products?.byType || byType;
+    if (!seemsStale && latest.month && latest.summary && Object.keys(latest.byType || {}).length) {
+      return latest;
     }
 
-    // Case B) { months:[...], latestMonth:"2025-11", data:{...} } 등: 가능한 필드 최대한 흡수
-    month = month || String(json?.latestMonth || json?.latest || "").trim();
+    // 2) 최근 월 probe (현재월부터 최대 6개월)
+    //    - 대부분 현재월 데이터가 없으므로 0~5까지 순차 시도
+    const maxProbe = 6;
+    for (let d = 0; d < maxProbe; d++) {
+      const k = shiftMonthKey(nowKey, -d);
+      if (!isMonthKey(k)) continue;
+      try {
+        const probed = await fetchMonth(k);
+        if (probed.month && probed.summary && Object.keys(probed.byType || {}).length) {
+          return probed;
+        }
+      } catch (e) {
+        // 404 등은 정상(해당 월 데이터 없음) → 다음 월로 continue
+      }
+    }
 
-    if (!summary || !byType) {
-      throw new Error("Invalid payload: missing summary/byType");
-    }
-    if (!month) {
-      // 최소한 화면 표시용 월 라벨을 만들기 위해 summary 안의 month 같은 필드도 체크
-      month = String(summary?.month || "").trim() || "unknown";
-    }
-    return { month, summary, byType };
+    // probe도 실패하면 서버 latest(비어있어도) 반환 시도
+    if (latest.month && latest.summary && latest.byType) return latest;
+    return DEFAULT_ONTU_STATS;
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
-    return {
-      month: DEFAULT_ONTU_MONTH,
-      summary: DEFAULT_ONTU_STATS.summary,
-      byType: DEFAULT_ONTU_STATS.byType,
-    };
+    return DEFAULT_ONTU_STATS;
   }
 }
+
 
 // ───────── 대출현황 렌더 ─────────
 function renderLoanStatus(summary, monthStr) {
@@ -554,15 +628,7 @@ function renderProductSection(summary, byType) {
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
-    // 오차범위(±%) 계산
-  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  const diff = byTypeSum - balance;
-  const halfDiff = Math.abs(diff) / 2;
-  const mid = (balance + byTypeSum) / 2;
-  const errPct = mid ? (halfDiff / mid) * 100 : 0;
-  errPctStr = errPct.toFixed(8);
-
-  section.innerHTML = `
+    section.innerHTML = `
       <div class="notice error">
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
@@ -571,13 +637,6 @@ function renderProductSection(summary, byType) {
   }
 
   const balance = Number(summary.balance || 0);
-
-  // ✅ 오차범위 계산 (A=요약 대출잔액, B=상품유형별 합계)
-  // 편차 = (B - A)
-  // 오차범위(±원) = |편차| / 2
-  // 중앙값 = (A + B) / 2
-  // 오차범위(±%) = (오차범위(±원) / 중앙값) * 100
-  let errPctStr = "0.00000000";
 
   const labels   = [];
   const percents = [];
@@ -629,17 +688,8 @@ function renderProductSection(summary, byType) {
         </div>
       </div>
     </div>
-    <div class="beta-product-footnote">
-      <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
-      <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__err">※오차범위 : ±${errPctStr}%</span>
-        <span class="beta-help">
-          <button type="button" class="beta-help__btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
-          <div class="beta-help__popover" role="tooltip">
-            표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
-          </div>
-        </span>
-      </div>
+    <div class="beta-product-source-note">
+      ※출처: 온라인투자연계금융업 중앙기록관리기관
     </div>
   `;
 
@@ -842,47 +892,3 @@ if (heroSlides.length > 0) {
     });
   }
 }
-
-
-/* =========================================================
-   ✅ 상품유형별 대출잔액: '?' 도움말 툴팁 (hover + tap)
-   - 레이아웃을 밀지 않도록 absolute popover 사용
-   - 모바일 1회 탭으로 바로 표시
-========================================================= */
-function __bindBetaHelpTooltips() {
-  if (window.__betaHelpTooltipsBound) return;
-  window.__betaHelpTooltipsBound = true;
-
-  const closeAll = (exceptEl) => {
-    document.querySelectorAll(".beta-help.is-open").forEach((el) => {
-      if (exceptEl && el === exceptEl) return;
-      el.classList.remove("is-open");
-      const btn = el.querySelector(".beta-help__btn");
-      if (btn) btn.setAttribute("aria-expanded", "false");
-    });
-  };
-
-  document.addEventListener("click", (e) => {
-    const btn = e.target && e.target.closest ? e.target.closest(".beta-help__btn") : null;
-    if (btn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const wrap = btn.closest(".beta-help");
-      if (!wrap) return;
-
-      const isOpen = wrap.classList.toggle("is-open");
-      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      closeAll(wrap);
-      return;
-    }
-
-    // 바깥 클릭 시 닫기
-    closeAll(null);
-  }, true);
-
-  // ESC로 닫기
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeAll(null);
-  }, true);
-}
-__bindBetaHelpTooltips();
