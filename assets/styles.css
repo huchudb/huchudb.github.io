@@ -1383,14 +1383,91 @@ body.beta-body button{width:auto;}
   color:#737373;
 }
 
-/* 상품유형별 대출잔액 – 출처 문구 (카드 바깥) */
-.beta-product-source-note{
-  margin-top:6px;
-  font-size:13px;
-  color:#737373;
-  text-align:right;
+/* 상품유형별 대출잔액 – 출처/오차범위/툴팁 */
+.beta-product-footnote{
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 13px;
+  color: #737373;
+}
+.beta-product-footnote__source{
+  flex: 1 1 100%;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.beta-product-footnote__errline{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.beta-product-footnote__err{
+  white-space: nowrap;
+}
+@media (min-width: 769px){
+  .beta-product-footnote{ flex-wrap: nowrap; }
+  .beta-product-footnote__source{ flex: 0 1 auto; }
 }
 
+.beta-help{ position: relative; display: inline-flex; align-items: center; }
+.beta-help__btn{
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 0;
+  background: #cbd5e1; /* 연한 회색 */
+  color: #fff;
+  font-weight: 900;
+  font-size: 10px;
+  line-height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.beta-help__btn:focus{ outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+.beta-help__popover{
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  min-width: 220px;
+  max-width: min(360px, 78vw);
+  padding: 10px 12px;
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,.10);
+  z-index: 40;
+  display: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.beta-help__popover::after{
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 100%;
+  border: 7px solid transparent;
+  border-top-color: #fff;
+  filter: drop-shadow(0 1px 0 #e2e8f0);
+}
+.beta-help:hover .beta-help__popover,
+.beta-help:focus-within .beta-help__popover,
+.beta-help.is-open .beta-help__popover{
+  display: block;
+}
+
+/* (레거시) 기존 출처 문구 클래스는 호환 유지 */
+.beta-product-source-note{ margin-top:6px; font-size:13px; color:#737373; text-align:right; }
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
@@ -2423,88 +2500,3 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
-
-
-/* ===================== mainfix2e8: source/error range + tooltip + icon sizing ===================== */
-.beta-source-wrap{
-  margin: 10px 0 0;
-  color:#8a94a6;
-  font-size:12px;
-  line-height:1.35;
-}
-.beta-source-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-.beta-source-row--pc{ display:flex; }
-.beta-source-m{ display:none; flex-direction:column; gap:6px; }
-.beta-source-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.beta-source-m__top{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.beta-source-m__bottom{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:10px;
-}
-.beta-source-m__err{ white-space:nowrap; }
-
-.beta-help-btn{
-  width:22px;            /* 아이콘 비대해진 것 방지 */
-  height:22px;
-  border-radius:999px;
-  border:0;
-  background:#d7dbe2;     /* 연한 회색 */
-  color:#ffffff;          /* 흰색 ? */
-  font-weight:900;
-  font-size:14px;
-  line-height:1;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  flex:0 0 auto;
-  cursor:pointer;
-}
-.beta-help-btn:active{ transform: translateY(0.5px); }
-.beta-help-btn:focus{ outline:2px solid rgba(11,42,102,.22); outline-offset:2px; }
-
-.beta-help-tip{
-  display:none;
-  margin-top:8px;
-  padding:10px 12px;
-  border:1px solid #e4e8f2;
-  background:#ffffff;
-  border-radius:12px;
-  color:#3c485a;
-  box-shadow: 0 10px 24px rgba(0,0,0,.08);
-  max-width: 100%;
-  word-break: keep-all;
-}
-.beta-help-wrap.is-open .beta-help-tip{ display:block; }
-@media (hover:hover){
-  .beta-help-wrap:hover .beta-help-tip{ display:block; }
-}
-
-/* 모바일: PC 라인 숨기고 2줄 표시 */
-@media (max-width: 520px){
-  .beta-source-row--pc{ display:none; }
-  .beta-source-m{ display:flex; }
-  .beta-source-wrap{ font-size:11px; }
-}
-
-/* 스크롤바 숨김(가능한 범위) */
-html, body{ overflow-x:hidden; }
-*::-webkit-scrollbar{ width:0; height:0; }
-*{ scrollbar-width:none; }
-
-/* LIVE / 기준월 정렬(호환) */
-.navi-stats-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.navi-stats-month{ text-align:right; white-space:nowrap; }
-.live-pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; }
-.live-dot{ width:6px; height:6px; border-radius:50%; display:inline-block; animation:naviLivePulse 1.3s infinite; }
-@keyframes naviLivePulse{
-  0%{ transform:scale(1); opacity:.85; }
-  60%{ transform:scale(1.6); opacity:0; }
-  100%{ transform:scale(1.6); opacity:0; }
-}
