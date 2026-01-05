@@ -1383,97 +1383,101 @@ body.beta-body button{width:auto;}
   color:#737373;
 }
 
-/* 상품유형별 대출잔액 – 출처/오차범위/툴팁 */
-.beta-product-footnote{
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px 10px;
-  font-size: 13px;
-  color: #737373;
-}
-.beta-product-footnote__source{
-  flex: 1 1 100%;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.beta-product-footnote__errline{
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.beta-product-footnote__err{
-  white-space: nowrap;
-}
-@media (min-width: 769px){
-  .beta-product-footnote{ flex-wrap: nowrap; }
-  .beta-product-footnote__source{ flex: 0 1 auto; }
+/* 상품유형별 대출잔액 – 출처 문구 (카드 바깥) */
+.beta-product-source-note{
+  margin-top:6px;
+  font-size:13px;
+  color:#737373;
+  text-align:right;
 }
 
-.beta-help{ position: relative; display: inline-flex; align-items: center; }
+
+/* 출처 + 오차범위(±%) + ? 툴팁 */
+.beta-product-footnote{
+  margin-top:6px;
+  font-size:13px;
+  color:#737373;
+  text-align:right;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px 10px;
+}
+.beta-product-footnote__source{
+  flex:1 1 100%;
+}
+.beta-product-footnote__errline{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+}
+.beta-product-footnote__err{
+  white-space:nowrap;
+}
+.beta-help{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
 .beta-help__btn{
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 0;
-  background: #cbd5e1; /* 연한 회색 */
-  color: #fff;
-  font-weight: 900;
-  font-size: 10px;
-  line-height: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  border:0;
+  background:rgba(148,163,184,.55);
+  color:#fff;
+  font-weight:800;
+  font-size:11px;
+  line-height:14px;
+  padding:0;
+  cursor:pointer;
 }
-.beta-help__btn:focus{ outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+.beta-help__btn:focus{
+  outline:2px solid rgba(56,189,248,.35);
+  outline-offset:2px;
+}
 .beta-help__popover{
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  min-width: 220px;
-  max-width: min(360px, 78vw);
-  padding: 10px 12px;
-  background: #fff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(2,6,23,.10);
-  z-index: 40;
-  display: none;
-  text-align: left;
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: keep-all;
-  max-height: 45vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  display:none;
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 10px);
+  width:min(320px, calc(100vw - 24px));
+  background:#0f172a;
+  color:#fff;
+  font-size:12px;
+  line-height:1.35;
+  padding:10px 12px;
+  border-radius:12px;
+  box-shadow:0 12px 28px rgba(2,6,23,.18);
+  z-index:50;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
-.beta-help__popover::after{
-  content: "";
-  position: absolute;
-  right: 10px;
-  top: 100%;
-  border: 7px solid transparent;
-  border-top-color: #fff;
-  filter: drop-shadow(0 1px 0 #e2e8f0);
+.beta-help__popover:before{
+  content:"";
+  position:absolute;
+  right:10px;
+  top:100%;
+  border:8px solid transparent;
+  border-top-color:#0f172a;
 }
 .beta-help:hover .beta-help__popover,
 .beta-help:focus-within .beta-help__popover,
 .beta-help.is-open .beta-help__popover{
-  display: block;
+  display:block;
+}
+@media (min-width: 769px){
+  .beta-product-footnote{
+    flex-wrap:nowrap;
+  }
+  .beta-product-footnote__source{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
 }
 
-/* (레거시) 기존 출처 문구 클래스는 호환 유지 */
-.beta-product-source-note{ margin-top:6px; font-size:13px; color:#737373; text-align:right; }
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
@@ -2195,8 +2199,6 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   justify-content: space-between;
   gap: 10px;
   padding: 2px 2px 10px;
-  gap: 12px;
-  flex-wrap: nowrap;
 }
 
 .navi-stats-title{
@@ -2206,17 +2208,12 @@ body.ontu-stats-page .stats-panel--loan .stats-card:first-child .stats-card__num
   font-weight: 800;
   color: #0f172a;
   font-size: 15px;
-  min-width: 0;
 }
-.navi-stats-title__text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .navi-stats-month{
   font-weight: 800;
   color: #334155;
   font-size: 14px;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  text-align: right;
 }
 
 .navi-live{
@@ -2320,85 +2317,6 @@ text-align:center;
   color: #64748b;
   font-weight: 800;
 }
-
-
-/* ✅ PATCH (2026-01-05): Navi 이용현황 카드 레이아웃 (아이콘 좌측 / 카운트 우측 / 라벨 하단 좌측) */
-#naviStatsMount .navi-tile{
-  display:grid;
-  grid-template-columns:auto auto;
-  grid-template-rows:auto auto;
-  justify-content:center;
-  align-items:center;
-  column-gap:12px;
-  row-gap:8px;
-  padding:12px 14px;
-  border:1px solid rgba(34,44,60,.08);
-  border-radius:14px;
-  background:#fff;
-  box-shadow:0 2px 0 rgba(34,44,60,.03);
-  min-height:86px;
-}
-
-#naviStatsMount .navi-tile__icon{
-  grid-column:1;
-  grid-row:1;
-  justify-self:center;
-  align-self:center;
-  width:54px;
-  height:42px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-#naviStatsMount .navi-tile__icon img{max-width:54px;max-height:42px;object-fit:contain;display:block;}
-#naviStatsMount .navi-tile__icon svg{width:46px;height:36px;display:block;}
-
-#naviStatsMount .navi-tile__count{
-  grid-column:2;
-  grid-row:1;
-  justify-self:center;
-  align-self:center;
-  font-size:28px;
-  line-height:1;
-  font-weight:800;
-  color:#1fb25a;
-  letter-spacing:-.02em;
-}
-
-#naviStatsMount .navi-tile__label{
-  grid-column:1 / -1;
-  grid-row:2;
-  text-align:center;
-  font-size:13px;
-  font-weight:800;
-  color:#0f2d55;
-  line-height:1.25;
-  width:100%;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-@media (max-width: 860px){
-  #naviStatsMount .navi-tile{
-    gap: 8px;
-    padding: 10px 10px;
-  }
-  #naviStatsMount .navi-tile__icon{
-    width: 54px;
-    height: 54px;
-  }
-  #naviStatsMount .navi-tile__img{
-    width: 40px;
-    height: 40px;
-  }
-  #naviStatsMount .navi-tile__count .num{
-    font-size: 20px;
-  }
-  #naviStatsMount .navi-tile__label{
-    font-size: 13px !important;
-  }
-}
-
 
 /* 모바일에서 높이 강제 금지 */
 @media (max-width: 860px){
