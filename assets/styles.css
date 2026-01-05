@@ -2423,210 +2423,63 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
-
-/* ===========================
-   mainfix2e4 — Mobile scrollbar + Navi LIVE/header compatibility
-=========================== */
-
-/* 1) 모바일에서 보기 싫은 가로/세로 스크롤바(내부 스크롤 포함) 숨김
-   - OS가 그리는 '스크롤 인디케이터'는 100% 제거가 불가할 수 있으나,
-     불필요한 가로 overflow로 생기는 바(하단)를 원천 차단하고,
-     내부 overflow 스크롤바는 숨긴다. */
-@media (max-width: 768px){
-  html, body{ overflow-x: hidden; }
-
-  body{
-    -ms-overflow-style: none;     /* IE/Edge legacy */
-    scrollbar-width: none;        /* Firefox */
-  }
-  body::-webkit-scrollbar{
-    width: 0;
-    height: 0;
-    display: none;
-  }
-
-  /* 내부 스크롤 영역도 스크롤바 숨김(표시만 숨기고 스크롤은 유지) */
-  *{ scrollbar-width: none; }
-  *::-webkit-scrollbar{
-    width: 0;
-    height: 0;
-    display: none;
-  }
-}
-
-/* 2) Navi 위젯: 마크업 클래스가 바뀌어도 LIVE 애니메이션/헤더 정렬 유지
-      (home-beta.js가 navi-stats-header/live-pill을 쓰는 경우 대응) */
-.navi-stats-header{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 2px 2px 10px;
-}
-
-.navi-stats-left{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.live-pill{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .2px;
-  color: #0f172a;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.live-dot{
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #ff3b30;
-  box-shadow: 0 0 0 0 rgba(255,59,48,.55);
-  animation: naviLivePulse 1.1s infinite;
-}
-
-@media (prefers-reduced-motion: reduce){
-  .live-dot{ animation: none; }
-}
-
 /* =========================================================
-   PATCH (2026-01-05): source/오차범위 중복표시 방지 + 아이콘 스타일 + 모바일 가독성
-   - PC: source-text--pc, error-text--pc만 표시
-   - Mobile: source-text--m, error-text--m만 표시 (2줄 구성)
+   mainfix2e6: 오차범위 안내 (?) 아이콘 크기 축소 + 모바일 1탭 툴팁
+   - 아이콘 크기 50% 축소(과도하게 큰 버튼 방지)
+   - 모바일: 첫 탭에서 툴팁 노출(hover 의존 제거, focus/active 대응)
 ========================================================= */
-.beta-product-source-note{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:6px;
-  flex-wrap:wrap;
-  text-align:right;
+.beta-product-source-note .beta-source-help-btn,
+.beta-product-source-note .beta-help-btn,
+.beta-product-source-note .source-help-btn,
+.beta-product-source-note button[aria-label*="오차범위"],
+.beta-product-source-note button[aria-label*="오차"],
+.beta-product-source-note .beta-source-help-icon{
+  width:22px !important;
+  height:22px !important;
+  min-width:22px !important;
+  min-height:22px !important;
+  padding:0 !important;
+  border-radius:999px !important;
+  font-size:13px !important;
+  line-height:22px !important;
+  background:#d6d9de !important; /* 연한 회색 */
+  color:#ffffff !important;       /* 흰색 ? */
+  border:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  user-select:none !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.beta-product-source-note .source-text--pc,
-.beta-product-source-note .error-text--pc{ display:inline; }
-
-.beta-product-source-note .source-text--m,
-.beta-product-source-note .error-text--m{ display:none; }
-
-@media (max-width: 768px){
-  .beta-product-source-note{
-    display:grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap:6px 8px;
-    justify-content:end;
-  }
-
-  .beta-product-source-note .source-text--pc,
-  .beta-product-source-note .error-text--pc{ display:none !important; }
-
-  .beta-product-source-note .source-text--m{
-    display:block;
-    grid-column:1 / 3;
-    grid-row:1;
-    justify-self:end;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:100%;
-  }
-
-  .beta-product-source-note .error-text--m{
-    display:block;
-    grid-column:1;
-    grid-row:2;
-    justify-self:end;
-    white-space:nowrap;
-  }
-
-  .beta-product-source-note .huchu-errinfo-wrap{
-    grid-column:2;
-    grid-row:2;
-    justify-self:end;
-  }
+/* 툴팁: hover 뿐 아니라 focus/active 에서도 열리게 */
+.beta-product-source-note .beta-source-help.is-open .beta-source-tooltip,
+.beta-product-source-note .beta-source-help.is-open .beta-help-tooltip,
+.beta-product-source-note .beta-source-help.is-open .source-help-tooltip,
+.beta-product-source-note .beta-source-help:focus-within .beta-source-tooltip,
+.beta-product-source-note .beta-source-help:focus-within .beta-help-tooltip,
+.beta-product-source-note .beta-source-help:focus-within .source-help-tooltip,
+.beta-product-source-note .beta-source-help-btn:focus + .beta-source-tooltip,
+.beta-product-source-note .beta-source-help-btn:focus + .beta-help-tooltip,
+.beta-product-source-note .beta-source-help-btn:focus + .source-help-tooltip,
+.beta-product-source-note .beta-source-help-btn:active + .beta-source-tooltip,
+.beta-product-source-note .beta-source-help-btn:active + .beta-help-tooltip,
+.beta-product-source-note .beta-source-help-btn:active + .source-help-tooltip,
+.beta-product-source-note .beta-help-btn:focus + .beta-source-tooltip,
+.beta-product-source-note .beta-help-btn:focus + .beta-help-tooltip,
+.beta-product-source-note .beta-help-btn:active + .beta-source-tooltip,
+.beta-product-source-note .beta-help-btn:active + .beta-help-tooltip{
+  opacity:1 !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+  transform:translateY(0) !important;
 }
 
-/* 오차범위 안내 아이콘 + 툴팁 */
-.huchu-errinfo-wrap{
-  position:relative;
-  display:inline-flex;
-  align-items:center;
+/* 모바일에서 아이콘 주변이 과도하게 늘어나는 것 방지 */
+.beta-product-source-note .beta-source-help,
+.beta-product-source-note .source-help,
+.beta-product-source-note .beta-help{
+  gap:8px;
 }
-
-.huchu-errinfo-btn{
-  width:34px;
-  height:34px;
-  border-radius:12px;
-  border:0;
-  background:#d1d5db; /* 연한 회색 */
-  color:#ffffff;      /* ? 흰색 */
-  font-weight:800;
-  font-size:18px;
-  line-height:1;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  box-shadow:0 6px 18px rgba(15,23,42,0.12);
-}
-
-.huchu-errinfo-btn:active{
-  transform:translateY(1px);
-}
-
-.huchu-errinfo-tip{
-  position:absolute;
-  right:0;
-  top:38px;
-  min-width:220px;
-  max-width:320px;
-  padding:10px 12px;
-  background:#ffffff;
-  color:#111827;
-  font-size:12px;
-  line-height:1.45;
-  border-radius:12px;
-  border:1px solid #e5e7eb;
-  box-shadow:0 10px 30px rgba(0,0,0,0.15);
-  display:none;
-  z-index:50;
-}
-
-.huchu-errinfo-tip.is-open{ display:block; }
-
-@media (max-width: 768px){
-  .huchu-errinfo-tip{
-    right:0;
-    left:auto;
-    max-width:min(320px, 92vw);
-  }
-}
-
-/* =========================================================
-   PATCH: 모바일 스크롤바(표시) 최대한 숨김
-   - Android/브라우저 OS 레벨 '스크롤 인디케이터'는 완전 제거가 불가할 수 있음
-========================================================= */
-@media (max-width: 768px){
-  html{
-    -ms-overflow-style:none;
-    scrollbar-width:none;
-  }
-  html::-webkit-scrollbar{
-    width:0;
-    height:0;
-    display:none;
-  }
-}
-
