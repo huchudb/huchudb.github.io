@@ -2308,79 +2308,6 @@ text-align:center;
   font-weight: 800;
 }
 
-
-/* ✅ PATCH (2026-01-05): Navi 이용현황 카드 레이아웃 (아이콘 좌측 / 카운트 우측 / 라벨 하단 좌측) */
-#naviStatsMount .navi-tile{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr;
-  align-items: start;
-  justify-items: center;
-  text-align: center;
-  gap: 10px 8px;
-  padding: 12px 14px;
-}
-
-#naviStatsMount .navi-tile__icon{
-  grid-column: 1;
-  grid-row: 1;
-  width: 60px;
-  height: 60px;
-  display: grid;
-  place-items: center;
-}
-
-#naviStatsMount .navi-tile__img{
-  width: 46px;
-  height: 46px;
-}
-
-#naviStatsMount .navi-tile__count{
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: center;
-  align-self: start;
-  text-align: center;
-}
-
-#naviStatsMount .navi-tile__count .unit{ display:none; }
-
-
-#naviStatsMount .navi-tile__count .unit{ display:none !important; }
-
-#naviStatsMount .navi-tile__label{
-  grid-column: 1 / -1;
-  grid-row: 2;
-  align-self: end;
-  justify-self: center;
-  margin-top: auto;
-  text-align: center !important;
-  line-height: 1.15;
-  word-break: keep-all;
-}
-
-@media (max-width: 860px){
-  #naviStatsMount .navi-tile{
-    gap: 8px;
-    padding: 10px 10px;
-  }
-  #naviStatsMount .navi-tile__icon{
-    width: 54px;
-    height: 54px;
-  }
-  #naviStatsMount .navi-tile__img{
-    width: 40px;
-    height: 40px;
-  }
-  #naviStatsMount .navi-tile__count .num{
-    font-size: 20px;
-  }
-  #naviStatsMount .navi-tile__label{
-    font-size: 13px !important;
-  }
-}
-
-
 /* 모바일에서 높이 강제 금지 */
 @media (max-width: 860px){
   .beta-hero .beta-hero-right,
@@ -2573,3 +2500,118 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
+
+/* =========================================================
+   PATCH 2026-01-05 — 네비게이션 이용 현황 카드/헤더 레이아웃 정리
+   - 헤더: LIVE + 제목(좌) / 기준월(우) 한 줄 고정
+   - 타일: (상단) 아이콘/카운트 정렬 보정 + (하단) 라벨 1줄 중앙
+========================================================= */
+
+/* JS 마크업(class)과 CSS 불일치 보정 */
+.navi-stats-header{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 2px 2px 10px;
+}
+.navi-stats-left{
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.navi-stats-title{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navi-stats-month{
+  white-space: nowrap;
+  justify-self: end;
+}
+
+/* LIVE pill + dot (애니메이션 복구) */
+.live-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+.live-dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff3b30;
+  box-shadow: 0 0 0 0 rgba(255,59,48,.55);
+  animation: naviLivePulse 1.1s infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .live-dot{ animation:none; }
+}
+
+/* Navi tiles — 아이콘/숫자/라벨 정렬 보정 */
+.navi-tile{
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  grid-template-rows: auto auto !important;
+  align-items: center !important;
+  align-content: center !important;
+  padding: 12px 14px !important;
+  row-gap: 8px !important;
+  column-gap: 10px !important;
+  text-align: center !important;
+}
+
+.navi-tile__icon{
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center !important;
+}
+
+.navi-tile__count{
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  white-space: nowrap;
+}
+
+.navi-tile__label{
+  grid-column: 1 / -1;
+  grid-row: 2;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: clamp(11px, 1.15vw, 13px) !important;
+  line-height: 1.2 !important;
+}
+
+/* 긴 라벨(경매배당금 담보대출) 1줄 유지용 */
+.navi-tile[data-key="auction"] .navi-tile__label{
+  font-size: 11px !important;
+  letter-spacing: -0.2px;
+}
+
+.navi-tile__img{
+  width: clamp(34px, 3.1vw, 50px) !important;
+  height: auto;
+  max-height: 50px !important;
+}
+
+.navi-tile__count .num{
+  font-size: clamp(18px, 2.1vw, 24px) !important;
+  line-height: 1 !important;
+}
