@@ -1,46 +1,3 @@
-
-// ───────── 오차범위 툴팁(모바일 1탭) ─────────
-(function setupHelpTooltipDelegation(){
-  try{
-    if (typeof window === "undefined") return;
-    if (window.__HUCHU_HELP_TOOLTIP__) return;
-    window.__HUCHU_HELP_TOOLTIP__ = true;
-
-    function closeAll(){
-      document.querySelectorAll(".beta-help-wrap.is-open").forEach(w=>{
-        w.classList.remove("is-open");
-        const b = w.querySelector(".beta-help-btn");
-        if (b) b.setAttribute("aria-expanded","false");
-      });
-    }
-
-    document.addEventListener("click", (e)=>{
-      const btn = e.target && e.target.closest ? e.target.closest(".beta-help-btn") : null;
-      if (btn){
-        e.preventDefault();
-        e.stopPropagation();
-        const wrap = btn.closest(".beta-help-wrap");
-        if (!wrap) return;
-        const willOpen = !wrap.classList.contains("is-open");
-        closeAll();
-        if (willOpen){
-          wrap.classList.add("is-open");
-          btn.setAttribute("aria-expanded","true");
-        }
-        return;
-      }
-      // outside click closes
-      closeAll();
-    }, true);
-
-    // 터치 시작에서도 동일하게 닫힘 처리(모바일에서 hover 상태 잔상 방지)
-    document.addEventListener("touchstart", (e)=>{
-      const btn = e.target && e.target.closest ? e.target.closest(".beta-help-btn") : null;
-      if (!btn) closeAll();
-    }, {passive:true, capture:true});
-  }catch{}
-})();
-
 // /assets/home-beta.js
 
 // ───────── 도넛 안 % 라벨 플러그인 ─────────
@@ -222,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "https://huchudb-github-io.vercel.app";
+      base = isLocal ? "" : "";
     }
 
     return base.replace(/\/+$/, "");
@@ -373,10 +330,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-header">
-        <div class="navi-stats-left">
-          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
-          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-head">
+        <div class="navi-stats-title">
+          <span class="navi-live"><span class="navi-live__dot" aria-hidden="true"></span>LIVE</span>
+          <span>후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -506,7 +463,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: (DEFAULT_ONTU_STATS && DEFAULT_ONTU_STATS.month) ? DEFAULT_ONTU_STATS.month : "2025-10",
+      month: DEFAULT_ONTU_MONTH,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -597,7 +554,15 @@ function renderProductSection(summary, byType) {
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
-    section.innerHTML = `
+    // 오차범위(±%) 계산
+  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const diff = byTypeSum - balance;
+  const halfDiff = Math.abs(diff) / 2;
+  const mid = (balance + byTypeSum) / 2;
+  const errPct = mid ? (halfDiff / mid) * 100 : 0;
+  errPctStr = errPct.toFixed(8);
+
+  section.innerHTML = `
       <div class="notice error">
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
@@ -606,6 +571,13 @@ function renderProductSection(summary, byType) {
   }
 
   const balance = Number(summary.balance || 0);
+
+  // ✅ 오차범위 계산 (A=요약 대출잔액, B=상품유형별 합계)
+  // 편차 = (B - A)
+  // 오차범위(±원) = |편차| / 2
+  // 중앙값 = (A + B) / 2
+  // 오차범위(±%) = (오차범위(±원) / 중앙값) * 100
+  let errPctStr = "0.00000000";
 
   const labels   = [];
   const percents = [];
@@ -621,40 +593,7 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
-  
-  // ───────── 출처/오차범위(±%) 계산 ─────────
-  const byTypeSum = amounts.reduce((acc, v) => acc + Number(v || 0), 0);
-  const diff = byTypeSum - balance;              // (B - A)
-  const half = Math.abs(diff) / 2;              // ±원
-  const mid  = (balance + byTypeSum) / 2;       // 중앙값
-  const errPct = mid ? (half / mid) * 100 : 0;  // ±%
-  const errPctStr = `±${errPct.toFixed(8)}%`;
-
-  const SOURCE_TEXT = "온라인투자연계금융업 중앙기록관리기관";
-  const HELP_TEXT = "표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.";
-
-  const sourceHtml = `
-    <div class="beta-source-wrap beta-help-wrap" aria-label="출처 및 오차범위">
-      <!-- PC: 한 줄 -->
-      <div class="beta-source-row beta-source-row--pc">
-        <div class="beta-source-text">※출처: ${SOURCE_TEXT}, 오차범위 : ${errPctStr}</div>
-        <button type="button" class="beta-help-btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
-      </div>
-
-      <!-- Mobile: 두 줄 -->
-      <div class="beta-source-m">
-        <div class="beta-source-m__top">※출처: ${SOURCE_TEXT}</div>
-        <div class="beta-source-m__bottom">
-          <div class="beta-source-m__err">※오차범위 : ${errPctStr}</div>
-          <button type="button" class="beta-help-btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
-        </div>
-      </div>
-
-      <div class="beta-help-tip" role="tooltip">${HELP_TEXT}</div>
-    </div>
-  `;
-
-// 메인 카드 + 도넛 + 유형별 금액 카드
+  // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
       <div class="beta-product-card__header">
@@ -690,9 +629,21 @@ function renderProductSection(summary, byType) {
         </div>
       </div>
     </div>
-    ${sourceHtml}
+    <div class="beta-product-footnote">
+      <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
+      <div class="beta-product-footnote__errline">
+        <span class="beta-product-footnote__err">※오차범위 : ±${errPctStr}%</span>
+        <span class="beta-help">
+          <button type="button" class="beta-help__btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
+          <div class="beta-help__popover" role="tooltip">
+            표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
+          </div>
+        </span>
+      </div>
+    </div>
   `;
-const canvas   = document.getElementById("productDonut");
+
+  const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
 
   let centerChipEl  = null;
@@ -891,3 +842,47 @@ if (heroSlides.length > 0) {
     });
   }
 }
+
+
+/* =========================================================
+   ✅ 상품유형별 대출잔액: '?' 도움말 툴팁 (hover + tap)
+   - 레이아웃을 밀지 않도록 absolute popover 사용
+   - 모바일 1회 탭으로 바로 표시
+========================================================= */
+function __bindBetaHelpTooltips() {
+  if (window.__betaHelpTooltipsBound) return;
+  window.__betaHelpTooltipsBound = true;
+
+  const closeAll = (exceptEl) => {
+    document.querySelectorAll(".beta-help.is-open").forEach((el) => {
+      if (exceptEl && el === exceptEl) return;
+      el.classList.remove("is-open");
+      const btn = el.querySelector(".beta-help__btn");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest(".beta-help__btn") : null;
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const wrap = btn.closest(".beta-help");
+      if (!wrap) return;
+
+      const isOpen = wrap.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      closeAll(wrap);
+      return;
+    }
+
+    // 바깥 클릭 시 닫기
+    closeAll(null);
+  }, true);
+
+  // ESC로 닫기
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAll(null);
+  }, true);
+}
+__bindBetaHelpTooltips();
