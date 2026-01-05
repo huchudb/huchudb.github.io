@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = (isLocal || host === "huchudb-github-io.vercel.app") ? "" : "https://huchudb-github-io.vercel.app";
+      base = isLocal ? "" : "";
     }
 
     return base.replace(/\/+$/, "");
@@ -199,6 +199,69 @@ const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey
 function escapeHtml(input){
   const s = String(input ?? "");
   return s.replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+}
+
+
+// ───────── ? 도움말(팝오버) 토글: 모바일 1탭/PC hover 지원 ─────────
+let __huchuHelpPopoversBound = false;
+function setupHelpPopovers(root = document){
+  try{
+    if (!__huchuHelpPopoversBound){
+      __huchuHelpPopoversBound = true;
+
+      // 바깥 클릭/ESC로 닫기
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".beta-help.is-open").forEach((h) => {
+          h.classList.remove("is-open");
+          const b = h.querySelector(".beta-help__btn");
+          if (b) b.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape"){
+          document.querySelectorAll(".beta-help.is-open").forEach((h) => {
+            h.classList.remove("is-open");
+            const b = h.querySelector(".beta-help__btn");
+            if (b) b.setAttribute("aria-expanded", "false");
+          });
+        }
+      });
+    }
+
+    const helps = root.querySelectorAll(".beta-help");
+    helps.forEach((help) => {
+      if (help.dataset.bound === "1") return;
+      help.dataset.bound = "1";
+
+      const btn = help.querySelector(".beta-help__btn");
+      if (!btn) return;
+
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 다른 팝오버 닫기
+        document.querySelectorAll(".beta-help.is-open").forEach((h) => {
+          if (h !== help){
+            h.classList.remove("is-open");
+            const b = h.querySelector(".beta-help__btn");
+            if (b) b.setAttribute("aria-expanded", "false");
+          }
+        });
+
+        const open = help.classList.toggle("is-open");
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      }, { passive: false });
+
+      // iOS/Safari에서 포커스/hover 이슈로 2탭이 필요한 경우를 줄이기 위해 stopPropagation만
+      btn.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+    });
+  } catch {
+    // no-op
+  }
 }
 
 function formatNumber(n){
@@ -303,6 +366,52 @@ async function fetchNaviStats(monthKey) {
   return await res.json();
 }
 
+
+let __naviStatsRefreshInFlight = null;
+let __naviStatsRefreshLastAt = 0;
+
+/**
+ * 서버에서 네비 통계를 다시 가져와 캐시/화면을 갱신합니다.
+ * - 애니메이션은 끔(깜빡임 최소)
+ * - 포커스/탭 복귀 시에도 호출 가능
+ */
+async function refreshNaviStatsWidget(reason = "manual"){
+  const now = Date.now();
+  // 너무 잦은 호출 방지(연속 클릭/포커스 튐)
+  if (now - __naviStatsRefreshLastAt < 1200) return __naviStatsRefreshInFlight || null;
+  __naviStatsRefreshLastAt = now;
+
+  if (__naviStatsRefreshInFlight) return __naviStatsRefreshInFlight;
+
+  __naviStatsRefreshInFlight = (async () => {
+    const mount = document.getElementById("naviStatsMount");
+    if (!mount) return null;
+
+    const monthKey = getKstMonthKey();
+
+    try{
+      const fresh = await fetchNaviStats(monthKey);
+      const payload = (fresh && typeof fresh === "object")
+        ? { ...fresh, monthKey }
+        : { monthKey, productGroups: {} };
+
+      try{
+        localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(payload));
+      } catch {}
+
+      renderNaviStatsWidget(payload, { animate: false });
+      setTimeout(syncNaviStatsHeightDebounced, 0);
+      return payload;
+    } catch {
+      return null;
+    } finally {
+      __naviStatsRefreshInFlight = null;
+    }
+  })();
+
+  return __naviStatsRefreshInFlight;
+}
+
 function renderNaviStatsWidget(payload, opts = {}) {
   const mount = document.getElementById("naviStatsMount");
   if (!mount) return;
@@ -320,8 +429,8 @@ function renderNaviStatsWidget(payload, opts = {}) {
         <div class="navi-tile__icon" aria-hidden="true">
           ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
         </div>
-        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
-          <span class="num" data-target="${v}">${initial}</span>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
+          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
       </div>
@@ -330,13 +439,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-head">
-        <div class="navi-stats-title">
-          <span class="navi-live" aria-label="LIVE">
-            <span class="navi-live__dot" aria-hidden="true"></span>
-            LIVE
-          </span>
-          <span class="navi-stats-title__text">후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-header">
+        <div class="navi-stats-left">
+          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
+          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -419,6 +525,12 @@ async function initNaviStatsWidget() {
   // } catch (e) {
   //   // 무시: 캐시만으로도 동작
   // }
+
+
+  // 2) 서버 최신값으로 조용히 갱신(깜빡임/애니 방지)
+  setTimeout(() => {
+    refreshNaviStatsWidget("init");
+  }, 0);
 }
 
 
@@ -466,7 +578,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_STATS.month,
+      month: DEFAULT_ONTU_MONTH,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -581,6 +693,14 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
+  // 오차범위(±%) 계산: abs(B-A)/(A+B)*100  (A=요약 대출잔액, B=상품유형별 합계)
+  const totalByType = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const denom = (balance + totalByType);
+  const errPct = (denom > 0) ? (Math.abs(totalByType - balance) / denom) * 100 : 0;
+  const errPctText = `±${errPct.toFixed(8)}%`;
+  const errHelpText = "표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출통계의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.";
+
+
   // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
@@ -617,10 +737,21 @@ function renderProductSection(summary, byType) {
         </div>
       </div>
     </div>
-    <div class="beta-product-source-note">
-      ※출처: 온라인투자연계금융업 중앙기록관리기관
+    <div class="beta-product-footnote">
+      <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
+      <div class="beta-product-footnote__errline">
+        <span class="beta-product-footnote__err">※오차범위: ${errPctText}</span>
+        <span class="beta-help">
+          <button type="button" class="beta-help__btn" aria-expanded="false" aria-label="오차범위 설명">?</button>
+          <div class="beta-help__popover" role="tooltip">${escapeHtml(errHelpText)}</div>
+        </span>
+      </div>
     </div>
-  `;
+`;
+
+
+  // ? 팝오버(오차범위 설명) 바인딩
+  setupHelpPopovers(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -758,6 +889,21 @@ function setupBetaMenu() {
 // DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
+
+  // 네비 통계: 탭 복귀/포커스 복귀 시 서버 최신값으로 갱신
+  const __triggerNaviRefresh = () => refreshNaviStatsWidget("focus");
+  window.addEventListener("focus", __triggerNaviRefresh);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) __triggerNaviRefresh();
+  });
+
+  // (선택) 다른 스크립트에서 이벤트로 갱신 트리거할 수 있게
+  window.addEventListener("huchu:navi-stats-refresh", __triggerNaviRefresh);
+  window.addEventListener("huchu:navi-stats-updated", __triggerNaviRefresh);
+  window.addEventListener("navi-stats-refresh", __triggerNaviRefresh);
+
+  // 외부 호출용
+  try { window.refreshNaviStatsWidget = refreshNaviStatsWidget; } catch {}
   hookHeroBannerHeightSync();
   // 네비 위젯 렌더 이후 한번 더
   setTimeout(syncNaviStatsHeightDebounced, 0);
