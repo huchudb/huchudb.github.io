@@ -2500,3 +2500,133 @@ text-align:center;
   .live-dot{ animation: none; }
 }
 
+/* =========================================================
+   PATCH (2026-01-05): source/오차범위 중복표시 방지 + 아이콘 스타일 + 모바일 가독성
+   - PC: source-text--pc, error-text--pc만 표시
+   - Mobile: source-text--m, error-text--m만 표시 (2줄 구성)
+========================================================= */
+.beta-product-source-note{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+  text-align:right;
+}
+
+.beta-product-source-note .source-text--pc,
+.beta-product-source-note .error-text--pc{ display:inline; }
+
+.beta-product-source-note .source-text--m,
+.beta-product-source-note .error-text--m{ display:none; }
+
+@media (max-width: 768px){
+  .beta-product-source-note{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap:6px 8px;
+    justify-content:end;
+  }
+
+  .beta-product-source-note .source-text--pc,
+  .beta-product-source-note .error-text--pc{ display:none !important; }
+
+  .beta-product-source-note .source-text--m{
+    display:block;
+    grid-column:1 / 3;
+    grid-row:1;
+    justify-self:end;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:100%;
+  }
+
+  .beta-product-source-note .error-text--m{
+    display:block;
+    grid-column:1;
+    grid-row:2;
+    justify-self:end;
+    white-space:nowrap;
+  }
+
+  .beta-product-source-note .huchu-errinfo-wrap{
+    grid-column:2;
+    grid-row:2;
+    justify-self:end;
+  }
+}
+
+/* 오차범위 안내 아이콘 + 툴팁 */
+.huchu-errinfo-wrap{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+
+.huchu-errinfo-btn{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  border:0;
+  background:#d1d5db; /* 연한 회색 */
+  color:#ffffff;      /* ? 흰색 */
+  font-weight:800;
+  font-size:18px;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(15,23,42,0.12);
+}
+
+.huchu-errinfo-btn:active{
+  transform:translateY(1px);
+}
+
+.huchu-errinfo-tip{
+  position:absolute;
+  right:0;
+  top:38px;
+  min-width:220px;
+  max-width:320px;
+  padding:10px 12px;
+  background:#ffffff;
+  color:#111827;
+  font-size:12px;
+  line-height:1.45;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 10px 30px rgba(0,0,0,0.15);
+  display:none;
+  z-index:50;
+}
+
+.huchu-errinfo-tip.is-open{ display:block; }
+
+@media (max-width: 768px){
+  .huchu-errinfo-tip{
+    right:0;
+    left:auto;
+    max-width:min(320px, 92vw);
+  }
+}
+
+/* =========================================================
+   PATCH: 모바일 스크롤바(표시) 최대한 숨김
+   - Android/브라우저 OS 레벨 '스크롤 인디케이터'는 완전 제거가 불가할 수 있음
+========================================================= */
+@media (max-width: 768px){
+  html{
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+  }
+  html::-webkit-scrollbar{
+    width:0;
+    height:0;
+    display:none;
+  }
+}
+
