@@ -2423,63 +2423,107 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
-/* =========================================================
-   mainfix2e6: 오차범위 안내 (?) 아이콘 크기 축소 + 모바일 1탭 툴팁
-   - 아이콘 크기 50% 축소(과도하게 큰 버튼 방지)
-   - 모바일: 첫 탭에서 툴팁 노출(hover 의존 제거, focus/active 대응)
-========================================================= */
-.beta-product-source-note .beta-source-help-btn,
-.beta-product-source-note .beta-help-btn,
-.beta-product-source-note .source-help-btn,
-.beta-product-source-note button[aria-label*="오차범위"],
-.beta-product-source-note button[aria-label*="오차"],
-.beta-product-source-note .beta-source-help-icon{
-  width:22px !important;
-  height:22px !important;
-  min-width:22px !important;
-  min-height:22px !important;
-  padding:0 !important;
-  border-radius:999px !important;
-  font-size:13px !important;
-  line-height:22px !important;
-  background:#d6d9de !important; /* 연한 회색 */
-  color:#ffffff !important;       /* 흰색 ? */
-  border:0 !important;
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  cursor:pointer !important;
-  user-select:none !important;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+
+
+/* === PATCH: Source note tooltip + mobile layout + navi live alignment (2026-01-05) === */
+
+/* 상품유형별 대출잔액: 출처/오차범위(PC 1줄, 모바일 2줄) + 툴팁 */
+.beta-product-source-note--enhanced{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
-/* 툴팁: hover 뿐 아니라 focus/active 에서도 열리게 */
-.beta-product-source-note .beta-source-help.is-open .beta-source-tooltip,
-.beta-product-source-note .beta-source-help.is-open .beta-help-tooltip,
-.beta-product-source-note .beta-source-help.is-open .source-help-tooltip,
-.beta-product-source-note .beta-source-help:focus-within .beta-source-tooltip,
-.beta-product-source-note .beta-source-help:focus-within .beta-help-tooltip,
-.beta-product-source-note .beta-source-help:focus-within .source-help-tooltip,
-.beta-product-source-note .beta-source-help-btn:focus + .beta-source-tooltip,
-.beta-product-source-note .beta-source-help-btn:focus + .beta-help-tooltip,
-.beta-product-source-note .beta-source-help-btn:focus + .source-help-tooltip,
-.beta-product-source-note .beta-source-help-btn:active + .beta-source-tooltip,
-.beta-product-source-note .beta-source-help-btn:active + .beta-help-tooltip,
-.beta-product-source-note .beta-source-help-btn:active + .source-help-tooltip,
-.beta-product-source-note .beta-help-btn:focus + .beta-source-tooltip,
-.beta-product-source-note .beta-help-btn:focus + .beta-help-tooltip,
-.beta-product-source-note .beta-help-btn:active + .beta-source-tooltip,
-.beta-product-source-note .beta-help-btn:active + .beta-help-tooltip{
-  opacity:1 !important;
-  visibility:visible !important;
-  pointer-events:auto !important;
-  transform:translateY(0) !important;
+.beta-product-source-note--enhanced .beta-product-note__source{
+  white-space:nowrap;
 }
 
-/* 모바일에서 아이콘 주변이 과도하게 늘어나는 것 방지 */
-.beta-product-source-note .beta-source-help,
-.beta-product-source-note .source-help,
-.beta-product-source-note .beta-help{
-  gap:8px;
+.beta-product-source-note--enhanced .beta-product-note__source::after{
+  content:",";
+  margin-left:4px;
+}
+
+.beta-product-source-note--enhanced .beta-product-note__err{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  position:relative;
+  white-space:nowrap;
+}
+
+.beta-help-icon{
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:#d1d5db;   /* 연한 회색 */
+  color:#ffffff;        /* 흰색 ? */
+  border:0;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+  touch-action:manipulation;
+  flex:0 0 auto;
+}
+
+.beta-help-icon:active{ transform: scale(0.98); }
+
+.beta-help-tooltip{
+  display:none;
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 10px);
+  width:min(360px, 90vw);
+  padding:10px 12px;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.14);
+  font-size:13px;
+  color:#334155;
+  text-align:left;
+  z-index:50;
+}
+
+.beta-help-icon:hover + .beta-help-tooltip,
+.beta-help-icon:focus + .beta-help-tooltip,
+.beta-product-source-note--enhanced.is-open .beta-help-tooltip{
+  display:block;
+}
+
+/* 모바일: 2줄로 분리 */
+@media (max-width: 640px){
+  .beta-product-source-note--enhanced{
+    flex-direction:column;
+    align-items:flex-end;
+    justify-content:flex-end;
+    gap:6px;
+  }
+  .beta-product-source-note--enhanced .beta-product-note__source{
+    white-space:normal;
+  }
+  .beta-product-source-note--enhanced .beta-product-note__source::after{
+    content:"";
+    margin:0;
+  }
+}
+
+/* 모바일 스크롤바 숨김 시도 (브라우저 기본 스크롤 인디케이터는 OS/UI 정책상 남을 수 있음) */
+@media (max-width: 640px){
+  html, body{
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar{
+    width:0;
+    height:0;
+    display:none;
+  }
 }
