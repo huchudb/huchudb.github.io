@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      base = isLocal ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
@@ -195,6 +195,27 @@ const API_BASE = (function resolveApiBase(){
 const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
 
 const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
+
+// 메인 내에서 네비 클릭으로 통계가 업데이트되면(베스트에포트) 위젯을 한번 더 갱신
+let _naviStatsRefreshT = null;
+function scheduleNaviStatsRefresh(monthKey) {
+  if (_naviStatsRefreshT) clearTimeout(_naviStatsRefreshT);
+  _naviStatsRefreshT = setTimeout(async () => {
+    try {
+      const mk = monthKey || getKstMonthKey();
+      const fresh = await fetchNaviStats(mk);
+      if (fresh && fresh.productGroups) {
+        localStorage.setItem(NAVI_STATS_CACHE_KEY(mk), JSON.stringify(fresh));
+        renderNaviStatsWidget(fresh, { animate: false });
+      }
+    } catch {
+      // ignore
+    }
+  }, 250);
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("huchu:navi-stats-posted", () => scheduleNaviStatsRefresh(getKstMonthKey()));
+}
 
 function escapeHtml(input){
   const s = String(input ?? "");
@@ -320,8 +341,8 @@ function renderNaviStatsWidget(payload, opts = {}) {
         <div class="navi-tile__icon" aria-hidden="true">
           ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
         </div>
-        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
-          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
+          <span class="num" data-target="${v}">${initial}</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
       </div>
@@ -406,16 +427,17 @@ async function initNaviStatsWidget() {
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
-  // try {
-  //   const fresh = await fetchNaviStats(monthKey);
-  //   if (fresh && fresh.productGroups) {
-  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-  //   }
-  // } catch (e) {
-  //   // 무시: 캐시만으로도 동작
-  // }
+  // 2)   // (선택) 서버 최신값으로 한번 더 갱신 (2번 애니메이션 방지)
+  try {
+    const fresh = await fetchNaviStats(monthKey);
+    if (fresh && fresh.productGroups) {
+      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+      renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+    }
+  } catch (e) {
+    // ignore
+  }
+
 }
 
 
@@ -578,15 +600,18 @@ function renderProductSection(summary, byType) {
     amounts.push(amount);
   }
 
-  // 메인 카드 + 도넛 + 유형별 금액 카드
-  // 오차범위(±%) 계산: 요약 대출잔액(A) vs 상품유형별 합계(B)
-  const sumByType = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  let errPctStr = "";
-  if (balance > 0 && sumByType > 0 && (balance + sumByType) > 0) {
-    const errPct = (Math.abs(sumByType - balance) / (balance + sumByType)) * 100;
-    errPctStr = errPct.toFixed(8);
+  // 오차범위(%) 계산: A(대출현황 대출잔액) vs B(상품유형별 대출잔액 합계)
+  const totalByType = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  let errPctText = "-";
+  if (Number.isFinite(balance) && Number.isFinite(totalByType) && (balance !== 0 || totalByType !== 0)) {
+    const mid = (balance + totalByType) / 2;
+    if (mid) {
+      const errPct = (Math.abs(totalByType - balance) / 2) / mid * 100;
+      if (Number.isFinite(errPct)) errPctText = `±${errPct.toFixed(8)}%`;
+    }
   }
 
+  // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
       <div class="beta-product-card__header">
@@ -622,19 +647,53 @@ function renderProductSection(summary, byType) {
         </div>
       </div>
     </div>
-    <div class="beta-product-footnote">
-      <div class="beta-product-footnote__left">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
-      ${errPctStr ? `
-        <div class="beta-product-footnote__right">
-          <span class="beta-product-footnote__err">※오차범위 : ±${errPctStr}%</span>
-          <span class="beta-help-wrap">
-            <button type="button" class="beta-help-btn" aria-label="오차범위 안내">?</button>
-            <span class="beta-help-pop" role="tooltip">표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출통계의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.</span>
-          </span>
+    <div class="beta-product-source-note ontu-meta" id="ontuMetaNote">
+      <div class="ontu-meta-row ontu-meta-row--source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
+      <div class="ontu-meta-row ontu-meta-row--err" data-tip-open="0">
+        <span class="ontu-err-prefix">※</span><span class="ontu-err-label">오차범위:</span>
+        <span class="ontu-err-value">${errPctText}</span>
+        <button type="button" class="ontu-err-help" aria-label="오차범위 안내" aria-expanded="false">?</button>
+        <div class="ontu-err-tooltip" role="tooltip">
+          표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
         </div>
-      ` : ''}
+      </div>
     </div>
   `;
+
+  // 오차범위 도움말 툴팁 (hover + 1-tap)
+  (() => {
+    const row = section.querySelector(".ontu-meta-row--err");
+    const btn = section.querySelector(".ontu-err-help");
+    if (!row || !btn) return;
+
+    const close = () => {
+      row.dataset.tipOpen = "0";
+      btn.setAttribute("aria-expanded", "false");
+    };
+    const open = () => {
+      row.dataset.tipOpen = "1";
+      btn.setAttribute("aria-expanded", "true");
+    };
+    const toggle = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (row.dataset.tipOpen === "1") close();
+      else open();
+    };
+
+    if (btn.dataset.bound !== "1") {
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", toggle, { passive: false });
+
+      document.addEventListener("click", (e) => {
+        if (!row.contains(e.target)) close();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") close();
+      });
+    }
+  })();
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -770,52 +829,6 @@ function setupBetaMenu() {
 }
 
 // DOM 로드 후 실행
-
-
-/* ---------------------------------------------------------
-   HELP POPOVER (오차범위 안내)
---------------------------------------------------------- */
-function setupHelpPopovers() {
-  // 이벤트 위임: 동적으로 렌더되는 버튼도 처리
-  document.addEventListener(
-    "pointerdown",
-    (e) => {
-      const btn = e.target && e.target.closest ? e.target.closest(".beta-help-btn") : null;
-      if (btn) {
-        // 첫 탭에서 바로 열리도록 기본 동작(포커스 등) 차단
-        e.preventDefault();
-        e.stopPropagation();
-
-        const wrap = btn.closest(".beta-help-wrap");
-        if (!wrap) return;
-
-        const isOpen = wrap.classList.contains("is-open");
-        document
-          .querySelectorAll(".beta-help-wrap.is-open")
-          .forEach((el) => {
-            if (el !== wrap) el.classList.remove("is-open");
-          });
-        wrap.classList.toggle("is-open", !isOpen);
-        return;
-      }
-
-      // 외부 터치/클릭 시 닫기
-      document
-        .querySelectorAll(".beta-help-wrap.is-open")
-        .forEach((el) => el.classList.remove("is-open"));
-    },
-    { passive: false }
-  );
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      document
-        .querySelectorAll(".beta-help-wrap.is-open")
-        .forEach((el) => el.classList.remove("is-open"));
-    }
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
   hookHeroBannerHeightSync();
@@ -824,7 +837,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initOntuStats();
   setupBetaMenu();
-  setupHelpPopovers();
 
   window.addEventListener("resize", () => {
     autoFitLoanStatusText();
