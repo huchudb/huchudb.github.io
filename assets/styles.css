@@ -1391,111 +1391,6 @@ body.beta-body button{width:auto;}
   text-align:right;
 }
 
-/* 상품유형별 대출잔액 - 출처/오차범위 표시 */
-.beta-product-footnote{
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #9ca3af;
-  font-size: 13px;
-  text-align: right;
-}
-.beta-product-footnote__left{
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.beta-product-footnote__right{
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-.beta-product-footnote__err{
-  color: #6b7280;
-}
-
-/* ? 아이콘 + 플로팅 안내(hover/1-tap) */
-.beta-help-wrap{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.beta-help-btn{
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 999px;
-  background: #cbd5e1;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 16px;
-  cursor: pointer;
-  padding: 0;
-}
-.beta-help-btn:focus{
-  outline: none;
-}
-.beta-help-pop{
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  width: min(360px, 78vw);
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 10px 12px;
-  box-shadow: 0 12px 26px rgba(0,0,0,0.12);
-  color: #111827;
-  font-size: 12px;
-  line-height: 1.5;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(6px);
-  transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
-}
-.beta-help-pop::after{
-  content: '';
-  position: absolute;
-  right: 8px;
-  bottom: -6px;
-  width: 12px;
-  height: 12px;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
-  transform: rotate(45deg);
-}
-.beta-help-wrap:hover .beta-help-pop,
-.beta-help-wrap.is-open .beta-help-pop{
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-@media (max-width: 768px){
-  .beta-product-footnote{
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-  .beta-product-footnote__left{
-    align-self: flex-end;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
-}
-
-
 /* 상품유형별 도넛 + 카드 레이아웃 (홈) */
 .beta-product-grid{
   display:grid;
@@ -2528,3 +2423,108 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
+
+
+/* ================================
+   Ontu 통계: 출처 + 오차범위(%) + 툴팁
+================================ */
+.beta-product-source-note.ontu-meta{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.beta-product-source-note.ontu-meta .ontu-meta-row{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+}
+
+.beta-product-source-note.ontu-meta .ontu-meta-row--source::after{
+  content:",";
+  margin-left:2px;
+}
+
+.beta-product-source-note.ontu-meta .ontu-err-prefix{
+  display:none;
+}
+
+.beta-product-source-note.ontu-meta .ontu-err-value{
+  font-weight:700;
+}
+
+.beta-product-source-note.ontu-meta .ontu-meta-row--err{
+  position:relative;
+}
+
+.beta-product-source-note.ontu-meta .ontu-err-help{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  border:0;
+  background:#c9ced6;
+  color:#fff;
+  font-size:12px;
+  line-height:18px;
+  padding:0;
+  cursor:pointer;
+  flex:0 0 auto;
+  margin-left:2px;
+  touch-action:manipulation;
+}
+
+.beta-product-source-note.ontu-meta .ontu-err-help:focus{
+  outline:2px solid rgba(0,0,0,0.15);
+  outline-offset:2px;
+}
+
+.beta-product-source-note.ontu-meta .ontu-err-tooltip{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 10px);
+  width:min(360px, 86vw);
+  background:#fff;
+  color:#1f2937;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:12px 14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.12);
+  font-size:13px;
+  line-height:1.45;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(6px);
+  transition:opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
+  z-index:50;
+}
+
+.beta-product-source-note.ontu-meta .ontu-meta-row--err:hover .ontu-err-tooltip,
+.beta-product-source-note.ontu-meta .ontu-meta-row--err:focus-within .ontu-err-tooltip,
+.beta-product-source-note.ontu-meta .ontu-meta-row--err[data-tip-open="1"] .ontu-err-tooltip{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  transition:opacity 140ms ease, transform 140ms ease, visibility 0s;
+}
+
+@media (max-width: 640px){
+  .beta-product-source-note.ontu-meta{
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
+  }
+  .beta-product-source-note.ontu-meta .ontu-meta-row--source::after{
+    content:"";
+  }
+  .beta-product-source-note.ontu-meta .ontu-err-prefix{
+    display:inline;
+  }
+  .beta-product-source-note.ontu-meta .ontu-err-help{
+    width:20px;
+    height:20px;
+    line-height:20px;
+  }
+}
