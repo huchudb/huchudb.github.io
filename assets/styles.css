@@ -2425,105 +2425,86 @@ text-align:center;
 #naviStatsMount { contain: layout paint; }
 
 
-/* === PATCH: Source note tooltip + mobile layout + navi live alignment (2026-01-05) === */
-
-/* 상품유형별 대출잔액: 출처/오차범위(PC 1줄, 모바일 2줄) + 툴팁 */
-.beta-product-source-note--enhanced{
+/* ===================== mainfix2e8: source/error range + tooltip + icon sizing ===================== */
+.beta-source-wrap{
+  margin: 10px 0 0;
+  color:#8a94a6;
+  font-size:12px;
+  line-height:1.35;
+}
+.beta-source-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.beta-source-row--pc{ display:flex; }
+.beta-source-m{ display:none; flex-direction:column; gap:6px; }
+.beta-source-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.beta-source-m__top{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.beta-source-m__bottom{
   display:flex;
   align-items:center;
   justify-content:flex-end;
   gap:10px;
-  flex-wrap:wrap;
 }
+.beta-source-m__err{ white-space:nowrap; }
 
-.beta-product-source-note--enhanced .beta-product-note__source{
-  white-space:nowrap;
-}
-
-.beta-product-source-note--enhanced .beta-product-note__source::after{
-  content:",";
-  margin-left:4px;
-}
-
-.beta-product-source-note--enhanced .beta-product-note__err{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  position:relative;
-  white-space:nowrap;
-}
-
-.beta-help-icon{
-  width:22px;
+.beta-help-btn{
+  width:22px;            /* 아이콘 비대해진 것 방지 */
   height:22px;
   border-radius:999px;
-  background:#d1d5db;   /* 연한 회색 */
-  color:#ffffff;        /* 흰색 ? */
   border:0;
-  padding:0;
+  background:#d7dbe2;     /* 연한 회색 */
+  color:#ffffff;          /* 흰색 ? */
+  font-weight:900;
+  font-size:14px;
+  line-height:1;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
-  font-weight:900;
-  line-height:1;
-  cursor:pointer;
-  touch-action:manipulation;
   flex:0 0 auto;
+  cursor:pointer;
 }
+.beta-help-btn:active{ transform: translateY(0.5px); }
+.beta-help-btn:focus{ outline:2px solid rgba(11,42,102,.22); outline-offset:2px; }
 
-.beta-help-icon:active{ transform: scale(0.98); }
-
-.beta-help-tooltip{
+.beta-help-tip{
   display:none;
-  position:absolute;
-  right:0;
-  bottom:calc(100% + 10px);
-  width:min(360px, 90vw);
+  margin-top:8px;
   padding:10px 12px;
+  border:1px solid #e4e8f2;
   background:#ffffff;
-  border:1px solid #e5e7eb;
   border-radius:12px;
-  box-shadow:0 10px 24px rgba(0,0,0,.14);
-  font-size:13px;
-  color:#334155;
-  text-align:left;
-  z-index:50;
+  color:#3c485a;
+  box-shadow: 0 10px 24px rgba(0,0,0,.08);
+  max-width: 100%;
+  word-break: keep-all;
+}
+.beta-help-wrap.is-open .beta-help-tip{ display:block; }
+@media (hover:hover){
+  .beta-help-wrap:hover .beta-help-tip{ display:block; }
 }
 
-.beta-help-icon:hover + .beta-help-tooltip,
-.beta-help-icon:focus + .beta-help-tooltip,
-.beta-product-source-note--enhanced.is-open .beta-help-tooltip{
-  display:block;
+/* 모바일: PC 라인 숨기고 2줄 표시 */
+@media (max-width: 520px){
+  .beta-source-row--pc{ display:none; }
+  .beta-source-m{ display:flex; }
+  .beta-source-wrap{ font-size:11px; }
 }
 
-/* 모바일: 2줄로 분리 */
-@media (max-width: 640px){
-  .beta-product-source-note--enhanced{
-    flex-direction:column;
-    align-items:flex-end;
-    justify-content:flex-end;
-    gap:6px;
-  }
-  .beta-product-source-note--enhanced .beta-product-note__source{
-    white-space:normal;
-  }
-  .beta-product-source-note--enhanced .beta-product-note__source::after{
-    content:"";
-    margin:0;
-  }
-}
+/* 스크롤바 숨김(가능한 범위) */
+html, body{ overflow-x:hidden; }
+*::-webkit-scrollbar{ width:0; height:0; }
+*{ scrollbar-width:none; }
 
-/* 모바일 스크롤바 숨김 시도 (브라우저 기본 스크롤 인디케이터는 OS/UI 정책상 남을 수 있음) */
-@media (max-width: 640px){
-  html, body{
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-  }
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar{
-    width:0;
-    height:0;
-    display:none;
-  }
+/* LIVE / 기준월 정렬(호환) */
+.navi-stats-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.navi-stats-month{ text-align:right; white-space:nowrap; }
+.live-pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; }
+.live-dot{ width:6px; height:6px; border-radius:50%; display:inline-block; animation:naviLivePulse 1.3s infinite; }
+@keyframes naviLivePulse{
+  0%{ transform:scale(1); opacity:.85; }
+  60%{ transform:scale(1.6); opacity:0; }
+  100%{ transform:scale(1.6); opacity:0; }
 }
