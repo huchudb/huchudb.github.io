@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      base = (isLocal || host === "huchudb-github-io.vercel.app") ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
@@ -320,8 +320,8 @@ function renderNaviStatsWidget(payload, opts = {}) {
         <div class="navi-tile__icon" aria-hidden="true">
           ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
         </div>
-        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
-          <span class="num" data-target="${v}">${initial}</span>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
+          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
       </div>
@@ -330,10 +330,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-head">
-        <div class="navi-stats-title">
-          <span class="navi-live"><span class="navi-live__dot" aria-hidden="true"></span>LIVE</span>
-          <span>후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-header">
+        <div class="navi-stats-left">
+          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
+          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -463,7 +463,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_MONTH,
+      month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -554,15 +554,7 @@ function renderProductSection(summary, byType) {
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
-    // 오차범위(±%) 계산
-  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  const diff = byTypeSum - balance;
-  const halfDiff = Math.abs(diff) / 2;
-  const mid = (balance + byTypeSum) / 2;
-  const errPct = mid ? (halfDiff / mid) * 100 : 0;
-  errPctStr = errPct.toFixed(8);
-
-  section.innerHTML = `
+    section.innerHTML = `
       <div class="notice error">
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
@@ -571,13 +563,6 @@ function renderProductSection(summary, byType) {
   }
 
   const balance = Number(summary.balance || 0);
-
-  // ✅ 오차범위 계산 (A=요약 대출잔액, B=상품유형별 합계)
-  // 편차 = (B - A)
-  // 오차범위(±원) = |편차| / 2
-  // 중앙값 = (A + B) / 2
-  // 오차범위(±%) = (오차범위(±원) / 중앙값) * 100
-  let errPctStr = "0.00000000";
 
   const labels   = [];
   const percents = [];
@@ -629,17 +614,8 @@ function renderProductSection(summary, byType) {
         </div>
       </div>
     </div>
-    <div class="beta-product-footnote">
-      <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
-      <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__err">※오차범위 : ±${errPctStr}%</span>
-        <span class="beta-help">
-          <button type="button" class="beta-help__btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
-          <div class="beta-help__popover" role="tooltip">
-            표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
-          </div>
-        </span>
-      </div>
+    <div class="beta-product-source-note">
+      ※출처: 온라인투자연계금융업 중앙기록관리기관
     </div>
   `;
 
@@ -842,47 +818,3 @@ if (heroSlides.length > 0) {
     });
   }
 }
-
-
-/* =========================================================
-   ✅ 상품유형별 대출잔액: '?' 도움말 툴팁 (hover + tap)
-   - 레이아웃을 밀지 않도록 absolute popover 사용
-   - 모바일 1회 탭으로 바로 표시
-========================================================= */
-function __bindBetaHelpTooltips() {
-  if (window.__betaHelpTooltipsBound) return;
-  window.__betaHelpTooltipsBound = true;
-
-  const closeAll = (exceptEl) => {
-    document.querySelectorAll(".beta-help.is-open").forEach((el) => {
-      if (exceptEl && el === exceptEl) return;
-      el.classList.remove("is-open");
-      const btn = el.querySelector(".beta-help__btn");
-      if (btn) btn.setAttribute("aria-expanded", "false");
-    });
-  };
-
-  document.addEventListener("click", (e) => {
-    const btn = e.target && e.target.closest ? e.target.closest(".beta-help__btn") : null;
-    if (btn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const wrap = btn.closest(".beta-help");
-      if (!wrap) return;
-
-      const isOpen = wrap.classList.toggle("is-open");
-      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      closeAll(wrap);
-      return;
-    }
-
-    // 바깥 클릭 시 닫기
-    closeAll(null);
-  }, true);
-
-  // ESC로 닫기
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeAll(null);
-  }, true);
-}
-__bindBetaHelpTooltips();
