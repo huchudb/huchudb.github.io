@@ -168,7 +168,7 @@ const DEFAULT_ONTU_STATS = {
 const API_BASE = (function resolveApiBase(){
   try{
     const w = (typeof window !== "undefined") ? window : null;
-    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+    let base = (w && typeof w.API_BASE === "string" && w.API_BASE.trim()) ? String(w.API_BASE).trim() : "";
 
     if (!base) {
       const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
@@ -177,16 +177,62 @@ const API_BASE = (function resolveApiBase(){
         host === "127.0.0.1" ||
         host.endsWith(".local");
 
-      // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
-      // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "";
+      const isVercelHost = host === "huchudb-github-io.vercel.app" || host.endsWith(".vercel.app");
+
+      // ✅ 운영(커스텀 도메인)에서는 Vercel Functions 도메인을 사용해야 함 (GitHub Pages에는 /api가 없음)
+      base = (isLocal || isVercelHost) ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
   } catch {
     return "";
   }
-})();
+}
+
+function calcErrPct(a, b){
+  const A = Number(a || 0);
+  const B = Number(b || 0);
+  if (!(A > 0) || !(B > 0)) return null;
+  const half = Math.abs(B - A) / 2;
+  const mid = (A + B) / 2;
+  if (!(mid > 0)) return null;
+  return (half / mid) * 100;
+}
+
+function wireHelpPopovers(root){
+  const scope = root || document;
+  const helps = scope.querySelectorAll?.(".beta-help") || [];
+  if (!helps.length) return;
+
+  // outside click close (1회만)
+  if (!window.__HUCHU_HELP_POPOVER_WIRED){
+    window.__HUCHU_HELP_POPOVER_WIRED = true;
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest(".beta-help")) return;
+      document.querySelectorAll(".beta-help.is-open").forEach(el => el.classList.remove("is-open"));
+    }, { capture: true });
+  }
+
+  helps.forEach((wrap) => {
+    if (wrap.__wired) return;
+    wrap.__wired = true;
+
+    const btn = wrap.querySelector(".beta-help__btn");
+    if (btn) {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        wrap.classList.toggle("is-open");
+      }, { passive: false });
+    }
+
+    // hover for desktop (터치 환경은 영향 적음)
+    wrap.addEventListener("mouseenter", () => wrap.classList.add("is-open"));
+    wrap.addEventListener("mouseleave", () => wrap.classList.remove("is-open"));
+  });
+}
+)();
 
 /* =========================================================
    ✅ Navi stats widget (beta): /api/navi-stats
@@ -199,69 +245,6 @@ const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey
 function escapeHtml(input){
   const s = String(input ?? "");
   return s.replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
-}
-
-
-// ───────── ? 도움말(팝오버) 토글: 모바일 1탭/PC hover 지원 ─────────
-let __huchuHelpPopoversBound = false;
-function setupHelpPopovers(root = document){
-  try{
-    if (!__huchuHelpPopoversBound){
-      __huchuHelpPopoversBound = true;
-
-      // 바깥 클릭/ESC로 닫기
-      document.addEventListener("click", () => {
-        document.querySelectorAll(".beta-help.is-open").forEach((h) => {
-          h.classList.remove("is-open");
-          const b = h.querySelector(".beta-help__btn");
-          if (b) b.setAttribute("aria-expanded", "false");
-        });
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape"){
-          document.querySelectorAll(".beta-help.is-open").forEach((h) => {
-            h.classList.remove("is-open");
-            const b = h.querySelector(".beta-help__btn");
-            if (b) b.setAttribute("aria-expanded", "false");
-          });
-        }
-      });
-    }
-
-    const helps = root.querySelectorAll(".beta-help");
-    helps.forEach((help) => {
-      if (help.dataset.bound === "1") return;
-      help.dataset.bound = "1";
-
-      const btn = help.querySelector(".beta-help__btn");
-      if (!btn) return;
-
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // 다른 팝오버 닫기
-        document.querySelectorAll(".beta-help.is-open").forEach((h) => {
-          if (h !== help){
-            h.classList.remove("is-open");
-            const b = h.querySelector(".beta-help__btn");
-            if (b) b.setAttribute("aria-expanded", "false");
-          }
-        });
-
-        const open = help.classList.toggle("is-open");
-        btn.setAttribute("aria-expanded", open ? "true" : "false");
-      }, { passive: false });
-
-      // iOS/Safari에서 포커스/hover 이슈로 2탭이 필요한 경우를 줄이기 위해 stopPropagation만
-      btn.addEventListener("touchend", (e) => {
-        e.stopPropagation();
-      }, { passive: true });
-    });
-  } catch {
-    // no-op
-  }
 }
 
 function formatNumber(n){
@@ -366,52 +349,6 @@ async function fetchNaviStats(monthKey) {
   return await res.json();
 }
 
-
-let __naviStatsRefreshInFlight = null;
-let __naviStatsRefreshLastAt = 0;
-
-/**
- * 서버에서 네비 통계를 다시 가져와 캐시/화면을 갱신합니다.
- * - 애니메이션은 끔(깜빡임 최소)
- * - 포커스/탭 복귀 시에도 호출 가능
- */
-async function refreshNaviStatsWidget(reason = "manual"){
-  const now = Date.now();
-  // 너무 잦은 호출 방지(연속 클릭/포커스 튐)
-  if (now - __naviStatsRefreshLastAt < 1200) return __naviStatsRefreshInFlight || null;
-  __naviStatsRefreshLastAt = now;
-
-  if (__naviStatsRefreshInFlight) return __naviStatsRefreshInFlight;
-
-  __naviStatsRefreshInFlight = (async () => {
-    const mount = document.getElementById("naviStatsMount");
-    if (!mount) return null;
-
-    const monthKey = getKstMonthKey();
-
-    try{
-      const fresh = await fetchNaviStats(monthKey);
-      const payload = (fresh && typeof fresh === "object")
-        ? { ...fresh, monthKey }
-        : { monthKey, productGroups: {} };
-
-      try{
-        localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(payload));
-      } catch {}
-
-      renderNaviStatsWidget(payload, { animate: false });
-      setTimeout(syncNaviStatsHeightDebounced, 0);
-      return payload;
-    } catch {
-      return null;
-    } finally {
-      __naviStatsRefreshInFlight = null;
-    }
-  })();
-
-  return __naviStatsRefreshInFlight;
-}
-
 function renderNaviStatsWidget(payload, opts = {}) {
   const mount = document.getElementById("naviStatsMount");
   if (!mount) return;
@@ -494,43 +431,52 @@ function renderNaviStatsWidget(payload, opts = {}) {
   syncNaviStatsHeightDebounced();
 }
 
-async function initNaviStatsWidget() {
-  const mount = document.getElementById("naviStatsMount");
+async function initNaviStatsWidget(opts = {}){
+  const mount = document.getElementById("betaNaviStats");
   if (!mount) return;
 
-  const monthKey = getKstMonthKey();
+  const monthKey = (opts && opts.monthKey) ? String(opts.monthKey) : getKstMonthKey(); // YYYY-MM
+  const cacheKey = `${NAVI_STATS_CACHE_KEY}:${monthKey}`;
 
-  // 1) 캐시(또는 0값)로 즉시 렌더 + 애니메이션(숫자/타일은 레이아웃 영향 없음)
+  const renderWith = (data) => renderNaviStatsWidget(mount, data, { monthKey });
+
+  // 1) 캐시 먼저 렌더(즉시 표시)
   let cached = null;
-  try {
-    cached = JSON.parse(localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey)) || "null");
-  } catch {
-    cached = null;
+  try { cached = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch {}
+  if (cached && cached.ts && (Date.now() - cached.ts) < NAVI_STATS_CACHE_TTL_MS && cached.data) {
+    renderWith(cached.data);
+  } else {
+    renderWith(DEFAULT_NAVI_STATS);
   }
 
-  const seed = (cached && typeof cached === "object")
-    ? { ...cached, monthKey }
-    : { monthKey, productGroups: {} };
+  // 2) 서버에서 최신값 갱신(백그라운드)
+  const refresh = async () => {
+    try {
+      const fresh = await fetchNaviStats(monthKey);
+      if (fresh) {
+        try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: fresh })); } catch {}
+        renderWith(fresh);
+      }
+    } catch (e) {
+      console.warn("[navi-stats] refresh failed:", e);
+    }
+  };
 
-  // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
-  requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
+  // 최초 1회 갱신
+  refresh();
 
-  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
-  // try {
-  //   const fresh = await fetchNaviStats(monthKey);
-  //   if (fresh && fresh.productGroups) {
-  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-  //   }
-  // } catch (e) {
-  //   // 무시: 캐시만으로도 동작
-  // }
+  // 3) 네비게이션 클릭/카운트 갱신 트리거들 (있으면 즉시 반영)
+  if (!window.__HUCHU_NAVI_REFRESH_WIRED) {
+    window.__HUCHU_NAVI_REFRESH_WIRED = true;
 
+    // navi-beta.js가 호출할 수 있도록 전역 훅 제공
+    window.huchuRefreshNaviStats = () => refresh();
 
-  // 2) 서버 최신값으로 조용히 갱신(깜빡임/애니 방지)
-  setTimeout(() => {
-    refreshNaviStatsWidget("init");
-  }, 0);
+    // 다양한 이벤트 이름을 폭넓게 수용
+    ["huchu:navi-stats-updated", "huchu:naviStatsUpdated", "huchu:navi-updated", "huchu:navistats"].forEach((evt) => {
+      window.addEventListener(evt, () => refresh());
+    });
+  }
 }
 
 
@@ -669,7 +615,12 @@ function renderProductSection(summary, byType) {
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
-    section.innerHTML = `
+    
+  // 오차범위(%) 계산: 대출현황의 '대출잔액' vs 상품유형별 금액 합(표시값 기준)
+  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const errPct = calcErrPct(balance, byTypeSum);
+  const errPctLabel = (errPct == null) ? "" : `±${errPct.toFixed(8)}%`;
+section.innerHTML = `
       <div class="notice error">
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
@@ -692,14 +643,6 @@ function renderProductSection(summary, byType) {
     percents.push(Math.round(ratio * 1000) / 10); // 0.425 → 42.5
     amounts.push(amount);
   }
-
-  // 오차범위(±%) 계산: abs(B-A)/(A+B)*100  (A=요약 대출잔액, B=상품유형별 합계)
-  const totalByType = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  const denom = (balance + totalByType);
-  const errPct = (denom > 0) ? (Math.abs(totalByType - balance) / denom) * 100 : 0;
-  const errPctText = `±${errPct.toFixed(8)}%`;
-  const errHelpText = "표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출통계의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.";
-
 
   // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
@@ -740,18 +683,14 @@ function renderProductSection(summary, byType) {
     <div class="beta-product-footnote">
       <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
       <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__err">※오차범위: ${errPctText}</span>
-        <span class="beta-help">
-          <button type="button" class="beta-help__btn" aria-expanded="false" aria-label="오차범위 설명">?</button>
-          <div class="beta-help__popover" role="tooltip">${escapeHtml(errHelpText)}</div>
+        <span class="beta-product-footnote__errpct">※오차범위 : ${errPctLabel}</span>
+        <span class="beta-help" aria-label="오차범위 안내">
+          <button type="button" class="beta-help__btn" aria-label="오차범위 안내">?</button>
+          <span class="beta-help__popover" role="tooltip">표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.</span>
         </span>
       </div>
     </div>
-`;
-
-
-  // ? 팝오버(오차범위 설명) 바인딩
-  setupHelpPopovers(section);
+  `;
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -889,21 +828,6 @@ function setupBetaMenu() {
 // DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
-
-  // 네비 통계: 탭 복귀/포커스 복귀 시 서버 최신값으로 갱신
-  const __triggerNaviRefresh = () => refreshNaviStatsWidget("focus");
-  window.addEventListener("focus", __triggerNaviRefresh);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) __triggerNaviRefresh();
-  });
-
-  // (선택) 다른 스크립트에서 이벤트로 갱신 트리거할 수 있게
-  window.addEventListener("huchu:navi-stats-refresh", __triggerNaviRefresh);
-  window.addEventListener("huchu:navi-stats-updated", __triggerNaviRefresh);
-  window.addEventListener("navi-stats-refresh", __triggerNaviRefresh);
-
-  // 외부 호출용
-  try { window.refreshNaviStatsWidget = refreshNaviStatsWidget; } catch {}
   hookHeroBannerHeightSync();
   // 네비 위젯 렌더 이후 한번 더
   setTimeout(syncNaviStatsHeightDebounced, 0);
