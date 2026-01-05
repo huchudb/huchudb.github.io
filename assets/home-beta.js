@@ -179,7 +179,7 @@ const API_BASE = (function resolveApiBase(){
 
       // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
       // 필요 시 window.API_BASE 로 언제든 override 가능
-      base = isLocal ? "" : "https://huchudb-github-io.vercel.app";
+      base = isLocal ? "" : "";
     }
 
     return base.replace(/\/+$/, "");
@@ -192,30 +192,9 @@ const API_BASE = (function resolveApiBase(){
    ✅ Navi stats widget (beta): /api/navi-stats
    - 메인 Hero 우측: 9개 상품군 월간 클릭 집계
 ========================================================= */
-const NAVI_STATS_ENDPOINT = `${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/navi-stats`;
+const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
 
 const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
-
-// 메인 내에서 네비 클릭으로 통계가 업데이트되면(베스트에포트) 위젯을 한번 더 갱신
-let _naviStatsRefreshT = null;
-function scheduleNaviStatsRefresh(monthKey) {
-  if (_naviStatsRefreshT) clearTimeout(_naviStatsRefreshT);
-  _naviStatsRefreshT = setTimeout(async () => {
-    try {
-      const mk = monthKey || getKstMonthKey();
-      const fresh = await fetchNaviStats(mk);
-      if (fresh && fresh.productGroups) {
-        localStorage.setItem(NAVI_STATS_CACHE_KEY(mk), JSON.stringify(fresh));
-        renderNaviStatsWidget(fresh, { animate: false });
-      }
-    } catch {
-      // ignore
-    }
-  }, 250);
-}
-if (typeof window !== "undefined") {
-  window.addEventListener("huchu:navi-stats-posted", () => scheduleNaviStatsRefresh(getKstMonthKey()));
-}
 
 function escapeHtml(input){
   const s = String(input ?? "");
@@ -351,10 +330,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-header">
-        <div class="navi-stats-left">
-          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
-          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-head">
+        <div class="navi-stats-title">
+          <span class="navi-live"><span class="navi-live__dot" aria-hidden="true"></span>LIVE</span>
+          <span>후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -427,26 +406,25 @@ async function initNaviStatsWidget() {
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 2)   // (선택) 서버 최신값으로 한번 더 갱신 (2번 애니메이션 방지)
-  try {
-    const fresh = await fetchNaviStats(monthKey);
-    if (fresh && fresh.productGroups) {
-      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-      renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-    }
-  } catch (e) {
-    // ignore
-  }
-
+  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
+  // try {
+  //   const fresh = await fetchNaviStats(monthKey);
+  //   if (fresh && fresh.productGroups) {
+  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+  //   }
+  // } catch (e) {
+  //   // 무시: 캐시만으로도 동작
+  // }
 }
 
 
-const ONTU_API  = `${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/ontu-stats`;
+const ONTU_API  = `${API_BASE}/api/ontu-stats`;
 
 // ───────── 온투업 통계 가져오기 ─────────
 async function fetchOntuStats() {
   try {
-    const res = await fetch(`${(API_BASE||"https://huchudb-github-io.vercel.app")}/api/ontu-stats?t=${Date.now()}`, {
+    const res = await fetch(`${API_BASE}/api/ontu-stats?t=${Date.now()}`, {
       headers: { "Accept": "application/json" },
       cache: "no-store",
     });
@@ -485,7 +463,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_STATS.month,
+      month: DEFAULT_ONTU_MONTH,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -586,65 +564,6 @@ function renderProductSection(summary, byType) {
 
   const balance = Number(summary.balance || 0);
 
-
-function bindErrInfo(root) {
-  try {
-    const wrap = root.querySelector(".huchu-errinfo-wrap");
-    const btn  = root.querySelector(".huchu-errinfo-btn");
-    const tip  = root.querySelector(".huchu-errinfo-tip");
-    if (!wrap || !btn || !tip) return;
-
-    const open = () => {
-      tip.classList.add("is-open");
-      btn.setAttribute("aria-expanded", "true");
-    };
-    const close = () => {
-      tip.classList.remove("is-open");
-      btn.setAttribute("aria-expanded", "false");
-    };
-    const toggle = () => {
-      const isOpen = tip.classList.contains("is-open");
-      if (isOpen) close();
-      else open();
-    };
-
-    // hover/focus for PC
-    wrap.addEventListener("mouseenter", open);
-    wrap.addEventListener("mouseleave", close);
-    btn.addEventListener("focus", open);
-    btn.addEventListener("blur", close);
-
-    // click/tap for mobile
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggle();
-    });
-
-    // global outside-click to close (wire once)
-    if (typeof window !== "undefined" && !window.__HUCHU_ERRINFO_WIRED__) {
-      window.__HUCHU_ERRINFO_WIRED__ = true;
-
-      document.addEventListener("click", (e) => {
-        // 클릭이 아이콘/툴팁 내부가 아니면 모두 닫기
-        const target = e.target;
-        const inside = target && (target.closest?.(".huchu-errinfo-wrap"));
-        if (inside) return;
-        document.querySelectorAll(".huchu-errinfo-tip.is-open").forEach((el) => el.classList.remove("is-open"));
-        document.querySelectorAll(".huchu-errinfo-btn[aria-expanded='true']").forEach((b) => b.setAttribute("aria-expanded", "false"));
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if (e.key !== "Escape") return;
-        document.querySelectorAll(".huchu-errinfo-tip.is-open").forEach((el) => el.classList.remove("is-open"));
-        document.querySelectorAll(".huchu-errinfo-btn[aria-expanded='true']").forEach((b) => b.setAttribute("aria-expanded", "false"));
-      });
-    }
-  } catch {
-    // ignore
-  }
-}
-
   const labels   = [];
   const percents = [];
   const amounts  = [];
@@ -659,16 +578,6 @@ function bindErrInfo(root) {
     amounts.push(amount);
   }
 
-
-// ───────── 오차범위 계산 (A=요약 대출잔액, B=상품유형별 합계) ─────────
-const byTypeSum = amounts.reduce((acc, v) => acc + Number(v || 0), 0);
-const A = Number(balance || 0);
-const B = Number(byTypeSum || 0);
-const diff = (B - A);                 // 편차(=B-A)
-const half = Math.abs(diff) / 2;      // 오차범위(±원)
-const mid  = (A + B) / 2;             // 중앙값
-const errorPct = mid ? (half / mid) * 100 : 0;
-const errorPctText = `±${errorPct.toFixed(8)}%`;
   // 메인 카드 + 도넛 + 유형별 금액 카드
   section.innerHTML = `
     <div class="beta-product-card">
@@ -705,24 +614,17 @@ const errorPctText = `±${errorPct.toFixed(8)}%`;
         </div>
       </div>
     </div>
-    <div class="beta-product-source-note">
-      <span class="source-text source-text--pc">※출처: 온라인투자연계금융업 중앙기록관리기관,</span>
-      <span class="source-text source-text--m">※출처: 온라인투자연계금융업 중앙기록관리기관</span>
-
-      <span class="error-text error-text--pc">오차범위 : ${errorPctText}</span>
-      <span class="error-text error-text--m">※오차범위 : ${errorPctText}</span>
-
-      <span class="huchu-errinfo-wrap">
-        <button type="button" class="huchu-errinfo-btn" aria-label="오차범위 안내" aria-expanded="false">?</button>
-        <div class="huchu-errinfo-tip" role="tooltip">
+    <div class="beta-product-source-note beta-product-source-note--enhanced" aria-label="출처 및 오차범위 안내">
+      <div class="beta-product-note__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
+      <div class="beta-product-note__err">
+        <span class="beta-product-note__errtext">※오차범위 : ±${errPctStr}%</span>
+        <button type="button" class="beta-help-icon" aria-label="오차범위 안내" aria-expanded="false">?</button>
+        <div class="beta-help-tooltip" role="tooltip">
           표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.
         </div>
-      </span>
+      </div>
     </div>
   `;
-
-  // 오차범위 안내(툴팁) 바인딩
-  bindErrInfo(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -814,6 +716,8 @@ async function initOntuStats() {
     }
     const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
     const summary = data.summary || DEFAULT_ONTU_STATS.summary;
+    // debug/current snapshot
+    window.__ONTU_STATS_CURRENT = data;
     const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
 
     renderLoanStatus(summary, month);
@@ -857,6 +761,39 @@ function setupBetaMenu() {
   });
 }
 
+
+function setupProductNoteTooltip(){
+  // 모바일: 1번 탭(클릭)으로 툴팁 토글
+  const closeAll = () => {
+    document.querySelectorAll(".beta-product-source-note--enhanced.is-open").forEach((el)=>{
+      el.classList.remove("is-open");
+      const btn = el.querySelector(".beta-help-icon");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest(".beta-help-icon") : null;
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const wrap = btn.closest(".beta-product-source-note--enhanced");
+      if (!wrap) return;
+      const isOpen = wrap.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      return;
+    }
+    // 밖을 누르면 닫기
+    if (!e.target.closest(".beta-product-source-note--enhanced")) {
+      closeAll();
+    }
+  }, true);
+
+  // 스크롤/리사이즈 시 닫기(모바일에서 겹침 방지)
+  window.addEventListener("scroll", closeAll, { passive: true });
+  window.addEventListener("resize", closeAll);
+}
+
 // DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
@@ -865,6 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(syncNaviStatsHeightDebounced, 0);
 
   initOntuStats();
+  setupProductNoteTooltip();
   setupBetaMenu();
 
   window.addEventListener("resize", () => {
