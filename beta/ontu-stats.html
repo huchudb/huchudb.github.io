@@ -140,203 +140,37 @@
 
   <!-- 온투 통계: 금액/단위 래핑 + 자동 슬라이드/드래그 후처리 -->
   <script>
-    (function () {
-      // 메인 금액 텍스트를 숫자/단위로 쪼개서 span으로 감싸기
+      // 금액 텍스트를 숫자/단위로 분리해서 스타일링(렌더 이후에만 실행)
       function decorateMoneySpans() {
-        const selectors =
-          '.stats-panel--loan .stats-card__value--main, ' +
-          '.stats-panel--products .stats-card__value--main';
-
-        const nodes = document.querySelectorAll(selectors);
-        if (!nodes.length) return;
-
+        const nodes = document.querySelectorAll('.stats-card__value--main');
         nodes.forEach((node) => {
-          // 첫 카드(데이터수집 온투업체수)는 건너뜀
-          const isLoanPanel = node.closest('.stats-panel--loan');
-          const card = node.closest('.stats-card');
-          if (isLoanPanel && card && card === card.parentElement.firstElementChild) {
-            return;
-          }
+          if (!node) return;
+          // 이미 span으로 분리돼 있으면 스킵
+          if (node.querySelector('.money-number, .money-unit')) return;
 
-          // 이미 래핑돼 있으면 패스
-          if (node.querySelector('.money-number') || node.querySelector('.money-unit')) {
-            return;
-          }
+          const raw = (node.textContent || '').trim();
+          // '개' 카드는 별도 마크업이라 스킵
+          if (raw.endsWith('개')) return;
 
-          const raw = node.textContent.trim();
-          if (!raw) return;
+          const tokens = raw.split(/\s+/).filter(Boolean);
+          if (!tokens.length) return;
 
-          // "18조 3,580억 234만원" → ["18조", "3,580억", "234만원"]
-          const tokens = raw.split(/\s+/);
-          const htmlTokens = tokens.map((tok) => {
-            // "18조" / "3,580억" / "234만원" / "49개" 등 처리
-            const m = tok.match(/^([\d,]+)([^\d,]+)$/);
-            if (!m) {
-              // 숫자+단위 패턴이 아니면 그냥 둠
-              return tok;
-            }
-            const num = m[1];
-            const unit = m[2];
-            return (
-              '<span class="money-number">' +
-              num +
-              '</span><span class="money-unit">' +
-              unit +
-              '</span>'
-            );
-          });
-
-          node.innerHTML = htmlTokens.join(' ');
+          node.innerHTML = tokens
+            .map((t) => {
+              const isUnit = /^(조|억|만원|만|원)$/.test(t);
+              return `<span class="${isUnit ? 'money-unit' : 'money-number'}">${t}</span>`;
+            })
+            .join(' ');
         });
       }
-
-      // 공통: 자동 슬라이드 + hover 시 일시정지 + 드래그 스크롤
-      function setupAutoSlider(trackSelector, viewportSelector, intervalMs) {
-        const track = document.querySelector(trackSelector);
-        const viewport = document.querySelector(viewportSelector);
-        if (!track || !viewport) return;
-
-        // PC/모바일 판별
-        const isMobile =
-          window.matchMedia &&
-          window.matchMedia('(max-width: 768px)').matches;
-
-        let index = 0;
-        let timer = null;
-        let direction = 1; // 1: 오른쪽, -1: 왼쪽
-
-        function slideOnce() {
-          const cards = track.children;
-          const total = cards.length;
-          if (!total) return;
-
-          let next = index + direction;
-          if (next < 0 || next >= total) {
-            direction *= -1;
-            next = index + direction;
-          }
-
-          index = next;
-          const target = cards[index];
-          const offset = target.offsetLeft;
-          viewport.scrollTo({ left: offset, behavior: 'smooth' });
-        }
-
-        function start() {
-          // PC에서는 자동 슬라이드 안 함
-          if (!isMobile) return;
-          if (timer) return;
-          timer = setInterval(slideOnce, intervalMs);
-        }
-
-        function stop() {
-          if (!timer) return;
-          clearInterval(timer);
-          timer = null;
-        }
-
-        // PC: 마우스 올리면 정지, 나가면 다시 재생
-        viewport.addEventListener('mouseenter', stop);
-        viewport.addEventListener('mouseleave', start);
-
-        // 마우스 드래그로 좌우 이동
-        let isDown = false;
-        let startX = 0;
-        let scrollLeft = 0;
-
-        viewport.addEventListener('mousedown', (e) => {
-          isDown = true;
-          viewport.classList.add('is-dragging');
-          startX = e.pageX - viewport.getBoundingClientRect().left;
-          scrollLeft = viewport.scrollLeft;
-          stop();
-        });
-
-        window.addEventListener('mouseup', () => {
-          if (!isDown) return;
-          isDown = false;
-          viewport.classList.remove('is-dragging');
-          start(); // 드래그 끝나면 다시 자동 슬라이드 (모바일에서만)
-        });
-
-        viewport.addEventListener('mousemove', (e) => {
-          if (!isDown) return;
-          e.preventDefault();
-          const x = e.pageX - viewport.getBoundingClientRect().left;
-          const walk = startX - x;
-          viewport.scrollLeft = scrollLeft + walk;
-        });
-
-        // 모바일 터치 드래그
-        let tStartX = 0;
-        let tScrollLeft = 0;
-        viewport.addEventListener(
-          'touchstart',
-          (e) => {
-            const touch = e.touches[0];
-            tStartX = touch.pageX - viewport.getBoundingClientRect().left;
-            tScrollLeft = viewport.scrollLeft;
-            stop();
-          },
-          { passive: true }
-        );
-
-        viewport.addEventListener(
-          'touchmove',
-          (e) => {
-            const touch = e.touches[0];
-            const x = touch.pageX - viewport.getBoundingClientRect().left;
-            const walk = tStartX - x;
-            viewport.scrollLeft = tScrollLeft + walk;
-          },
-          { passive: false }
-        );
-
-        viewport.addEventListener(
-          'touchend',
-          () => {
-            start();
-          },
-          { passive: true }
-        );
-
-        // 초기 자동 슬라이드 시작 (모바일에서만 실제 동작)
-        start();
-      }
-
-      // 슬라이더는 한 번만 세팅하면 되니까 플래그로 중복 방지
-      let sliderInitialized = false;
 
       function initEnhance() {
-        // 1) 매번 새 카드가 생길 때마다 숫자/단위 래핑
         decorateMoneySpans();
-
-        // 2) 자동 슬라이더/드래그는 한 번만 세팅
-        if (!sliderInitialized) {
-          setupAutoSlider(
-            '#ontuLoanTrack',
-            '.stats-panel__slider--loan .stats-panel__viewport',
-            5000   // 모바일 자동 슬라이드 5초
-          );
-
-          setupAutoSlider(
-            '#ontuProductTrack',
-            '.stats-panel__slider--products .stats-panel__viewport',
-            5000   // 모바일 자동 슬라이드 5초
-          );
-
-          sliderInitialized = true;
-        }
       }
 
-      // ontu-stats.js 가 카드 렌더를 끝냈을 때마다 호출
+      // ontu-stats.js가 렌더링 완료 시 이벤트를 던짐
       document.addEventListener('ontuStatsRendered', initEnhance);
-
-      // 첫 로딩 직후(최신 월) 한 번 호출 – 혹시 이벤트가 먼저 발행되었을 경우 대비
-      document.addEventListener('DOMContentLoaded', () => {
-        initEnhance();
-      });
-    })();
-  </script>
+      document.addEventListener('DOMContentLoaded', initEnhance);
+</script>
 </body>
 </html>
