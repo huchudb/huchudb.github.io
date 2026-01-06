@@ -295,12 +295,57 @@ const NAVI_GROUPS = [
   { key: "auction",         label: "경매배당금 담보대출",  iconSrc: "/assets/navi-icons/auction.png" },
 ];
 
-async function fetchNaviStats(monthKey, opts = {}) {
+async function fetchNaviStats(monthKey) {
   const mk = monthKey || getKstMonthKey();
   const url = `${NAVI_STATS_ENDPOINT}?month=${encodeURIComponent(mk)}&_t=${Date.now()}`;
-  const res = await fetch(url, { cache: "no-store", signal: opts.signal });
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`navi-stats ${res.status}`);
   return await res.json();
+}
+
+
+
+// =====================
+// Navi tile text fitting (labels + big counts)
+// - Keep label in ONE line by shrinking font size if it would wrap/ellipsis.
+// - Keep count in ONE line by shrinking font size for 4~5+ digits.
+// =====================
+function fitNaviTileText(mount) {
+  if (!mount) return;
+  const tiles = mount.querySelectorAll(".navi-tile");
+  tiles.forEach((tile) => {
+    const label = tile.querySelector(".navi-tile__label");
+    if (label) {
+      label.style.whiteSpace = "nowrap";
+      // Start from computed size (default 13px) and shrink until it fits
+      const cs = window.getComputedStyle(label);
+      let size = parseFloat(cs.fontSize) || 13;
+      const min = 10.5;
+
+      // Reset any previous inline size first
+      label.style.fontSize = "";
+
+      // Measure, then shrink
+      for (let s = size; s >= min; s -= 0.5) {
+        label.style.fontSize = `${s}px`;
+        if (label.scrollWidth <= label.clientWidth + 1) break;
+      }
+    }
+
+    const num = tile.querySelector(".navi-tile__count .num");
+    if (num) {
+      const target = (num.getAttribute("data-target") || "").toString();
+      const digits = target.replace(/[^\d]/g, "").length;
+
+      // Reset
+      num.style.fontSize = "";
+
+      if (digits >= 6) num.style.fontSize = "16px";
+      else if (digits === 5) num.style.fontSize = "17px";
+      else if (digits === 4) num.style.fontSize = "18px";
+      // 1~3 digits keep default (22px)
+    }
+  });
 }
 
 function renderNaviStatsWidget(payload, opts = {}) {
@@ -344,7 +389,10 @@ function renderNaviStatsWidget(payload, opts = {}) {
     </section>
   `;
 
-  // ✅ 숫자 카운트업(레이아웃 영향 없음)
+  
+  // ✅ One-line fitting (labels + big counts)
+  fitNaviTileText(mount);
+// ✅ 숫자 카운트업(레이아웃 영향 없음)
   if (animate) {
     const prefersReduced =
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -408,31 +456,17 @@ async function initNaviStatsWidget() {
 
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
-  // 2) 서버에서 최신값을 받아와 캐시+화면을 갱신(실패 시 캐시 렌더만 유지)
-  if (!window.__naviStatsFetchInFlight) {
-    window.__naviStatsFetchInFlight = true;
-    try {
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 2500);
 
-      const fresh = await fetchNaviStats(monthKey, { signal: ac.signal });
-
-      clearTimeout(timer);
-
-      if (fresh && fresh.productGroups) {
-        // monthKey 누락 방어
-        if (!fresh.monthKey) fresh.monthKey = monthKey;
-
-        localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-        renderNaviStatsWidget(fresh, { animate: false });
-        syncNaviStatsHeightDebounced();
-      }
-    } catch (e) {
-      // 무시: 캐시/seed 렌더만으로도 동작
-    } finally {
-      window.__naviStatsFetchInFlight = false;
-    }
-  }
+  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
+  // try {
+  //   const fresh = await fetchNaviStats(monthKey);
+  //   if (fresh && fresh.productGroups) {
+  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+  //   }
+  // } catch (e) {
+  //   // 무시: 캐시만으로도 동작
+  // }
 }
 
 
@@ -454,7 +488,6 @@ async function fetchOntuStats() {
     let month = String(json?.month || "").trim();
     let summary = json?.summary || null;
     let byType = json?.byType || json?.products?.byType || null;
-    let byLender = json?.byLender || json?.lenders || json?.lenderBalances || null;
 
     // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
     if (json && json.byMonth && typeof json.byMonth === "object") {
@@ -477,132 +510,14 @@ async function fetchOntuStats() {
       // 최소한 화면 표시용 월 라벨을 만들기 위해 summary 안의 month 같은 필드도 체크
       month = String(summary?.month || "").trim() || "unknown";
     }
-    return { month, summary, byType, byLender };
+    return { month, summary, byType };
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
       month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
-      byLender: null,
     };
-  }
-}
-
-
-// ───────── 오차범위(±) 계산: 두 값(A,B) 비교 ─────────
-function calcPlusMinusFromTwoValues(a, b) {
-  const A = Number(a) || 0;
-  const B = Number(b) || 0;
-  if (A <= 0 || B <= 0) return null;
-
-  const diff = Math.abs(A - B);
-  const plusMinus = diff / 2;
-  const avg = (A + B) / 2;
-  const pct = avg > 0 ? (plusMinus / avg) * 100 : 0;
-
-  return { plusMinus, pct, a: A, b: B };
-}
-
-function sumByLenderTotal(byLender) {
-  if (!byLender || typeof byLender !== "object") return 0;
-  let total = 0;
-  for (const typeMap of Object.values(byLender)) {
-    if (!typeMap || typeof typeMap !== "object") continue;
-    for (const amt of Object.values(typeMap)) {
-      total += Number(amt) || 0;
-    }
-  }
-  return total;
-}
-
-function formatPct(p) {
-  const v = Number(p) || 0;
-  if (!isFinite(v)) return "0.00";
-  // 작은 값은 2자리, 큰 값은 1자리로 가독성
-  const fixed = v >= 10 ? v.toFixed(1) : v.toFixed(2);
-  return fixed.replace(/\.00$/, ".00"); // 유지(디자인 일관)
-}
-
-function renderProductFootnoteHtml(summary, byLender) {
-  const source = "※출처: 온라인투자연계금융업 중앙기록관리기관";
-
-  const balance = Number(summary?.balance || 0);
-  const lendersTotal = sumByLenderTotal(byLender);
-
-  const calc = calcPlusMinusFromTwoValues(balance, lendersTotal);
-
-  // byLender가 없거나 비교가 불가능하면 출처만 노출
-  if (!calc) {
-    return `
-      <div class="beta-product-footnote">
-        <div class="beta-product-footnote__source">${source}</div>
-      </div>
-    `;
-  }
-
-  const errPctNum = Number(calc.pct) || 0;
-  const errPctTxt = formatPct(errPctNum);
-  const errWonHtml = formatKoreanCurrencyJo(calc.plusMinus);
-  const errPctShownZero = parseFloat(errPctTxt) === 0;
-  const errLabel = errPctShownZero
-    ? `오차범위: ±${errPctTxt}% 미만(±${errWonHtml})`
-    : `오차범위: ±${errPctTxt}%(±${errWonHtml})`;
-
-  return `
-    <div class="beta-product-footnote">
-      <div class="beta-product-footnote__source">${source}</div>
-      <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__err">${errLabel}</span>
-        <span class="beta-help">
-          <button class="beta-help__btn" type="button" aria-expanded="false" aria-label="오차범위 안내">?</button>
-          <div class="beta-help__popover" role="tooltip">
-            동일 기준월에서 '전체 대출잔액'과 '온투업체별 대출잔액 합산액'의 평균값을 기준으로 계산
-          </div>
-        </span>
-      </div>
-    </div>
-  `;
-}
-function bindBetaHelpPopovers(scopeEl) {
-  const root = scopeEl || document;
-
-  // 버튼 토글(모바일/터치용)
-  root.querySelectorAll(".beta-help__btn").forEach((btn) => {
-    if (btn.__bound) return;
-    btn.__bound = true;
-
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const wrap = btn.closest(".beta-help");
-      if (!wrap) return;
-
-      const open = wrap.classList.toggle("is-open");
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
-
-      // 다른 툴팁은 닫기
-      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
-        if (el !== wrap) {
-          el.classList.remove("is-open");
-          const b = el.querySelector(".beta-help__btn");
-          if (b) b.setAttribute("aria-expanded", "false");
-        }
-      });
-    });
-  });
-
-  // 바깥 클릭 시 닫기(전역 1회)
-  if (!window.__betaHelpGlobalCloseBound) {
-    window.__betaHelpGlobalCloseBound = true;
-    document.addEventListener("click", () => {
-      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
-        el.classList.remove("is-open");
-        const b = el.querySelector(".beta-help__btn");
-        if (b) b.setAttribute("aria-expanded", "false");
-      });
-    });
   }
 }
 
@@ -685,7 +600,7 @@ const PRODUCT_COLORS = [
 
 let donutChart = null;
 
-function renderProductSection(summary, byType, byLender) {
+function renderProductSection(summary, byType) {
   const section = document.getElementById("ontuProductSection");
   if (!section) return;
 
@@ -749,13 +664,11 @@ function renderProductSection(summary, byType, byLender) {
             .join("")}
         </div>
       </div>
-      </div>
     </div>
-    ${renderProductFootnoteHtml(summary, byLender)}
+    <div class="beta-product-source-note">
+      ※출처: 온라인투자연계금융업 중앙기록관리기관
+    </div>
   `;
-
-  // 툴팁(오차범위 ?) 토글 바인딩
-  bindBetaHelpPopovers(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -848,24 +761,49 @@ async function initOntuStats() {
     const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
     const summary = data.summary || DEFAULT_ONTU_STATS.summary;
     const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
-    const byLender = data.byLender || null;
 
     renderLoanStatus(summary, month);
-    renderProductSection({ ...summary, month }, byType, byLender);
+    renderProductSection({ ...summary, month }, byType);
   } catch (e) {
     console.error("[initOntuStats] 치명적 오류:", e);
     renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
     renderProductSection(
       { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
-      DEFAULT_ONTU_STATS.byType,
-      null
+      DEFAULT_ONTU_STATS.byType
     );
   }
 }
 
 // 상단 MENU 드롭다운
+function setupBetaMenu() {
+  const btn   = document.getElementById("betaMenuToggle");
+  const panel = document.getElementById("betaMenuPanel");
+  if (!btn || !panel) return;
 
-// DOM 로드 후 실행 (MENU는 /assets/beta-shell.js에서 공통 처리)
+  const close = () => {
+    panel.classList.add("hide");
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    panel.classList.remove("hide");
+    btn.setAttribute("aria-expanded", "true");
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    if (expanded) close();
+    else open();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      close();
+    }
+  });
+}
+
+// DOM 로드 후 실행
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
   hookHeroBannerHeightSync();
@@ -873,7 +811,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(syncNaviStatsHeightDebounced, 0);
 
   initOntuStats();
-window.addEventListener("resize", () => {
+  setupBetaMenu();
+
+  window.addEventListener("resize", () => {
     autoFitLoanStatusText();
   });
 });
