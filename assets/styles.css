@@ -674,23 +674,24 @@ body.beta-body .beta-header::after{
 .beta-menu-panel{
   position:absolute;
   right:0;
-  top:calc(100% + 8px);
-  min-width:210px;
+  top:calc(100% + 6px);
+  min-width:170px;
   background:#ffffff;
-  border-radius:12px;
+  border-radius:10px;
   border:1px solid #e5e7eb;
-  box-shadow:0 12px 30px rgba(15,23,42,.18);
-  padding:6px 0;
+  box-shadow:0 10px 22px rgba(15,23,42,.14);
+  padding:4px 0;
   z-index:200;
 }
 .beta-menu-link{
   display:block;
-  padding:8px 14px;
+  padding:6px 12px;
   font-size:12px;
-  font-weight:600;
+  font-weight:700;
   color:#111827;
   text-decoration:none;
   white-space:nowrap;
+  line-height:1.2;
 }
 .beta-menu-link:hover{background:#f3f4f6;}
 
