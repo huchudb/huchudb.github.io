@@ -1,22 +1,18 @@
 // /assets/beta-shell.js
-// HUCHU beta common shell: MENU dropdown + footer notice (no per-page duplication)
+// HUCHU beta common shell: MENU dropdown + Footer notice (single source of truth)
 //
-// Goals
-// - MENU works consistently across pages even if page scripts add their own handlers
+// - MENU works consistently across pages (blocks duplicate handlers in page scripts)
 // - MENU panel is positioned relative to the button (fixed), immune to layout differences
-// - Footer notice can be managed in ONE place and auto-applies to all pages that have .beta-footer
-//
-// NOTE: Keep this file as the single source of truth for beta shell behavior.
+// - Footer notice is injected into .beta-footer (right side on desktop, ordered on mobile)
 
 (() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v2";
+  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v3";
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
   // ----------------------------
-  // Config (edit these only)
+  // Config (edit only these)
   // ----------------------------
-  const FOOTER_NOTICE_TITLE = "고지";
   const FOOTER_NOTICE_ITEMS = [
     "본 페이지의 정보는 참고용이며, 정확한 조건은 해당 온투업체 안내 및 심사 결과에 따라 달라질 수 있습니다.",
     "금리·한도·플랫폼 수수료·중도상환 조건 등은 수시로 변동될 수 있습니다.",
@@ -32,50 +28,77 @@
     if (document.getElementById("beta-shell-style")) return;
 
     const css = `
-/* beta-shell injected styles */
+/* beta-shell injected styles (footer notice + ordering) */
+
+/* Desktop: bottom row = brand + info + (right) notice */
 .beta-footer__bottom{
   display:flex !important;
   flex-direction:row !important;
   align-items:flex-start !important;
-  gap:22px !important;
+  justify-content:space-between !important;
+  gap:18px !important;
+  flex-wrap:wrap !important; /* if width is tight, wrap instead of squishing to ugly line-breaks */
 }
-.beta-footer__info{ flex:1 1 auto; min-width:340px; }
-.beta-footer__notice{
-  margin-left:auto;
-  max-width:360px;
-  padding-left:16px;
-  border-left:1px solid rgba(255,255,255,0.10);
-  color:#cbd5e1;
-}
-.beta-footer__notice-title{
-  font-weight:700;
-  color:#e5e7eb;
-  font-size:12px;
-  margin-bottom:6px;
-}
-.beta-footer__notice-list{
-  margin:0;
-  padding-left:16px;
-  font-size:11px;
-  line-height:1.6;
-}
-.beta-footer__notice-list li{ margin:0 0 6px 0; }
-.beta-footer__notice-list li:last-child{ margin-bottom:0; }
 
+/* Keep brand on the left */
+.beta-footer__brand{
+  flex:0 0 auto !important;
+}
+
+/* Let business info take remaining space */
+.beta-footer__info{
+  flex:1 1 360px !important;
+  min-width:260px !important;
+}
+
+/* Notice on the right, wider to avoid 2-line wraps */
+.beta-footer__notice{
+  margin-left:auto !important;
+  width:min(560px, 46vw) !important;
+  max-width:560px !important;
+  flex:0 1 min(560px, 46vw) !important;
+  padding-left:16px !important;
+  border-left:1px solid rgba(255,255,255,0.10) !important;
+  color:#cbd5e1 !important;
+  word-break:keep-all !important; /* Korean readability */
+}
+
+.beta-footer__notice-list{
+  margin:0 !important;
+  padding-left:16px !important;
+  font-size:11px !important;
+  line-height:1.65 !important;
+}
+
+.beta-footer__notice-list li{ margin:0 0 6px 0 !important; }
+.beta-footer__notice-list li:last-child{ margin-bottom:0 !important; }
+
+/* Mobile order:
+   1) footer top links (already above)
+   2) notice
+   3) brand (logo)
+   4) business info
+*/
 @media (max-width: 760px){
   .beta-footer__bottom{
     flex-direction:column !important;
     gap:10px !important;
   }
-  .beta-footer__info{ min-width:0; }
+
   .beta-footer__notice{
-    margin-left:0;
-    max-width:none;
-    padding-left:0;
-    border-left:0;
-    padding-top:10px;
-    border-top:1px solid rgba(255,255,255,0.10);
+    order:1 !important;
+    margin-left:0 !important;
+    width:auto !important;
+    max-width:none !important;
+    flex:0 0 auto !important;
+    padding-left:0 !important;
+    border-left:0 !important;
+    padding-top:10px !important;
+    border-top:1px solid rgba(255,255,255,0.10) !important;
   }
+
+  .beta-footer__brand{ order:2 !important; }
+  .beta-footer__info{ order:3 !important; min-width:0 !important; }
 }
 `;
 
@@ -86,18 +109,17 @@
   }
 
   // ----------------------------
-  // MENU
+  // MENU (fixed-position dropdown, blocks duplicate handlers)
   // ----------------------------
   function setupMenu() {
     const btn = document.getElementById("betaMenuToggle");
     const panel = document.getElementById("betaMenuPanel");
     if (!btn || !panel) return;
 
-    // Mark as bound to avoid duplicate listeners (including other page scripts)
+    // Avoid rebinding
     if (btn.dataset.huchuShellMenu === "1") return;
     btn.dataset.huchuShellMenu = "1";
 
-    // Ensure initial state
     btn.setAttribute("aria-expanded", panel.classList.contains("hide") ? "false" : "true");
 
     const open = () => {
@@ -108,29 +130,23 @@
     const close = () => {
       panel.classList.add("hide");
       btn.setAttribute("aria-expanded", "false");
-      // cleanup inline positioning to avoid odd states across page nav caches
       panel.style.left = "";
       panel.style.top = "";
       panel.style.right = "";
       panel.style.position = "";
       panel.style.zIndex = "";
     };
-    const toggle = () => {
-      const hidden = panel.classList.contains("hide");
-      if (hidden) open();
-      else close();
-    };
+    const toggle = () => (panel.classList.contains("hide") ? open() : close());
 
     function positionPanel() {
-      // Make panel immune to layout (always relative to viewport based on button rect)
       const r = btn.getBoundingClientRect();
       const margin = 8;
       const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
       panel.style.position = "fixed";
       panel.style.zIndex = "9999";
 
-      // Temporarily show off-screen to measure width/height (if hidden)
       const wasHidden = panel.classList.contains("hide");
       if (wasHidden) {
         panel.classList.remove("hide");
@@ -140,13 +156,10 @@
       const pw = panel.offsetWidth || 260;
       const ph = panel.offsetHeight || 220;
 
-      // Desired: right-aligned with button, just below
       let left = r.right - pw;
       let top = r.bottom + 10;
 
-      // Clamp into viewport
       left = clamp(left, margin, vw - pw - margin);
-      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
       top = clamp(top, margin, vh - ph - margin);
 
       panel.style.left = `${left}px`;
@@ -158,9 +171,6 @@
       }
     }
 
-    // IMPORTANT:
-    // - Capture-phase listener to prevent other scripts from toggling twice.
-    // - stopImmediatePropagation to block any later listeners on the same element.
     btn.addEventListener(
       "click",
       (e) => {
@@ -169,10 +179,9 @@
         if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
         toggle();
       },
-      true // capture
+      true
     );
 
-    // Keep panel clicks inside from bubbling (so outside-click close doesn't trigger)
     panel.addEventListener(
       "click",
       (e) => {
@@ -182,7 +191,6 @@
       true
     );
 
-    // Outside click closes
     document.addEventListener(
       "click",
       (e) => {
@@ -194,7 +202,6 @@
       true
     );
 
-    // ESC closes
     document.addEventListener(
       "keydown",
       (e) => {
@@ -203,7 +210,6 @@
       true
     );
 
-    // Re-position on resize/scroll if open
     window.addEventListener(
       "resize",
       () => {
@@ -237,10 +243,6 @@
     const notice = document.createElement("div");
     notice.className = "beta-footer__notice";
 
-    const title = document.createElement("div");
-    title.className = "beta-footer__notice-title";
-    title.textContent = FOOTER_NOTICE_TITLE;
-
     const ul = document.createElement("ul");
     ul.className = "beta-footer__notice-list";
 
@@ -252,7 +254,6 @@
       ul.appendChild(li);
     });
 
-    notice.appendChild(title);
     notice.appendChild(ul);
     bottom.appendChild(notice);
   }
