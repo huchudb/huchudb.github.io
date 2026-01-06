@@ -5,12 +5,9 @@
 // - MENU panel is positioned relative to the button (fixed), immune to layout differences
 // - Footer notice is injected into .beta-footer (right side on desktop, ordered on mobile)
 // - Footer left layout normalized: logo(brand) + business info stacked together
-//
-// If you see "SyntaxError: Unexpected string", this file may have been accidentally overwritten
-// or edited with mismatched quotes. Replace the whole file with this one.
 
 (() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v6";
+  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v5";
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
@@ -37,23 +34,24 @@
 /* MENU: narrower card + more vertical breathing room */
 .beta-menu-panel{
   width:220px !important;
-  max-width:170px !important;
+  max-width:240px !important;
   min-width:180px !important;
-  padding:10px 6px !important;
+  padding:10px 6px !important;   /* top/bottom padding increased */
 }
 .beta-menu-link{
-  padding:10px 12px !important;
+  padding:10px 12px !important;  /* vertical padding increased */
   line-height:1.2 !important;
 }
 
-/* Footer link row spacing, keep links aligned with centered footer content */
+/* Make "top edge -> links" spacing == "links -> bottom row" spacing,
+   AND keep the links aligned with the centered footer content. */
 .beta-footer{
   padding-top:16px !important;
 }
 .beta-footer__top{
   max-width:1200px !important;
   margin:0 auto 16px !important;
-  padding:0 24px !important;
+  padding:0 24px !important; /* restore horizontal padding (was causing left-sticking) */
   box-sizing:border-box !important;
 }
 
@@ -64,7 +62,7 @@
   align-items:flex-start !important;
   justify-content:space-between !important;
   gap:18px !important;
-  flex-wrap:wrap !important;
+  flex-wrap:wrap !important; /* if width is tight, wrap rather than squish */
 }
 
 /* Left column groups logo + business info */
@@ -82,7 +80,7 @@
   min-width:0 !important;
 }
 
-/* Notice on the right */
+/* Notice on the right, wider to reduce wrapping */
 .beta-footer__notice{
   margin-left:auto !important;
   width:min(620px, 48vw) !important;
@@ -109,9 +107,32 @@
    4) business info
 */
 @media (max-width: 760px){
+  /* Footer compactness + alignment tweaks (mobile) */
+  .beta-footer{
+    padding-bottom:14px !important; /* reduce empty space below business info */
+  }
+
+  /* Align notice text block with business info (remove list indent) */
+  .beta-footer__notice-list{
+    padding-left:0 !important;
+    list-style:none !important;
+  }
+  .beta-footer__notice-list li{
+    position:relative !important;
+    margin:0 0 8px 0 !important;
+  }
+  .beta-footer__notice-list li:last-child{ margin-bottom:0 !important; }
+  .beta-footer__notice-list li::before{
+    content:"•" !important;
+    position:absolute !important;
+    left:-12px !important; /* outdent bullet so text aligns with business info */
+    top:0 !important;
+    color:#cbd5e1 !important;
+  }
+
   .beta-footer__bottom{
     flex-direction:column !important;
-    gap:10px !important;
+    gap:26px !important;
   }
 
   .beta-footer__notice{
@@ -141,7 +162,7 @@
   }
 
   // ----------------------------
-  // MENU
+  // MENU (fixed-position dropdown, blocks duplicate handlers)
   // ----------------------------
   function setupMenu() {
     const btn = document.getElementById("betaMenuToggle");
@@ -158,7 +179,6 @@
       panel.classList.remove("hide");
       btn.setAttribute("aria-expanded", "true");
     };
-
     const close = () => {
       panel.classList.add("hide");
       btn.setAttribute("aria-expanded", "false");
@@ -168,7 +188,6 @@
       panel.style.position = "";
       panel.style.zIndex = "";
     };
-
     const toggle = () => (panel.classList.contains("hide") ? open() : close());
 
     function positionPanel() {
@@ -204,7 +223,6 @@
       }
     }
 
-    // Capture-phase to prevent double toggles by other scripts
     btn.addEventListener(
       "click",
       (e) => {
@@ -251,7 +269,6 @@
       },
       { passive: true }
     );
-
     window.addEventListener(
       "scroll",
       () => {
