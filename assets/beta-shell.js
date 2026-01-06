@@ -7,7 +7,7 @@
 // - Footer left layout normalized: logo(brand) + business info stacked together
 
 (() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v4";
+  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v5";
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
@@ -29,15 +29,30 @@
     if (document.getElementById("beta-shell-style")) return;
 
     const css = `
-/* beta-shell injected styles (footer notice + ordering + spacing) */
+/* beta-shell injected styles (menu sizing + footer notice + ordering + spacing) */
 
-/* Make "top edge -> links" spacing == "links -> bottom row" spacing */
+/* MENU: narrower card + more vertical breathing room */
+.beta-menu-panel{
+  width:220px !important;
+  max-width:240px !important;
+  min-width:180px !important;
+  padding:10px 6px !important;   /* top/bottom padding increased */
+}
+.beta-menu-link{
+  padding:10px 12px !important;  /* vertical padding increased */
+  line-height:1.2 !important;
+}
+
+/* Make "top edge -> links" spacing == "links -> bottom row" spacing,
+   AND keep the links aligned with the centered footer content. */
 .beta-footer{
   padding-top:16px !important;
 }
 .beta-footer__top{
-  margin:0 0 16px 0 !important;
-  padding:0 !important;
+  max-width:1200px !important;
+  margin:0 auto 16px !important;
+  padding:0 24px !important; /* restore horizontal padding (was causing left-sticking) */
+  box-sizing:border-box !important;
 }
 
 /* Bottom row: left(brand+info) + right(notice) */
@@ -90,7 +105,6 @@
    2) notice
    3) brand (logo)
    4) business info
-   (brand+info are inside .beta-footer__left, so within it brand appears above info)
 */
 @media (max-width: 760px){
   .beta-footer__bottom{
@@ -168,7 +182,7 @@
         panel.style.visibility = "hidden";
       }
 
-      const pw = panel.offsetWidth || 260;
+      const pw = panel.offsetWidth || 220;
       const ph = panel.offsetHeight || 220;
 
       let left = r.right - pw;
@@ -248,7 +262,6 @@
     const bottom = footer.querySelector(".beta-footer__bottom");
     if (!bottom) return;
 
-    // If already normalized, skip
     if (bottom.querySelector(".beta-footer__left")) return;
 
     const brand = bottom.querySelector(".beta-footer__brand");
@@ -258,9 +271,7 @@
     const left = document.createElement("div");
     left.className = "beta-footer__left";
 
-    // Insert left before the first of brand/info
     bottom.insertBefore(left, brand);
-
     left.appendChild(brand);
     left.appendChild(info);
   }
