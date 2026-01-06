@@ -9,13 +9,15 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+  <script type="module" src="/assets/beta-shell.js?v=20260106-menu2"></script>
 </head>
+
 <body class="beta-body">
 
-  <!-- 상단 헤더: 베타와 동일 구조 -->
+  <!-- 상단 헤더: 베타 공통 구조 -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
-      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+      <a href="/beta/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
         <span class="logo-fallback">
           <span class="logo-mark">%</span>
@@ -23,22 +25,22 @@
         </span>
       </a>
 
-     <!-- MENU + 드롭다운 -->
-<button id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
+      <!-- MENU + 드롭다운 (메인 페이지 기준 SoT) -->
+      <div class="beta-menu-wrap">
+        <button id="betaMenuToggle"
+                class="beta-menu-toggle"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false">
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
 
         <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출 통계</a>
-          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품 정보</a>
-          <a class="beta-menu-link" href="/">담보대출 계산기</a>
+          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
+          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
+          <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
           <a class="beta-menu-link" href="/company.html">회사소개</a>
           <a class="beta-menu-link" href="/contact.html">광고문의</a>
-          <a class="beta-menu-link" href="/beta/admin-beta.html">관리자</a>
         </div>
       </div>
     </div>
@@ -46,18 +48,17 @@
 
   <main class="products-main">
     <!-- 히어로 인트로 -->
-   <section class="products-hero">
-  <h1 class="products-hero__title">온라인투자연계금융업 대출상품 정보</h1>
-  <p class="products-hero__desc">
-    온투업(P2P)에서 취급중인 대출상품을 확인해 보세요.
-  </p>
-  <p class="products-hero__note">
-    정확한 대출조건은 해당 대출기관에서 안내해 드립니다.
-  </p>
-</section>
+    <section class="products-hero">
+      <h1 class="products-hero__title">온라인투자연계금융업 대출상품 정보</h1>
+      <p class="products-hero__desc">
+        온투업(P2P)에서 취급중인 대출상품을 확인해 보세요.
+      </p>
+      <p class="products-hero__note">
+        정확한 대출조건은 해당 대출기관에서 안내해 드립니다.
+      </p>
+    </section>
 
-
-    <!-- 상품 카드 섹션 --ㅋ
+    <!-- 상품 카드 섹션 -->
     <section class="products-section">
       <h2 class="products-section__title">부동산 담보대출</h2>
 
@@ -70,7 +71,7 @@
             아파트를 소유하고 계신가요?<br>
             온투업의 각종 아파트 담보대출 상품을 확인해 보세요.
           </p>
-           <!-- 해시태그 영역 (화면에서는 숨김, SEO용) -->
+          <!-- 해시태그 영역 (화면에서는 숨김, SEO용) -->
           <div class="product-card__tags visually-hidden">
             <span class="product-tag">#아파트대출</span>
             <span class="product-tag">#아파트담보대출</span>
@@ -89,21 +90,11 @@
 
           <!-- 버튼들 -->
           <div class="product-card__buttons">
-            <a href="/beta/products/apt-general.html" class="product-btn">
-              일반담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/apt-share.html" class="product-btn">
-              지분담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/apt-auction.html" class="product-btn">
-              경락잔금대출&nbsp;〉
-            </a>
-            <a href="/beta/products/apt-deposit.html" class="product-btn">
-              임대보증금반환대출&nbsp;〉
-            </a>
-            <a href="/beta/products/apt-refinance.html" class="product-btn">
-              대부업대환대출&nbsp;〉
-            </a>
+            <a href="/beta/products/apt-general.html" class="product-btn">일반담보대출&nbsp;〉</a>
+            <a href="/beta/products/apt-share.html" class="product-btn">지분담보대출&nbsp;〉</a>
+            <a href="/beta/products/apt-auction.html" class="product-btn">경락잔금대출&nbsp;〉</a>
+            <a href="/beta/products/apt-deposit.html" class="product-btn">임대보증금반환대출&nbsp;〉</a>
+            <a href="/beta/products/apt-refinance.html" class="product-btn">대부업대환대출&nbsp;〉</a>
           </div>
         </article>
 
@@ -111,8 +102,8 @@
         <article class="product-card">
           <h3 class="product-card__title">빌라 · 연립주택</h3>
           <p class="product-card__desc">
-             빌라 또는 연립주택을 소유하고 계신가요?<br>
-             온투업의 각종 빌라·연립주택 담보대출 상품을 확인해보세요.
+            빌라 또는 연립주택을 소유하고 계신가요?<br>
+            온투업의 각종 빌라·연립주택 담보대출 상품을 확인해보세요.
           </p>
 
           <!-- 해시태그 (숨김) -->
@@ -134,21 +125,11 @@
 
           <!-- 버튼들 -->
           <div class="product-card__buttons">
-            <a href="/beta/products/villa-general.html" class="product-btn">
-              일반담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/villa-share.html" class="product-btn">
-              지분담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/villa-auction.html" class="product-btn">
-              경락잔금대출&nbsp;〉
-            </a>
-            <a href="/beta/products/villa-deposit.html" class="product-btn">
-              임대보증금반환대출&nbsp;〉
-            </a>
-            <a href="/beta/products/villa-refinance.html" class="product-btn">
-              대부업대환대출&nbsp;〉
-            </a>
+            <a href="/beta/products/villa-general.html" class="product-btn">일반담보대출&nbsp;〉</a>
+            <a href="/beta/products/villa-share.html" class="product-btn">지분담보대출&nbsp;〉</a>
+            <a href="/beta/products/villa-auction.html" class="product-btn">경락잔금대출&nbsp;〉</a>
+            <a href="/beta/products/villa-deposit.html" class="product-btn">임대보증금반환대출&nbsp;〉</a>
+            <a href="/beta/products/villa-refinance.html" class="product-btn">대부업대환대출&nbsp;〉</a>
           </div>
         </article>
 
@@ -175,21 +156,11 @@
 
           <!-- 버튼들 -->
           <div class="product-card__buttons">
-            <a href="/beta/products/detached-general.html" class="product-btn">
-              일반담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/detached-share.html" class="product-btn">
-              지분담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/detached-auction.html" class="product-btn">
-              경락잔금대출&nbsp;〉
-            </a>
-            <a href="/beta/products/detached-deposit.html" class="product-btn">
-              임대보증금반환대출&nbsp;〉
-            </a>
-            <a href="/beta/products/detached-refinance.html" class="product-btn">
-              대부업대환대출&nbsp;〉
-            </a>
+            <a href="/beta/products/detached-general.html" class="product-btn">일반담보대출&nbsp;〉</a>
+            <a href="/beta/products/detached-share.html" class="product-btn">지분담보대출&nbsp;〉</a>
+            <a href="/beta/products/detached-auction.html" class="product-btn">경락잔금대출&nbsp;〉</a>
+            <a href="/beta/products/detached-deposit.html" class="product-btn">임대보증금반환대출&nbsp;〉</a>
+            <a href="/beta/products/detached-refinance.html" class="product-btn">대부업대환대출&nbsp;〉</a>
           </div>
         </article>
 
@@ -215,18 +186,10 @@
 
           <!-- 버튼들 (임대보증금반환대출은 제외) -->
           <div class="product-card__buttons">
-            <a href="/beta/products/land-forest-general.html" class="product-btn">
-              일반담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/land-forest-share.html" class="product-btn">
-              지분담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/land-forest-auction.html" class="product-btn">
-              경락잔금대출&nbsp;〉
-            </a>
-            <a href="/beta/products/land-forest-refinance.html" class="product-btn">
-              대부업대환대출&nbsp;〉
-            </a>
+            <a href="/beta/products/land-forest-general.html" class="product-btn">일반담보대출&nbsp;〉</a>
+            <a href="/beta/products/land-forest-share.html" class="product-btn">지분담보대출&nbsp;〉</a>
+            <a href="/beta/products/land-forest-auction.html" class="product-btn">경락잔금대출&nbsp;〉</a>
+            <a href="/beta/products/land-forest-refinance.html" class="product-btn">대부업대환대출&nbsp;〉</a>
           </div>
         </article>
 
@@ -251,21 +214,11 @@
 
           <!-- 버튼들 -->
           <div class="product-card__buttons">
-            <a href="/beta/products/commercial-general.html" class="product-btn">
-              일반담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/commercial-share.html" class="product-btn">
-              지분담보대출&nbsp;〉
-            </a>
-            <a href="/beta/products/commercial-auction.html" class="product-btn">
-              경락잔금대출&nbsp;〉
-            </a>
-            <a href="/beta/products/commercial-deposit.html" class="product-btn">
-              임대보증금반환대출&nbsp;〉
-            </a>
-            <a href="/beta/products/commercial-refinance.html" class="product-btn">
-              대부업대환대출&nbsp;〉
-            </a>
+            <a href="/beta/products/commercial-general.html" class="product-btn">일반담보대출&nbsp;〉</a>
+            <a href="/beta/products/commercial-share.html" class="product-btn">지분담보대출&nbsp;〉</a>
+            <a href="/beta/products/commercial-auction.html" class="product-btn">경락잔금대출&nbsp;〉</a>
+            <a href="/beta/products/commercial-deposit.html" class="product-btn">임대보증금반환대출&nbsp;〉</a>
+            <a href="/beta/products/commercial-refinance.html" class="product-btn">대부업대환대출&nbsp;〉</a>
           </div>
         </article>
 
@@ -276,14 +229,14 @@
             <h2 class="products-section__title">후추 담보대출 계산기로 확인하세요.</h2>
             <h3 style="margin-bottom:10px;">대출 승인 가능성 및 한도 체크 가능</h3>
             <ul>
-            <li>개인정보 입력 <strong>NO</strong></li>
-            <li>신용점수영향 <strong>NO</strong></li>
-            <li>간단한 정보로도 <strong>OK</strong></li>
-            <li class="calculator-last-li">
-              <span>49개 온투업체 중  <strong>맞춤 온투업체</strong> 확인 가능</span>
-              <div class="product-card__buttons">
-                <a href="/" class="product-btn product-btn--calculator">바로가기</a>
-              </div>
+              <li>개인정보 입력 <strong>NO</strong></li>
+              <li>신용점수영향 <strong>NO</strong></li>
+              <li>간단한 정보로도 <strong>OK</strong></li>
+              <li class="calculator-last-li">
+                <span>49개 온투업체 중 <strong>맞춤 온투업체</strong> 확인 가능</span>
+                <div class="product-card__buttons">
+                  <a href="/" class="product-btn product-btn--calculator">바로가기</a>
+                </div>
               </li>
             </ul>
           </article>
@@ -298,56 +251,44 @@
                 후추의 <span class="naver-blog-text">네이버 공식 블로그</span>에서
                 나와 비슷한 대출 사례를 찾아보고 금리, 플랫폼수수료 등 대출 조건을 사전에 확인해보세요~
               </p>
-            <div class="product-card__buttons">
-            <a href="https://blog.naver.com/honestbros"
-             target="_blank"
-             rel="noopener"
-            class="product-btn">
-           바로가기
-           </a>
-           </div>
+              <div class="product-card__buttons">
+                <a href="https://blog.naver.com/honestbros" target="_blank" rel="noopener" class="product-btn">바로가기</a>
+              </div>
+            </div>
           </article>
         </div>
 
       </section>
     </section>
 
-       <!-- 3. 자주 묻는 질문 (FAQ) -->
+    <!-- 3. 자주 묻는 질문 (FAQ) -->
     <section class="products-section products-section--info">
       <h2 class="products-section__title">자주 묻는 질문 (FAQ)</h2>
       <div class="products-info-grid">
         <article class="product-info-card">
           <h3>Q. 담보대출 한도는 어떻게 정해지나요?</h3>
-          <p>
-            대출 한도는 <strong>기준시세 × LTV − 선순위 채권액</strong>으로 계산됩니다.
-          </p>
+          <p>대출 한도는 <strong>기준시세 × LTV − 선순위 채권액</strong>으로 계산됩니다.</p>
           <p>
             기준시세는 부동산 종류별로 각각 다른 기준이 적용됩니다.
             보통 아파트의 경우는 KB시세를, 빌라/연립의 경우 하우스머치가 적용됩니다.
           </p>
-          <p>
-            그 외의 경우 각 온투업사의 자체 감정으로 기준시세를 결정합니다.
-          </p>
+          <p>그 외의 경우 각 온투업사의 자체 감정으로 기준시세를 결정합니다.</p>
         </article>
 
         <article class="product-info-card">
           <h3>Q. 연체이력, 세금체납 이력이 있어도 대출이 가능한가요?</h3>
-          <p>
-            네. 가능한 온투업체가 있습니다.
-          </p>
-          <p>
-            단, 금리·플랫폼수수료 등 조건이 차등 적용될 수 있습니다.
-          </p>
+          <p>네. 가능한 온투업체가 있습니다.</p>
+          <p>단, 금리·플랫폼수수료 등 조건이 차등 적용될 수 있습니다.</p>
         </article>
 
         <article class="product-info-card">
           <h3>Q. 후추의 담보대출 계산기는 얼마나 정확한가요?</h3>
           <p>
-            온투업에서 실제 취급했던 담보대출 정보를 기반으로 계산되기 때문에 <strong>대출 가능·불가능에 대한 결과는 90% 이상</strong> 정확하여
-            불필요한 상담을 피할 수 있습니다.
+            온투업에서 실제 취급했던 담보대출 정보를 기반으로 계산되기 때문에 <strong>대출 가능·불가능에 대한 결과는 90% 이상</strong>
+            정확하여 불필요한 상담을 피할 수 있습니다.
           </p>
           <p>
-             또한 <strong>개인정보를 입력하지 않으므로</strong> 유출에 대한 걱정이 없으며, 간단한 정보만으로도 편리하게 이용하실 수 있습니다.
+            또한 <strong>개인정보를 입력하지 않으므로</strong> 유출에 대한 걱정이 없으며, 간단한 정보만으로도 편리하게 이용하실 수 있습니다.
           </p>
         </article>
       </div>
@@ -362,9 +303,7 @@
     </div>
     <div class="beta-footer__bottom">
       <div class="beta-footer__brand">
-        <img src="/assets/logo/huchu-logo-white.png"
-             alt="HUCHU 로고"
-             class="beta-footer__logo-img" />
+        <img src="/assets/logo/huchu-logo-white.png" alt="HUCHU 로고" class="beta-footer__logo-img" />
         <span class="beta-footer__logo-text">HUCHU</span>
       </div>
       <div class="beta-footer__info">
@@ -376,26 +315,5 @@
     </div>
   </footer>
 
-  <script>
-    // 베타 메뉴 토글
-    document.addEventListener('DOMContentLoaded', function () {
-      const toggle = document.getElementById('betaMenuToggle');
-      const panel  = document.getElementById('betaMenuPanel');
-      if (!toggle || !panel) return;
-
-      toggle.addEventListener('click', () => {
-        const isHidden = panel.classList.contains('hide');
-        panel.classList.toggle('hide', !isHidden);
-        toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-          panel.classList.add('hide');
-          toggle.setAttribute('aria-expanded', 'false');
-        }
-      });
-    });
-  </script>
 </body>
 </html>
