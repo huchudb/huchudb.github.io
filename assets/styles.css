@@ -600,12 +600,6 @@ body.beta-body .beta-header::after{
 
 /* MENU 버튼 공통 */
 .beta-menu{position:relative;}
-.beta-menu-wrap{
-  position:relative;
-  display:flex;
-  align-items:center;
-}
-
 .beta-menu-toggle{
   display:inline-flex;
   align-items:center;
@@ -674,24 +668,23 @@ body.beta-body .beta-header::after{
 .beta-menu-panel{
   position:absolute;
   right:0;
-  top:calc(100% + 6px);
-  min-width:170px;
+  top:calc(100% + 8px);
+  min-width:210px;
   background:#ffffff;
-  border-radius:10px;
+  border-radius:12px;
   border:1px solid #e5e7eb;
-  box-shadow:0 10px 22px rgba(15,23,42,.14);
-  padding:4px 0;
+  box-shadow:0 12px 30px rgba(15,23,42,.18);
+  padding:6px 0;
   z-index:200;
 }
 .beta-menu-link{
   display:block;
-  padding:6px 12px;
+  padding:8px 14px;
   font-size:12px;
-  font-weight:700;
+  font-weight:600;
   color:#111827;
   text-decoration:none;
   white-space:nowrap;
-  line-height:1.2;
 }
 .beta-menu-link:hover{background:#f3f4f6;}
 
@@ -2519,121 +2512,116 @@ text-align:center;
 #naviStatsMount { contain: layout paint; }
 
 
+
 /* =========================================================
-   ✅ Navi tiles final override (2026-01-06 v5)
-   목표:
-   - 카드 배경 #f9f9f9
-   - 아이콘 확실히 크게 + 중앙 정렬
-   - 카운트 숫자: 우측에서 살짝 안쪽 + 큰 숫자도 1줄 유지
-   - 라벨: 무조건 1줄(필요 시 작아짐, 극단적이면 말줄임)
-   적용 범위: #naviStatsMount 내부만
+   ✅ Navi tiles FINAL override (2026-01-06)
+   Scope: only inside #naviStatsMount (main page widget)
+   Goals:
+   - Tile background #f9f9f9
+   - Bigger icons, but NO overlap
+   - Count pulled slightly left + never wraps (even 4~5 digits)
+   - Label always 1 line (JS will shrink if needed)
+   - Icon background transparent (no white capsule)
 ========================================================= */
 
+#naviStatsMount .navi-stats-card{
+  height: auto !important;         /* prevent height constraint that can cause overlaps */
+}
+
 #naviStatsMount .navi-stats-tiles{
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 12px !important;
+  gap: 14px !important;
+  grid-template-rows: none !important;                 /* remove 1fr row constraint */
+  grid-auto-rows: minmax(112px, auto) !important;      /* stable tile height without overlap */
 }
 
 #naviStatsMount .navi-tile{
   background: #f9f9f9 !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 14px !important;
-
-  position: relative !important;
-  padding: 14px 10px 12px !important;
+  padding: 14px 12px 12px !important;
 
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  text-align: center !important;
-
   gap: 8px !important;
-  min-height: 112px !important;
 
-  overflow: visible !important; /* 라벨/카운트 잘림 방지 */
+  position: relative !important;
+  min-height: 0 !important;
+  overflow: visible !important;    /* do NOT clip label */
 }
 
 #naviStatsMount .navi-tile__icon{
   width: 64px !important;
   height: 64px !important;
-  border-radius: 18px !important;
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  background: transparent !important;   /* ✅ transparent */
+  border: 0 !important;                /* ✅ no border */
   display: grid !important;
   place-items: center !important;
 }
 
 #naviStatsMount .navi-tile__img{
-  width: 48px !important;
-  height: 48px !important;
+  width: 54px !important;
+  height: 54px !important;
   object-fit: contain !important;
   display: block !important;
 }
 
 #naviStatsMount .navi-tile__count{
   position: absolute !important;
-  top: 10px !important;
-  right: 18px !important; /* ✅ 너무 우측에 붙지 않게 */
-  display: inline-flex !important;
-  align-items: baseline !important;
-
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  max-width: calc(100% - 26px) !important;
+  top: 12px !important;
+  right: 22px !important;              /* ✅ pulled left (more spacing from edge) */
   line-height: 1 !important;
-  font-weight: 900 !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
 }
 
 #naviStatsMount .navi-tile__count .num{
-  font-size: clamp(14px, 2.2vw, 22px) !important;
+  display: inline-block !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
   color: #16a34a !important;
-  letter-spacing: -0.06em !important;
+  letter-spacing: -0.04em !important;
   font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
 }
 
 #naviStatsMount .navi-tile__label{
-  display: block !important;
   width: 100% !important;
-  padding: 0 8px !important;
+  padding: 0 6px !important;
+  text-align: center !important;
 
+  font-size: 13px !important;          /* JS will shrink if overflow */
   font-weight: 800 !important;
   color: #0f172a !important;
-
-  /* ✅ 길어지면 작아져서 1줄 유지 */
-  font-size: clamp(11px, 1.05vw, 13px) !important;
   letter-spacing: -0.02em !important;
-  line-height: 1.2 !important;
+  line-height: 1.15 !important;
 
-  white-space: nowrap !important;
+  white-space: nowrap !important;      /* ✅ force single line */
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  text-overflow: ellipsis !important;  /* fallback only */
 }
 
-/* 모바일/좁은 화면 튜닝 */
-@media (max-width: 860px){
-  #naviStatsMount .navi-stats-tiles{
-    gap: 10px !important;
-  }
-  #naviStatsMount .navi-tile{
-    min-height: 104px !important;
-    padding: 12px 8px 10px !important;
-  }
-  #naviStatsMount .navi-tile__count{
-    top: 8px !important;
-    right: 16px !important;
-  }
-}
-
+/* Mobile tuning: keep count from colliding with icon */
 @media (max-width: 420px){
+  #naviStatsMount .navi-stats-tiles{
+    grid-auto-rows: minmax(104px, auto) !important;
+    gap: 12px !important;
+  }
   #naviStatsMount .navi-tile__icon{
-    width: 58px !important;
-    height: 58px !important;
+    width: 60px !important;
+    height: 60px !important;
   }
   #naviStatsMount .navi-tile__img{
-    width: 44px !important;
-    height: 44px !important;
+    width: 50px !important;
+    height: 50px !important;
+  }
+  #naviStatsMount .navi-tile__count{
+    top: 10px !important;
+    right: 18px !important;
+  }
+  #naviStatsMount .navi-tile__count .num{
+    font-size: 20px !important;
   }
 }
