@@ -4,9 +4,10 @@
 // - MENU works consistently across pages (blocks duplicate handlers in page scripts)
 // - MENU panel is positioned relative to the button (fixed), immune to layout differences
 // - Footer notice is injected into .beta-footer (right side on desktop, ordered on mobile)
+// - Footer left layout normalized: logo(brand) + business info stacked together
 
 (() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v3";
+  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v4";
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
@@ -28,48 +29,59 @@
     if (document.getElementById("beta-shell-style")) return;
 
     const css = `
-/* beta-shell injected styles (footer notice + ordering) */
+/* beta-shell injected styles (footer notice + ordering + spacing) */
 
-/* Desktop: bottom row = brand + info + (right) notice */
+/* Make "top edge -> links" spacing == "links -> bottom row" spacing */
+.beta-footer{
+  padding-top:16px !important;
+}
+.beta-footer__top{
+  margin:0 0 16px 0 !important;
+  padding:0 !important;
+}
+
+/* Bottom row: left(brand+info) + right(notice) */
 .beta-footer__bottom{
   display:flex !important;
   flex-direction:row !important;
   align-items:flex-start !important;
   justify-content:space-between !important;
   gap:18px !important;
-  flex-wrap:wrap !important; /* if width is tight, wrap instead of squishing to ugly line-breaks */
+  flex-wrap:wrap !important; /* if width is tight, wrap rather than squish */
 }
 
-/* Keep brand on the left */
-.beta-footer__brand{
-  flex:0 0 auto !important;
+/* Left column groups logo + business info */
+.beta-footer__left{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  gap:8px !important;
+  flex:1 1 420px !important;
+  min-width:320px !important;
 }
-
-/* Let business info take remaining space */
+.beta-footer__brand{ flex:0 0 auto !important; }
 .beta-footer__info{
-  flex:1 1 360px !important;
-  min-width:260px !important;
+  flex:0 0 auto !important;
+  min-width:0 !important;
 }
 
-/* Notice on the right, wider to avoid 2-line wraps */
+/* Notice on the right, wider to reduce wrapping */
 .beta-footer__notice{
   margin-left:auto !important;
-  width:min(560px, 46vw) !important;
-  max-width:560px !important;
-  flex:0 1 min(560px, 46vw) !important;
+  width:min(620px, 48vw) !important;
+  max-width:620px !important;
+  flex:0 1 min(620px, 48vw) !important;
   padding-left:16px !important;
   border-left:1px solid rgba(255,255,255,0.10) !important;
   color:#cbd5e1 !important;
-  word-break:keep-all !important; /* Korean readability */
+  word-break:keep-all !important;
 }
-
 .beta-footer__notice-list{
   margin:0 !important;
   padding-left:16px !important;
   font-size:11px !important;
   line-height:1.65 !important;
 }
-
 .beta-footer__notice-list li{ margin:0 0 6px 0 !important; }
 .beta-footer__notice-list li:last-child{ margin-bottom:0 !important; }
 
@@ -78,6 +90,7 @@
    2) notice
    3) brand (logo)
    4) business info
+   (brand+info are inside .beta-footer__left, so within it brand appears above info)
 */
 @media (max-width: 760px){
   .beta-footer__bottom{
@@ -97,8 +110,11 @@
     border-top:1px solid rgba(255,255,255,0.10) !important;
   }
 
-  .beta-footer__brand{ order:2 !important; }
-  .beta-footer__info{ order:3 !important; min-width:0 !important; }
+  .beta-footer__left{
+    order:2 !important;
+    min-width:0 !important;
+    width:100% !important;
+  }
 }
 `;
 
@@ -116,7 +132,6 @@
     const panel = document.getElementById("betaMenuPanel");
     if (!btn || !panel) return;
 
-    // Avoid rebinding
     if (btn.dataset.huchuShellMenu === "1") return;
     btn.dataset.huchuShellMenu = "1";
 
@@ -227,18 +242,34 @@
   }
 
   // ----------------------------
-  // Footer notice (right side)
+  // Footer: normalize layout (brand + info group), inject notice
   // ----------------------------
-  function setupFooterNotice() {
-    const footer = document.querySelector(".beta-footer");
-    if (!footer) return;
+  function normalizeFooterLeftColumn(footer) {
+    const bottom = footer.querySelector(".beta-footer__bottom");
+    if (!bottom) return;
 
+    // If already normalized, skip
+    if (bottom.querySelector(".beta-footer__left")) return;
+
+    const brand = bottom.querySelector(".beta-footer__brand");
+    const info = bottom.querySelector(".beta-footer__info");
+    if (!brand || !info) return;
+
+    const left = document.createElement("div");
+    left.className = "beta-footer__left";
+
+    // Insert left before the first of brand/info
+    bottom.insertBefore(left, brand);
+
+    left.appendChild(brand);
+    left.appendChild(info);
+  }
+
+  function injectFooterNotice(footer) {
     const bottom = footer.querySelector(".beta-footer__bottom");
     if (!bottom) return;
 
     if (bottom.querySelector(".beta-footer__notice")) return;
-
-    ensureStyleTag();
 
     const notice = document.createElement("div");
     notice.className = "beta-footer__notice";
@@ -258,9 +289,18 @@
     bottom.appendChild(notice);
   }
 
+  function setupFooter() {
+    const footer = document.querySelector(".beta-footer");
+    if (!footer) return;
+
+    ensureStyleTag();
+    normalizeFooterLeftColumn(footer);
+    injectFooterNotice(footer);
+  }
+
   function init() {
     setupMenu();
-    setupFooterNotice();
+    setupFooter();
   }
 
   if (document.readyState === "loading") {
