@@ -10,6 +10,8 @@
 
     <link rel="stylesheet" href="/assets/navi-beta.css?v=20251230-fixdup1" />
 <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
+  <script type="module" src="/assets/beta-shell.js?v=20260106-menu1"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script type="module" src="/assets/navi-beta.js?v=20251230-fixdup1"></script>
@@ -37,25 +39,23 @@
 
       <!-- MENU -->
       <div class="beta-menu-wrap">
+        <button
+          id="betaMenuToggle"
+          class="beta-menu-toggle"
+          type="button"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
 
-      <button
-        id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false"
-      >
-        <span class="beta-menu-toggle__label">MENU</span>
-      </button>
-
-<div id="betaMenuPanel" class="beta-menu-panel hide">
-        <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
-        <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
-        <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
-        <a class="beta-menu-link" href="/company.html">회사소개</a>
-        <a class="beta-menu-link" href="/contact.html">광고문의</a>
-      </div>
-
+        <div id="betaMenuPanel" class="beta-menu-panel hide">
+          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
+          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
+          <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
+          <a class="beta-menu-link" href="/company.html">회사소개</a>
+          <a class="beta-menu-link" href="/contact.html">광고문의</a>
+        </div>
       </div>
     </div>
   </header>
