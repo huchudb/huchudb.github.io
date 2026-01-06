@@ -25,25 +25,19 @@ async function postNaviStatsOncePerClick(payload) {
       }
     } catch {}
 
-    // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적)
-    // ⚠️ sendBeacon은 실패 시 false를 반환할 수 있음 → 성공(true)일 때만 return
+    // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적, preflight 없음)
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      try {
-        const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
-        const ok = navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
-        if (ok) return;
-      } catch {}
+      const blob = new Blob([body], { type: "text/plain" });
+      navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
+      return;
     }
 
-    // ✅ fetch fallback (application/json + keepalive)
-    await fetch(`${NAVI_STATS_ENDPOINT}?_t=${Date.now()}`, {
+    // ✅ fetch fallback (Content-Type 헤더를 넣지 않아 preflight(OPTIONS) 회피)
+    await fetch(NAVI_STATS_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
-      cache: "no-store",
-      mode: "cors",
-      credentials: "omit"
+      cache: "no-store"
     });
   } catch (e) {
     console.warn("navi-stats post failed:", e);
@@ -79,9 +73,20 @@ function toProductGroupStatKey(rawMainCategory) {
   return "";
 }
 
+
+// Duplicate click guard (per product group) to prevent double counting on fast taps/clicks
+const __HUCHU_NAVI_CLICK_GUARD__ = {
+  lastAtByKey: Object.create(null)
+};
+
 function trackProductGroupClick(rawMainCategory) {
   const key = toProductGroupStatKey(rawMainCategory);
   if (!key) return;
+
+  const now = Date.now();
+  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
+  if (now - last < 700) return; // 700ms debounce per key
+  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
 
   // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
   postNaviStatsOncePerClick({
