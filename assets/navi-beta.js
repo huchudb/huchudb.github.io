@@ -28,8 +28,8 @@ async function postNaviStatsOncePerClick(payload) {
     // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적, preflight 없음)
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
       const blob = new Blob([body], { type: "text/plain" });
-      navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
-      return;
+      const ok = navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
+      if (ok) return;
     }
 
     // ✅ fetch fallback (Content-Type 헤더를 넣지 않아 preflight(OPTIONS) 회피)
