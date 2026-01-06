@@ -509,13 +509,41 @@
 
     let currentIndex = 0;
     let autoTimer    = null;
+    let autoDir      = 1;
 
-    let isPointerDown = false;
-    let startX        = 0;
-    let deltaX        = 0;
+    const isMobileNow = () =>
+      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+      window.innerWidth <= 768;
 
     function getCards() {
       return Array.from(track.querySelectorAll('.stats-card'));
+    }
+    function getCardCount() {
+      return getCards().length;
+    }
+    function hasOverflow() {
+      return track.scrollWidth > viewport.clientWidth + 2;
+    }
+
+    function nearestIndex() {
+      const cards = getCards();
+      const total = cards.length;
+      if (!total) return 0;
+
+      const center = viewport.scrollLeft + viewport.clientWidth / 2;
+      let best = 0;
+      let bestDist = Infinity;
+
+      for (let i = 0; i < total; i++) {
+        const card = cards[i];
+        const c = card.offsetLeft + card.clientWidth / 2;
+        const d = Math.abs(c - center);
+        if (d < bestDist) {
+          bestDist = d;
+          best = i;
+        }
+      }
+      return best;
     }
 
     function scrollToIndex(newIndex, opts) {
@@ -527,14 +555,11 @@
       const normalized = ((newIndex % total) + total) % total;
       currentIndex = normalized;
 
-      const card    = cards[normalized];
-      const cardRect = card.getBoundingClientRect();
-      const vpRect   = viewport.getBoundingClientRect();
-
-      const offset = card.offsetLeft - (vpRect.width - cardRect.width) / 2;
+      const card = cards[normalized];
+      const left = card.offsetLeft - (viewport.clientWidth / 2 - card.clientWidth / 2);
 
       viewport.scrollTo({
-        left: offset,
+        left: Math.max(0, left),
         behavior: options.smooth ? 'smooth' : 'auto',
       });
     }
@@ -545,33 +570,27 @@
       autoTimer = null;
     }
 
-    const isMobileNow = () =>
-      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
-      window.innerWidth <= 768;
-
-    let autoDir = 1;
-
-
     function startAuto() {
       stopAuto();
 
       // 모바일에서만 + 오버플로우가 있을 때만 자동 슬라이드(5초 핑퐁)
+      if (!isMobileNow() || !hasOverflow()) return;
+
       const total = getCardCount();
-      const hasOverflow = viewport.scrollWidth - viewport.clientWidth > 4;
-      if (!isMobileNow() || total <= 1 || !hasOverflow) return;
+      if (total <= 1) return;
 
       autoTimer = setInterval(() => {
-        if (paused) return;
+        const t = getCardCount();
+        if (t <= 1) return;
 
         let next = currentIndex + autoDir;
 
-        // ping-pong at ends
-        if (next >= total) {
+        if (next >= t - 1) {
           autoDir = -1;
-          next = Math.max(0, total - 2);
-        } else if (next < 0) {
+          next = t - 1;
+        } else if (next <= 0) {
           autoDir = 1;
-          next = Math.min(1, total - 1);
+          next = 0;
         }
 
         currentIndex = next;
@@ -579,79 +598,115 @@
       }, 5000);
     }
 
-    function onPointerDown(clientX) {
-      isPointerDown = true;
+    // ---------------------------
+    // Natural drag-to-scroll
+    // ---------------------------
+    let isDown = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let lastX = 0;
+
+    const threshold = 55; // swipe step threshold (mobile)
+
+    function onDown(clientX) {
+      if (!hasOverflow()) return;
+
+      isDown = true;
       startX = clientX;
-      deltaX = 0;
+      lastX = clientX;
+      startScrollLeft = viewport.scrollLeft;
+
+      viewport.classList.add('is-dragging');
       stopAuto();
     }
 
-    function onPointerMove(clientX) {
-      if (!isPointerDown) return;
-      deltaX = clientX - startX;
+    function onMove(clientX) {
+      if (!isDown) return;
+
+      const dx = clientX - startX;
+      lastX = clientX;
+      viewport.scrollLeft = startScrollLeft - dx;
     }
 
-    function onPointerUp() {
-      if (!isPointerDown) return;
-      isPointerDown = false;
+    function onUp() {
+      if (!isDown) return;
 
-      const threshold = viewport.offsetWidth * 0.15;
+      isDown = false;
+      viewport.classList.remove('is-dragging');
 
-      if (deltaX > threshold) {
-        scrollToIndex(currentIndex - 1);
-      } else if (deltaX < -threshold) {
-        scrollToIndex(currentIndex + 1);
-      } else {
-        scrollToIndex(currentIndex);
+      // 모바일에서만 스냅(데스크탑은 자연 스크롤 유지)
+      if (isMobileNow() && hasOverflow()) {
+        const dx = lastX - startX;
+        const base = nearestIndex();
+
+        if (Math.abs(dx) > threshold) {
+          const step = dx < 0 ? 1 : -1; // drag left => next
+          scrollToIndex(base + step, { smooth: true });
+        } else {
+          scrollToIndex(base, { smooth: true });
+        }
       }
 
       startAuto();
     }
 
-    viewport.addEventListener('mousedown', (e) => {
+    // Pointer events (covers mouse + touch in modern browsers)
+    viewport.addEventListener('pointerdown', (e) => {
+      // only left click for mouse
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      // prevent text selection / stray clicks while dragging
       e.preventDefault();
-      onPointerDown(e.clientX);
+      onDown(e.clientX);
     });
-    window.addEventListener('mousemove', (e) => {
-      onPointerMove(e.clientX);
+    window.addEventListener('pointermove', (e) => {
+      onMove(e.clientX);
     });
-    window.addEventListener('mouseup', () => {
-      onPointerUp();
+    window.addEventListener('pointerup', () => {
+      onUp();
+    });
+    window.addEventListener('pointercancel', () => {
+      onUp();
     });
 
+    // Wheel: vertical wheel -> horizontal scroll (desktop usability)
     viewport.addEventListener(
-      'touchstart',
+      'wheel',
       (e) => {
-        const t = e.touches[0];
-        if (!t) return;
-        onPointerDown(t.clientX);
+        if (!hasOverflow()) return;
+        // If user already scrolls horizontally, allow it.
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          viewport.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
       },
-      { passive: true },
+      { passive: false }
     );
+
+    // Keep currentIndex in sync (used by mobile auto ping-pong)
+    let raf = null;
+    viewport.addEventListener(
+      'scroll',
+      () => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          currentIndex = nearestIndex();
+        });
+      },
+      { passive: true }
+    );
+
+    // Initialize
+    currentIndex = nearestIndex();
+    startAuto();
+
     window.addEventListener(
-      'touchmove',
-      (e) => {
-        const t = e.touches[0];
-        if (!t) return;
-        onPointerMove(t.clientX);
+      'resize',
+      () => {
+        currentIndex = nearestIndex();
+        startAuto();
       },
-      { passive: true },
+      { passive: true }
     );
-    window.addEventListener('touchend', () => {
-      onPointerUp();
-    });
-
-    slider.addEventListener('mouseenter', stopAuto);
-    slider.addEventListener('mouseleave', startAuto);
-
-    window.addEventListener('resize', () => {
-      scrollToIndex(currentIndex, { smooth: false });
-    });
-
-    setTimeout(() => {
-      scrollToIndex(0, { smooth: false });
-      startAuto();
-    }, 0);
   }
 
   function initOntuStatsSliders() {
