@@ -34,7 +34,7 @@
 /* MENU: narrower card + more vertical breathing room */
 .beta-menu-panel{
   width:220px !important;
-  max-width:200px !important;
+  max-width:170px !important;
   min-width:180px !important;
   padding:10px 6px !important;   /* top/bottom padding increased */
 }
