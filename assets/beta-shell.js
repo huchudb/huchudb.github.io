@@ -5,9 +5,12 @@
 // - MENU panel is positioned relative to the button (fixed), immune to layout differences
 // - Footer notice is injected into .beta-footer (right side on desktop, ordered on mobile)
 // - Footer left layout normalized: logo(brand) + business info stacked together
+//
+// If you see "SyntaxError: Unexpected string", this file may have been accidentally overwritten
+// or edited with mismatched quotes. Replace the whole file with this one.
 
 (() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v5";
+  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v6";
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
@@ -15,9 +18,9 @@
   // Config (edit only these)
   // ----------------------------
   const FOOTER_NOTICE_ITEMS = [
-    "본 페이지의 정보는 단순 참고용이며, 대출 관련 문의는 해당 온투업체에 직접 문의해 주세요.",
-    "당사는 대출의 판매·대리·중개·모집, 심사·승인·계약 체결에 일체 관여하지 않습니다."
-    "과도한 빛은 당신에게 큰 불행을 안겨줄 수 있습니다. 반드시 상환 계획을 함께 준비하세요."
+    "본 페이지의 정보는 참고용이며, 정확한 조건은 해당 온투업체 안내 및 심사 결과에 따라 달라질 수 있습니다.",
+    "금리·한도·플랫폼 수수료·중도상환 조건 등은 수시로 변동될 수 있습니다.",
+    "최종 조건은 해당 온투업체/계약서 기준으로 확인해 주세요."
   ];
 
   // ----------------------------
@@ -34,24 +37,23 @@
 /* MENU: narrower card + more vertical breathing room */
 .beta-menu-panel{
   width:220px !important;
-  max-width:170px !important;
+  max-width:240px !important;
   min-width:180px !important;
-  padding:10px 6px !important;   /* top/bottom padding increased */
+  padding:10px 6px !important;
 }
 .beta-menu-link{
-  padding:10px 12px !important;  /* vertical padding increased */
+  padding:10px 12px !important;
   line-height:1.2 !important;
 }
 
-/* Make "top edge -> links" spacing == "links -> bottom row" spacing,
-   AND keep the links aligned with the centered footer content. */
+/* Footer link row spacing, keep links aligned with centered footer content */
 .beta-footer{
   padding-top:16px !important;
 }
 .beta-footer__top{
   max-width:1200px !important;
   margin:0 auto 16px !important;
-  padding:0 24px !important; /* restore horizontal padding (was causing left-sticking) */
+  padding:0 24px !important;
   box-sizing:border-box !important;
 }
 
@@ -62,7 +64,7 @@
   align-items:flex-start !important;
   justify-content:space-between !important;
   gap:18px !important;
-  flex-wrap:wrap !important; /* if width is tight, wrap rather than squish */
+  flex-wrap:wrap !important;
 }
 
 /* Left column groups logo + business info */
@@ -80,7 +82,7 @@
   min-width:0 !important;
 }
 
-/* Notice on the right, wider to reduce wrapping */
+/* Notice on the right */
 .beta-footer__notice{
   margin-left:auto !important;
   width:min(620px, 48vw) !important;
@@ -139,7 +141,7 @@
   }
 
   // ----------------------------
-  // MENU (fixed-position dropdown, blocks duplicate handlers)
+  // MENU
   // ----------------------------
   function setupMenu() {
     const btn = document.getElementById("betaMenuToggle");
@@ -156,6 +158,7 @@
       panel.classList.remove("hide");
       btn.setAttribute("aria-expanded", "true");
     };
+
     const close = () => {
       panel.classList.add("hide");
       btn.setAttribute("aria-expanded", "false");
@@ -165,6 +168,7 @@
       panel.style.position = "";
       panel.style.zIndex = "";
     };
+
     const toggle = () => (panel.classList.contains("hide") ? open() : close());
 
     function positionPanel() {
@@ -200,6 +204,7 @@
       }
     }
 
+    // Capture-phase to prevent double toggles by other scripts
     btn.addEventListener(
       "click",
       (e) => {
@@ -246,6 +251,7 @@
       },
       { passive: true }
     );
+
     window.addEventListener(
       "scroll",
       () => {
