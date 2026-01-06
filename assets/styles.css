@@ -2516,3 +2516,56 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
+
+
+
+/* =========================================================
+   ✅ 2026-01-06 ontu-stats: panel gap x2 + loan cards wider (no overflow)
+   - Increase spacing between "대출 현황" and "상품유형별 대출잔액"
+   - Widen loan panel cards on desktop (3-up) to prevent money overflow
+   - Allow main value line to wrap safely inside card (no spilling)
+========================================================= */
+
+/* 1) 패널 간격: 기존 대비 2배 */
+body.ontu-stats-page .stats-panel--loan{
+  margin-bottom:36px !important;
+}
+@media (max-width:768px){
+  body.ontu-stats-page .stats-panel--loan{
+    margin-bottom:32px !important;
+  }
+}
+
+/* 2) 메인 금액 라인: 고정폭/nowrap 제거 → 카드 밖으로 새는 현상 방지 */
+body.ontu-stats-page .stats-card__value--main{
+  width:100% !important;
+  max-width:100% !important;
+  white-space:normal !important;
+  display:flex !important;
+  flex-wrap:wrap !important;
+  justify-content:center !important;
+  gap:6px !important;
+  text-align:center !important;
+  line-height:1.15 !important;
+}
+body.ontu-stats-page .stats-card__value--main .money-text{
+  display:inline-block;
+  word-break:keep-all;
+}
+
+/* 3) (데스크탑) 대출현황 카드 가로폭 확대: 4-up → 3-up */
+@media (min-width:900px){
+  body.ontu-stats-page .stats-panel__track--loan .stats-card{
+    flex:0 0 calc((100% - 2 * 16px) / 3) !important;
+  }
+}
+
+/* (선택) 초대형 화면에서 조금 더 여유 */
+@media (min-width:1280px){
+  body.ontu-stats-page .stats-panel__track--loan{
+    gap:18px;
+  }
+  body.ontu-stats-page .stats-panel__track--loan .stats-card{
+    flex:0 0 calc((100% - 2 * 18px) / 3) !important;
+  }
+}
