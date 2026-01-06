@@ -864,35 +864,8 @@ async function initOntuStats() {
 }
 
 // 상단 MENU 드롭다운
-function setupBetaMenu() {
-  const btn   = document.getElementById("betaMenuToggle");
-  const panel = document.getElementById("betaMenuPanel");
-  if (!btn || !panel) return;
 
-  const close = () => {
-    panel.classList.add("hide");
-    btn.setAttribute("aria-expanded", "false");
-  };
-  const open = () => {
-    panel.classList.remove("hide");
-    btn.setAttribute("aria-expanded", "true");
-  };
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const expanded = btn.getAttribute("aria-expanded") === "true";
-    if (expanded) close();
-    else open();
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!panel.contains(e.target) && !btn.contains(e.target)) {
-      close();
-    }
-  });
-}
-
-// DOM 로드 후 실행
+// DOM 로드 후 실행 (MENU는 /assets/beta-shell.js에서 공통 처리)
 document.addEventListener("DOMContentLoaded", () => {
   initNaviStatsWidget();
   hookHeroBannerHeightSync();
@@ -900,9 +873,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(syncNaviStatsHeightDebounced, 0);
 
   initOntuStats();
-  setupBetaMenu();
-
-  window.addEventListener("resize", () => {
+window.addEventListener("resize", () => {
     autoFitLoanStatusText();
   });
 });
