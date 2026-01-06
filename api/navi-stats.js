@@ -13,7 +13,7 @@ const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
@@ -113,46 +113,55 @@ function inc(map, key, by = 1) {
   map[k] = (Number(map[k]) || 0) + by;
 }
 
-async function readRawBody(req) {
+function safeParseBody(req) {
+  const b = req?.body;
+
+  if (!b) return {};
+
+  // 문자열(JSON)
+  if (typeof b === "string") {
+    try { return JSON.parse(b); } catch { return {}; }
+  }
+
+  // Buffer
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(b)) {
+    try { return JSON.parse(b.toString("utf8")); } catch { return {}; }
+  }
+
+  // 이미 객체로 파싱된 경우
+  if (typeof b === "object") return b;
+
+  return {};
+}
+
+async function parseBody(req) {
+  // 1) Try already-parsed body (Next/Vercel default)
+  const parsed = safeParseBody(req);
+  if (parsed && typeof parsed === "object" && Object.keys(parsed).length) return parsed;
+
+  // 2) Fallback: read raw stream (sendBeacon(text/plain) or fetch without JSON parser)
   try {
-    return await new Promise((resolve, reject) => {
+    const raw = await new Promise((resolve, reject) => {
       let data = "";
       req.on("data", (chunk) => {
         data += chunk;
+        // safety: 256KB max
+        if (data.length > 256 * 1024) {
+          reject(new Error("Body too large"));
+        }
       });
       req.on("end", () => resolve(data));
       req.on("error", reject);
     });
-  } catch {
-    return "";
-  }
-}
 
-async function safeParseBody(req) {
-  const b = req?.body;
-
-  if (b) {
-    // 문자열(JSON)
-    if (typeof b === "string") {
-      try { return JSON.parse(b); } catch { return {}; }
-    }
-
-    // Buffer
-    if (typeof Buffer !== "undefined" && Buffer.isBuffer(b)) {
-      try { return JSON.parse(b.toString("utf8")); } catch { return {}; }
-    }
-
-    // 이미 객체로 파싱된 경우
-    if (typeof b === "object") return b;
-
+    const s = String(raw || "").trim();
+    if (!s) return {};
+    try { return JSON.parse(s); } catch { return {}; }
+  } catch (e) {
     return {};
   }
-
-  // body parser가 동작하지 않는 경우(예: Content-Type 없거나 text/plain 등) raw stream을 직접 읽어 파싱
-  const raw = await readRawBody(req);
-  if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
 }
+
 
 export default async function handler(req, res) {
   setCors(res);
@@ -180,8 +189,7 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const mk = getKstMonthKey();
       const key = `huchu:navi-stats:v1:${mk}`;
-      const body = await safeParseBody(req);
-
+      const body = await parseBody(req);
       const event = String(body.event || body.evt || "confirm").trim();
       const stats = (await kvGetJson(key)) || initStats(mk);
 
@@ -220,7 +228,10 @@ export default async function handler(req, res) {
       }
 
       await kvSetJson(key, stats);
-      return res.status(200).json({ ok: true, monthKey: mk });
+      // 응답에 현재값을 포함해 네트워크에서 즉시 확인 가능
+      const pgKey = String(body.productGroupKey || body.productGroup || "").trim();
+      const pgVal = pgKey ? (Number(stats?.productGroups?.[pgKey]) || 0) : undefined;
+      return res.status(200).json({ ok: true, monthKey: mk, event, productGroupKey: pgKey || undefined, productGroupValue: pgVal, totals: stats.totals });
     }
 
     return res.status(405).json({ error: "Method Not Allowed" });
