@@ -2807,3 +2807,71 @@ text-align:center;
     padding: 9px 9px 8px !important;
   }
 }
+
+
+/* =========================================================
+   ✅ Pro feel polish for Navi tiles (subtle, clean)
+   - Soft top highlight band (no lines)
+   - Gentle shadow + hover lift (desktop only)
+   - Slightly refined borders
+   - Defensive: remove any stray borders/backgrounds on count
+   Scope: #naviStatsMount only
+========================================================= */
+
+#naviStatsMount .navi-tile{
+  position: relative !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, #f9f9f9 62%) !important;
+
+  border-color: rgba(148,163,184,.45) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.80),
+    0 1px 0 rgba(15,23,42,.04),
+    0 10px 26px rgba(15,23,42,.06) !important;
+
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease !important;
+}
+
+#naviStatsMount .navi-tile::before{
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  height: 56% !important;
+  background: linear-gradient(180deg, rgba(15,23,42,.035) 0%, rgba(15,23,42,0) 100%) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+#naviStatsMount .navi-tile > *{
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+@media (hover:hover){
+  #naviStatsMount .navi-tile:hover{
+    transform: translateY(-1px) !important;
+    border-color: rgba(148,163,184,.60) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.85),
+      0 2px 0 rgba(15,23,42,.05),
+      0 14px 34px rgba(15,23,42,.08) !important;
+  }
+}
+
+/* Defensive clean-up: wipe stray borders/dots near count */
+#naviStatsMount .navi-tile__count,
+#naviStatsMount .navi-tile__count *{
+  border: 0 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+#naviStatsMount .navi-tile__count .num{
+  text-shadow: 0 1px 0 rgba(255,255,255,.65) !important;
+}
+
+#naviStatsMount .navi-tile__img{
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.55)) !important;
+}
