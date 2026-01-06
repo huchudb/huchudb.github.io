@@ -168,7 +168,7 @@ const DEFAULT_ONTU_STATS = {
 const API_BASE = (function resolveApiBase(){
   try{
     const w = (typeof window !== "undefined") ? window : null;
-    let base = (w && typeof w.API_BASE === "string" && w.API_BASE.trim()) ? String(w.API_BASE).trim() : "";
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
 
     if (!base) {
       const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
@@ -177,62 +177,16 @@ const API_BASE = (function resolveApiBase(){
         host === "127.0.0.1" ||
         host.endsWith(".local");
 
-      const isVercelHost = host === "huchudb-github-io.vercel.app" || host.endsWith(".vercel.app");
-
-      // ✅ 운영(커스텀 도메인)에서는 Vercel Functions 도메인을 사용해야 함 (GitHub Pages에는 /api가 없음)
-      base = (isLocal || isVercelHost) ? "" : "https://huchudb-github-io.vercel.app";
+      // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
+      // 필요 시 window.API_BASE 로 언제든 override 가능
+      base = (isLocal || host === "huchudb-github-io.vercel.app") ? "" : "https://huchudb-github-io.vercel.app";
     }
 
     return base.replace(/\/+$/, "");
   } catch {
     return "";
   }
-}
-
-function calcErrPct(a, b){
-  const A = Number(a || 0);
-  const B = Number(b || 0);
-  if (!(A > 0) || !(B > 0)) return null;
-  const half = Math.abs(B - A) / 2;
-  const mid = (A + B) / 2;
-  if (!(mid > 0)) return null;
-  return (half / mid) * 100;
-}
-
-function wireHelpPopovers(root){
-  const scope = root || document;
-  const helps = scope.querySelectorAll?.(".beta-help") || [];
-  if (!helps.length) return;
-
-  // outside click close (1회만)
-  if (!window.__HUCHU_HELP_POPOVER_WIRED){
-    window.__HUCHU_HELP_POPOVER_WIRED = true;
-    document.addEventListener("click", (e) => {
-      const t = e.target;
-      if (t && t.closest && t.closest(".beta-help")) return;
-      document.querySelectorAll(".beta-help.is-open").forEach(el => el.classList.remove("is-open"));
-    }, { capture: true });
-  }
-
-  helps.forEach((wrap) => {
-    if (wrap.__wired) return;
-    wrap.__wired = true;
-
-    const btn = wrap.querySelector(".beta-help__btn");
-    if (btn) {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        wrap.classList.toggle("is-open");
-      }, { passive: false });
-    }
-
-    // hover for desktop (터치 환경은 영향 적음)
-    wrap.addEventListener("mouseenter", () => wrap.classList.add("is-open"));
-    wrap.addEventListener("mouseleave", () => wrap.classList.remove("is-open"));
-  });
-}
-)();
+})();
 
 /* =========================================================
    ✅ Navi stats widget (beta): /api/navi-stats
@@ -366,8 +320,8 @@ function renderNaviStatsWidget(payload, opts = {}) {
         <div class="navi-tile__icon" aria-hidden="true">
           ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
         </div>
-        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}건">
-          <span class="num" data-target="${v}">${initial}</span><span class="unit">건</span>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
+          <span class="num" data-target="${v}">${initial}</span>
         </div>
         <div class="navi-tile__label">${escapeHtml(g.label)}</div>
       </div>
@@ -376,10 +330,13 @@ function renderNaviStatsWidget(payload, opts = {}) {
 
   mount.innerHTML = `
     <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
-      <header class="navi-stats-header">
-        <div class="navi-stats-left">
-          <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
-          <span class="navi-stats-title">후추 네비게이션 이용 현황</span>
+      <header class="navi-stats-head">
+        <div class="navi-stats-title">
+          <span class="navi-live" aria-label="LIVE">
+            <span class="navi-live__dot" aria-hidden="true"></span>
+            LIVE
+          </span>
+          <span class="navi-stats-title__text">후추 네비게이션 이용 현황</span>
         </div>
         <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
       </header>
@@ -431,52 +388,37 @@ function renderNaviStatsWidget(payload, opts = {}) {
   syncNaviStatsHeightDebounced();
 }
 
-async function initNaviStatsWidget(opts = {}){
-  const mount = document.getElementById("betaNaviStats");
+async function initNaviStatsWidget() {
+  const mount = document.getElementById("naviStatsMount");
   if (!mount) return;
 
-  const monthKey = (opts && opts.monthKey) ? String(opts.monthKey) : getKstMonthKey(); // YYYY-MM
-  const cacheKey = `${NAVI_STATS_CACHE_KEY}:${monthKey}`;
+  const monthKey = getKstMonthKey();
 
-  const renderWith = (data) => renderNaviStatsWidget(mount, data, { monthKey });
-
-  // 1) 캐시 먼저 렌더(즉시 표시)
+  // 1) 캐시(또는 0값)로 즉시 렌더 + 애니메이션(숫자/타일은 레이아웃 영향 없음)
   let cached = null;
-  try { cached = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch {}
-  if (cached && cached.ts && (Date.now() - cached.ts) < NAVI_STATS_CACHE_TTL_MS && cached.data) {
-    renderWith(cached.data);
-  } else {
-    renderWith(DEFAULT_NAVI_STATS);
+  try {
+    cached = JSON.parse(localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey)) || "null");
+  } catch {
+    cached = null;
   }
 
-  // 2) 서버에서 최신값 갱신(백그라운드)
-  const refresh = async () => {
-    try {
-      const fresh = await fetchNaviStats(monthKey);
-      if (fresh) {
-        try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: fresh })); } catch {}
-        renderWith(fresh);
-      }
-    } catch (e) {
-      console.warn("[navi-stats] refresh failed:", e);
-    }
-  };
+  const seed = (cached && typeof cached === "object")
+    ? { ...cached, monthKey }
+    : { monthKey, productGroups: {} };
 
-  // 최초 1회 갱신
-  refresh();
+  // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
+  requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 3) 네비게이션 클릭/카운트 갱신 트리거들 (있으면 즉시 반영)
-  if (!window.__HUCHU_NAVI_REFRESH_WIRED) {
-    window.__HUCHU_NAVI_REFRESH_WIRED = true;
-
-    // navi-beta.js가 호출할 수 있도록 전역 훅 제공
-    window.huchuRefreshNaviStats = () => refresh();
-
-    // 다양한 이벤트 이름을 폭넓게 수용
-    ["huchu:navi-stats-updated", "huchu:naviStatsUpdated", "huchu:navi-updated", "huchu:navistats"].forEach((evt) => {
-      window.addEventListener(evt, () => refresh());
-    });
-  }
+  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
+  // try {
+  //   const fresh = await fetchNaviStats(monthKey);
+  //   if (fresh && fresh.productGroups) {
+  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
+  //   }
+  // } catch (e) {
+  //   // 무시: 캐시만으로도 동작
+  // }
 }
 
 
@@ -524,7 +466,7 @@ async function fetchOntuStats() {
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
-      month: DEFAULT_ONTU_MONTH,
+      month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
     };
@@ -615,12 +557,7 @@ function renderProductSection(summary, byType) {
   if (!section) return;
 
   if (!summary || !byType || !Object.keys(byType).length) {
-    
-  // 오차범위(%) 계산: 대출현황의 '대출잔액' vs 상품유형별 금액 합(표시값 기준)
-  const byTypeSum = amounts.reduce((acc, v) => acc + (Number(v) || 0), 0);
-  const errPct = calcErrPct(balance, byTypeSum);
-  const errPctLabel = (errPct == null) ? "" : `±${errPct.toFixed(8)}%`;
-section.innerHTML = `
+    section.innerHTML = `
       <div class="notice error">
         <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
       </div>
@@ -680,15 +617,8 @@ section.innerHTML = `
         </div>
       </div>
     </div>
-    <div class="beta-product-footnote">
-      <div class="beta-product-footnote__source">※출처: 온라인투자연계금융업 중앙기록관리기관</div>
-      <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__errpct">※오차범위 : ${errPctLabel}</span>
-        <span class="beta-help" aria-label="오차범위 안내">
-          <button type="button" class="beta-help__btn" aria-label="오차범위 안내">?</button>
-          <span class="beta-help__popover" role="tooltip">표시된 오차범위는 온투업중앙기록관리기관에서 제공되는 정보 대출현황의 대출잔액과 업체별통계의 대출잔액과의 편차를 기반으로 계산됩니다.</span>
-        </span>
-      </div>
+    <div class="beta-product-source-note">
+      ※출처: 온라인투자연계금융업 중앙기록관리기관
     </div>
   `;
 
