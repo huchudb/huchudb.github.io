@@ -2674,3 +2674,136 @@ text-align:center;
     font-size: 20px !important;
   }
 }
+
+
+
+/* =====================================================================
+   ✅ 2026-01-06 FINAL: Navi tiles layout (NO SCROLL, NO DOTTED LINES)
+   - 카드 영역이 HERO 높이를 넘지 않도록: .navi-stats-card 높이는 JS sync 사용
+   - tiles는 3x3 고정 그리드(각 행 1fr)로 "카드 높이 안에서" 자동 축소
+   - 카드 내부는 2x2 구역 느낌(아이콘/카운트/라벨)으로 배치하되 "구분선은 표시하지 않음"
+   Scope: #naviStatsMount only
+===================================================================== */
+
+/* 카드 내부 레이아웃: 헤더 + 타일(남은 높이) */
+#naviStatsMount .navi-stats-card{
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+#naviStatsMount .navi-stats-head{
+  flex: 0 0 auto !important;
+}
+#naviStatsMount .navi-stats-tiles{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+
+  /* ✅ 스크롤 금지 */
+  overflow: visible !important;
+
+  /* ✅ 3x3 고정 + 겹침 방지 */
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: unset !important;
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+/* 타일 자체: 셀 높이 안에서 내용이 "위아래로 꽉" 차지 않게, 중앙에 정돈 */
+#naviStatsMount .navi-tile{
+  background: #f9f9f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+
+  /* ✅ 2열(좌:아이콘 / 우:카운트) + 2행(상단/하단) */
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  grid-template-rows: 1fr auto !important;
+  align-items: center !important;
+
+  padding: 10px 10px 9px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+
+  overflow: hidden !important;
+}
+
+/* 아이콘: 좌상단 영역(좌측 절반) 중앙 정렬 */
+#naviStatsMount .navi-tile__icon{
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+
+  background: transparent !important; /* ✅ 투명 */
+  border: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 아이콘 크기: 타일 높이에 맞춰 유연하게 */
+#naviStatsMount .navi-tile__img{
+  width: clamp(34px, 3.2vw, 50px) !important;
+  height: clamp(34px, 3.2vw, 50px) !important;
+  object-fit: contain !important;
+}
+
+/* 카운트: 우상단 영역(우측 절반) 오른쪽 정렬 */
+#naviStatsMount .navi-tile__count{
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+
+  position: static !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+
+  padding: 0 4px 0 0 !important; /* 우측 너무 붙지 않게 */
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+#naviStatsMount .navi-tile__count .num{
+  font-size: clamp(16px, 2.0vw, 22px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+/* 라벨: 하단 전체 폭 */
+#naviStatsMount .navi-tile__label{
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+
+  margin-top: 6px !important;
+  padding: 0 6px !important;
+
+  text-align: center !important;
+  font-weight: 900 !important;
+  font-size: clamp(11px, 1.15vw, 13px) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.15 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 모바일: 간격/타일 패딩만 살짝 줄여서 높이 안에 깔끔하게 */
+@media (max-width: 420px){
+  #naviStatsMount .navi-stats-tiles{
+    gap: 10px !important;
+  }
+  #naviStatsMount .navi-tile{
+    padding: 9px 9px 8px !important;
+  }
+}
