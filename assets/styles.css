@@ -2569,3 +2569,25 @@ body.ontu-stats-page .stats-card__value--main .money-text{
     flex:0 0 calc((100% - 2 * 18px) / 3) !important;
   }
 }
+
+
+
+/* =========================================================
+   ✅ 2026-01-06 ontu-stats slider UX
+   - Desktop: natural horizontal scroll (no hard snapping)
+   - Mobile: keep snapping (feels like carousel)
+   - Add grab/grabbing cursor for clearer affordance
+========================================================= */
+
+body.ontu-stats-page .stats-panel__viewport{
+  scroll-snap-type:x proximity !important; /* desktop: smoother */
+  cursor:grab;
+}
+body.ontu-stats-page .stats-panel__viewport.is-dragging{
+  cursor:grabbing;
+}
+@media (max-width:768px){
+  body.ontu-stats-page .stats-panel__viewport{
+    scroll-snap-type:x mandatory !important; /* mobile: carousel snap */
+  }
+}
