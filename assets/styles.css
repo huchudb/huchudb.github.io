@@ -2291,7 +2291,6 @@ gap: 12px;
 }
 
 .navi-tile__label{
-  min-width: 0 !important;
   font-weight: 800;
   color: #0f172a;
   font-size: 13px;
@@ -2300,7 +2299,6 @@ text-align:center;
 }
 
 .navi-tile__count{
-  min-width: 0 !important;
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
@@ -2453,7 +2451,6 @@ text-align:center;
 }
 
 .navi-tile__count{
-  min-width: 0 !important;
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
@@ -2477,7 +2474,6 @@ text-align:center;
 }
 
 .navi-tile__label{
-  min-width: 0 !important;
   grid-column: 1 / -1;
   grid-row: 2;
   text-align: center !important;
@@ -2514,118 +2510,104 @@ text-align:center;
 
 /* 4) 카드 높이 변화로 인한 아래 섹션 '출렁임' 완화(안전망) */
 #naviStatsMount { contain: layout paint; }
+
+
+
 /* =========================================================
-   ✅ Navi stats tiles readability tweaks (2026-01-06)
-   - Card bg: #f9f9f9
+   ✅ Navi tiles UI override (2026-01-06)
    - Bigger icons
-   - Count pulled slightly left
-   - Label/count forced to 1 line (shrink default size)
+   - Count not stuck to the far-right, never wraps
+   - Label always 1-line (shrink via clamp), no 2-line
+   - Content visually centered (not stuck to bottom)
+   Scope: only inside #naviStatsMount
 ========================================================= */
-.navi-tile{
-  background: #f9f9f9 !important;
-  grid-template-columns: 56px minmax(0, 1fr) !important;
-  padding: 14px 14px !important;
-  column-gap: 12px !important;
-  row-gap: 10px !important;
+
+#naviStatsMount .navi-tile{
+  background:#f9f9f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 14px 12px !important;
+
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  text-align: center !important;
+  gap: 8px !important;
+  overflow: hidden !important;
 }
 
-.navi-tile__img{
-  height: clamp(32px, 3.6vw, 46px) !important;
-  width: auto !important;
-  max-width: 100% !important;
+#naviStatsMount .navi-tile__icon{
+  width: 66px !important;
+  height: 66px !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
 }
 
-.navi-tile__count{
-  min-width: 0 !important;
-  margin-right: 6px !important;
+#naviStatsMount .navi-tile__img{
+  width: 52px !important;
+  height: 52px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+#naviStatsMount .navi-tile__count{
+  position: absolute !important;
+  top: 10px !important;
+  right: 14px !important; /* ✅ '너무 우측' 방지: 안쪽으로 */
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+
   white-space: nowrap !important;
-}
-
-.navi-tile__count .num{
-  font-size: clamp(16px, 1.9vw, 22px) !important;
   line-height: 1 !important;
-  letter-spacing: -0.6px !important;
-  white-space: nowrap !important;
-  font-variant-numeric: tabular-nums;
+  font-weight: 900 !important;
 }
 
-.navi-tile__label{
-  min-width: 0 !important;
+#naviStatsMount .navi-tile__count .num{
+  font-size: clamp(16px, 2.2vw, 22px) !important;
+  color: #16a34a !important;
+  letter-spacing: -0.04em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+#naviStatsMount .navi-tile__label{
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 6px !important;
+
+  font-weight: 800 !important;
+  color: #0f172a !important;
+
+  /* ✅ 길면 '자동으로 작아져' 1줄 유지 + 말줄임 */
+  font-size: clamp(11.5px, 1.18vw, 13.5px) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+
   white-space: nowrap !important;
   overflow: hidden !important;
-  text-overflow: clip !important;
-  display: block !important;
-  -webkit-line-clamp: unset !important;
-  -webkit-box-orient: unset !important;
-  font-size: clamp(11px, 1.15vw, 13px) !important;
-  letter-spacing: -0.2px !important;
+  text-overflow: ellipsis !important;
 }
 
-/* =========================================================
-   HUCHU PATCH: Navi tiles (icon size + count inset) FINAL OVERRIDES
-   - 카드 배경: #f9f9f9
-   - 아이콘 크게
-   - 카운트 숫자 우측 여백 확보 + 한 줄 유지
-   - 라벨 한 줄 유지(길면 ellipsis)
-   ========================================================= */
-.navi-tile{
-  background:#f9f9f9 !important;
-  display:grid !important;
-  grid-template-columns:62px 1fr !important;
-  grid-template-rows:auto auto !important;
-  column-gap:12px !important;
-  row-gap:8px !important;
-  padding:14px 14px !important;
-  text-align:left !important;
-  overflow:hidden !important;
+/* Small screens: prevent overlap between count and icon */
+@media (max-width: 420px){
+  #naviStatsMount .navi-tile__icon{
+    width: 60px !important;
+    height: 60px !important;
+  }
+  #naviStatsMount .navi-tile__img{
+    width: 46px !important;
+    height: 46px !important;
+  }
+  #naviStatsMount .navi-tile__count{
+    top: 8px !important;
+    right: 12px !important;
+  }
 }
-
-.navi-tile__icon{
-  grid-column:1 !important;
-  grid-row:1 !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  padding:0 !important;
-}
-
-.navi-tile__img{
-  display:block !important;
-  height:clamp(34px, 4.0vw, 52px) !important;
-  width:auto !important;
-  max-width:100% !important;
-  object-fit:contain !important;
-}
-
-.navi-tile__count{
-  grid-column:2 !important;
-  grid-row:1 !important;
-  justify-self:end !important;
-  display:flex !important;
-  align-items:baseline !important;
-  gap:4px !important;
-  margin-right:12px !important; /* 숫자를 조금 더 좌측으로 */
-  white-space:nowrap !important;
-}
-
-.navi-tile__count .num{
-  font-size:clamp(14px, 1.8vw, 20px) !important; /* 큰 자리수 대비 */
-  line-height:1 !important;
-  letter-spacing:-0.8px !important;
-  white-space:nowrap !important;
-  font-variant-numeric:tabular-nums;
-}
-
-.navi-tile__label{
-  grid-column:1 / -1 !important;
-  grid-row:2 !important;
-  min-width:0 !important;
-  white-space:nowrap !important;
-  overflow:hidden !important;
-  text-overflow:ellipsis !important;
-  font-size:clamp(11px, 1.1vw, 13px) !important;
-  letter-spacing:-0.2px !important;
-  word-break:keep-all !important;
-  text-align:center !important;
-}
-
