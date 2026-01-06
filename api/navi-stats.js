@@ -113,25 +113,45 @@ function inc(map, key, by = 1) {
   map[k] = (Number(map[k]) || 0) + by;
 }
 
-function safeParseBody(req) {
+async function readRawBody(req) {
+  try {
+    return await new Promise((resolve, reject) => {
+      let data = "";
+      req.on("data", (chunk) => {
+        data += chunk;
+      });
+      req.on("end", () => resolve(data));
+      req.on("error", reject);
+    });
+  } catch {
+    return "";
+  }
+}
+
+async function safeParseBody(req) {
   const b = req?.body;
 
-  if (!b) return {};
+  if (b) {
+    // 문자열(JSON)
+    if (typeof b === "string") {
+      try { return JSON.parse(b); } catch { return {}; }
+    }
 
-  // 문자열(JSON)
-  if (typeof b === "string") {
-    try { return JSON.parse(b); } catch { return {}; }
+    // Buffer
+    if (typeof Buffer !== "undefined" && Buffer.isBuffer(b)) {
+      try { return JSON.parse(b.toString("utf8")); } catch { return {}; }
+    }
+
+    // 이미 객체로 파싱된 경우
+    if (typeof b === "object") return b;
+
+    return {};
   }
 
-  // Buffer
-  if (typeof Buffer !== "undefined" && Buffer.isBuffer(b)) {
-    try { return JSON.parse(b.toString("utf8")); } catch { return {}; }
-  }
-
-  // 이미 객체로 파싱된 경우
-  if (typeof b === "object") return b;
-
-  return {};
+  // body parser가 동작하지 않는 경우(예: Content-Type 없거나 text/plain 등) raw stream을 직접 읽어 파싱
+  const raw = await readRawBody(req);
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
 }
 
 export default async function handler(req, res) {
@@ -160,7 +180,7 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const mk = getKstMonthKey();
       const key = `huchu:navi-stats:v1:${mk}`;
-      const body = safeParseBody(req);
+      const body = await safeParseBody(req);
 
       const event = String(body.event || body.evt || "confirm").trim();
       const stats = (await kvGetJson(key)) || initStats(mk);
