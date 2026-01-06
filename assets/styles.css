@@ -2875,3 +2875,14 @@ text-align:center;
 #naviStatsMount .navi-tile__img{
   filter: drop-shadow(0 1px 0 rgba(255,255,255,.55)) !important;
 }
+
+
+
+/* =========================================================
+   ✅ Navi tile count position tweak (center of the right-half zone)
+   Scope: #naviStatsMount only
+========================================================= */
+#naviStatsMount .navi-tile__count{
+  justify-content: center !important;   /* was flex-end */
+  padding: 0 !important;               /* remove right-bias padding */
+}
