@@ -2709,3 +2709,56 @@ text-align:center;
 #naviStatsMount .navi-tile__img{
   filter: drop-shadow(0 1px 0 rgba(255,255,255,.55)) !important;
 }
+
+
+
+/* =========================================================
+   ✅ 2026-01-06: Navi widget height = HERO (no overflow), tighter spacing
+   - Root cause: JS sets height(px) on .navi-stats-card; without border-box, padding adds extra height.
+   - Fix: border-box + tighter paddings/gaps so 3x3 fits comfortably with NO scroll.
+   Scope: #naviStatsMount only
+========================================================= */
+
+#naviStatsMount .navi-stats-card{
+  box-sizing: border-box !important;          /* ✅ height includes padding/border */
+  padding: 10px 10px 12px !important;        /* tighter than default */
+}
+
+#naviStatsMount .navi-stats-head{
+  padding: 0 2px 6px !important;             /* reduce head vertical space */
+}
+
+#naviStatsMount .navi-stats-tiles{
+  margin-top: 4px !important;                /* reduce gap between head & tiles */
+  gap: 10px !important;                      /* slightly tighter */
+}
+
+/* Tile: reduce vertical padding so rows fit inside HERO height */
+#naviStatsMount .navi-tile{
+  padding: 8px 8px 7px !important;
+  border-radius: 14px !important;
+}
+
+/* Icon slightly smaller upper bound */
+#naviStatsMount .navi-tile__img{
+  width: clamp(32px, 2.8vw, 46px) !important;
+  height: clamp(32px, 2.8vw, 46px) !important;
+}
+
+/* Count size a touch smaller to avoid crowding */
+#naviStatsMount .navi-tile__count .num{
+  font-size: clamp(15px, 1.8vw, 21px) !important;
+}
+
+/* Label slightly tighter */
+#naviStatsMount .navi-tile__label{
+  margin-top: 4px !important;
+  font-size: clamp(10.5px, 1.05vw, 12.5px) !important;
+}
+
+/* Mobile: even tighter gaps */
+@media (max-width: 420px){
+  #naviStatsMount .navi-stats-card{ padding: 9px 9px 11px !important; }
+  #naviStatsMount .navi-stats-tiles{ gap: 9px !important; }
+  #naviStatsMount .navi-tile{ padding: 7px 7px 6px !important; }
+}
