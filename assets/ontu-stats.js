@@ -30,35 +30,7 @@
     return 0;
   }
 
-  /* ---------------- 메뉴 토글 (공통 헤더용) ---------------- */
-
-  (function setupMenu() {
-    const toggle = document.getElementById('betaMenuToggle');
-    const panel  = document.getElementById('betaMenuPanel');
-    if (!toggle || !panel) return;
-
-    function openMenu() {
-      panel.classList.remove('hide');
-      toggle.setAttribute('aria-expanded', 'true');
-    }
-    function closeMenu() {
-      panel.classList.add('hide');
-      toggle.setAttribute('aria-expanded', 'false');
-    }
-
-    toggle.addEventListener('click', () => {
-      const expanded = toggle.getAttribute('aria-expanded') === 'true';
-      expanded ? closeMenu() : openMenu();
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!panel.classList.contains('hide')) {
-        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-          closeMenu();
-        }
-      }
-    });
-  })();
+  ;
 
   /* ---------------- 날짜 유틸 ---------------- */
 
@@ -573,11 +545,38 @@
       autoTimer = null;
     }
 
+    const isMobileNow = () =>
+      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+      window.innerWidth <= 768;
+
+    let autoDir = 1;
+
+
     function startAuto() {
       stopAuto();
+
+      // 모바일에서만 + 오버플로우가 있을 때만 자동 슬라이드(5초 핑퐁)
+      const total = getCardCount();
+      const hasOverflow = viewport.scrollWidth - viewport.clientWidth > 4;
+      if (!isMobileNow() || total <= 1 || !hasOverflow) return;
+
       autoTimer = setInterval(() => {
-        scrollToIndex(currentIndex + 1, { smooth: true });
-      }, 4000);
+        if (paused) return;
+
+        let next = currentIndex + autoDir;
+
+        // ping-pong at ends
+        if (next >= total) {
+          autoDir = -1;
+          next = Math.max(0, total - 2);
+        } else if (next < 0) {
+          autoDir = 1;
+          next = Math.min(1, total - 1);
+        }
+
+        currentIndex = next;
+        scrollToIndex(currentIndex, { smooth: true });
+      }, 5000);
     }
 
     function onPointerDown(clientX) {
