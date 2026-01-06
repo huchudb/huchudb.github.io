@@ -303,51 +303,6 @@ async function fetchNaviStats(monthKey) {
   return await res.json();
 }
 
-
-
-// =====================
-// Navi tile text fitting (labels + big counts)
-// - Keep label in ONE line by shrinking font size if it would wrap/ellipsis.
-// - Keep count in ONE line by shrinking font size for 4~5+ digits.
-// =====================
-function fitNaviTileText(mount) {
-  if (!mount) return;
-  const tiles = mount.querySelectorAll(".navi-tile");
-  tiles.forEach((tile) => {
-    const label = tile.querySelector(".navi-tile__label");
-    if (label) {
-      label.style.whiteSpace = "nowrap";
-      // Start from computed size (default 13px) and shrink until it fits
-      const cs = window.getComputedStyle(label);
-      let size = parseFloat(cs.fontSize) || 13;
-      const min = 10.5;
-
-      // Reset any previous inline size first
-      label.style.fontSize = "";
-
-      // Measure, then shrink
-      for (let s = size; s >= min; s -= 0.5) {
-        label.style.fontSize = `${s}px`;
-        if (label.scrollWidth <= label.clientWidth + 1) break;
-      }
-    }
-
-    const num = tile.querySelector(".navi-tile__count .num");
-    if (num) {
-      const target = (num.getAttribute("data-target") || "").toString();
-      const digits = target.replace(/[^\d]/g, "").length;
-
-      // Reset
-      num.style.fontSize = "";
-
-      if (digits >= 6) num.style.fontSize = "16px";
-      else if (digits === 5) num.style.fontSize = "17px";
-      else if (digits === 4) num.style.fontSize = "18px";
-      // 1~3 digits keep default (22px)
-    }
-  });
-}
-
 function renderNaviStatsWidget(payload, opts = {}) {
   const mount = document.getElementById("naviStatsMount");
   if (!mount) return;
@@ -389,10 +344,7 @@ function renderNaviStatsWidget(payload, opts = {}) {
     </section>
   `;
 
-  
-  // ✅ One-line fitting (labels + big counts)
-  fitNaviTileText(mount);
-// ✅ 숫자 카운트업(레이아웃 영향 없음)
+  // ✅ 숫자 카운트업(레이아웃 영향 없음)
   if (animate) {
     const prefersReduced =
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -457,16 +409,16 @@ async function initNaviStatsWidget() {
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
 
-  // 2) (선택) 서버/동일오리진 API가 준비되면 아래 주석 해제해서 최신값 갱신 가능
-  // try {
-  //   const fresh = await fetchNaviStats(monthKey);
-  //   if (fresh && fresh.productGroups) {
-  //     localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-  //     renderNaviStatsWidget(fresh, { animate: false }); // 2번 애니메이션 방지
-  //   }
-  // } catch (e) {
-  //   // 무시: 캐시만으로도 동작
-  // }
+  // 2) 서버에서 최신값 갱신 (실패해도 UX 영향 없음)
+  try {
+    const fresh = await fetchNaviStats(monthKey);
+    if (fresh && fresh.productGroups) {
+      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+      renderNaviStatsWidget({ ...fresh, monthKey }, { animate: false }); // 2번 애니메이션 방지
+    }
+  } catch (e) {
+    // 무시: 캐시만으로도 동작
+  }
 }
 
 
