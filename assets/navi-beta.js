@@ -25,19 +25,25 @@ async function postNaviStatsOncePerClick(payload) {
       }
     } catch {}
 
-    // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적, preflight 없음)
+    // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적)
+    // ⚠️ sendBeacon은 실패 시 false를 반환할 수 있음 → 성공(true)일 때만 return
     if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "text/plain" });
-      const ok = navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
-      if (ok) return;
+      try {
+        const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
+        const ok = navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
+        if (ok) return;
+      } catch {}
     }
 
-    // ✅ fetch fallback (Content-Type 헤더를 넣지 않아 preflight(OPTIONS) 회피)
-    await fetch(NAVI_STATS_ENDPOINT, {
+    // ✅ fetch fallback (application/json + keepalive)
+    await fetch(`${NAVI_STATS_ENDPOINT}?_t=${Date.now()}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
-      cache: "no-store"
+      cache: "no-store",
+      mode: "cors",
+      credentials: "omit"
     });
   } catch (e) {
     console.warn("navi-stats post failed:", e);
