@@ -541,19 +541,23 @@ function renderProductFootnoteHtml(summary, byLender) {
     `;
   }
 
-  const errPct = formatPct(calc.pct);
+  const errPctNum = Number(calc.pct) || 0;
+  const errPctTxt = formatPct(errPctNum);
   const errWonHtml = formatKoreanCurrencyJo(calc.plusMinus);
+  const errPctShownZero = parseFloat(errPctTxt) === 0;
+  const errLabel = errPctShownZero
+    ? `오차범위: ±${errPctTxt}% 미만(±${errWonHtml})`
+    : `오차범위: ±${errPctTxt}%(±${errWonHtml})`;
 
   return `
     <div class="beta-product-footnote">
       <div class="beta-product-footnote__source">${source}</div>
       <div class="beta-product-footnote__errline">
-        <span class="beta-product-footnote__err">오차범위: ±${errPct}% (${errWonHtml})</span>
+        <span class="beta-product-footnote__err">${errLabel}</span>
         <span class="beta-help">
           <button class="beta-help__btn" type="button" aria-expanded="false" aria-label="오차범위 안내">?</button>
           <div class="beta-help__popover" role="tooltip">
-            오차범위는 동일 기준월에서 (1) 전체 대출잔액과 (2) 온투업체별 잔액 합산값(업체 입력 기반)의 차이를 이용해 계산했습니다.<br/>
-            ±값은 두 값의 차이 ÷ 2, %는 평균값 대비 비율입니다.
+            동일 기준월에서 '전체 대출잔액'과 '온투업체별 대출잔액 합산액'의 평균값을 기준으로 계산
           </div>
         </span>
       </div>
