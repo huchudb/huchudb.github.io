@@ -600,6 +600,12 @@ body.beta-body .beta-header::after{
 
 /* MENU 버튼 공통 */
 .beta-menu{position:relative;}
+.beta-menu-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+
 .beta-menu-toggle{
   display:inline-flex;
   align-items:center;
