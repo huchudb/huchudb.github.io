@@ -295,10 +295,10 @@ const NAVI_GROUPS = [
   { key: "auction",         label: "경매배당금 담보대출",  iconSrc: "/assets/navi-icons/auction.png" },
 ];
 
-async function fetchNaviStats(monthKey) {
+async function fetchNaviStats(monthKey, opts = {}) {
   const mk = monthKey || getKstMonthKey();
   const url = `${NAVI_STATS_ENDPOINT}?month=${encodeURIComponent(mk)}&_t=${Date.now()}`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store", signal: opts.signal });
   if (!res.ok) throw new Error(`navi-stats ${res.status}`);
   return await res.json();
 }
@@ -408,16 +408,30 @@ async function initNaviStatsWidget() {
 
   // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
   requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
+  // 2) 서버에서 최신값을 받아와 캐시+화면을 갱신(실패 시 캐시 렌더만 유지)
+  if (!window.__naviStatsFetchInFlight) {
+    window.__naviStatsFetchInFlight = true;
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 2500);
 
-  // 2) 서버에서 최신값 갱신 (실패해도 UX 영향 없음)
-  try {
-    const fresh = await fetchNaviStats(monthKey);
-    if (fresh && fresh.productGroups) {
-      localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
-      renderNaviStatsWidget({ ...fresh, monthKey }, { animate: false }); // 2번 애니메이션 방지
+      const fresh = await fetchNaviStats(monthKey, { signal: ac.signal });
+
+      clearTimeout(timer);
+
+      if (fresh && fresh.productGroups) {
+        // monthKey 누락 방어
+        if (!fresh.monthKey) fresh.monthKey = monthKey;
+
+        localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+        renderNaviStatsWidget(fresh, { animate: false });
+        syncNaviStatsHeightDebounced();
+      }
+    } catch (e) {
+      // 무시: 캐시/seed 렌더만으로도 동작
+    } finally {
+      window.__naviStatsFetchInFlight = false;
     }
-  } catch (e) {
-    // 무시: 캐시만으로도 동작
   }
 }
 
@@ -440,6 +454,7 @@ async function fetchOntuStats() {
     let month = String(json?.month || "").trim();
     let summary = json?.summary || null;
     let byType = json?.byType || json?.products?.byType || null;
+    let byLender = json?.byLender || json?.lenders || json?.lenderBalances || null;
 
     // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
     if (json && json.byMonth && typeof json.byMonth === "object") {
@@ -462,14 +477,148 @@ async function fetchOntuStats() {
       // 최소한 화면 표시용 월 라벨을 만들기 위해 summary 안의 month 같은 필드도 체크
       month = String(summary?.month || "").trim() || "unknown";
     }
-    return { month, summary, byType };
+    return { month, summary, byType, byLender };
   } catch (err) {
     console.warn("ontu-stats fetch failed:", err);
     return {
       month: DEFAULT_ONTU_STATS.month,
       summary: DEFAULT_ONTU_STATS.summary,
       byType: DEFAULT_ONTU_STATS.byType,
+      byLender: null,
     };
+  }
+}
+
+
+// ───────── 오차범위(±) 계산: 두 값(A,B) 비교 ─────────
+function calcPlusMinusFromTwoValues(a, b) {
+  const A = Number(a) || 0;
+  const B = Number(b) || 0;
+  if (A <= 0 || B <= 0) return null;
+
+  const diff = Math.abs(A - B);
+  const plusMinus = diff / 2;
+  const avg = (A + B) / 2;
+  const pct = avg > 0 ? (plusMinus / avg) * 100 : 0;
+
+  return { plusMinus, pct, a: A, b: B };
+}
+
+function sumByLenderTotal(byLender) {
+  if (!byLender || typeof byLender !== "object") return 0;
+  let total = 0;
+  for (const typeMap of Object.values(byLender)) {
+    if (!typeMap || typeof typeMap !== "object") continue;
+    for (const amt of Object.values(typeMap)) {
+      total += Number(amt) || 0;
+    }
+  }
+  return total;
+}
+
+
+function sumByTypeTotal(byType) {
+  if (!byType || typeof byType !== "object") return 0;
+  let total = 0;
+  for (const [k, obj] of Object.entries(byType)) {
+    if (!k || String(k).startsWith("__")) continue;
+    const amt = Number(obj?.amount ?? obj) || 0;
+    total += amt;
+  }
+  return total;
+}
+
+function formatPct(p) {
+  const v = Number(p) || 0;
+  if (!isFinite(v)) return "0.00";
+  // 작은 값은 2자리, 큰 값은 1자리로 가독성
+  const fixed = v >= 10 ? v.toFixed(1) : v.toFixed(2);
+  return fixed.replace(/\.00$/, ".00"); // 유지(디자인 일관)
+}
+
+function renderProductFootnoteHtml(summary, byType, byLender) {
+  const source = "※출처: 온라인투자연계금융업 중앙기록관리기관";
+
+  const balance = Number(summary?.balance || 0);
+  let lendersTotal = sumByLenderTotal(byLender);
+  if (!(lendersTotal > 0)) {
+    // byLender가 내려오지 않는 경우(구버전/슬림 응답) → 상품유형 합산으로 대체
+    lendersTotal = sumByTypeTotal(byType);
+  }
+
+  const calc = calcPlusMinusFromTwoValues(balance, lendersTotal);
+
+  // byLender가 없거나 비교가 불가능하면 출처만 노출
+  if (!calc) {
+    return `
+      <div class="beta-product-footnote">
+        <div class="beta-product-footnote__source">${source}</div>
+      </div>
+    `;
+  }
+
+  const errPctNum = Number(calc.pct) || 0;
+  const errPctTxt = formatPct(errPctNum);
+  const errWonHtml = formatKoreanCurrencyJo(calc.plusMinus);
+  const errPctShownZero = parseFloat(errPctTxt) === 0;
+  const errLabel = errPctShownZero
+    ? `오차범위: ±${errPctTxt}% 미만(±${errWonHtml})`
+    : `오차범위: ±${errPctTxt}%(±${errWonHtml})`;
+
+  return `
+    <div class="beta-product-footnote">
+      <div class="beta-product-footnote__source">${source}</div>
+      <div class="beta-product-footnote__errline">
+        <span class="beta-product-footnote__err">${errLabel}</span>
+        <span class="beta-help">
+          <button class="beta-help__btn" type="button" aria-expanded="false" aria-label="오차범위 안내">?</button>
+          <div class="beta-help__popover" role="tooltip">
+            동일 기준월에서 '전체 대출잔액'과 '온투업체별 대출잔액 합산액'의 평균값을 기준으로 계산
+          </div>
+        </span>
+      </div>
+    </div>
+  `;
+}
+function bindBetaHelpPopovers(scopeEl) {
+  const root = scopeEl || document;
+
+  // 버튼 토글(모바일/터치용)
+  root.querySelectorAll(".beta-help__btn").forEach((btn) => {
+    if (btn.__bound) return;
+    btn.__bound = true;
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const wrap = btn.closest(".beta-help");
+      if (!wrap) return;
+
+      const open = wrap.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+
+      // 다른 툴팁은 닫기
+      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
+        if (el !== wrap) {
+          el.classList.remove("is-open");
+          const b = el.querySelector(".beta-help__btn");
+          if (b) b.setAttribute("aria-expanded", "false");
+        }
+      });
+    });
+  });
+
+  // 바깥 클릭 시 닫기(전역 1회)
+  if (!window.__betaHelpGlobalCloseBound) {
+    window.__betaHelpGlobalCloseBound = true;
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
+        el.classList.remove("is-open");
+        const b = el.querySelector(".beta-help__btn");
+        if (b) b.setAttribute("aria-expanded", "false");
+      });
+    });
   }
 }
 
@@ -552,7 +701,7 @@ const PRODUCT_COLORS = [
 
 let donutChart = null;
 
-function renderProductSection(summary, byType) {
+function renderProductSection(summary, byType, byLender) {
   const section = document.getElementById("ontuProductSection");
   if (!section) return;
 
@@ -616,11 +765,13 @@ function renderProductSection(summary, byType) {
             .join("")}
         </div>
       </div>
+      </div>
     </div>
-    <div class="beta-product-source-note">
-      ※출처: 온라인투자연계금융업 중앙기록관리기관
-    </div>
+    ${renderProductFootnoteHtml(summary, byType, byLender)}
   `;
+
+  // 툴팁(오차범위 ?) 토글 바인딩
+  bindBetaHelpPopovers(section);
 
   const canvas   = document.getElementById("productDonut");
   const centerEl = document.getElementById("productDonutCenter");
@@ -713,15 +864,17 @@ async function initOntuStats() {
     const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
     const summary = data.summary || DEFAULT_ONTU_STATS.summary;
     const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
+    const byLender = data.byLender || null;
 
     renderLoanStatus(summary, month);
-    renderProductSection({ ...summary, month }, byType);
+    renderProductSection({ ...summary, month }, byType, byLender);
   } catch (e) {
     console.error("[initOntuStats] 치명적 오류:", e);
     renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
     renderProductSection(
       { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
-      DEFAULT_ONTU_STATS.byType
+      DEFAULT_ONTU_STATS.byType,
+      null
     );
   }
 }
