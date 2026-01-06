@@ -2879,10 +2879,11 @@ text-align:center;
 
 
 /* =========================================================
-   ✅ Navi tile count position tweak (center of the right-half zone)
+   ✅ Navi tile count: center within the right-half zone
+   - Fix: previous file had a broken comment, which could nullify later CSS (incl. error-range).
    Scope: #naviStatsMount only
 ========================================================= */
 #naviStatsMount .navi-tile__count{
-  justify-content: center !important;   /* was flex-end */
-  padding: 0 !important;               /* remove right-bias padding */
+  justify-content: center !important; /* center inside right zone */
+  padding: 0 !important;             /* remove right bias */
 }
