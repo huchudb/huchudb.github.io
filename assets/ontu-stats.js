@@ -590,13 +590,11 @@
       stopAuto();
 
       // 모바일에서만 + 오버플로우가 있을 때만 자동 슬라이드(5초 핑퐁)
-      const total = getCardCount();
+      const total = getCards().length;
       const hasOverflow = viewport.scrollWidth - viewport.clientWidth > 4;
       if (!isMobileNow() || total <= 1 || !hasOverflow) return;
 
       autoTimer = setInterval(() => {
-        if (paused) return;
-
         let next = currentIndex + autoDir;
 
         // ping-pong at ends
