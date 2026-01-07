@@ -31,11 +31,12 @@
 
     .ontu-stats-page .beta-stats-hero__banner {
       position: relative;
-      aspect-ratio: 25 / 3;
-      border-radius: 18px;
       overflow: hidden;
-      background: #0b1220;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+      border-radius: 0px; /* 직각 */
+      background: #0d357d;
+      box-shadow: 0 10px 26px rgba(0,0,0,.10);
+      aspect-ratio: 25 / 4; /* 기존(25/3)보다 살짝 높여 모바일/PC 모두 안정 */
+      width: 100%;
     }
 
     .ontu-stats-page .beta-stats-hero__video {
@@ -93,7 +94,22 @@
         font-size: 13px;
       }
     }
-  </style>
+
+    /* --- responsive tweaks for hero banner + month picker --- */
+    @media (max-width: 720px) {
+      .beta-stats-hero__banner { aspect-ratio: 16 / 6; }
+      .beta-stats-hero__controls { bottom: 10px; }
+      .beta-month-picker--hero input[type="month"] {
+        height: 34px;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+    @media (max-width: 420px) {
+      .beta-month-picker--hero input[type="month"] { min-width: 180px; }
+    }
+
+</style>
 
 </head>
 
