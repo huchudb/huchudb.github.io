@@ -1,365 +1,254 @@
 // /assets/beta-shell.js
-// HUCHU beta common shell: MENU dropdown + Footer notice (single source of truth)
-//
-// - MENU works consistently across pages (blocks duplicate handlers in page scripts)
-// - MENU panel is positioned relative to the button (fixed), immune to layout differences
-// - Footer notice is injected into .beta-footer (right side on desktop, ordered on mobile)
-// - Footer left layout normalized: logo(brand) + business info stacked together
+// HUCHU beta common shell: MENU dropdown + Footer notice
+// v7 - Syntax-safe (no template literals / no multi-line array commas), DOM-ready init, stable positioning
 
-(() => {
-  const GLOBAL_FLAG = "__HUCHU_BETA_SHELL_INIT__v5";
+(function(){
+  'use strict';
+  var GLOBAL_FLAG = '__HUCHU_BETA_SHELL_INIT__v7';
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
   // ----------------------------
-  // Config (edit only these)
+  // Config
   // ----------------------------
-  const FOOTER_NOTICE_ITEMS = [
-    "본 페이지의 정보는 단순 참고용이며, 대출 관련 문의는 해당 온투업체에 직접 문의해 주세요.",
-    "당사는 대출의 판매·대리·중개·모집, 심사·승인·계약 체결에 일체 관여하지 않습니다."
-    "과도한 빛은 당신에게 큰 불행을 안겨줄 수 있습니다. 반드시 상환 계획을 함께 준비하세요."
-  ];
+  var FOOTER_NOTICE_TEXT =
+    '본 페이지의 정보는 참고용이며, 정확한 조건은 해당 온투업체 안내 및 심사 결과에 따라 달라질 수 있습니다.\n' +
+    '금리·한도·플랫폼 수수료·중도상환 조건 등은 수시로 변동될 수 있습니다.\n' +
+    '최종 조건은 해당 온투업체/계약서 기준으로 확인해 주세요.';
 
-  // ----------------------------
-  // Helpers
-  // ----------------------------
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
-  function ensureStyleTag() {
-    if (document.getElementById("beta-shell-style")) return;
-
-    const css = `
-/* beta-shell injected styles (menu sizing + footer notice + ordering + spacing) */
-
-/* MENU: narrower card + more vertical breathing room */
-.beta-menu-panel{
-  width:220px !important;
-  max-width:240px !important;
-  min-width:180px !important;
-  padding:10px 6px !important;   /* top/bottom padding increased */
-}
-.beta-menu-link{
-  padding:10px 12px !important;  /* vertical padding increased */
-  line-height:1.2 !important;
-}
-
-/* Make "top edge -> links" spacing == "links -> bottom row" spacing,
-   AND keep the links aligned with the centered footer content. */
-.beta-footer{
-  padding-top:16px !important;
-}
-.beta-footer__top{
-  max-width:1200px !important;
-  margin:0 auto 16px !important;
-  padding:0 24px !important; /* restore horizontal padding (was causing left-sticking) */
-  box-sizing:border-box !important;
-}
-
-/* Bottom row: left(brand+info) + right(notice) */
-.beta-footer__bottom{
-  display:flex !important;
-  flex-direction:row !important;
-  align-items:flex-start !important;
-  justify-content:space-between !important;
-  gap:18px !important;
-  flex-wrap:wrap !important; /* if width is tight, wrap rather than squish */
-}
-
-/* Left column groups logo + business info */
-.beta-footer__left{
-  display:flex !important;
-  flex-direction:column !important;
-  align-items:flex-start !important;
-  gap:8px !important;
-  flex:1 1 420px !important;
-  min-width:320px !important;
-}
-.beta-footer__brand{ flex:0 0 auto !important; }
-.beta-footer__info{
-  flex:0 0 auto !important;
-  min-width:0 !important;
-}
-
-/* Notice on the right, wider to reduce wrapping */
-.beta-footer__notice{
-  margin-left:auto !important;
-  width:min(620px, 48vw) !important;
-  max-width:620px !important;
-  flex:0 1 min(620px, 48vw) !important;
-  padding-left:16px !important;
-  border-left:1px solid rgba(255,255,255,0.10) !important;
-  color:#cbd5e1 !important;
-  word-break:keep-all !important;
-}
-.beta-footer__notice-list{
-  margin:0 !important;
-  padding-left:16px !important;
-  font-size:11px !important;
-  line-height:1.65 !important;
-}
-.beta-footer__notice-list li{ margin:0 0 6px 0 !important; }
-.beta-footer__notice-list li:last-child{ margin-bottom:0 !important; }
-
-/* Mobile order:
-   1) footer top links (already above)
-   2) notice
-   3) brand (logo)
-   4) business info
-*/
-@media (max-width: 760px){
-  /* Footer compactness + alignment tweaks (mobile) */
-  .beta-footer{
-    padding-bottom:14px !important; /* reduce empty space below business info */
-  }
-
-  /* Align notice text block with business info (remove list indent) */
-  .beta-footer__notice-list{
-    padding-left:0 !important;
-    list-style:none !important;
-  }
-  .beta-footer__notice-list li{
-    position:relative !important;
-    margin:0 0 8px 0 !important;
-  }
-  .beta-footer__notice-list li:last-child{ margin-bottom:0 !important; }
-  .beta-footer__notice-list li::before{
-    content:"•" !important;
-    position:absolute !important;
-    left:-12px !important; /* outdent bullet so text aligns with business info */
-    top:0 !important;
-    color:#cbd5e1 !important;
-  }
-
-  .beta-footer__bottom{
-    flex-direction:column !important;
-    gap:26px !important;
-  }
-
-  .beta-footer__notice{
-    order:1 !important;
-    margin-left:0 !important;
-    width:auto !important;
-    max-width:none !important;
-    flex:0 0 auto !important;
-    padding-left:0 !important;
-    border-left:0 !important;
-    padding-top:10px !important;
-    border-top:1px solid rgba(255,255,255,0.10) !important;
-  }
-
-  .beta-footer__left{
-    order:2 !important;
-    min-width:0 !important;
-    width:100% !important;
-  }
-}
-`;
-
-    const style = document.createElement("style");
-    style.id = "beta-shell-style";
+  function ensureStyleTag(){
+    if (document.getElementById('beta-shell-style')) return;
+    var css = [
+      '/* beta-shell injected styles */',
+      '',
+      '/* MENU: tighter card + more vertical breathing room */',
+      '.beta-menu-panel{',
+      '  width:220px !important;',
+      '  max-width:240px !important;',
+      '  min-width:180px !important;',
+      '  padding:12px 10px !important;',
+      '  border-radius:16px !important;',
+      '  box-shadow:0 16px 40px rgba(0,0,0,.18) !important;',
+      '  z-index:9999 !important;',
+      '}',
+      '.beta-menu-link{ padding:10px 10px !important; }',
+      '',
+      '/* FOOTER: restore horizontal padding so top links never stick to the far-left */',
+      '.beta-footer__top{',
+      '  max-width:1200px !important;',
+      '  margin:0 auto 16px !important;',
+      '  padding:0 24px !important;',
+      '  box-sizing:border-box !important;',
+      '}',
+      '',
+      '/* Bottom row: left(brand+info stacked) + right(notice) */',
+      '.beta-footer__bottom{',
+      '  max-width:1200px !important;',
+      '  margin:0 auto !important;',
+      '  padding:0 24px 16px !important;',
+      '  box-sizing:border-box !important;',
+      '  display:grid !important;',
+      '  grid-template-columns: 1fr 1fr !important;',
+      '  column-gap:28px !important;',
+      '  row-gap:8px !important;',
+      '  align-items:start !important;',
+      '}',
+      '.beta-footer__left{',
+      '  grid-column:1 !important;',
+      '  display:flex !important;',
+      '  flex-direction:column !important;',
+      '  gap:8px !important;',
+      '  min-width:320px !important;',
+      '}',
+      '.beta-footer__notice{',
+      '  grid-column:2 !important;',
+      '  min-width:320px !important;',
+      '}',
+      '.beta-footer__notice ul{',
+      '  margin:0 !important;',
+      '  padding:0 !important;',
+      '  list-style:none !important;',
+      '}',
+      '.beta-footer__notice li{',
+      '  position:relative !important;',
+      '  padding-left:14px !important;',
+      '  margin:0 0 10px 0 !important;',
+      '  line-height:1.45 !important;',
+      '}',
+      '.beta-footer__notice li:before{',
+      '  content:"•";',
+      '  position:absolute;',
+      '  left:0;',
+      '  top:0;',
+      '}',
+      '.beta-footer__notice li:last-child{ margin-bottom:0 !important; }',
+      '',
+      '/* Mobile order: links -> notice -> logo -> business info (stacked) */',
+      '@media (max-width: 768px){',
+      '  .beta-footer__bottom{',
+      '    display:flex !important;',
+      '    flex-direction:column !important;',
+      '    gap:16px !important;',
+      '  }',
+      '  .beta-footer__notice{ order:1 !important; }',
+      '  .beta-footer__left{ order:2 !important; }',
+      '}',
+    ].join('\n');
+    var style = document.createElement('style');
+    style.id = 'beta-shell-style';
     style.textContent = css;
     document.head.appendChild(style);
   }
 
-  // ----------------------------
-  // MENU (fixed-position dropdown, blocks duplicate handlers)
-  // ----------------------------
-  function setupMenu() {
-    const btn = document.getElementById("betaMenuToggle");
-    const panel = document.getElementById("betaMenuPanel");
-    if (!btn || !panel) return;
+  function ensureFooterStructure(footer){
+    var bottom = footer.querySelector('.beta-footer__bottom');
+    if (!bottom) return;
 
-    if (btn.dataset.huchuShellMenu === "1") return;
-    btn.dataset.huchuShellMenu = "1";
-
-    btn.setAttribute("aria-expanded", panel.classList.contains("hide") ? "false" : "true");
-
-    const open = () => {
-      positionPanel();
-      panel.classList.remove("hide");
-      btn.setAttribute("aria-expanded", "true");
-    };
-    const close = () => {
-      panel.classList.add("hide");
-      btn.setAttribute("aria-expanded", "false");
-      panel.style.left = "";
-      panel.style.top = "";
-      panel.style.right = "";
-      panel.style.position = "";
-      panel.style.zIndex = "";
-    };
-    const toggle = () => (panel.classList.contains("hide") ? open() : close());
-
-    function positionPanel() {
-      const r = btn.getBoundingClientRect();
-      const margin = 8;
-      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-
-      panel.style.position = "fixed";
-      panel.style.zIndex = "9999";
-
-      const wasHidden = panel.classList.contains("hide");
-      if (wasHidden) {
-        panel.classList.remove("hide");
-        panel.style.visibility = "hidden";
-      }
-
-      const pw = panel.offsetWidth || 220;
-      const ph = panel.offsetHeight || 220;
-
-      let left = r.right - pw;
-      let top = r.bottom + 10;
-
-      left = clamp(left, margin, vw - pw - margin);
-      top = clamp(top, margin, vh - ph - margin);
-
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
-
-      if (wasHidden) {
-        panel.classList.add("hide");
-        panel.style.visibility = "";
+    // Build left wrapper if missing
+    var left = bottom.querySelector('.beta-footer__left');
+    if (!left){
+      var brand = bottom.querySelector('.beta-footer__brand');
+      var info = bottom.querySelector('.beta-footer__info');
+      if (brand && info){
+        left = document.createElement('div');
+        left.className = 'beta-footer__left';
+        bottom.insertBefore(left, brand);
+        left.appendChild(brand);
+        left.appendChild(info);
       }
     }
 
-    btn.addEventListener(
-      "click",
-      (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-        toggle();
-      },
-      true
-    );
-
-    panel.addEventListener(
-      "click",
-      (e) => {
-        e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-      },
-      true
-    );
-
-    document.addEventListener(
-      "click",
-      (e) => {
-        if (panel.classList.contains("hide")) return;
-        const t = e.target;
-        if (t === btn || panel.contains(t)) return;
-        close();
-      },
-      true
-    );
-
-    document.addEventListener(
-      "keydown",
-      (e) => {
-        if (e.key === "Escape") close();
-      },
-      true
-    );
-
-    window.addEventListener(
-      "resize",
-      () => {
-        if (!panel.classList.contains("hide")) positionPanel();
-      },
-      { passive: true }
-    );
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (!panel.classList.contains("hide")) positionPanel();
-      },
-      { passive: true }
-    );
+    // Inject notice if missing
+    var notice = bottom.querySelector('.beta-footer__notice');
+    if (!notice){
+      notice = document.createElement('div');
+      notice.className = 'beta-footer__notice';
+      var ul = document.createElement('ul');
+      var items = FOOTER_NOTICE_TEXT.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+      for (var i=0;i<items.length;i++){
+        var li = document.createElement('li');
+        li.textContent = items[i];
+        ul.appendChild(li);
+      }
+      notice.appendChild(ul);
+      // put notice BEFORE left on mobile order? we handle with CSS order, but DOM insertion after left is fine
+      bottom.appendChild(notice);
+    }
   }
 
-  // ----------------------------
-  // Footer: normalize layout (brand + info group), inject notice
-  // ----------------------------
-  function normalizeFooterLeftColumn(footer) {
-    const bottom = footer.querySelector(".beta-footer__bottom");
-    if (!bottom) return;
+  function positionMenuPanel(toggle, panel){
+    // Ensure panel is in body so it never gets clipped/shifted
+    if (panel.parentElement !== document.body){
+      document.body.appendChild(panel);
+    }
+    panel.style.position = 'fixed';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
 
-    if (bottom.querySelector(".beta-footer__left")) return;
+    // Measure width
+    var wasHidden = panel.classList.contains('hide');
+    if (wasHidden) panel.classList.remove('hide');
+    panel.style.visibility = 'hidden';
+    panel.style.display = 'block';
+    var panelW = panel.offsetWidth || 220;
+    panel.style.display = '';
+    panel.style.visibility = '';
+    if (wasHidden) panel.classList.add('hide');
 
-    const brand = bottom.querySelector(".beta-footer__brand");
-    const info = bottom.querySelector(".beta-footer__info");
-    if (!brand || !info) return;
-
-    const left = document.createElement("div");
-    left.className = "beta-footer__left";
-
-    bottom.insertBefore(left, brand);
-    left.appendChild(brand);
-    left.appendChild(info);
+    var r = toggle.getBoundingClientRect();
+    var margin = 12;
+    var top = r.bottom + 10;
+    var left = r.right - panelW;
+    left = clamp(left, margin, (window.innerWidth || 0) - panelW - margin);
+    // If button is too close to bottom on small screens, open upward
+    var vh = window.innerHeight || 0;
+    if (vh && top > vh - 240){
+      top = r.top - 10;
+      panel.style.transform = 'translateY(-100%)';
+    } else {
+      panel.style.transform = '';
+    }
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
   }
 
-  function injectFooterNotice(footer) {
-    const bottom = footer.querySelector(".beta-footer__bottom");
-    if (!bottom) return;
+  function setupMenu(){
+    var toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+    var panel = document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
+    if (!toggle || !panel) return false;
+    if (toggle.dataset.shellBound === '1') return true;
+    toggle.dataset.shellBound = '1';
 
-    if (bottom.querySelector(".beta-footer__notice")) return;
+    function close(){
+      panel.classList.add('hide');
+      toggle.setAttribute('aria-expanded','false');
+    }
+    function open(){
+      positionMenuPanel(toggle, panel);
+      panel.classList.remove('hide');
+      toggle.setAttribute('aria-expanded','true');
+    }
+    function toggleMenu(){
+      if (panel.classList.contains('hide')) open(); else close();
+    }
 
-    const notice = document.createElement("div");
-    notice.className = "beta-footer__notice";
+    toggle.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMenu();
+    }, {passive:false});
 
-    const ul = document.createElement("ul");
-    ul.className = "beta-footer__notice-list";
-
-    (FOOTER_NOTICE_ITEMS || []).forEach((txt) => {
-      const t = String(txt || "").trim();
-      if (!t) return;
-      const li = document.createElement("li");
-      li.textContent = t;
-      ul.appendChild(li);
+    document.addEventListener('click', function(e){
+      if (panel.classList.contains('hide')) return;
+      if (e.target === toggle || toggle.contains(e.target)) return;
+      if (e.target === panel || panel.contains(e.target)) return;
+      close();
     });
 
-    notice.appendChild(ul);
-    bottom.appendChild(notice);
+    window.addEventListener('resize', function(){
+      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
+    });
+    window.addEventListener('scroll', function(){
+      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
+    }, {passive:true});
+
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') close();
+    });
+    return true;
   }
 
-  function setupFooter() {
-    const footer = document.querySelector(".beta-footer");
-    if (!footer) return;
+  function setupFooter(){
+    var footer = document.querySelector('.beta-footer');
+    if (!footer) return false;
+    ensureFooterStructure(footer);
+    return true;
+  }
 
+  function init(){
     ensureStyleTag();
-    normalizeFooterLeftColumn(footer);
-    injectFooterNotice(footer);
+    setupMenu();
+    setupFooter();
   }
 
-  function init() {
-    try {
-      // Ensure CSS is present even on pages that don't render footer immediately
-      ensureStyleTag();
-      setupMenu();
-      setupFooter();
-    } catch (err) {
-      console.error("[HUCHU beta-shell]", err);
-    }
-  }
-
-  // Run now / on DOM ready, and re-try when DOM is mutated (some pages render header/footer late)
-  let scheduled = false;
-  function scheduleInit() {
-    if (scheduled) return;
-    scheduled = true;
-    setTimeout(() => {
-      scheduled = false;
+  function initWithRetry(){
+    var tries = 0;
+    (function tick(){
+      tries++;
       init();
-    }, 0);
+      // if both menu + footer are ready, stop
+      var okMenu = !!(document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle'));
+      var okFooter = !!document.querySelector('.beta-footer');
+      if ((okMenu && okFooter) || tries >= 20) return;
+      setTimeout(tick, 80);
+    })();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", scheduleInit);
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initWithRetry);
   } else {
-    scheduleInit();
+    initWithRetry();
   }
-
-  const mo = new MutationObserver(() => scheduleInit());
-  mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
