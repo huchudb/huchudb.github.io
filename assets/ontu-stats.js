@@ -11,6 +11,40 @@
 
   if (!loanTrack || !productTrack) return;
 
+  /* ---------------- HERO 배너 비디오 (1회 재생) ---------------- */
+
+  function initHeroVideoOnce() {
+    const video = document.querySelector('.beta-stats-hero__video');
+    if (!video) return;
+
+    // 안전장치: loop 제거 + 1회 재생
+    video.loop = false;
+
+    const playOnce = () => {
+      // autoplay 정책 대응 (muted + playsinline)
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    };
+
+    // 로딩되면 재생 시도
+    if (video.readyState >= 2) playOnce();
+    else video.addEventListener('canplay', playOnce, { once: true });
+
+    // 재생 종료 시 멈춤 (마지막 프레임 유지)
+    video.addEventListener('ended', () => {
+      try { video.pause(); } catch (_) {}
+    }, { once: true });
+
+    // 로드 실패 시(예: 캐시/Range 문제) 포스터만 보이도록 처리
+    video.addEventListener('error', () => {
+      video.style.display = 'none';
+      const holder = video.closest('.beta-stats-hero__banner');
+      if (holder) holder.classList.add('is-video-failed');
+    }, { once: true });
+  }
+
+  initHeroVideoOnce();
+
   /* ---------------- 공통: 안전한 숫자 변환 ---------------- */
 
   function toNumberSafe(value) {
@@ -509,41 +543,13 @@
 
     let currentIndex = 0;
     let autoTimer    = null;
-    let autoDir      = 1;
 
-    const isMobileNow = () =>
-      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
-      window.innerWidth <= 768;
+    let isPointerDown = false;
+    let startX        = 0;
+    let deltaX        = 0;
 
     function getCards() {
       return Array.from(track.querySelectorAll('.stats-card'));
-    }
-    function getCardCount() {
-      return getCards().length;
-    }
-    function hasOverflow() {
-      return track.scrollWidth > viewport.clientWidth + 2;
-    }
-
-    function nearestIndex() {
-      const cards = getCards();
-      const total = cards.length;
-      if (!total) return 0;
-
-      const center = viewport.scrollLeft + viewport.clientWidth / 2;
-      let best = 0;
-      let bestDist = Infinity;
-
-      for (let i = 0; i < total; i++) {
-        const card = cards[i];
-        const c = card.offsetLeft + card.clientWidth / 2;
-        const d = Math.abs(c - center);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
-        }
-      }
-      return best;
     }
 
     function scrollToIndex(newIndex, opts) {
@@ -555,11 +561,14 @@
       const normalized = ((newIndex % total) + total) % total;
       currentIndex = normalized;
 
-      const card = cards[normalized];
-      const left = card.offsetLeft - (viewport.clientWidth / 2 - card.clientWidth / 2);
+      const card    = cards[normalized];
+      const cardRect = card.getBoundingClientRect();
+      const vpRect   = viewport.getBoundingClientRect();
+
+      const offset = card.offsetLeft - (vpRect.width - cardRect.width) / 2;
 
       viewport.scrollTo({
-        left: Math.max(0, left),
+        left: offset,
         behavior: options.smooth ? 'smooth' : 'auto',
       });
     }
@@ -570,27 +579,33 @@
       autoTimer = null;
     }
 
+    const isMobileNow = () =>
+      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+      window.innerWidth <= 768;
+
+    let autoDir = 1;
+
+
     function startAuto() {
       stopAuto();
 
       // 모바일에서만 + 오버플로우가 있을 때만 자동 슬라이드(5초 핑퐁)
-      if (!isMobileNow() || !hasOverflow()) return;
-
       const total = getCardCount();
-      if (total <= 1) return;
+      const hasOverflow = viewport.scrollWidth - viewport.clientWidth > 4;
+      if (!isMobileNow() || total <= 1 || !hasOverflow) return;
 
       autoTimer = setInterval(() => {
-        const t = getCardCount();
-        if (t <= 1) return;
+        if (paused) return;
 
         let next = currentIndex + autoDir;
 
-        if (next >= t - 1) {
+        // ping-pong at ends
+        if (next >= total) {
           autoDir = -1;
-          next = t - 1;
-        } else if (next <= 0) {
+          next = Math.max(0, total - 2);
+        } else if (next < 0) {
           autoDir = 1;
-          next = 0;
+          next = Math.min(1, total - 1);
         }
 
         currentIndex = next;
@@ -598,115 +613,79 @@
       }, 5000);
     }
 
-    // ---------------------------
-    // Natural drag-to-scroll
-    // ---------------------------
-    let isDown = false;
-    let startX = 0;
-    let startScrollLeft = 0;
-    let lastX = 0;
-
-    const threshold = 55; // swipe step threshold (mobile)
-
-    function onDown(clientX) {
-      if (!hasOverflow()) return;
-
-      isDown = true;
+    function onPointerDown(clientX) {
+      isPointerDown = true;
       startX = clientX;
-      lastX = clientX;
-      startScrollLeft = viewport.scrollLeft;
-
-      viewport.classList.add('is-dragging');
+      deltaX = 0;
       stopAuto();
     }
 
-    function onMove(clientX) {
-      if (!isDown) return;
-
-      const dx = clientX - startX;
-      lastX = clientX;
-      viewport.scrollLeft = startScrollLeft - dx;
+    function onPointerMove(clientX) {
+      if (!isPointerDown) return;
+      deltaX = clientX - startX;
     }
 
-    function onUp() {
-      if (!isDown) return;
+    function onPointerUp() {
+      if (!isPointerDown) return;
+      isPointerDown = false;
 
-      isDown = false;
-      viewport.classList.remove('is-dragging');
+      const threshold = viewport.offsetWidth * 0.15;
 
-      // 모바일에서만 스냅(데스크탑은 자연 스크롤 유지)
-      if (isMobileNow() && hasOverflow()) {
-        const dx = lastX - startX;
-        const base = nearestIndex();
-
-        if (Math.abs(dx) > threshold) {
-          const step = dx < 0 ? 1 : -1; // drag left => next
-          scrollToIndex(base + step, { smooth: true });
-        } else {
-          scrollToIndex(base, { smooth: true });
-        }
+      if (deltaX > threshold) {
+        scrollToIndex(currentIndex - 1);
+      } else if (deltaX < -threshold) {
+        scrollToIndex(currentIndex + 1);
+      } else {
+        scrollToIndex(currentIndex);
       }
 
       startAuto();
     }
 
-    // Pointer events (covers mouse + touch in modern browsers)
-    viewport.addEventListener('pointerdown', (e) => {
-      // only left click for mouse
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      // prevent text selection / stray clicks while dragging
+    viewport.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      onDown(e.clientX);
+      onPointerDown(e.clientX);
     });
-    window.addEventListener('pointermove', (e) => {
-      onMove(e.clientX);
+    window.addEventListener('mousemove', (e) => {
+      onPointerMove(e.clientX);
     });
-    window.addEventListener('pointerup', () => {
-      onUp();
-    });
-    window.addEventListener('pointercancel', () => {
-      onUp();
+    window.addEventListener('mouseup', () => {
+      onPointerUp();
     });
 
-    // Wheel: vertical wheel -> horizontal scroll (desktop usability)
     viewport.addEventListener(
-      'wheel',
+      'touchstart',
       (e) => {
-        if (!hasOverflow()) return;
-        // If user already scrolls horizontally, allow it.
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          viewport.scrollLeft += e.deltaY;
-          e.preventDefault();
-        }
+        const t = e.touches[0];
+        if (!t) return;
+        onPointerDown(t.clientX);
       },
-      { passive: false }
+      { passive: true },
     );
-
-    // Keep currentIndex in sync (used by mobile auto ping-pong)
-    let raf = null;
-    viewport.addEventListener(
-      'scroll',
-      () => {
-        if (raf) cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(() => {
-          currentIndex = nearestIndex();
-        });
-      },
-      { passive: true }
-    );
-
-    // Initialize
-    currentIndex = nearestIndex();
-    startAuto();
-
     window.addEventListener(
-      'resize',
-      () => {
-        currentIndex = nearestIndex();
-        startAuto();
+      'touchmove',
+      (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        onPointerMove(t.clientX);
       },
-      { passive: true }
+      { passive: true },
     );
+    window.addEventListener('touchend', () => {
+      onPointerUp();
+    });
+
+    slider.addEventListener('mouseenter', stopAuto);
+    slider.addEventListener('mouseleave', startAuto);
+
+    window.addEventListener('resize', () => {
+      scrollToIndex(currentIndex, { smooth: false });
+    });
+
+    setTimeout(() => {
+      scrollToIndex(0, { smooth: false });
+      startAuto();
+    }, 0);
   }
 
   function initOntuStatsSliders() {
