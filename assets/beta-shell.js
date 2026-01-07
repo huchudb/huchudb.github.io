@@ -4,17 +4,19 @@
 
 (function(){
   'use strict';
-  var GLOBAL_FLAG = '__HUCHU_BETA_SHELL_INIT__v8';
+  var GLOBAL_FLAG = '__HUCHU_BETA_SHELL_INIT__v7';
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
   // ----------------------------
   // Config
   // ----------------------------
-  var FOOTER_NOTICE_TEXT =
-    "본 페이지의 정보는 단순 참고용이며, 대출 관련 문의는 해당 온투업체에 직접 문의해 주세요.",
-    "당사는 대출의 판매·대리·중개·모집, 심사·승인·계약 체결에 일체 관여하지 않습니다."
-    "과도한 빛은 당신에게 큰 불행을 안겨줄 수 있습니다. 반드시 상환 계획을 함께 준비하세요."
+  var FOOTER_NOTICE_LINES = [
+    '본 페이지의 정보는 단순 참고용이며, 대출 관련 문의는 해당 온투업체에 직접 문의해 주세요.',
+    '당사는 대출의 판매·대리·중개·모집, 심사·승인·계약 체결에 일체 관여하지 않습니다.',
+    '과도한 빚은 당신에게 큰 불행을 안겨줄 수 있습니다. 반드시 상환 계획을 함께 준비하세요.',
+  ];
+  var FOOTER_NOTICE_TEXT = FOOTER_NOTICE_LINES.join('\n');
 
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
@@ -25,9 +27,9 @@
       '',
       '/* MENU: tighter card + more vertical breathing room */',
       '.beta-menu-panel{',
-      '  width:220px !important;',
+      '  width:170px !important;',
       '  max-width:170px !important;',
-      '  min-width:180px !important;',
+      '  min-width:160px !important;',
       '  padding:12px 10px !important;',
       '  border-radius:16px !important;',
       '  box-shadow:0 16px 40px rgba(0,0,0,.18) !important;',
@@ -174,91 +176,73 @@
     panel.style.top = top + 'px';
   }
 
-  function setupMenu() {
-  // Delegate menu handling at document level (capture) to avoid per-page script conflicts.
-  if (window.__HUCHU_BETA_SHELL_MENU_BOUND__) return true;
-  window.__HUCHU_BETA_SHELL_MENU_BOUND__ = true;
+  function setupMenu(){
+    var toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+    var panel = document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
+    if (!toggle || !panel) return false;
+    if (toggle.dataset.shellBound === '1') return true;
+    toggle.dataset.shellBound = '1';
 
-  function getToggle(t) {
-    if (!t || !t.closest) return null;
-    return t.closest('#betaMenuToggle, .beta-menu-toggle');
-  }
-  function getPanel() {
-    return document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
-  }
-  function isOpen(panel) {
-    return !!(panel && !panel.classList.contains('hide'));
-  }
-  function setAria(toggle, open) {
-    if (!toggle) return;
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
-  function closeAll() {
-    const panel = getPanel();
-    if (panel) panel.classList.add('hide');
-    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
-    setAria(toggle, false);
-  }
-  function openFrom(toggle) {
-    const panel = getPanel();
-    if (!toggle || !panel) return;
-    positionMenuPanel(toggle, panel);
-    panel.classList.remove('hide');
-    setAria(toggle, true);
-  }
-
-  // Normalize initial state (safe if elements are not present yet).
-  (function normalizeInitial() {
-    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
-    const panel = getPanel();
-    if (toggle && !toggle.hasAttribute('aria-expanded')) setAria(toggle, false);
-    if (panel && !panel.classList.contains('hide')) {
-      // keep as-is
-    } else if (panel) {
+    function close(){
       panel.classList.add('hide');
+      toggle.setAttribute('aria-expanded','false');
     }
-  })();
-
-  document.addEventListener('click', function onDocClick(e) {
-    const toggle = getToggle(e.target);
-    const panel = getPanel();
-
-    // Toggle click: we fully handle it and stop propagation so other scripts won't double-toggle.
-    if (toggle) {
-      e.preventDefault();
-      // Block other handlers (including those bound on the button itself).
-      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-      e.stopPropagation();
-
-      if (!panel) return;
-      if (isOpen(panel)) closeAll();
-      else openFrom(toggle);
-      return;
+    function open(){
+      positionMenuPanel(toggle, panel);
+      panel.classList.remove('hide');
+      toggle.setAttribute('aria-expanded','true');
+    }
+    function toggleMenu(){
+      if (panel.classList.contains('hide')) open(); else close();
     }
 
-    // Outside click closes
-    if (panel && isOpen(panel)) {
-      if (!panel.contains(e.target)) closeAll();
+    // Use a document-level CAPTURE handler so page-specific scripts can't "fight" the MENU toggle.
+    // (Prevents: open-then-immediate-close / no-op click when multiple listeners exist.)
+    if (!window.__betaShellMenuCaptureBound){
+      window.__betaShellMenuCaptureBound = true;
+
+      document.addEventListener('click', function(e){
+        var t = e.target;
+
+        var tg = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+        var pn = document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
+        if (!tg || !pn) return;
+
+        // Toggle button click: intercept before other handlers
+        if (t === tg || (tg.contains && tg.contains(t))){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+
+          // Re-sync local refs if needed
+          toggle = tg;
+          panel = pn;
+
+          // Toggle
+          if (panel.classList.contains('hide')) open(); else close();
+          return;
+        }
+
+        // Outside click closes (no interference)
+        if (!pn.classList.contains('hide')){
+          if (!(pn.contains && pn.contains(t)) && !(tg.contains && tg.contains(t))){
+            close();
+          }
+        }
+      }, true);
     }
-  }, true);
 
-  // ESC closes
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' || e.key === 'Esc') closeAll();
-  });
+    window.addEventListener('resize', function(){
+      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
+    });
+    window.addEventListener('scroll', function(){
+      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
+    }, {passive:true});
 
-  // Reposition when open on resize/scroll
-  function repositionIfOpen() {
-    const panel = getPanel();
-    if (!panel || !isOpen(panel)) return;
-    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
-    if (toggle) positionMenuPanel(toggle, panel);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') close();
+    });
+return true;
   }
-  window.addEventListener('resize', repositionIfOpen, { passive: true });
-  window.addEventListener('scroll', repositionIfOpen, { passive: true });
-
-  return true;
-}
 
   function setupFooter(){
     var footer = document.querySelector('.beta-footer');
