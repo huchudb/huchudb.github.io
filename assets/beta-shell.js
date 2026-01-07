@@ -12,9 +12,9 @@
   // Config
   // ----------------------------
   var FOOTER_NOTICE_TEXT =
-    '본 페이지의 정보는 참고용이며, 정확한 조건은 해당 온투업체 안내 및 심사 결과에 따라 달라질 수 있습니다.\n' +
-    '금리·한도·플랫폼 수수료·중도상환 조건 등은 수시로 변동될 수 있습니다.\n' +
-    '최종 조건은 해당 온투업체/계약서 기준으로 확인해 주세요.';
+    "본 페이지의 정보는 단순 참고용이며, 대출 관련 문의는 해당 온투업체에 직접 문의해 주세요.",
+    "당사는 대출의 판매·대리·중개·모집, 심사·승인·계약 체결에 일체 관여하지 않습니다."
+    "과도한 빛은 당신에게 큰 불행을 안겨줄 수 있습니다. 반드시 상환 계획을 함께 준비하세요."
 
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
@@ -26,7 +26,7 @@
       '/* MENU: tighter card + more vertical breathing room */',
       '.beta-menu-panel{',
       '  width:220px !important;',
-      '  max-width:240px !important;',
+      '  max-width:170px !important;',
       '  min-width:180px !important;',
       '  padding:12px 10px !important;',
       '  border-radius:16px !important;',
