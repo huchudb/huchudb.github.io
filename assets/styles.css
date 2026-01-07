@@ -2308,7 +2308,7 @@ text-align:center;
 
 .navi-tile__count .num{
   font-size: 22px;
-  color: #16a34a; /* green */
+  color: #02c1c2; /* green */
   letter-spacing: -0.4px;
 }
 
@@ -2838,3 +2838,4 @@ body.ontu-stats-page .stats-card__value--main .money-text{
     cursor: grabbing;
   }
 }
+
