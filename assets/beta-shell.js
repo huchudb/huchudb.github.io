@@ -34,7 +34,7 @@
 /* MENU: narrower card + more vertical breathing room */
 .beta-menu-panel{
   width:220px !important;
-  max-width:170px !important;
+  max-width:240px !important;
   min-width:180px !important;
   padding:10px 6px !important;   /* top/bottom padding increased */
 }
@@ -333,13 +333,33 @@
   }
 
   function init() {
-    setupMenu();
-    setupFooter();
+    try {
+      // Ensure CSS is present even on pages that don't render footer immediately
+      ensureStyleTag();
+      setupMenu();
+      setupFooter();
+    } catch (err) {
+      console.error("[HUCHU beta-shell]", err);
+    }
+  }
+
+  // Run now / on DOM ready, and re-try when DOM is mutated (some pages render header/footer late)
+  let scheduled = false;
+  function scheduleInit() {
+    if (scheduled) return;
+    scheduled = true;
+    setTimeout(() => {
+      scheduled = false;
+      init();
+    }, 0);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", scheduleInit);
   } else {
-    init();
+    scheduleInit();
   }
+
+  const mo = new MutationObserver(() => scheduleInit());
+  mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
