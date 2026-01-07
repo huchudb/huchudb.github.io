@@ -5,6 +5,8 @@
   const API_BASE = 'https://huchudb-github-io.vercel.app';
   const API_URL = `${API_BASE}/api/ontu-stats`;
 
+  const DEBUG = false;
+
   const monthInput   = document.getElementById('ontuMonthInput');
   const loanTrack    = document.getElementById('ontuLoanTrack');
   const productTrack = document.getElementById('ontuProductTrack');
@@ -142,16 +144,55 @@
     return `${sign}${Math.abs(rate).toFixed(2)}%`;
   }
 
-  /* ---------------- API 호출 ---------------- */
+  
+  /* ---------------- 금액 텍스트 span 래핑 ---------------- */
 
-  async function fetchMonthData(monthKey) {
+  function decorateMoneySpans() {
+    const selectors =
+      '.stats-panel--loan .stats-card__value--main .money-text, ' +
+      '.stats-panel--products .stats-card__value--main .money-text';
+
+    const nodes = document.querySelectorAll(selectors);
+    if (!nodes.length) return;
+
+    nodes.forEach((node) => {
+      // 이미 래핑돼 있으면 패스
+      if (node.querySelector('.money-number') || node.querySelector('.money-unit')) return;
+
+      const raw = (node.textContent || '').trim();
+      if (!raw) return;
+
+      // "18조 3,580억 234만원" → ["18조", "3,580억", "234만원"]
+      const tokens = raw.split(/\s+/);
+      const htmlTokens = tokens.map((tok) => {
+        // "18조" / "3,580억" / "234만원" / "49개" 등 처리
+        const m = tok.match(/^([\d,]+)([^\d,]+)$/);
+        if (!m) return tok;
+        const num = m[1];
+        const unit = m[2];
+        return (
+          '<span class="money-number">' +
+          num +
+          '</span><span class="money-unit">' +
+          unit +
+          '</span>'
+        );
+      });
+
+      node.innerHTML = htmlTokens.join(' ');
+    });
+  }
+
+/* ---------------- API 호출 ---------------- */
+
+  async function fetchMonthData(monthKey, opts) {
     const url = monthKey
       ? `${API_URL}?month=${encodeURIComponent(monthKey)}`
       : API_URL;
-    const res = await fetch(url, { credentials: 'omit' });
+    const res = await fetch(url, Object.assign({ credentials: 'omit' }, opts || {}));
     if (!res.ok) throw new Error(`API ${res.status}`);
     const json = await res.json();
-    console.log('[ontu-stats] API response:', json);
+    if (DEBUG) console.log('[ontu-stats] API response:', json);
     return json;
   }
 
@@ -442,6 +483,9 @@
     const productCards = createProductCards(current, prev);
     productCards.forEach((c) => productTrack.appendChild(c));
 
+    // 렌더 직후: 금액 텍스트(숫자/단위) span 래핑
+    decorateMoneySpans();
+
     if (typeof window !== 'undefined' && typeof window.initOntuStatsSliders === 'function') {
       window.initOntuStatsSliders();
     }
@@ -494,22 +538,35 @@
       renderAll(current, prev);
 
       if (monthInput) {
+        let activeReqId = 0;
+        let activeController = null;
+
         monthInput.addEventListener('change', async (e) => {
           const raw   = e.target.value;
           const value = normalizeMonthKey(raw);
           if (!value) return;
 
+          // 최신 요청만 반영 + 이전 요청 취소
+          const reqId = ++activeReqId;
+          if (activeController) activeController.abort();
+          activeController = new AbortController();
+          const signal = activeController.signal;
+
           try {
-            const cur = await fetchMonthData(value);
+            const cur = await fetchMonthData(value, { signal });
             let pv = null;
             try {
               const prevKey = getPrevMonthKey(cur.month);
-              pv = await fetchMonthData(prevKey);
+              pv = await fetchMonthData(prevKey, { signal });
             } catch (err) {
+              if (err && err.name === 'AbortError') return;
               console.warn('[ontu-stats] no prev for selected month', err);
             }
+
+            if (reqId !== activeReqId) return;
             renderAll(cur, pv);
           } catch (err) {
+            if (err && err.name === 'AbortError') return;
             console.error('[ontu-stats] month change error', err);
             // 없는 월 → 심플 Empty 카드
             renderEmptyState();
@@ -533,7 +590,12 @@
     const panel = document.querySelector(panelSelector);
     if (!panel) return;
 
-    if (panel.dataset.ontuSliderInitialized === 'true') return;
+    // 이미 초기화된 경우: 이벤트 재바인딩 없이 리프레시만 수행
+    if (panel._ontuSliderRefresh) {
+      panel._ontuSliderRefresh();
+      return;
+    }
+
     panel.dataset.ontuSliderInitialized = 'true';
 
     const slider   = panel.querySelector('.stats-panel__slider');
@@ -680,10 +742,15 @@
       scrollToIndex(currentIndex, { smooth: false });
     });
 
-    setTimeout(() => {
-      scrollToIndex(0, { smooth: false });
-      startAuto();
-    }, 0);
+    // 외부에서 재렌더(월 변경 등) 후에도 같은 초기화 루틴을 재사용
+    panel._ontuSliderRefresh = () => {
+      setTimeout(() => {
+        scrollToIndex(0, { smooth: false });
+        startAuto();
+      }, 0);
+    };
+
+    panel._ontuSliderRefresh();
   }
 
   function initOntuStatsSliders() {
