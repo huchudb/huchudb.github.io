@@ -8,7 +8,93 @@
   <meta name="description" content="온라인투자연계금융업(P2P) 담보대출의 누적 대출금액, 상환금액, 대출잔액과 상품유형별 대출잔액을 월별로 확인할 수 있는 대출 통계 페이지입니다.">
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="/assets/styles.css?v=20251203-ontu-stats-final" />
-  <script type="module" src="/assets/beta-shell.js?v=20260106-menu1"></script>
+
+  <style>
+    /* ===== 온투업 대출 통계: 배너(비디오) + 기준월 선택을 배너 내부로 ===== */
+    .ontu-stats-page .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .ontu-stats-page .beta-stats-hero {
+      position: relative;
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .ontu-stats-page .beta-stats-hero__banner {
+      position: relative;
+      aspect-ratio: 25 / 3;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #0b1220;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+    }
+
+    .ontu-stats-page .beta-stats-hero__video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .ontu-stats-page .beta-stats-hero__controls {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+
+    .ontu-stats-page .beta-month-picker--hero input[type="month"] {
+      -webkit-appearance: none;
+      appearance: none;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(6px);
+      border-radius: 999px;
+      padding: 10px 16px;
+      min-width: 160px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #0f172a;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+      cursor: pointer;
+    }
+
+    .ontu-stats-page .beta-month-picker--hero input[type="month"]::-webkit-calendar-picker-indicator {
+      opacity: 0.55;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .ontu-stats-page .beta-stats-hero {
+        max-width: 100%;
+      }
+      .ontu-stats-page .beta-stats-hero__banner {
+        border-radius: 16px;
+      }
+      .ontu-stats-page .beta-stats-hero__controls {
+        bottom: 12px;
+      }
+      .ontu-stats-page .beta-month-picker--hero input[type="month"] {
+        padding: 8px 14px;
+        min-width: 148px;
+        font-size: 13px;
+      }
+    }
+  </style>
+
 </head>
 
 <body class="beta-body ontu-stats-page">
@@ -25,24 +111,21 @@
       </a>
 
       <!-- MENU + 드롭다운 -->
-      <div class="beta-menu-wrap">
-        <button
-          id="betaMenuToggle"
-          class="beta-menu-toggle"
-          type="button"
-          aria-haspopup="true"
-          aria-expanded="false"
-        >
-          <span class="beta-menu-toggle__label">MENU</span>
-        </button>
+      <button id="betaMenuToggle"
+              class="beta-menu-toggle"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span class="beta-menu-toggle__label">MENU</span>
+      </button>
 
-        <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
-          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
-          <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
-          <a class="beta-menu-link" href="/company.html">회사소개</a>
-          <a class="beta-menu-link" href="/contact.html">광고문의</a>
-        </div>
+      <div id="betaMenuPanel" class="beta-menu-panel hide">
+        <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출 통계</a>
+        <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품 정보</a>
+        <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
+        <a class="beta-menu-link" href="/company.html">회사소개</a>
+        <a class="beta-menu-link" href="/contact.html">광고문의</a>
+        <a class="beta-menu-link" href="/beta/admin-beta.html">관리자</a>
       </div>
     </div>
   </header>
@@ -50,24 +133,30 @@
   <main class="beta-inner">
     <!-- 상단 타이틀 + 기준월 선택 -->
     <section class="beta-section beta-section--filter">
-      <div class="beta-stats-header">
-        <div class="beta-stats-header__left">
-          <div class="beta-stats-header__top-row">
-            <h1 class="beta-stats-title">대출 통계</h1>
-            <div class="beta-month-picker">
-              <label for="ontuMonthInput" class="beta-month-picker__label">기준월</label>
-              <input
-                type="month"
-                id="ontuMonthInput"
-                name="ontuMonthInput"
-                aria-label="기준월 선택"
-              />
-            </div>
-          </div>
-          <p class="beta-stats-subtitle">
-            전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.
-          </p>
+      <div class="beta-stats-hero" aria-label="대출 통계 배너">
+        <div class="beta-stats-hero__banner" role="img" aria-label="대출 통계 배너">
+          <!-- NOTE: 아래 mp4 파일을 레포에 추가하세요: /assets/media/ontu-stats-hero.mp4 -->
+          <video class="beta-stats-hero__video" autoplay muted loop playsinline preload="metadata" poster="/assets/media/ontu-stats-hero.jpg">
+            <source src="/assets/media/ontu-stats-hero.mp4" type="video/mp4" />
+          </video>
         </div>
+
+        <!-- 기준월 선택: 배너 내부(하단 중앙) -->
+        <div class="beta-stats-hero__controls">
+          <div class="beta-month-picker beta-month-picker--hero">
+            <label for="ontuMonthInput" class="sr-only">기준월</label>
+            <input
+              type="month"
+              id="ontuMonthInput"
+              name="ontuMonthInput"
+              aria-label="기준월 선택"
+            />
+          </div>
+        </div>
+
+        <!-- 접근성(스크린리더) -->
+        <h1 class="sr-only">대출 통계</h1>
+        <p class="sr-only">전체 온라인투자연계금융업(P2P)의 대출 현황을 확인할 수 있습니다.</p>
       </div>
     </section>
 
@@ -140,37 +229,203 @@
 
   <!-- 온투 통계: 금액/단위 래핑 + 자동 슬라이드/드래그 후처리 -->
   <script>
-      // 금액 텍스트를 숫자/단위로 분리해서 스타일링(렌더 이후에만 실행)
+    (function () {
+      // 메인 금액 텍스트를 숫자/단위로 쪼개서 span으로 감싸기
       function decorateMoneySpans() {
-        const nodes = document.querySelectorAll('.stats-card__value--main');
+        const selectors =
+          '.stats-panel--loan .stats-card__value--main, ' +
+          '.stats-panel--products .stats-card__value--main';
+
+        const nodes = document.querySelectorAll(selectors);
+        if (!nodes.length) return;
+
         nodes.forEach((node) => {
-          if (!node) return;
-          // 이미 span으로 분리돼 있으면 스킵
-          if (node.querySelector('.money-number, .money-unit')) return;
+          // 첫 카드(데이터수집 온투업체수)는 건너뜀
+          const isLoanPanel = node.closest('.stats-panel--loan');
+          const card = node.closest('.stats-card');
+          if (isLoanPanel && card && card === card.parentElement.firstElementChild) {
+            return;
+          }
 
-          const raw = (node.textContent || '').trim();
-          // '개' 카드는 별도 마크업이라 스킵
-          if (raw.endsWith('개')) return;
+          // 이미 래핑돼 있으면 패스
+          if (node.querySelector('.money-number') || node.querySelector('.money-unit')) {
+            return;
+          }
 
-          const tokens = raw.split(/\s+/).filter(Boolean);
-          if (!tokens.length) return;
+          const raw = node.textContent.trim();
+          if (!raw) return;
 
-          node.innerHTML = tokens
-            .map((t) => {
-              const isUnit = /^(조|억|만원|만|원)$/.test(t);
-              return `<span class="${isUnit ? 'money-unit' : 'money-number'}">${t}</span>`;
-            })
-            .join(' ');
+          // "18조 3,580억 234만원" → ["18조", "3,580억", "234만원"]
+          const tokens = raw.split(/\s+/);
+          const htmlTokens = tokens.map((tok) => {
+            // "18조" / "3,580억" / "234만원" / "49개" 등 처리
+            const m = tok.match(/^([\d,]+)([^\d,]+)$/);
+            if (!m) {
+              // 숫자+단위 패턴이 아니면 그냥 둠
+              return tok;
+            }
+            const num = m[1];
+            const unit = m[2];
+            return (
+              '<span class="money-number">' +
+              num +
+              '</span><span class="money-unit">' +
+              unit +
+              '</span>'
+            );
+          });
+
+          node.innerHTML = htmlTokens.join(' ');
         });
       }
 
-      function initEnhance() {
-        decorateMoneySpans();
+      // 공통: 자동 슬라이드 + hover 시 일시정지 + 드래그 스크롤
+      function setupAutoSlider(trackSelector, viewportSelector, intervalMs) {
+        const track = document.querySelector(trackSelector);
+        const viewport = document.querySelector(viewportSelector);
+        if (!track || !viewport) return;
+
+        // PC/모바일 판별
+        const isMobile =
+          window.matchMedia &&
+          window.matchMedia('(max-width: 768px)').matches;
+
+        let index = 0;
+        let timer = null;
+        let direction = 1; // 1: 오른쪽, -1: 왼쪽
+
+        function slideOnce() {
+          const cards = track.children;
+          const total = cards.length;
+          if (!total) return;
+
+          let next = index + direction;
+          if (next < 0 || next >= total) {
+            direction *= -1;
+            next = index + direction;
+          }
+
+          index = next;
+          const target = cards[index];
+          const offset = target.offsetLeft;
+          viewport.scrollTo({ left: offset, behavior: 'smooth' });
+        }
+
+        function start() {
+          // PC에서는 자동 슬라이드 안 함
+          if (!isMobile) return;
+          if (timer) return;
+          timer = setInterval(slideOnce, intervalMs);
+        }
+
+        function stop() {
+          if (!timer) return;
+          clearInterval(timer);
+          timer = null;
+        }
+
+        // PC: 마우스 올리면 정지, 나가면 다시 재생
+        viewport.addEventListener('mouseenter', stop);
+        viewport.addEventListener('mouseleave', start);
+
+        // 마우스 드래그로 좌우 이동
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        viewport.addEventListener('mousedown', (e) => {
+          isDown = true;
+          viewport.classList.add('is-dragging');
+          startX = e.pageX - viewport.getBoundingClientRect().left;
+          scrollLeft = viewport.scrollLeft;
+          stop();
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (!isDown) return;
+          isDown = false;
+          viewport.classList.remove('is-dragging');
+          start(); // 드래그 끝나면 다시 자동 슬라이드 (모바일에서만)
+        });
+
+        viewport.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - viewport.getBoundingClientRect().left;
+          const walk = startX - x;
+          viewport.scrollLeft = scrollLeft + walk;
+        });
+
+        // 모바일 터치 드래그
+        let tStartX = 0;
+        let tScrollLeft = 0;
+        viewport.addEventListener(
+          'touchstart',
+          (e) => {
+            const touch = e.touches[0];
+            tStartX = touch.pageX - viewport.getBoundingClientRect().left;
+            tScrollLeft = viewport.scrollLeft;
+            stop();
+          },
+          { passive: true }
+        );
+
+        viewport.addEventListener(
+          'touchmove',
+          (e) => {
+            const touch = e.touches[0];
+            const x = touch.pageX - viewport.getBoundingClientRect().left;
+            const walk = tStartX - x;
+            viewport.scrollLeft = tScrollLeft + walk;
+          },
+          { passive: false }
+        );
+
+        viewport.addEventListener(
+          'touchend',
+          () => {
+            start();
+          },
+          { passive: true }
+        );
+
+        // 초기 자동 슬라이드 시작 (모바일에서만 실제 동작)
+        start();
       }
 
-      // ontu-stats.js가 렌더링 완료 시 이벤트를 던짐
+      // 슬라이더는 한 번만 세팅하면 되니까 플래그로 중복 방지
+      let sliderInitialized = false;
+
+      function initEnhance() {
+        // 1) 매번 새 카드가 생길 때마다 숫자/단위 래핑
+        decorateMoneySpans();
+
+        // 2) 자동 슬라이더/드래그는 한 번만 세팅
+        if (!sliderInitialized) {
+          setupAutoSlider(
+            '#ontuLoanTrack',
+            '.stats-panel__slider--loan .stats-panel__viewport',
+            5000   // 모바일 자동 슬라이드 5초
+          );
+
+          setupAutoSlider(
+            '#ontuProductTrack',
+            '.stats-panel__slider--products .stats-panel__viewport',
+            5000   // 모바일 자동 슬라이드 5초
+          );
+
+          sliderInitialized = true;
+        }
+      }
+
+      // ontu-stats.js 가 카드 렌더를 끝냈을 때마다 호출
       document.addEventListener('ontuStatsRendered', initEnhance);
-      document.addEventListener('DOMContentLoaded', initEnhance);
-</script>
+
+      // 첫 로딩 직후(최신 월) 한 번 호출 – 혹시 이벤트가 먼저 발행되었을 경우 대비
+      document.addEventListener('DOMContentLoaded', () => {
+        initEnhance();
+      });
+    })();
+  </script>
 </body>
 </html>
