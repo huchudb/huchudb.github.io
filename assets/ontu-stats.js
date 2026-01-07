@@ -7,6 +7,105 @@
 
   const DEBUG = false;
 
+
+/* ---------------- 숫자 애니메이션(고급스럽게) ---------------- */
+// 카드 DOM이 매번 재생성되므로, metricKey로 이전 값을 캐시해 '숫자만' 부드럽게 변화시킨다.
+const _prevValueCache = new Map();
+
+function _prefersReducedMotion() {
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (_) {
+    return false;
+  }
+}
+
+function _easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function _escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _moneyTextToHtml(rawText) {
+  const raw = (rawText || '').trim();
+  if (!raw) return '';
+  const tokens = raw.split(/\s+/);
+  return tokens
+    .map((tok) => {
+      const m = tok.match(/^([\d,]+)([^\d,]+)$/);
+      if (!m) return _escapeHtml(tok);
+      const num  = m[1];
+      const unit = m[2];
+      return (
+        '<span class="money-number">' +
+        _escapeHtml(num) +
+        '</span><span class="money-unit">' +
+        _escapeHtml(unit) +
+        '</span>'
+      );
+    })
+    .join(' ');
+}
+
+function formatKoreanMoneyHtml(amountWonRaw) {
+  const won = toNumberSafe(amountWonRaw);
+  let text = formatKoreanMoneyLine(won);
+  if (!text || text === '-' || text === 'NaN만원') {
+    text = `${Math.round(won).toLocaleString()}원`;
+  }
+  return _moneyTextToHtml(text);
+}
+
+function animateNumber({ el, key, from, to, render, durationMs = 650 }) {
+  const target = Number.isFinite(to) ? to : 0;
+  const startV = Number.isFinite(from) ? from : target;
+
+  // 접근성: 모션 최소화 설정이거나 변화가 없으면 즉시 반영
+  if (_prefersReducedMotion() || startV === target) {
+    render(target);
+    _prevValueCache.set(key, target);
+    return;
+  }
+
+  // 빠른 월 변경 시 이전 애니메이션이 남지 않도록 토큰 가드
+  const token = (el.__ontuAnimToken || 0) + 1;
+  el.__ontuAnimToken = token;
+
+  el.classList.add('num-animating');
+
+  const t0 = performance.now();
+
+  const step = (now) => {
+    // element가 DOM에서 사라졌거나, 더 최신 애니메이션이 시작됐으면 중단
+    if (el.__ontuAnimToken !== token) return;
+    if (!document.contains(el)) return;
+
+    const t = Math.min(1, (now - t0) / durationMs);
+    const eased = _easeOutCubic(t);
+    const v = startV + (target - startV) * eased;
+
+    render(v);
+
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      render(target);
+      el.classList.remove('num-animating');
+      _prevValueCache.set(key, target);
+    }
+  };
+
+  requestAnimationFrame(step);
+}
+
+
   const monthInput   = document.getElementById('ontuMonthInput');
   const loanTrack    = document.getElementById('ontuLoanTrack');
   const productTrack = document.getElementById('ontuProductTrack');
@@ -213,13 +312,14 @@
         )
       : null;
 
-    cards.push(createCountCard('데이터수집 온투업체수', firmCount, prevFirmCount));
+    cards.push(createCountCard('데이터수집 온투업체수', firmCount, prevFirmCount, 'loan:firms'));
 
     cards.push(
       createMoneyCard(
         '누적 대출금액',
         toNumberSafe(summary.totalLoan),
         prevSummary ? toNumberSafe(prevSummary.totalLoan) : null,
+        'loan:totalLoan'
       ),
     );
 
@@ -228,6 +328,7 @@
         '누적 상환금액',
         toNumberSafe(summary.totalRepaid),
         prevSummary ? toNumberSafe(prevSummary.totalRepaid) : null,
+        'loan:totalRepaid'
       ),
     );
 
@@ -236,6 +337,7 @@
         '대출잔액',
         toNumberSafe(summary.balance),
         prevSummary ? toNumberSafe(prevSummary.balance) : null,
+        'loan:balance'
       ),
     );
 
@@ -269,7 +371,7 @@
       let ratio = cur.ratio != null ? toNumberSafe(cur.ratio) : 0;
       if (ratio > 1) ratio = ratio / 100;
 
-      cards.push(createProductCard(key, curAmount, prevAmount, ratio));
+      cards.push(createProductCard(key, curAmount, prevAmount, ratio, `product:${key}`));
     });
 
     return cards;
@@ -277,7 +379,7 @@
 
   /* ----- 개수형 카드 ----- */
 
-  function createCountCard(label, currentValueRaw, prevValueRaw) {
+  function createCountCard(label, currentValueRaw, prevValueRaw, metricKey) {
     const currentValue = toNumberSafe(currentValueRaw);
     const prevValue    = prevValueRaw == null ? null : toNumberSafe(prevValueRaw);
 
@@ -292,6 +394,11 @@
     } else if (diff < 0) {
       deltaClass = 'delta-down';
       arrow      = '▼';
+
+
+const _key = metricKey || `count:${label}`;
+const cached = _prevValueCache.get(_key);
+const initialValue = (cached != null && Number.isFinite(cached)) ? cached : currentValue;
     }
 
     const el = document.createElement('article');
@@ -300,7 +407,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="stats-card__number">${currentValue.toLocaleString()}</span>
+        <span class="stats-card__number">${initialValue.toLocaleString()}</span>
         <span class="stats-card__unit">개</span>
       </div>
       <div class="stats-card__bottom-row">
@@ -322,14 +429,37 @@
       </div>
     `;
 
-    return el;
+const numEl = el.querySelector('.stats-card__number');
+if (numEl) {
+  animateNumber({
+    el: numEl,
+    key: _key,
+    from: initialValue,
+    to: currentValue,
+    render: (v) => {
+      numEl.textContent = Math.round(v).toLocaleString();
+    },
+  });
+} else {
+  _prevValueCache.set(_key, currentValue);
+}
+
+return el;
   }
 
   /* ----- 금액 카드 ----- */
 
-  function createMoneyCard(label, currentWonRaw, prevWonRaw) {
+  function createMoneyCard(label, currentWonRaw, prevWonRaw, metricKey) {
     const currentWon = toNumberSafe(currentWonRaw);
     const prevWon    = prevWonRaw == null ? null : toNumberSafe(prevWonRaw);
+
+
+const _key = metricKey || `money:${label}`;
+const cached = _prevValueCache.get(_key);
+const initialWon = (cached != null && Number.isFinite(cached)) ? cached : currentWon;
+
+
+
 
     const diff    = prevWon == null ? 0 : currentWon - prevWon;
     const absDiff = Math.abs(diff);
@@ -356,7 +486,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${mainText}</span>
+        <span class="money-text">${formatKoreanMoneyHtml(initialWon)}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share"></div>
@@ -377,14 +507,35 @@
       </div>
     `;
 
-    return el;
+const moneyEl = el.querySelector('.money-text');
+if (moneyEl) {
+  animateNumber({
+    el: moneyEl,
+    key: _key,
+    from: initialWon,
+    to: currentWon,
+    render: (v) => {
+      moneyEl.innerHTML = formatKoreanMoneyHtml(v);
+    },
+  });
+} else {
+  _prevValueCache.set(_key, currentWon);
+}
+
+return el;
   }
 
   /* ----- 상품유형별 카드 ----- */
 
-  function createProductCard(label, currentWonRaw, prevWonRaw, ratioRaw) {
+  function createProductCard(label, currentWonRaw, prevWonRaw, ratioRaw, metricKey) {
     const currentWon = toNumberSafe(currentWonRaw);
     const prevWon    = prevWonRaw == null ? null : toNumberSafe(prevWonRaw);
+
+const _key = metricKey || `product:${label}`;
+const cached = _prevValueCache.get(_key);
+const initialWon = (cached != null && Number.isFinite(cached)) ? cached : currentWon;
+
+
 
     const diff    = prevWon == null ? 0 : currentWon - prevWon;
     const absDiff = Math.abs(diff);
@@ -411,7 +562,7 @@
     el.innerHTML = `
       <h3 class="stats-card__label">${label}</h3>
       <div class="stats-card__value--main">
-        <span class="money-text">${formatKoreanMoneyLine(currentWon)}</span>
+        <span class="money-text">${formatKoreanMoneyHtml(initialWon)}</span>
       </div>
       <div class="stats-card__bottom-row">
         <div class="stats-card__share">${shareText}</div>
@@ -432,7 +583,22 @@
       </div>
     `;
 
-    return el;
+const moneyEl = el.querySelector('.money-text');
+if (moneyEl) {
+  animateNumber({
+    el: moneyEl,
+    key: _key,
+    from: initialWon,
+    to: currentWon,
+    render: (v) => {
+      moneyEl.innerHTML = formatKoreanMoneyHtml(v);
+    },
+  });
+} else {
+  _prevValueCache.set(_key, currentWon);
+}
+
+return el;
   }
 
   /* ----- 데이터 없는 월용 Empty State 카드 (심플 텍스트 2줄) ----- */
