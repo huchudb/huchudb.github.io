@@ -7,10 +7,9 @@
   <title>대출 통계 | 온투업 P2P 담보대출 통계 상세</title>
   <meta name="description" content="온라인투자연계금융업(P2P) 담보대출의 누적 대출금액, 상환금액, 대출잔액과 상품유형별 대출잔액을 월별로 확인할 수 있는 대출 통계 페이지입니다.">
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="stylesheet" href="/assets/styles.css?v=20251203-ontu-stats-final" />
+  <link rel="stylesheet" href="/assets/styles.css?v=20260107" />
 
-  <style>
-    /* ===== 온투업 대출 통계: 배너(비디오) + 기준월 선택을 배너 내부로 ===== */
+  <style>/* ===== 온투업 대출 통계: 배너(비디오) + 기준월 선택을 배너 내부로 ===== */
     .ontu-stats-page .sr-only {
       position: absolute !important;
       width: 1px !important;
@@ -25,17 +24,19 @@
 
     .ontu-stats-page .beta-stats-hero {
       position: relative;
-      max-width: 1120px;
-      margin: 0 auto;
+      max-width: none;
+  width: 100%;
+  margin: 0 auto 22px;
     }
 
     .ontu-stats-page .beta-stats-hero__banner {
       position: relative;
       overflow: hidden;
-      border-radius: 0px; /* 직각 */
+      border-radius: 0; /* 직각 */
       background: #0d357d;
       box-shadow: 0 10px 26px rgba(0,0,0,.10);
-      aspect-ratio: 25 / 4; /* 기존(25/3)보다 살짝 높여 모바일/PC 모두 안정 */
+      aspect-ratio: 24 / 5;
+  height: clamp(110px, 14vw, 170px); /* 기존(25/3)보다 살짝 높여 모바일/PC 모두 안정 */
       width: 100%;
     }
 
@@ -62,7 +63,7 @@
       border: 1px solid rgba(15, 23, 42, 0.14);
       background: rgba(255, 255, 255, 0.82);
       backdrop-filter: blur(6px);
-      border-radius: 999px;
+      border-radius: 0;
       padding: 10px 16px;
       min-width: 160px;
       text-align: center;
@@ -83,7 +84,7 @@
         max-width: 100%;
       }
       .ontu-stats-page .beta-stats-hero__banner {
-        border-radius: 16px;
+        border-radius: 0;
       }
       .ontu-stats-page .beta-stats-hero__controls {
         bottom: 12px;
@@ -97,7 +98,8 @@
 
     /* --- responsive tweaks for hero banner + month picker --- */
     @media (max-width: 720px) {
-      .beta-stats-hero__banner { aspect-ratio: 16 / 6; }
+      .beta-stats-hero__banner { aspect-ratio: 24 / 5;
+  height: clamp(110px, 14vw, 170px); }
       .beta-stats-hero__controls { bottom: 10px; }
       .beta-month-picker--hero input[type="month"] {
         height: 34px;
@@ -109,11 +111,17 @@
       .beta-month-picker--hero input[type="month"] { min-width: 180px; }
     }
 
+/* ---- page specific tweaks (ontu-stats) ---- */
+.page-ontu-stats main.beta-inner { padding-top: 0; }
+.page-ontu-stats .beta-section--filter { margin-top: 0; }
+.page-ontu-stats .beta-stats-hero { margin-top: 0; }
+
 </style>
 
+  <script src="/assets/beta-shell.js?v=20260107" defer></script>
 </head>
 
-<body class="beta-body ontu-stats-page">
+<body class="beta-body ontu-stats-page page-ontu-stats">
 
   <!-- 상단 헤더 -->
   <header class="huchu-header beta-header" role="banner">
@@ -152,8 +160,8 @@
       <div class="beta-stats-hero" aria-label="대출 통계 배너">
         <div class="beta-stats-hero__banner" role="img" aria-label="대출 통계 배너">
           <!-- NOTE: 아래 mp4 파일을 레포에 추가하세요: /assets/media/ontu-stats-hero.mp4 -->
-          <video class="beta-stats-hero__video" autoplay muted loop playsinline preload="metadata" poster="/assets/media/ontu-stats-hero.jpg">
-            <source src="/assets/media/ontu-stats-hero.mp4" type="video/mp4" />
+          <video class="beta-stats-hero__video" autoplay muted playsinline preload="metadata" poster="/assets/media/ontu-stats-hero.jpg?v=20260107">
+            <source src="/assets/media/ontu-stats-hero.mp4?v=20260107" type="video/mp4" />
           </video>
         </div>
 
@@ -241,7 +249,7 @@
     </div>
   </footer>
 
-  <script src="/assets/ontu-stats.js?v=20251203-auto"></script>
+  <script src="/assets/ontu-stats.js?v=20260107"></script>
 
   <!-- 온투 통계: 금액/단위 래핑 + 자동 슬라이드/드래그 후처리 -->
   <script>
