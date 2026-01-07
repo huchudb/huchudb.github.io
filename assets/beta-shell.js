@@ -4,7 +4,7 @@
 
 (function(){
   'use strict';
-  var GLOBAL_FLAG = '__HUCHU_BETA_SHELL_INIT__v7';
+  var GLOBAL_FLAG = '__HUCHU_BETA_SHELL_INIT__v8';
   if (window[GLOBAL_FLAG]) return;
   window[GLOBAL_FLAG] = true;
 
@@ -174,51 +174,91 @@
     panel.style.top = top + 'px';
   }
 
-  function setupMenu(){
-    var toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
-    var panel = document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
-    if (!toggle || !panel) return false;
-    if (toggle.dataset.shellBound === '1') return true;
-    toggle.dataset.shellBound = '1';
+  function setupMenu() {
+  // Delegate menu handling at document level (capture) to avoid per-page script conflicts.
+  if (window.__HUCHU_BETA_SHELL_MENU_BOUND__) return true;
+  window.__HUCHU_BETA_SHELL_MENU_BOUND__ = true;
 
-    function close(){
-      panel.classList.add('hide');
-      toggle.setAttribute('aria-expanded','false');
-    }
-    function open(){
-      positionMenuPanel(toggle, panel);
-      panel.classList.remove('hide');
-      toggle.setAttribute('aria-expanded','true');
-    }
-    function toggleMenu(){
-      if (panel.classList.contains('hide')) open(); else close();
-    }
-
-    toggle.addEventListener('click', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      toggleMenu();
-    }, {passive:false});
-
-    document.addEventListener('click', function(e){
-      if (panel.classList.contains('hide')) return;
-      if (e.target === toggle || toggle.contains(e.target)) return;
-      if (e.target === panel || panel.contains(e.target)) return;
-      close();
-    });
-
-    window.addEventListener('resize', function(){
-      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
-    });
-    window.addEventListener('scroll', function(){
-      if (!panel.classList.contains('hide')) positionMenuPanel(toggle, panel);
-    }, {passive:true});
-
-    document.addEventListener('keydown', function(e){
-      if (e.key === 'Escape') close();
-    });
-    return true;
+  function getToggle(t) {
+    if (!t || !t.closest) return null;
+    return t.closest('#betaMenuToggle, .beta-menu-toggle');
   }
+  function getPanel() {
+    return document.getElementById('betaMenuPanel') || document.querySelector('.beta-menu-panel');
+  }
+  function isOpen(panel) {
+    return !!(panel && !panel.classList.contains('hide'));
+  }
+  function setAria(toggle, open) {
+    if (!toggle) return;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function closeAll() {
+    const panel = getPanel();
+    if (panel) panel.classList.add('hide');
+    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+    setAria(toggle, false);
+  }
+  function openFrom(toggle) {
+    const panel = getPanel();
+    if (!toggle || !panel) return;
+    positionMenuPanel(toggle, panel);
+    panel.classList.remove('hide');
+    setAria(toggle, true);
+  }
+
+  // Normalize initial state (safe if elements are not present yet).
+  (function normalizeInitial() {
+    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+    const panel = getPanel();
+    if (toggle && !toggle.hasAttribute('aria-expanded')) setAria(toggle, false);
+    if (panel && !panel.classList.contains('hide')) {
+      // keep as-is
+    } else if (panel) {
+      panel.classList.add('hide');
+    }
+  })();
+
+  document.addEventListener('click', function onDocClick(e) {
+    const toggle = getToggle(e.target);
+    const panel = getPanel();
+
+    // Toggle click: we fully handle it and stop propagation so other scripts won't double-toggle.
+    if (toggle) {
+      e.preventDefault();
+      // Block other handlers (including those bound on the button itself).
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (!panel) return;
+      if (isOpen(panel)) closeAll();
+      else openFrom(toggle);
+      return;
+    }
+
+    // Outside click closes
+    if (panel && isOpen(panel)) {
+      if (!panel.contains(e.target)) closeAll();
+    }
+  }, true);
+
+  // ESC closes
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.key === 'Esc') closeAll();
+  });
+
+  // Reposition when open on resize/scroll
+  function repositionIfOpen() {
+    const panel = getPanel();
+    if (!panel || !isOpen(panel)) return;
+    const toggle = document.getElementById('betaMenuToggle') || document.querySelector('.beta-menu-toggle');
+    if (toggle) positionMenuPanel(toggle, panel);
+  }
+  window.addEventListener('resize', repositionIfOpen, { passive: true });
+  window.addEventListener('scroll', repositionIfOpen, { passive: true });
+
+  return true;
+}
 
   function setupFooter(){
     var footer = document.querySelector('.beta-footer');
