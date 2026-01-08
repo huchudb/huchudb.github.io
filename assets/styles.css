@@ -2811,27 +2811,85 @@ body.ontu-stats-page .stats-card__value--main .money-text{
 }
 
 
-/* 3-1) (대출현황) 금액 2열 표시: 첫 줄 2칸, 3번째(만원)는 아래 중앙 */
+/* 3-1) (대출현황) 금액 2행 정렬(고급): 1행=조/억, 2행=만원(억 아래)
+   - '조' 숫자: 기존 크기 유지
+   - '억' 숫자: 기존 대비 20% 축소
+   - '만원' 숫자: 기존 대비 40% 축소
+   - '억' 단위와 '만원' 단위의 첫 글자(억/만) 세로 정렬(같은 unit 컬럼 사용)
+*/
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
   width: 100% !important;
+  max-width: 290px !important;
+  margin: 0 auto !important;
+
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  column-gap: 14px !important;
+  grid-template-columns: auto auto 1fr auto auto !important; /* 조(숫자/단위) | spacer | 억(숫자/단위) */
+  column-gap: 8px !important;
   row-gap: 6px !important;
-  justify-items: center !important;
   align-items: baseline !important;
-}
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
-  display: inline-flex !important;
-  align-items: baseline !important;
-  gap: 6px !important;
-  white-space: nowrap !important;
-}
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3),
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:only-of-type{
-  grid-column: 1 / -1 !important;
 }
 
+/* money-chunk는 구조용 래퍼이므로 grid 배치에서 제거 */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
+  display: contents !important;
+}
+
+/* (1) 조: 1행 왼쪽 */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(1) .money-number{
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  font-size: 1em !important; /* 기존 유지 */
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(1) .money-unit{
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+}
+
+/* (2) 억: 1행 오른쪽 (숫자 20% 축소) */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(2) .money-number{
+  grid-column: 4 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  font-size: 0.8em !important; /* -20% */
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(2) .money-unit{
+  grid-column: 5 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+}
+
+/* (3) 만원: 2행 오른쪽 (억 아래) (숫자 40% 축소) */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3) .money-number{
+  grid-column: 4 !important;
+  grid-row: 2 !important;
+  justify-self: end !important;
+  font-size: 0.6em !important; /* -40% */
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3) .money-unit{
+  grid-column: 5 !important;
+  grid-row: 2 !important;
+  justify-self: start !important;
+}
+
+/* 단위(조/억/만원)는 숫자보다 작게 + 숫자 폭 고정(자리 흔들림 최소화) */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-unit{
+  font-size: 0.72em !important;
+  opacity: 0.9 !important;
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-number{
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* 너무 좁은 화면에서는 max-width를 줄여 overflow 방지 */
+@media (max-width: 360px){
+  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
+    max-width: 250px !important;
+    column-gap: 6px !important;
+  }
+}
 /* 3-2) (대출현황) 카드 여백 약간 축소 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card{
   padding: 18px 14px 14px !important;
