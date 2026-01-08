@@ -39,16 +39,16 @@ function _moneyTextToHtml(rawText) {
   const tokens = raw.split(/\s+/);
   return tokens
     .map((tok) => {
-      const m = tok.match(/^([\d,]+)([^\d,]+)$/);
+      const m = tok.match(/^(-?[\d,]+)([^\d,]+)$/);
       if (!m) return _escapeHtml(tok);
       const num  = m[1];
       const unit = m[2];
       return (
-        '<span class="money-number">' +
+        '<span class="money-chunk"><span class="money-number">' +
         _escapeHtml(num) +
         '</span><span class="money-unit">' +
         _escapeHtml(unit) +
-        '</span>'
+        '</span></span>'
       );
     })
     .join(' ');
@@ -265,16 +265,16 @@ function animateNumber({ el, key, from, to, render, durationMs = 650 }) {
       const tokens = raw.split(/\s+/);
       const htmlTokens = tokens.map((tok) => {
         // "18조" / "3,580억" / "234만원" / "49개" 등 처리
-        const m = tok.match(/^([\d,]+)([^\d,]+)$/);
-        if (!m) return tok;
+        const m = tok.match(/^(-?[\d,]+)([^\d,]+)$/);
+        if (!m) return _escapeHtml(tok);
         const num = m[1];
         const unit = m[2];
         return (
-          '<span class="money-number">' +
-          num +
+          '<span class="money-chunk"><span class="money-number">' +
+          _escapeHtml(num) +
           '</span><span class="money-unit">' +
-          unit +
-          '</span>'
+          _escapeHtml(unit) +
+          '</span></span>'
         );
       });
 
