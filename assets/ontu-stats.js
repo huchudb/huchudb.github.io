@@ -383,6 +383,10 @@ function animateNumber({ el, key, from, to, render, durationMs = 650 }) {
     const currentValue = toNumberSafe(currentValueRaw);
     const prevValue    = prevValueRaw == null ? null : toNumberSafe(prevValueRaw);
 
+    const _key = metricKey || `count:${label}`;
+    const cached = _prevValueCache.get(_key);
+    const initialValue = (cached != null && Number.isFinite(cached)) ? cached : currentValue;
+
     const diff     = prevValue == null ? 0 : currentValue - prevValue;
     const rateText = formatDeltaRate(currentValue, prevValue ?? 0);
 
@@ -394,11 +398,6 @@ function animateNumber({ el, key, from, to, render, durationMs = 650 }) {
     } else if (diff < 0) {
       deltaClass = 'delta-down';
       arrow      = '▼';
-
-
-const _key = metricKey || `count:${label}`;
-const cached = _prevValueCache.get(_key);
-const initialValue = (cached != null && Number.isFinite(cached)) ? cached : currentValue;
     }
 
     const el = document.createElement('article');
