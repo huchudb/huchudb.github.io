@@ -2817,23 +2817,18 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main{
   width: auto;
 }
 
+/* 대출현황(loan) 금액: 1열(조) / 2열(억+만원) 정렬 + 간격 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
   display: inline-grid;
-
-  /* 1열(조) ↔ 2열(억/만원) 간격을 확보해서 1열이 중앙에 더 가깝게 보이도록 */
-  grid-template-columns: auto auto 22px auto 2.8em;
+  grid-template-columns: auto auto 30px auto 2.8em; /* ✅ 1열-2열 간격 증가(30px) */
   grid-template-rows: auto auto;
-  column-gap: 12px;
+  column-gap: 14px; /* ✅ 열 간격 증가 */
   row-gap: 6px;
 
   align-items: baseline;
-  justify-items: start;
+  justify-content: center;
 
-  /* 조 숫자 크기: 기존 느낌 유지 (PC에서 과도하게 커지지 않게 상한만 26px) */
-  font-size: clamp(22px, 2.2vw, 26px);
-  line-height: 1.05;
-
-  /* 카드 안에서 금액 블록을 중앙 정렬 */
+  /* ✅ 금액 블록 자체를 카드 중앙으로 */
   width: max-content;
   max-width: 100%;
   margin: 0 auto;
@@ -2843,20 +2838,15 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-t
 
 @media (max-width: 768px){
   body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
-    /* 모바일은 가독성 위해 열 간격을 약간 줄이되(너무 벌어지면 줄바꿈 위험), 여백은 유지 */
-    grid-template-columns: auto auto 18px auto 2.8em;
-    column-gap: 10px;
-  }
-
-  /* 모바일에서 '억/만원' 숫자가 과도하게 작아지는 문제 보정 */
+/* 모바일: 억/만원 숫자 가독성 보정(너무 작지 않게) */
+@media (max-width: 768px){
   body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number{
-    font-size: 0.88em; /* 조 대비 -12% 수준 */
+    font-size: 0.9em;   /* PC(0.8em)보다 키움 */
   }
   body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number{
-    font-size: 0.72em; /* 조 대비 -28% 수준 */
+    font-size: 0.75em;  /* PC(0.6em)보다 키움 */
   }
 }
-
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
   display: contents;
 }
@@ -2927,6 +2917,24 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card{
     scroll-snap-type: x proximity !important;
   }
 }
+/* (PC) 대출현황(loan)만 4개 고정 노출: 슬라이더(flex) → grid (클립/스크롤 제거) */
+@media (min-width: 900px){
+  body.ontu-stats-page .stats-panel--loan .stats-panel__viewport{
+    overflow-x: hidden;
+    scroll-snap-type: none;
+  }
+  body.ontu-stats-page .stats-panel__track--loan{
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+  body.ontu-stats-page .stats-panel__track--loan .stats-card{
+    min-width: 0;
+    width: auto;
+    scroll-snap-align: unset;
+  }
+}
 
 /* 6) 드래그 UX(데스크탑) */
 @media (hover:hover){
@@ -2937,4 +2945,5 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card{
     cursor: grabbing;
   }
 }
+
 
