@@ -1864,17 +1864,6 @@ body.ontu-stats-page .stats-panel .money-number{
   font-size:clamp(22px,2.2vw,26px);
   font-weight:800;
   color:#111827;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-
-
-
-/* ontu-stats: number change animation */
-body.ontu-stats-page .num-animating{
-  transition: filter 180ms ease, opacity 180ms ease;
-  filter: saturate(1.06);
-  opacity: 0.98;
 }
 body.ontu-stats-page .stats-card__unit,
 body.ontu-stats-page .stats-panel .money-unit{
@@ -2821,10 +2810,38 @@ body.ontu-stats-page .stats-card__value--main .money-text{
   word-break: keep-all !important;
 }
 
-/* 4) (데스크탑) 대출현황 카드 가로폭 확대: 4-up → 3-up */
+
+/* 3-1) (대출현황) 금액 2열 표시: 첫 줄 2칸, 3번째(만원)는 아래 중앙 */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  column-gap: 14px !important;
+  row-gap: 6px !important;
+  justify-items: center !important;
+  align-items: baseline !important;
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3),
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:only-of-type{
+  grid-column: 1 / -1 !important;
+}
+
+/* 3-2) (대출현황) 카드 여백 약간 축소 */
+body.ontu-stats-page .stats-panel__track--loan .stats-card{
+  padding: 18px 14px 14px !important;
+  min-height: 210px !important;
+}
+
+/* 4) (데스크탑) 대출현황 카드 4장 동시 노출: 3-up → 4-up */
 @media (min-width: 900px){
   body.ontu-stats-page .stats-panel__track--loan .stats-card{
-    flex: 0 0 calc((100% - 2 * 16px) / 3) !important;
+    flex: 0 0 calc((100% - 3 * 16px) / 4) !important;
   }
 }
 
