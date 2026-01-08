@@ -33,6 +33,19 @@ function _escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
+
+function _unitKind(unit) {
+  const u = (unit || '').trim();
+  if (!u) return 'etc';
+  if (u.includes('조')) return 'jo';
+  // '억', '억원' 모두 eok로
+  if (u.startsWith('억')) return 'eok';
+  // '만', '만원'
+  if (u.startsWith('만')) return 'man';
+  if (u.includes('원')) return 'won';
+  return 'etc';
+}
+
 function _moneyTextToHtml(rawText) {
   const raw = (rawText || '').trim();
   if (!raw) return '';
@@ -43,8 +56,9 @@ function _moneyTextToHtml(rawText) {
       if (!m) return _escapeHtml(tok);
       const num  = m[1];
       const unit = m[2];
+      const kind = _unitKind(unit);
       return (
-        '<span class="money-chunk"><span class="money-number">' +
+        '<span class="money-chunk" data-unit-kind="' + _escapeHtml(kind) + '"><span class="money-number">' +
         _escapeHtml(num) +
         '</span><span class="money-unit">' +
         _escapeHtml(unit) +
@@ -270,7 +284,7 @@ function animateNumber({ el, key, from, to, render, durationMs = 650 }) {
         const num = m[1];
         const unit = m[2];
         return (
-          '<span class="money-chunk"><span class="money-number">' +
+          '<span class="money-chunk" data-unit-kind="' + _escapeHtml(kind) + '"><span class="money-number">' +
           _escapeHtml(num) +
           '</span><span class="money-unit">' +
           _escapeHtml(unit) +
