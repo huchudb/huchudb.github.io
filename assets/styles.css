@@ -2805,90 +2805,74 @@ body.ontu-stats-page .stats-card__value--main{
   text-align: center !important;
   line-height: 1.15 !important;
 }
-body.ontu-stats-page .stats-card__value--main .money-text{
-  display: inline-block !important;
-  word-break: keep-all !important;
-}
 
 
-/* 3-1) (대출현황) 금액 2행 정렬(고급): 1행=조/억, 2행=만원(억 아래)
-   - '조' 숫자: 기존 크기 유지
-   - '억' 숫자: 기존 대비 20% 축소
-   - '만원' 숫자: 기존 대비 40% 축소
-   - '억' 단위와 '만원' 단위의 첫 글자(억/만) 세로 정렬(같은 unit 컬럼 사용)
+/* 3-1) (대출현황) 금액 2행 2열 정렬 (1행=조/억, 2행=만원=억 아래)
+   - 조: 기존 크기 유지
+   - 억 숫자: 조 대비 20% 축소
+   - 만원 숫자: 조 대비 40% 축소
+   - 단위 컬럼 고정으로 '억'과 '만' 시작 위치 세로 정렬
 */
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main{
+  width: auto;
+}
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
-  width: 100% !important;
-  max-width: 290px !important;
-  margin: 0 auto !important;
-
-  display: grid !important;
-  grid-template-columns: auto auto 1fr auto auto !important; /* 조(숫자/단위) | spacer | 억(숫자/단위) */
-  column-gap: 8px !important;
-  row-gap: 6px !important;
-  align-items: baseline !important;
+  display: inline-grid;
+  grid-template-columns: auto auto 14px auto 2.8em;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 6px;
+  align-items: baseline;
+  justify-items: start;
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.05;
+  white-space: nowrap;
 }
-
-/* money-chunk는 구조용 래퍼이므로 grid 배치에서 제거 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
-  display: contents !important;
-}
-
-/* (1) 조: 1행 왼쪽 */
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(1) .money-number{
-  grid-column: 1 !important;
-  grid-row: 1 !important;
-  justify-self: end !important;
-  font-size: 1em !important; /* 기존 유지 */
-}
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(1) .money-unit{
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-  justify-self: start !important;
-}
-
-/* (2) 억: 1행 오른쪽 (숫자 20% 축소) */
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(2) .money-number{
-  grid-column: 4 !important;
-  grid-row: 1 !important;
-  justify-self: end !important;
-  font-size: 0.8em !important; /* -20% */
-}
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(2) .money-unit{
-  grid-column: 5 !important;
-  grid-row: 1 !important;
-  justify-self: start !important;
-}
-
-/* (3) 만원: 2행 오른쪽 (억 아래) (숫자 40% 축소) */
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3) .money-number{
-  grid-column: 4 !important;
-  grid-row: 2 !important;
-  justify-self: end !important;
-  font-size: 0.6em !important; /* -40% */
-}
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk:nth-of-type(3) .money-unit{
-  grid-column: 5 !important;
-  grid-row: 2 !important;
-  justify-self: start !important;
-}
-
-/* 단위(조/억/만원)는 숫자보다 작게 + 숫자 폭 고정(자리 흔들림 최소화) */
-body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-unit{
-  font-size: 0.72em !important;
-  opacity: 0.9 !important;
+  display: contents;
 }
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-number{
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-unit{
+  font-size: 0.72em;
+  margin-left: 0;
+  opacity: 0.9;
+}
 
-/* 너무 좁은 화면에서는 max-width를 줄여 overflow 방지 */
-@media (max-width: 360px){
-  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
-    max-width: 250px !important;
-    column-gap: 6px !important;
-  }
+/* 조 (좌상) */
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-number{
+  grid-column: 1; grid-row: 1; justify-self: end;
+}
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-unit{
+  grid-column: 2; grid-row: 1; justify-self: start;
+}
+
+/* 억 (우상) */
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number{
+  grid-column: 4; grid-row: 1; justify-self: end;
+  font-size: 0.8em;
+}
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-unit{
+  grid-column: 5; grid-row: 1; justify-self: start;
+}
+
+/* 만원 (우하, 억 아래) */
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number{
+  grid-column: 4; grid-row: 2; justify-self: end;
+  font-size: 0.6em;
+}
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-unit{
+  grid-column: 5; grid-row: 2; justify-self: start;
+}
+
+/* fallback: 원 단위(분리 실패 등)면 1행 전체 사용 */
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="won"] .money-number{
+  grid-column: 1 / 6; grid-row: 1; justify-self: center;
+}
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="won"] .money-unit{
+  grid-column: 1 / 6; grid-row: 2; justify-self: center;
 }
 /* 3-2) (대출현황) 카드 여백 약간 축소 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card{
@@ -2924,4 +2908,3 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card{
     cursor: grabbing;
   }
 }
-
