@@ -2809,47 +2809,35 @@ body.ontu-stats-page .stats-card__value--main{
 
 /* 3-1) (대출현황) 금액 2행 2열 정렬 (1행=조/억, 2행=만원=억 아래)
    - 조: 기존 크기 유지
-   - 억 숫자: 조 대비 20% 축소
-   - 만원 숫자: 조 대비 40% 축소
+   - 억 숫자: 조 대비 20% 축소 (PC 기준)
+   - 만원 숫자: 조 대비 40% 축소 (PC 기준)
    - 단위 컬럼 고정으로 '억'과 '만' 시작 위치 세로 정렬
+   - ✅ 현재 DOM(ontu-stats.html 래핑) 기준: money-number/money-unit만 있어도 동작하도록 nth-child fallback 포함
 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main{
   width: auto;
 }
 
-/* 대출현황(loan) 금액: 1열(조) / 2열(억+만원) 정렬 + 간격 */
+/* 대출현황(loan) 금액: 중앙 기준 2열 (좌=조, 우=억/만원) */
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
-  display: inline-grid;
-  grid-template-columns: auto auto 30px auto 2.8em; /* ✅ 1열-2열 간격 증가(30px) */
+  display: grid;
+  grid-template-columns: 1fr auto auto 34px auto auto 1fr; /* 좌/우 1fr 패딩 + 중앙 거터 */
   grid-template-rows: auto auto;
-  column-gap: 14px; /* ✅ 열 간격 증가 */
-  row-gap: 6px;
-
+  column-gap: 8px;   /* 숫자-단위 간격 */
+  row-gap: 6px;      /* 1행-2행 간격 */
   align-items: baseline;
-  justify-content: center;
 
-  /* ✅ 금액 블록 자체를 카드 중앙으로 */
-  width: max-content;
+  width: 100%;       /* ✅ 카드 중앙 기준으로 정렬 */
   max-width: 100%;
   margin: 0 auto;
-
   white-space: nowrap;
 }
 
-@media (max-width: 768px){
-  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
-/* 모바일: 억/만원 숫자 가독성 보정(너무 작지 않게) */
-@media (max-width: 768px){
-  body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number{
-    font-size: 0.9em;   /* PC(0.8em)보다 키움 */
-  }
-  body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number{
-    font-size: 0.75em;  /* PC(0.6em)보다 키움 */
-  }
-}
+/* money-chunk가 있으면 number/unit을 그리드 아이템으로 쓰기 위해 contents */
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-chunk{
   display: contents;
 }
+
 body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-number{
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -2861,37 +2849,52 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-u
 }
 
 /* 조 (좌상) */
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-number{
-  grid-column: 1; grid-row: 1; justify-self: end;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-number,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-number:nth-child(1){
+  grid-column: 2; grid-row: 1; justify-self: end;
 }
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-unit{
-  grid-column: 2; grid-row: 1; justify-self: start;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="jo"] .money-unit,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-unit:nth-child(2){
+  grid-column: 3; grid-row: 1; justify-self: start;
 }
 
 /* 억 (우상) */
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number{
-  grid-column: 4; grid-row: 1; justify-self: end;
-  font-size: 0.8em;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-number:nth-child(3){
+  grid-column: 5; grid-row: 1; justify-self: end;
+  font-size: 0.8em; /* 조 대비 -20% */
 }
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-unit{
-  grid-column: 5; grid-row: 1; justify-self: start;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-unit,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-unit:nth-child(4){
+  grid-column: 6; grid-row: 1; justify-self: start;
 }
 
 /* 만원 (우하, 억 아래) */
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number{
-  grid-column: 4; grid-row: 2; justify-self: end;
-  font-size: 0.6em;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-number:nth-child(5){
+  grid-column: 5; grid-row: 2; justify-self: end;
+  font-size: 0.6em; /* 조 대비 -40% */
 }
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-unit{
-  grid-column: 5; grid-row: 2; justify-self: start;
+body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-unit,
+body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-unit:nth-child(6){
+  grid-column: 6; grid-row: 2; justify-self: start;
 }
 
-/* fallback: 원 단위(분리 실패 등)면 1행 전체 사용 */
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="won"] .money-number{
-  grid-column: 1 / 6; grid-row: 1; justify-self: center;
-}
-body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="won"] .money-unit{
-  grid-column: 1 / 6; grid-row: 2; justify-self: center;
+/* 모바일: 억/만원 가독성 + 열 간격 보정 */
+@media (max-width: 768px){
+  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text{
+    grid-template-columns: 1fr auto auto 28px auto auto 1fr;
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="eok"] .money-number,
+  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-number:nth-child(3){
+    font-size: 0.9em;
+  }
+  body.ontu-stats-page .stats-panel__track--loan .money-chunk[data-unit-kind="man"] .money-number,
+  body.ontu-stats-page .stats-panel__track--loan .stats-card__value--main .money-text > .money-number:nth-child(5){
+    font-size: 0.75em;
+  }
 }
 /* 3-2) (대출현황) 카드 여백 약간 축소 */
 body.ontu-stats-page .stats-panel__track--loan .stats-card{
