@@ -163,15 +163,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 28px; /* 기존 대비 추가로 더 슬림하게 */
-    padding: 0 14px;
+    box-sizing: border-box;
+    pointer-events: none; /* 클릭은 투명 input이 받도록 */
+    height: 22px; /* 안드로이드에서 더 슬림하게 (-20% 내외) */
+    padding: 0 12px;
     border-radius: 999px;
     border: 1px solid rgba(15, 23, 42, 0.14);
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(6px);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-    font-weight: 800;
-    font-size: 16px;
+    font-weight: 700;
+    font-size: 13px;
     line-height: 1;
     color: #0f172a;
     white-space: nowrap;
