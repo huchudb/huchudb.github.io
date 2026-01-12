@@ -91,20 +91,29 @@
         transform: translateX(-50%) translateY(4px);
       }
       .ontu-stats-page .beta-month-picker--hero input[type="month"] {
-        height: 34px;
-        padding: 6px 10px;
+        /* 모바일: 세로폭 약 40% 축소 + 아이콘 공간 제거 */
+        height: 26px !important;
+        padding: 0 12px !important;
+        line-height: 26px;
         min-width: 0;
         width: auto;
-        max-width: 180px; /* 모바일에서 과도하게 넓어지는 현상 방지 */
+        max-width: 170px; /* 모바일에서 과도하게 넓어지는 현상 방지 */
         font-size: 16px;
       }
-      /* 모바일: 달력(다이어리) 아이콘 숨김 */
+      /* 모바일: 달력/드롭다운 아이콘(공백 포함) 제거 */
       .ontu-stats-page .beta-month-picker--hero input[type="month"]::-webkit-calendar-picker-indicator {
+        display: none;
         opacity: 0;
         width: 0;
+        height: 0;
         margin: 0;
+        padding: 0;
       }
-    }
+      .ontu-stats-page .beta-month-picker--hero input[type="month"]::-webkit-inner-spin-button,
+      .ontu-stats-page .beta-month-picker--hero input[type="month"]::-webkit-clear-button {
+        display: none;
+      }
+}
 
     /* --- responsive tweaks for hero banner + month picker --- */
     @media (max-width: 720px) {
@@ -112,14 +121,15 @@
   height: clamp(110px, 14vw, 170px); }
       .beta-stats-hero__controls { bottom: 10px; transform: translateX(-50%) translateY(4px); }
       .beta-month-picker--hero input[type="month"] {
-        height: 34px;
-        padding: 6px 10px;
+        height: 26px !important;
+        padding: 0 12px !important;
+        line-height: 26px;
         font-size: 16px;
         min-width: 0;
         width: auto;
-        max-width: 180px;
+        max-width: 170px;
       }
-    }
+}
     @media (max-width: 420px) {
       .beta-month-picker--hero input[type="month"] { min-width: 0; max-width: 170px; }
     }
