@@ -53,7 +53,7 @@
       position: absolute;
       left: 50%;
       bottom: 18px;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(6px);
       z-index: 3;
     }
 
@@ -64,8 +64,8 @@
       background: rgba(255, 255, 255, 0.82);
       backdrop-filter: blur(6px);
       border-radius: 0;
-      padding: 10px 16px;
-      min-width: 160px;
+      padding: 10px 12px;
+      min-width: 112px;
       text-align: center;
       font-weight: 800;
       font-size: 14px;
@@ -88,11 +88,21 @@
       }
       .ontu-stats-page .beta-stats-hero__controls {
         bottom: 12px;
+        transform: translateX(-50%) translateY(4px);
       }
       .ontu-stats-page .beta-month-picker--hero input[type="month"] {
-        padding: 8px 14px;
-        min-width: 148px;
-        font-size: 13px;
+        height: 34px;
+        padding: 6px 10px;
+        min-width: 0;
+        width: auto;
+        max-width: 180px; /* 모바일에서 과도하게 넓어지는 현상 방지 */
+        font-size: 16px;
+      }
+      /* 모바일: 달력(다이어리) 아이콘 숨김 */
+      .ontu-stats-page .beta-month-picker--hero input[type="month"]::-webkit-calendar-picker-indicator {
+        opacity: 0;
+        width: 0;
+        margin: 0;
       }
     }
 
@@ -100,15 +110,18 @@
     @media (max-width: 720px) {
       .beta-stats-hero__banner { aspect-ratio: 24 / 5;
   height: clamp(110px, 14vw, 170px); }
-      .beta-stats-hero__controls { bottom: 10px; }
+      .beta-stats-hero__controls { bottom: 10px; transform: translateX(-50%) translateY(4px); }
       .beta-month-picker--hero input[type="month"] {
         height: 34px;
-        padding: 8px 12px;
-        font-size: 13px;
+        padding: 6px 10px;
+        font-size: 16px;
+        min-width: 0;
+        width: auto;
+        max-width: 180px;
       }
     }
     @media (max-width: 420px) {
-      .beta-month-picker--hero input[type="month"] { min-width: 180px; }
+      .beta-month-picker--hero input[type="month"] { min-width: 0; max-width: 170px; }
     }
 
 /* ---- page specific tweaks (ontu-stats) ---- */
