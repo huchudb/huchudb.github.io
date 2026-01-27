@@ -22,6 +22,19 @@ body.navi-wide .beta-header__inner{
   box-sizing:border-box;
 }
 
+/* 인트로 배너 (기존 텍스트 블록 대체) */
+.beta-card.navi-intro-card{
+  padding:0;
+  overflow:hidden;
+}
+.navi-intro-banner{
+  display:block;
+  width:100%;
+  height:auto;
+  /* 배너 원본 비율(2500x300)을 브라우저가 미리 알 수 있게 하여 CLS(레이아웃 흔들림) 최소화 */
+  aspect-ratio:2500 / 300;
+}
+
 /* (옵션) wide 모드가 필요할 때만 수동으로 body에 navi-wide를 붙이면 전체폭으로 확장 */
 body.navi-wide .navi-main{
   max-width:none;
