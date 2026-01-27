@@ -18,9 +18,10 @@ body.navi-wide .beta-header__inner{
   max-width:1200px;
   margin:0 auto 0;
   width:100%;
-  padding:24px 24px 40px;
+  padding:0 24px 40px;
   box-sizing:border-box;
 }
+
 
 /* 인트로 배너 (기존 텍스트 블록 대체) */
 .beta-card.navi-intro-card{
@@ -33,6 +34,13 @@ body.navi-wide .beta-header__inner{
   height:auto;
   /* 배너 원본 비율(2500x300)을 브라우저가 미리 알 수 있게 하여 CLS(레이아웃 흔들림) 최소화 */
   aspect-ratio:2500 / 300;
+}
+
+/* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
+.navi-main > .beta-section.navi-intro-section{
+  margin-top:0;
+  padding-top:0;
+  margin-bottom:18px;
 }
 
 /* (옵션) wide 모드가 필요할 때만 수동으로 body에 navi-wide를 붙이면 전체폭으로 확장 */
@@ -231,7 +239,7 @@ body.navi-wide .navi-main{
 /* 네비 – 모바일 레이아웃 */
 @media (max-width:768px){
   .navi-main{
-    padding:18px 0 32px;
+    padding:0 18px 32px;
   }
   .navi-field-grid{
     grid-template-columns:minmax(0,1fr);
