@@ -9,13 +9,14 @@
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+  <script type="module" src="/assets/beta-shell.js?v=20260106-menu2"></script>
 </head>
 <body class="beta-body">
 
   <!-- 상단 헤더 (베타 공통) -->
   <header class="huchu-header beta-header" role="banner">
     <div class="huchu-header__inner beta-header__inner">
-      <a href="/" class="huchu-logo" aria-label="후추 Huchu 홈">
+      <a href="/beta/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
         <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
         <span class="logo-fallback">
           <span class="logo-mark">%</span>
@@ -23,14 +24,15 @@
         </span>
       </a>
 
-     <!-- MENU + 드롭다운 -->
-<button id="betaMenuToggle"
-        class="beta-menu-toggle"
-        type="button"
-        aria-haspopup="true"
-        aria-expanded="false">
-  <span class="beta-menu-toggle__label">MENU</span>
-</button>
+      <!-- MENU + 드롭다운 (메인 페이지 기준 SoT) -->
+      <div class="beta-menu-wrap">
+        <button id="betaMenuToggle"
+                class="beta-menu-toggle"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false">
+          <span class="beta-menu-toggle__label">MENU</span>
+        </button>
 
         <div id="betaMenuPanel" class="beta-menu-panel hide">
           <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
@@ -228,27 +230,5 @@
       </div>
     </div>
   </footer>
-
-  <script>
-    // 베타 메뉴 토글
-    document.addEventListener('DOMContentLoaded', function () {
-      const toggle = document.getElementById('betaMenuToggle');
-      const panel  = document.getElementById('betaMenuPanel');
-      if (!toggle || !panel) return;
-
-      toggle.addEventListener('click', () => {
-        const isHidden = panel.classList.contains('hide');
-        panel.classList.toggle('hide', !isHidden);
-        toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-          panel.classList.add('hide');
-          toggle.setAttribute('aria-expanded', 'false');
-        }
-      });
-    });
-  </script>
 </body>
 </html>
