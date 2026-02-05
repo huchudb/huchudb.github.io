@@ -63,20 +63,26 @@
   <main class="beta-main">
     <div class="beta-inner navi-main">
 
-      <!-- 인트로 -->
-      <section class="beta-section navi-intro-section">
-        <div class="beta-card beta-card--wide navi-intro-card">
-          <img
-            class="navi-intro-banner"
-            src="/assets/media/navi-intro-banner.png"
-            alt="후추 네비게이션"
-            width="2500"
-            height="300"
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-      </section>
+<!-- 인트로 -->
+<section class="beta-section navi-intro-section">
+  <div class="beta-card beta-card--wide navi-intro-card">
+    <picture>
+      <source
+        media="(max-width: 600px)"
+        srcset="/assets/media/navi-intro-banner.mobile.png"
+      />
+      <img
+        class="navi-intro-banner"
+        src="/assets/media/navi-intro-banner.png"
+        alt="후추 네비게이션"
+        width="2500"
+        height="300"
+        loading="eager"
+        decoding="async"
+      />
+    </picture>
+  </div>
+</section>
 
       <!-- 1. 대출 상품군 선택 -->
       <section class="beta-section navi-section" id="navi-step1">
