@@ -28,12 +28,20 @@ body.navi-wide .beta-header__inner{
   padding:0;
   overflow:hidden;
 }
+
 .navi-intro-banner{
   display:block;
   width:100%;
   height:auto;
-  /* 배너 원본 비율(2500x300)을 브라우저가 미리 알 수 있게 하여 CLS(레이아웃 흔들림) 최소화 */
+  /* PC 배너 비율(2500x300) */
   aspect-ratio:2500 / 300;
+}
+
+/* ✅ 모바일(1200x300) 배너 비율 적용 */
+@media (max-width: 600px){
+  .navi-intro-banner{
+    aspect-ratio:1200 / 300; /* = 4 / 1 */
+  }
 }
 
 /* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
