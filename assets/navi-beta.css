@@ -29,19 +29,28 @@ body.navi-wide .beta-header__inner{
   overflow:hidden;
 }
 
-.navi-intro-banner{
+/* ✅ picture가 레이아웃 박스(비율)를 잡고, img는 그 안을 채우게 하면
+   모바일/PC 소스 전환 시에도 찌그러짐(왜곡) 없이 안정적으로 렌더링됩니다. */
+.navi-intro-picture{
   display:block;
   width:100%;
-  height:auto;
-  /* PC 배너 비율(2500x300) */
+  /* PC 배너 비율(기존 2500x300 기준) */
   aspect-ratio:2500 / 300;
 }
 
-/* ✅ 모바일(1200x300) 배너 비율 적용 */
-@media (max-width: 600px){
-  .navi-intro-banner{
+.navi-intro-banner{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover; /* 비율 유지 + 박스 채움(필요 시 가장자리 약간 크롭) */
+}
+
+/* ✅ 모바일(1200x300 = 4:1) 배너 비율 적용 */
+@media (max-width: 768px){
+  .navi-intro-picture{
     aspect-ratio:1200 / 300; /* = 4 / 1 */
   }
+}
 }
 
 /* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
