@@ -57,14 +57,24 @@ body.navi-wide .beta-header__inner{
 .navi-main > .beta-section.navi-intro-section{
   margin-top:0;
   padding-top:0;
-  margin-bottom:26px;
+  margin-bottom:0;
 }
 @media (max-width: 768px){
   .navi-main > .beta-section.navi-intro-section{
-    margin-bottom:18px;
-  }
+    margin-bottom:0;}
 }
 
+
+
+/* Step1 섹션: 인트로 배너와 타이틀 사이 간격 (PC/모바일 분기) */
+#navi-step1.beta-section.navi-section{
+  margin-top:26px;
+}
+@media (max-width: 768px){
+  #navi-step1.beta-section.navi-section{
+    margin-top:18px;
+  }
+}
 
 /* (옵션) wide 모드가 필요할 때만 수동으로 body에 navi-wide를 붙이면 전체폭으로 확장 */
 body.navi-wide .navi-main{
@@ -84,7 +94,7 @@ body.navi-wide .navi-main{
 
 /* Step1: 메인 질문 타이틀 */
 .navi-step1-title{
-  font-size:24px; /* 기존 16px 대비 1.5배 */
+  font-size:19.2px; /* 기존 24px 대비 -20% */
   line-height:1.2;
   margin-bottom:12px;
 }
