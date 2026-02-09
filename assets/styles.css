@@ -2974,3 +2974,27 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card{
     aspect-ratio:1200 / 300; /* 모바일 배너 비율 */
   }
 }
+
+
+/* ======================= Products: 인트로 배너 보정 (모서리/여백) ======================= */
+/* 배너는 이미지 그대로 보여야 하므로 카드 프레임/라운드 제거 */
+.products-intro-card{
+  border-radius:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+
+/* 상단(헤더 아래) 여백 제거 */
+.products-hero{
+  margin-top:0 !important;
+}
+
+/* 필요시, 배너 위/아래 불필요한 패딩/마진도 제거 */
+.products-hero .products-intro-card{
+  margin:0;
+}
+
+/* 헤더 바로 아래에 배너를 붙이기 위해 products-main 상단 패딩 제거 */
+.products-main{
+  padding-top:0 !important;
+}
