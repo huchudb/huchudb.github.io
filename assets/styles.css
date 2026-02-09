@@ -2950,5 +2950,27 @@ body.ontu-stats-page .stats-panel__track--loan .stats-card{
 }
 
 
-
-
+/* ======================= Products: 인트로 배너 (네비 인트로 재사용) ======================= */
+.products-intro-card{
+  padding:0;
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+}
+.products-intro-picture{
+  display:block;
+  width:100%;
+  aspect-ratio:2500 / 300; /* PC 배너 비율 */
+}
+.products-intro-banner{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+@media (max-width: 768px){
+  .products-intro-picture{
+    aspect-ratio:1200 / 300; /* 모바일 배너 비율 */
+  }
+}
