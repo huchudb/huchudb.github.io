@@ -1071,18 +1071,55 @@ function isStep5Complete() {
   const schema = getStep5Schema();
   if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) return false;
 
+  // STEP5_MATRIX는 fieldDefs에 {code, required, label, note?} 형태를 사용합니다.
+  // (이전 버전의 {key, ...} 스키마와 혼재되지 않도록 code -> userState key로 매핑합니다.)
+  const CODE_TO_STATE_KEY = {
+    OCC: "occupancy",
+    PV: "propertyValue",
+    SP: "sharePercent",
+    SL: "seniorLoan",
+    DEP: "deposit",
+    REF: "refinanceAmount",
+    REQ: "requestedAmount",
+    ASB: "assumedBurden",
+  };
+
+  const isRental = isRentalOcc();
+
   // required input
   for (const f of schema.fields) {
-    if (!f || !f.required) continue;
-    const key = f.key;
+    if (!f) continue;
+
+    const code = String(f.code || "").trim();
+    const key = f.key || CODE_TO_STATE_KEY[code] || "";
     if (!key) continue;
+
+    // 기본 required + (DEP: OCC 임대 선택 시 note 기반으로 required 승격) 반영
+    let required = Boolean(f.required);
+
+    if (!required && code === "DEP") {
+      const note = String(f.note || "");
+      const needsRental =
+        note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
+      if (needsRental && isRental) required = true;
+    }
+
+    if (!required) continue;
+
     const v = userState[key];
+
     if (v === null || v === undefined) return false;
-    if (typeof v === "number" && !Number.isFinite(v)) return false;
-    if (typeof v === "string" && v.trim() === "") return false;
-    if (key === "sharePercent") {
-      // sharePercent는 빈값이면 100으로 처리하지만, 입력창 기준으로는 0/NaN만 거른다.
-      if (v <= 0) return false;
+
+    if (typeof v === "string") {
+      if (v.trim() === "") return false;
+    } else if (typeof v === "number") {
+      if (!Number.isFinite(v)) return false;
+
+      // 금액/시세 입력은 0이면 "미입력"으로 간주
+      const mustBePositive = code === "PV" || code === "REQ";
+      if (mustBePositive && v <= 0) return false;
+
+      if (key === "sharePercent" && v <= 0) return false;
     }
   }
 
@@ -1619,6 +1656,77 @@ function setupStep5() {
 // ✅ Step6-1: admin 추가조건(선택) 토큰 기반 동적 UI
 // ------------------------------------------------------
 
+// ✅ Step6-1: 토큰(label) 표시 보정
+// - 관리자에 저장된 토큰이 "그룹::라벨" 형태가 아닐 경우(예: apt_kb_not_listed),
+//   화면에는 사람이 읽을 수 있는 라벨을 보여주되, 매칭/저장 토큰은 원본 그대로 유지합니다.
+const EXTRA_TOKEN_LABEL_MAP = {
+  apt_kb_not_listed: "KB시세 미등록",
+  apt_lt_100_units: "100세대 미만",
+  apt_single_complex: "단일 단지",
+
+  borrower_age_20_69: "차주 연령 20~69",
+  borrower_age_70_plus: "차주 연령 70+",
+
+  borrower_credit_kcb_gte_454: "KCB 454점 이상",
+  borrower_credit_kcb_lt_454: "KCB 454점 미만",
+  borrower_credit_nice_gte_600: "NICE 600점 이상",
+  borrower_credit_nice_lt_600: "NICE 600점 미만",
+
+  borrower_income_none_but_pay: "증빙소득 없음(이자 납입 가능)",
+  borrower_income_nonwage: "근로외 증빙소득",
+  borrower_income_wage: "근로소득",
+
+  borrower_need_within_1w: "1주일 이내",
+  borrower_need_within_1m: "1개월 이내",
+
+  borrower_repay_within_3m: "3개월 이내",
+  borrower_repay_3m_to_1y: "3개월 초과~1년 미만",
+  borrower_repay_gte_1y: "1년 이상",
+
+  borrower_flag_card_overdue: "카드 연체",
+  borrower_flag_interest_overdue: "이자 연체",
+  borrower_flag_seizure: "압류/가압류",
+  borrower_flag_tax_arrears: "세금 체납",
+};
+
+function inferExtraTokenGroup(token) {
+  const t = String(token || "").trim().toLowerCase();
+  if (!t) return "기타";
+
+  if (t.startsWith("borrower_income_")) return "소득유형";
+  if (t.startsWith("borrower_credit_")) return "신용점수";
+  if (t.startsWith("borrower_repay_")) return "상환계획";
+  if (t.startsWith("borrower_need_")) return "필요시기";
+
+  // 그 외(담보/연령/기타 플래그 등)는 '기타'로 묶습니다.
+  return "기타";
+}
+
+function humanizeExtraTokenLabel(token) {
+  const s = String(token || "").trim();
+  if (!s) return "";
+
+  if (EXTRA_TOKEN_LABEL_MAP[s]) return EXTRA_TOKEN_LABEL_MAP[s];
+
+  // 패턴 기반 (새 토큰이 추가되더라도 기본 가독성 확보)
+  const t = s.toLowerCase();
+
+  // borrower_* : prefix 제거
+  if (t.startsWith("borrower_")) {
+    const rest = s.slice("borrower_".length);
+    // 너무 공격적으로 변환하지 않고, 최소한의 공백/기호만 정리
+    return rest.replaceAll("_", " ");
+  }
+
+  // apt_* : prefix 제거
+  if (t.startsWith("apt_")) {
+    const rest = s.slice("apt_".length);
+    return rest.replaceAll("_", " ");
+  }
+
+  return s;
+}
+
 function splitExtraToken(raw) {
   const s = String(raw || "").trim();
   if (!s) return { group: "기타", label: "" };
@@ -1626,18 +1734,27 @@ function splitExtraToken(raw) {
   // 우선순위: "::" > ":" > "|"
   if (s.includes("::")) {
     const [g, ...rest] = s.split("::");
-    return { group: (g || "").trim() || "기타", label: rest.join("::").trim() || s };
+    const group = (g || "").trim() || "기타";
+    const label = rest.join("::").trim();
+    return { group, label: label || humanizeExtraTokenLabel(s) };
   }
   if (s.includes(":")) {
     const [g, ...rest] = s.split(":");
-    return { group: (g || "").trim() || "기타", label: rest.join(":").trim() || s };
+    const group = (g || "").trim() || "기타";
+    const label = rest.join(":").trim();
+    return { group, label: label || humanizeExtraTokenLabel(s) };
   }
   if (s.includes("|")) {
     const [g, ...rest] = s.split("|");
-    return { group: (g || "").trim() || "기타", label: rest.join("|").trim() || s };
+    const group = (g || "").trim() || "기타";
+    const label = rest.join("|").trim();
+    return { group, label: label || humanizeExtraTokenLabel(s) };
   }
-  return { group: "기타", label: s };
+
+  // 그룹/라벨이 없는 토큰은 prefix 기반으로 그룹을 추론하고, 라벨은 사람이 읽을 수 있게 변환합니다.
+  return { group: inferExtraTokenGroup(s), label: humanizeExtraTokenLabel(s) };
 }
+
 
 function normalizeExtraGroupTitle(groupRaw) {
   const g = String(groupRaw || "").trim();
