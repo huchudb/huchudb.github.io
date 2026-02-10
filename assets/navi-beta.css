@@ -399,3 +399,38 @@ body.beta-body.beta-sticky-footer > main.beta-main{
 body.beta-body.beta-sticky-footer > footer.beta-footer{
   margin-top:auto;
 }
+
+
+/* =========================
+   Hover 가독성 개선
+   - 커서 hover 시 텍스트(흰색) + 골드 배경으로 통일
+========================= */
+:root{
+  --navi-hover-gold:#C9A227;
+}
+
+/* 칩(버튼) */
+.navi-main .navi-chip:hover:not(.is-selected):not(:disabled),
+.navi-main .navi-chip:focus-visible:not(.is-selected):not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
+
+/* Navi 내부 버튼(커스텀) */
+.navi-main .navi-btn-primary:hover:not(:disabled),
+.navi-main .navi-btn-primary:focus-visible:not(:disabled),
+.navi-main .navi-btn-secondary:hover:not(:disabled),
+.navi-main .navi-btn-secondary:focus-visible:not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
+
+/* 공통 btn (결과 확인하기 등) */
+.navi-main .btn.btn-primary:hover:not(:disabled),
+.navi-main .btn.btn-primary:focus-visible:not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
