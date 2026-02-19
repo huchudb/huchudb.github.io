@@ -823,3 +823,68 @@
     margin-left:0;
   }
 }
+
+
+/* =========================================================
+   ✅ (추가) 로고 업로드 UI
+========================================================= */
+.lender-logo-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.lender-logo-preview{
+  width:56px;
+  height:56px;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+.lender-logo-preview img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.lender-logo-empty{
+  font-size:11px;
+  color:#9ca3af;
+}
+.lender-logo-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.admin-mini-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#f9fafb;
+  color:#111827;
+  font-size:12px;
+  cursor:pointer;
+}
+.admin-mini-btn:hover{
+  background:#f3f4f6;
+}
+.admin-mini-btn:disabled{
+  opacity:.7;
+  cursor:default;
+}
+.admin-mini-btn--danger{
+  background:#fff5f5;
+  border-color:#fecaca;
+  color:#b91c1c;
+}
+.admin-mini-btn--danger:hover{
+  background:#fee2e2;
+}
