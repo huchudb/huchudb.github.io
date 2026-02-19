@@ -122,77 +122,6 @@ function toNumberSafe(v) {
   return 0;
 }
 
-/* =========================================================
-   ✅ (추가) 로고 업로드 유틸 (리사이즈 + dataURL)
-   - 서버/백업 JSON 크기 폭증 방지를 위해 최대 변 길이 제한
-========================================================= */
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    try {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("파일을 읽을 수 없습니다."));
-      reader.readAsDataURL(file);
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
-function downscaleImageDataUrl(dataUrl, maxEdge = 240) {
-  return new Promise((resolve, reject) => {
-    try {
-      const img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth || img.width || 0;
-        const h = img.naturalHeight || img.height || 0;
-        if (!w || !h) return resolve(dataUrl);
-
-        const scale = Math.min(1, maxEdge / Math.max(w, h));
-        const tw = Math.max(1, Math.round(w * scale));
-        const th = Math.max(1, Math.round(h * scale));
-
-        const canvas = document.createElement("canvas");
-        canvas.width = tw;
-        canvas.height = th;
-
-        const ctx = canvas.getContext("2d", { alpha: true });
-        if (!ctx) return resolve(dataUrl);
-        ctx.clearRect(0, 0, tw, th);
-        ctx.drawImage(img, 0, 0, tw, th);
-
-        // PNG로 저장 (투명 배경 로고 대응)
-        const out = canvas.toDataURL("image/png");
-        resolve(out || dataUrl);
-      };
-      img.onerror = () => resolve(dataUrl);
-      img.src = dataUrl;
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
-async function fileToLogoDataUrl(file, opts = {}) {
-  const maxEdge = Number.isFinite(opts.maxEdge) ? opts.maxEdge : 240;
-  const maxFileBytes = Number.isFinite(opts.maxFileBytes) ? opts.maxFileBytes : 2 * 1024 * 1024; // 2MB
-  const maxDataUrlChars = Number.isFinite(opts.maxDataUrlChars) ? opts.maxDataUrlChars : 260_000; // 대략 190KB base64 수준
-
-  if (!file) throw new Error("파일이 없습니다.");
-  if (!String(file.type || "").startsWith("image/")) throw new Error("이미지 파일만 업로드할 수 있습니다.");
-  if (file.size > maxFileBytes) throw new Error("이미지 용량이 너무 큽니다. (2MB 이하 권장)");
-
-  const dataUrl = await readFileAsDataUrl(file);
-  const scaled = await downscaleImageDataUrl(dataUrl, maxEdge);
-
-  if (scaled && scaled.length > maxDataUrlChars) {
-    // 지나치게 큰 경우는 경고 후 원본/리사이즈 결과 중 더 짧은 값을 사용
-    console.warn("logo dataUrl too large:", scaled.length);
-  }
-
-  return scaled || dataUrl;
-}
-
 function formatPercent8(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "";
@@ -1691,6 +1620,8 @@ function ensureLender(id) {
       id,
       name: id,
       homepage: "",
+      licenseNo: "",
+      logoDataUrl: "",
       isActive: false,
       isPartner: false,
       partnerOrder: 0,
@@ -1701,7 +1632,6 @@ function ensureLender(id) {
       products: [],
       phoneNumber: "",
       kakaoUrl: "",
-      logoDataUrl: "",
       regions: {}
     };
   }
@@ -1716,14 +1646,8 @@ function ensureLenderDeepDefaults(lender) {
 
   if (typeof lender.name !== "string") lender.name = String(lender.name || lender.id || "");
   if (typeof lender.homepage !== "string") lender.homepage = String(lender.homepage || lender.homepageUrl || "");
-
-  // ✅ 로고(data URL) 호환/기본값
-  if (typeof lender.logoDataUrl !== "string") {
-    const cand = lender.logoDataUrl || lender.logoUrl || lender.logo || "";
-    lender.logoDataUrl = (typeof cand === "string") ? cand : "";
-  }
-  lender.logoDataUrl = String(lender.logoDataUrl || "").trim();
-
+  if (typeof lender.licenseNo !== "string") lender.licenseNo = String(lender.licenseNo || lender.registrationNo || lender.ontuLicenseNo || "");
+  if (typeof lender.logoDataUrl !== "string") lender.logoDataUrl = String(lender.logoDataUrl || lender.logo || "");
 
   if (typeof lender.partnerOrder !== "number") lender.partnerOrder = 0;
   if (lender.partnerOrder < 0 || lender.partnerOrder > 10) lender.partnerOrder = 0;
@@ -2441,115 +2365,183 @@ function renderExtraConditionsBox(lender) {
   return box;
 }
 
-
 /* =========================================================
-   ✅ (추가) 로고 업로드 UI (업체별)
+   ✅ 렌더: 업체 카드
 ========================================================= */
-function renderLogoUploadBox(lender) {
+/* =========================================================
+   ✅ 로고 업로드(저장용 DataURL) — 2026-02-19
+   - 서버에 별도 파일 업로드가 없어서, 클라이언트에서 256px로 리사이즈 후 dataURL로 저장합니다.
+   - 파일 용량이 너무 크면 저장 데이터가 커질 수 있으니 원본도 가볍게 준비하세요.
+========================================================= */
+
+async function resizeImageFileToDataUrl(file, maxSize = 256) {
+  if (!file) return "";
+  if (!/^image\//i.test(file.type || "")) throw new Error("이미지 파일만 업로드할 수 있습니다.");
+
+  // 너무 큰 파일은 경고 (2MB)
+  const MAX_BYTES = 2 * 1024 * 1024;
+  if (file.size > MAX_BYTES) {
+    const mb = (file.size / (1024 * 1024)).toFixed(2);
+    throw new Error(`이미지 용량이 너무 큽니다. (${mb}MB)\n2MB 이하로 줄여서 업로드해주세요.`);
+  }
+
+  const url = URL.createObjectURL(file);
+
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
+      i.src = url;
+    });
+
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    if (!w || !h) throw new Error("이미지 크기를 확인할 수 없습니다.");
+
+    const scale = Math.min(1, maxSize / Math.max(w, h));
+    const tw = Math.max(1, Math.round(w * scale));
+    const th = Math.max(1, Math.round(h * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = tw;
+    canvas.height = th;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("캔버스 초기화 실패");
+    ctx.clearRect(0, 0, tw, th);
+    ctx.drawImage(img, 0, 0, tw, th);
+
+    // webp 우선, 미지원이면 png
+    let dataUrl = "";
+    try {
+      dataUrl = canvas.toDataURL("image/webp", 0.86);
+      if (!/^data:image\/webp/i.test(dataUrl)) throw new Error("webp 미지원");
+    } catch {
+      dataUrl = canvas.toDataURL("image/png");
+    }
+
+    return dataUrl || "";
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function renderBrandBox(lender) {
   const box = document.createElement("div");
   box.className = "admin-subbox";
+  box.addEventListener("click", (e) => e.stopPropagation());
 
   const title = document.createElement("h3");
   title.className = "admin-subbox-title";
-  title.textContent = "로고 업로드";
+  title.textContent = "브랜드(로고/등록번호)";
 
   const help = document.createElement("p");
   help.className = "admin-subbox-help";
-  help.innerHTML = "네비게이션 결과(7. 대출결과) 카드에 표시할 <b>업체 로고</b>를 업로드합니다.<br/>로고는 <b>업로드된 업체에 한해서만</b> 결과 화면에 노출됩니다.";
+  help.innerHTML = [
+    "로고는 네비게이션 결과 카드에 표시됩니다. 업로드 시 256px로 자동 리사이즈되어 저장됩니다.",
+    "권장: 정사각형 PNG/WebP (예: 512×512) / 로고가 원 안에서 너무 작아지지 않도록 여백을 최소화하세요."
+  ].join("<br />");
 
   const row = document.createElement("div");
-  row.className = "lender-logo-row";
-  row.addEventListener("click", (e) => e.stopPropagation());
+  row.className = "admin-logo-row";
 
   const preview = document.createElement("div");
-  preview.className = "lender-logo-preview";
+  preview.className = "admin-logo-preview";
 
-  const hasLogo = Boolean((lender.logoDataUrl || "").trim());
-  if (hasLogo) {
-    const img = document.createElement("img");
-    img.src = lender.logoDataUrl;
-    img.alt = `${lender.name || lender.id || "온투업체"} 로고`;
-    img.loading = "lazy";
-    preview.appendChild(img);
-  } else {
-    const empty = document.createElement("div");
-    empty.className = "lender-logo-empty";
-    empty.textContent = "미등록";
-    preview.appendChild(empty);
-  }
+  const img = document.createElement("img");
+  img.alt = "";
+  img.decoding = "async";
+  img.loading = "lazy";
+  img.src = (lender.logoDataUrl || "").trim();
+  img.style.display = img.src ? "block" : "none";
+
+  const initials = document.createElement("div");
+  initials.className = "admin-logo-initials";
+  initials.textContent = String(lender.name || "").trim().slice(0, 2) || "?";
+  initials.style.display = img.src ? "none" : "flex";
+
+  preview.appendChild(initials);
+  preview.appendChild(img);
 
   const actions = document.createElement("div");
-  actions.className = "lender-logo-actions";
+  actions.className = "admin-logo-actions";
+
+  const uploadBtn = document.createElement("button");
+  uploadBtn.type = "button";
+  uploadBtn.className = "admin-logo-btn";
+  uploadBtn.textContent = "로고 업로드";
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "admin-logo-btn admin-logo-btn--ghost";
+  delBtn.textContent = "삭제";
+  delBtn.disabled = !(lender.logoDataUrl || "").trim();
 
   const fileInput = document.createElement("input");
   fileInput.type = "file";
   fileInput.accept = "image/*";
   fileInput.style.display = "none";
 
-  const uploadBtn = document.createElement("button");
-  uploadBtn.type = "button";
-  uploadBtn.className = "admin-mini-btn";
-  uploadBtn.textContent = hasLogo ? "로고 변경" : "로고 업로드";
+  uploadBtn.addEventListener("click", () => fileInput.click());
 
-  uploadBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    fileInput.click();
+  fileInput.addEventListener("change", async () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    try {
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "처리중...";
+
+      const dataUrl = await resizeImageFileToDataUrl(f, 256);
+      updateLenderState(lender.id, { logoDataUrl: dataUrl });
+      lenderUiState.openIds.add(lender.id);
+      renderLendersList();
+    } catch (err) {
+      console.error("logo upload error:", err);
+      alert(String(err && err.message ? err.message : err));
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "로고 업로드";
+      fileInput.value = "";
+    }
   });
 
-  const clearBtn = document.createElement("button");
-  clearBtn.type = "button";
-  clearBtn.className = "admin-mini-btn admin-mini-btn--danger";
-  clearBtn.textContent = "삭제";
-  clearBtn.style.display = hasLogo ? "inline-flex" : "none";
-
-  clearBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (!confirm("로고를 삭제할까요?")) return;
+  delBtn.addEventListener("click", () => {
     updateLenderState(lender.id, { logoDataUrl: "" });
     lenderUiState.openIds.add(lender.id);
     renderLendersList();
   });
 
-  fileInput.addEventListener("click", (e) => e.stopPropagation());
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
-
-    try {
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = "처리중...";
-      const dataUrl = await fileToLogoDataUrl(file, { maxEdge: 240 });
-
-      updateLenderState(lender.id, { logoDataUrl: dataUrl || "" });
-      lenderUiState.openIds.add(lender.id);
-      renderLendersList();
-    } catch (err) {
-      console.error(err);
-      alert(err?.message || "로고 업로드 중 오류가 발생했습니다.");
-    } finally {
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = "로고 변경";
-      fileInput.value = "";
-    }
-  });
-
   actions.appendChild(uploadBtn);
-  actions.appendChild(clearBtn);
+  actions.appendChild(delBtn);
+  actions.appendChild(fileInput);
 
   row.appendChild(preview);
   row.appendChild(actions);
-  row.appendChild(fileInput);
+
+  // 등록번호(옵션)
+  const licenseWrap = document.createElement("div");
+  licenseWrap.className = "admin-field";
+  const licenseLabel = document.createElement("label");
+  licenseLabel.textContent = "온투업 등록번호(표시용)";
+  const licenseInput = document.createElement("input");
+  licenseInput.type = "text";
+  licenseInput.className = "admin-input";
+  licenseInput.placeholder = "예) 제2021-37호";
+  licenseInput.value = lender.licenseNo || "";
+  licenseInput.addEventListener("input", () => updateLenderState(lender.id, { licenseNo: licenseInput.value }));
+  licenseInput.addEventListener("blur", () => updateLenderState(lender.id, { licenseNo: licenseInput.value.trim() }));
+  licenseWrap.appendChild(licenseLabel);
+  licenseWrap.appendChild(licenseInput);
 
   box.appendChild(title);
   box.appendChild(help);
   box.appendChild(row);
+  box.appendChild(licenseWrap);
 
   return box;
 }
 
-/* =========================================================
-   ✅ 렌더: 업체 카드
-========================================================= */
 function renderLendersList() {
   const container = document.getElementById("lendersList");
   if (!container) return;
@@ -2754,6 +2746,9 @@ function renderLendersList() {
 
     const inner = document.createElement("div");
     inner.className = "lender-panel__inner";
+
+    // ✅ 브랜드(로고/등록번호)
+    inner.appendChild(renderBrandBox(lender));
 
     const productsBox = document.createElement("div");
     productsBox.className = "admin-subbox";
@@ -3092,9 +3087,6 @@ function renderLendersList() {
       // (원본 동작 유지) 부동산담보대출이 아니면 금융조건만
       inner.appendChild(renderFinanceInputsBox(lender));
     }
-
-    // 로고 업로드
-    inner.appendChild(renderLogoUploadBox(lender));
 
     // 상담 채널
     const contactBox = document.createElement("div");
