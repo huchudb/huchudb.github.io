@@ -51,7 +51,6 @@ body.navi-wide .beta-header__inner{
     aspect-ratio:1200 / 300; /* = 4 / 1 */
   }
 }
-}
 
 /* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
 .navi-main > .beta-section.navi-intro-section{
@@ -433,4 +432,138 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
   background:var(--navi-hover-gold);
   border-color:var(--navi-hover-gold);
   color:#ffffff;
+}
+
+
+/* =========================================================
+   ✅ (개선) 7. 네비게이션 결과 카드 (제휴/비제휴)
+========================================================= */
+.navi-lender-card{
+  margin-top:10px;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  background:#ffffff;
+  padding:12px;
+}
+.navi-lender-card--partner{
+  border-color:#111827;
+}
+.navi-lender-card__head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.navi-lender-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.navi-lender-logo{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+.navi-lender-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.navi-lender-title{
+  min-width:0;
+}
+.navi-lender-name-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.navi-lender-name-link,
+.navi-lender-name-text{
+  font-size:15px;
+  font-weight:800;
+  color:#111827;
+  text-decoration:none;
+  line-height:1.2;
+}
+.navi-lender-name-link:hover{
+  text-decoration:underline;
+}
+.navi-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  border:1px solid #e5e7eb;
+  background:#f3f4f6;
+  color:#4b5563;
+}
+.navi-badge--partner{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#111827;
+}
+
+.navi-fee-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:8px;
+  margin-top:10px;
+}
+@media (max-width:520px){
+  .navi-fee-grid{ grid-template-columns:1fr; }
+}
+.navi-fee-box{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:10px;
+  background:#ffffff;
+}
+.navi-fee-label{
+  font-size:11px;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.navi-fee-value{
+  font-weight:800;
+  color:#111827;
+  font-size:13px;
+}
+
+.navi-lender-meta-line{
+  margin-top:8px;
+  font-size:11px;
+  color:#6b7280;
+}
+
+.navi-lender-note{
+  margin-top:8px;
+  font-size:11px;
+  color:#4b5563;
+}
+.navi-lender-note--partner{
+  color:#111827;
+  font-weight:600;
+}
+
+.navi-lender-actions-row{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.navi-btn-disabled{
+  pointer-events:none;
+  cursor:default;
+  opacity:.65;
 }
