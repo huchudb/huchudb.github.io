@@ -426,16 +426,6 @@ function normalizeLenderRecord(raw) {
   }
   l.extraConditions = Array.isArray(l.extraConditions) ? l.extraConditions : [];
 
-  // ✅ 홈페이지/로고(업로드) 정규화
-  l.homepage = (typeof l.homepage === "string" ? l.homepage : (typeof l.homepageUrl === "string" ? l.homepageUrl : "")).trim();
-
-  // logoDataUrl(관리자 업로드) 우선, 없으면 logoUrl/logo 호환
-  const logoCand = (typeof l.logoDataUrl === "string") ? l.logoDataUrl
-    : (typeof l.logoUrl === "string") ? l.logoUrl
-      : (typeof l.logo === "string") ? l.logo
-        : "";
-  l.logoDataUrl = String(logoCand || "").trim();
-
   return l;
 }
 
@@ -1398,15 +1388,6 @@ function escapeHtml(s) {
 function escapeHtmlAttr(s) {
   return escapeHtml(s).replaceAll("`", "&#96;");
 }
-
-function normalizeExternalUrl(raw) {
-  const s = String(raw || "").trim();
-  if (!s) return "";
-  if (/^https?:\/\//i.test(s)) return s;
-  // 프로토콜이 없는 경우 https로 보정
-  return `https://${s}`;
-}
-
 
 function setupStep1() {
   const container = document.getElementById("naviLoanCategoryChips");
@@ -2788,120 +2769,19 @@ function renderFee3Cols(lender) {
   const pp = f.prepayFeeAvg;
 
   return `
-    <div class="navi-fee-grid">
-      <div class="navi-fee-box">
-        <div class="navi-fee-label">대출금리(평균)</div>
-        <div class="navi-fee-value">${fmtRange(parseNumberLoose(i), parseNumberLoose(i), "%", "미등록")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;">
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">대출금리(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(i), parseNumberLoose(i), "%", "미등록")}</div>
       </div>
-      <div class="navi-fee-box">
-        <div class="navi-fee-label">플랫폼수수료(평균)</div>
-        <div class="navi-fee-value">${fmtRange(parseNumberLoose(p), parseNumberLoose(p), "%", "미등록")}</div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">플랫폼수수료(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(p), parseNumberLoose(p), "%", "미등록")}</div>
       </div>
-      <div class="navi-fee-box">
-        <div class="navi-fee-label">중도상환수수료(평균)</div>
-        <div class="navi-fee-value">${fmtRange(parseNumberLoose(pp), parseNumberLoose(pp), "%", "미등록")}</div>
+      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">중도상환수수료(평균)</div>
+        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(pp), parseNumberLoose(pp), "%", "미등록")}</div>
       </div>
-    </div>
-  `;
-}
-
-
-
-function renderLenderMetaLine(l) {
-  const cats = Array.isArray(l.loanCategories) ? l.loanCategories : [];
-  const cfg = l.realEstateConfig || {};
-  const regions = Array.isArray(cfg.regions) ? cfg.regions : [];
-  const props = Array.isArray(cfg.propertyTypes) ? cfg.propertyTypes : [];
-  const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
-
-  const parts = [];
-  if (cats.length) parts.push(`상품군: ${cats.join(", ")}`);
-  if (regions.length) parts.push(`취급지역: ${regions.join(", ")}`);
-  if (props.length) parts.push(`담보유형: ${props.join(", ")}`);
-  if (types.length) parts.push(`대출종류: ${types.join(", ")}`);
-
-  if (!parts.length) return "";
-  return `<div class="navi-lender-meta-line">${escapeHtml(parts.join(" · "))}</div>`;
-}
-
-function renderLenderResultCard(l) {
-  const nameText = String(l.displayName || "(이름 없음)");
-  const nameEsc = escapeHtml(nameText);
-  const nameAttr = escapeHtmlAttr(nameText);
-
-  const isPartner = !!l.isPartner;
-
-  const phoneRaw = String(l.channels?.phoneNumber || "").trim();
-  const kakaoRaw = String(l.channels?.kakaoUrl || "").trim();
-  const homepageRaw = String(l.homepage || "").trim();
-  const homepage = homepageRaw ? normalizeExternalUrl(homepageRaw) : "";
-
-  const logo = String(l.logoDataUrl || "").trim();
-  const logoHtml = logo
-    ? `<div class="navi-lender-logo"><img src="${escapeHtmlAttr(logo)}" alt="${nameAttr} 로고" loading="lazy" /></div>`
-    : "";
-
-  const nameHtml = homepage
-    ? `<a class="navi-lender-name-link" href="${escapeHtmlAttr(homepage)}" target="_blank" rel="noopener noreferrer">${nameEsc}</a>`
-    : `<span class="navi-lender-name-text">${nameEsc}</span>`;
-
-  const badge = isPartner
-    ? `<span class="navi-badge navi-badge--partner">제휴업체</span>`
-    : `<span class="navi-badge">비제휴</span>`;
-
-  let noteHtml = "";
-  if (isPartner) {
-    noteHtml = `<div class="navi-lender-note navi-lender-note--partner">후추와 제휴된 온투업체 (광고비 지급)</div>`;
-  } else {
-    noteHtml = `<div class="navi-lender-note">비제휴 온투업체 (정보제공용)</div>`;
-  }
-
-  let actions = "";
-  const actionParts = [];
-
-  if (isPartner) {
-    if (phoneRaw) {
-      const telHref = phoneRaw.replace(/[^\d+]/g, "");
-      actionParts.push(`<a class="navi-btn-secondary" href="tel:${escapeHtmlAttr(telHref)}">상담 전화</a>`);
-    } else {
-      actionParts.push(`<span class="navi-btn-secondary navi-btn-disabled">상담 전화 미등록</span>`);
-    }
-
-    if (kakaoRaw) {
-      actionParts.push(`<a class="navi-btn-primary" href="${escapeHtmlAttr(kakaoRaw)}" target="_blank" rel="noopener noreferrer">카톡 상담</a>`);
-    } else {
-      actionParts.push(`<span class="navi-btn-secondary navi-btn-disabled">카톡 상담 미등록</span>`);
-    }
-  }
-
-  if (homepage) {
-    actionParts.push(`<a class="navi-btn-secondary" href="${escapeHtmlAttr(homepage)}" target="_blank" rel="noopener noreferrer">홈페이지</a>`);
-  }
-
-  if (actionParts.length) {
-    actions = `<div class="navi-lender-actions-row">${actionParts.join("")}</div>`;
-  }
-
-  const metaLine = renderLenderMetaLine(l);
-
-  return `
-    <div class="navi-lender-card ${isPartner ? "navi-lender-card--partner" : ""}">
-      <div class="navi-lender-card__head">
-        <div class="navi-lender-brand">
-          ${logoHtml}
-          <div class="navi-lender-title">
-            <div class="navi-lender-name-row">
-              ${nameHtml}
-              ${badge}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      ${renderFee3Cols(l)}
-      ${metaLine}
-      ${noteHtml}
-      ${actions}
     </div>
   `;
 }
@@ -2972,19 +2852,146 @@ function renderFinalResult(opts = {}) {
   if (userState.region) condParts.push(userState.region);
   const condSummary = condParts.join(" / ");
 
-  const reqAmt = getPrincipalAmount() ? formatWithCommas(String(getPrincipalAmount())) + "원" : "입력 없음";
+  // ✅ Step7: 카드형 결과 UI (제휴/비제휴 카드 분기)
+const escapeHtml = (v) =>
+  String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
-  let html = "";
-  html += `<div style="margin-bottom:8px;font-size:12px;color:#374151;">`;
-  html += `<div>요청 조건 요약: <strong>${condSummary || "조건 미입력"}</strong></div>`;
-  html += `<div>요청 대출금액(원): <strong>${reqAmt}</strong></div>`;
-  html += `</div>`;
+const toInitials = (name) => {
+  const s = String(name || "").trim();
+  if (!s) return "?";
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
+  // 한글/영문 모두 2글자까지
+  return s.slice(0, 2).toUpperCase();
+};
 
-  matched.forEach((l) => {
-    html += renderLenderResultCard(l);
-  });
+const fmtPctCompact = (num) => {
+  const n = parseNumberLoose(num);
+  if (n == null || !isFinite(n)) return "-";
+  const r = Math.round(n * 10) / 10;
+  const s = String(r);
+  return (s.endsWith(".0") ? s.slice(0, -2) : s) + "%";
+};
 
-  panel.innerHTML = html;
+const safeHttpUrl = (u) => {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) return "";
+  return s;
+};
+
+const safeTelHref = (phone) => {
+  const p = String(phone || "").trim();
+  if (!p) return "";
+  const cleaned = p.replace(/[^0-9+]/g, "");
+  return cleaned ? `tel:${cleaned}` : "";
+};
+
+const cardsHtml = matched
+  .map((l) => {
+    const isPartner = Boolean(l && l.isPartner);
+    const displayName = l && (l.displayName || l.name) ? String(l.displayName || l.name) : "(이름 없음)";
+    const nameHtml = escapeHtml(displayName);
+
+    // 등록번호(옵션) — admin에서 입력한 값을 그대로 표시
+    const licenseRaw = String(l?.licenseNo || l?.registrationNo || l?.ontuLicenseNo || "").trim();
+    const licenseLine = licenseRaw
+      ? (licenseRaw.includes("온라인") ? licenseRaw : `온라인투자연계금융업 ${licenseRaw}`)
+      : "온라인투자연계금융업";
+    const licenseHtml = escapeHtml(licenseLine);
+
+    const initials = escapeHtml(toInitials(displayName));
+    const logoData = typeof l?.logoDataUrl === "string" ? l.logoDataUrl : (typeof l?.logo === "string" ? l.logo : "");
+
+    const f = getFinancialInputsForCategory(l, userState.mainCategory) || {};
+    const interest = fmtPctCompact(f.interestAvg);
+    const platform = fmtPctCompact(f.platformFeeAvg);
+    const prepay = fmtPctCompact(f.prepayFeeAvg);
+
+    const phone = String(l?.channels?.phoneNumber || l?.phoneNumber || "").trim();
+    const kakao = String(l?.channels?.kakaoUrl || l?.kakaoUrl || "").trim();
+    const homepage = String(l?.homepage || l?.homepageUrl || "").trim();
+
+    const telHref = safeTelHref(phone);
+    const kakaoHref = safeHttpUrl(kakao);
+    const homeHref = safeHttpUrl(homepage);
+
+    const notes2 = isPartner ? "최적 조건 가능 업체!" : "정확한 조건은 업체에 문의하세요.";
+
+    const actionsHtml = isPartner
+      ? `
+        <div class="navi-result-divider"></div>
+        <div class="navi-result-actions">
+          ${telHref ? `<a class="navi-action-btn navi-action-phone" href="${escapeHtml(telHref)}" aria-label="전화 상담">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
+          </a>` : `<div class="navi-action-btn navi-action-phone is-disabled" aria-label="전화 미등록">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
+          </div>`}
+
+          ${kakaoHref ? `<a class="navi-action-btn navi-action-kakao" href="${escapeHtml(kakaoHref)}" target="_blank" rel="noopener noreferrer" aria-label="카톡 상담">
+            <span>카톡<br/>상담</span>
+          </a>` : `<div class="navi-action-btn navi-action-kakao is-disabled" aria-label="카톡 미등록"><span>카톡<br/>상담</span></div>`}
+
+          ${homeHref ? `<a class="navi-action-btn navi-action-home" href="${escapeHtml(homeHref)}" target="_blank" rel="noopener noreferrer" aria-label="홈페이지">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3a14 14 0 0 1 0 18"></path>
+              <path d="M12 3a14 14 0 0 0 0 18"></path>
+            </svg>
+          </a>` : `<div class="navi-action-btn navi-action-home is-disabled" aria-label="홈페이지 미등록">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3a14 14 0 0 1 0 18"></path>
+              <path d="M12 3a14 14 0 0 0 0 18"></path>
+            </svg>
+          </div>`}
+        </div>
+      `
+      : `
+        <div class="navi-result-divider"></div>
+        <div class="navi-nonpartner-huchu">
+          <img class="navi-huchu-img" src="/assets/media/huchu-sad.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';" />
+          <div class="navi-huchu-text">미제휴 업체로서<br/>조건이 좋지 않을 수 있습니다.</div>
+        </div>
+      `;
+
+    return `
+      <div class="navi-result-card ${isPartner ? "is-partner" : ""}">
+        <div class="navi-result-head">
+          <div class="navi-result-logo" aria-hidden="true">
+            <span class="navi-result-initials">${initials}</span>
+            ${logoData ? `<img src="${escapeHtml(logoData)}" alt="${nameHtml} 로고" onerror="this.style.display='none';" />` : ""}
+          </div>
+          <div class="navi-result-headtext">
+            <div class="navi-result-title">${nameHtml}</div>
+            <div class="navi-result-sub">${licenseHtml}</div>
+          </div>
+        </div>
+
+        <div class="navi-result-divider"></div>
+
+        <div class="navi-result-metrics">
+          <div class="navi-metric"><div class="lab">금리</div><div class="val">${interest}</div></div>
+          <div class="navi-metric"><div class="lab">플랫폼<br/>수수료</div><div class="val">${platform}</div></div>
+          <div class="navi-metric"><div class="lab">중도상환<br/>수수료</div><div class="val">${prepay}</div></div>
+        </div>
+
+        <div class="navi-result-notes">
+          <div>* 과거 데이터 기반의 평균 조건 입니다.</div>
+          <div>** ${escapeHtml(notes2)}</div>
+        </div>
+
+        ${actionsHtml}
+      </div>
+    `;
+  })
+  .join("");
+
+panel.innerHTML = `<div class="navi-result-grid">${cardsHtml}</div>`;
+
+
 
   uiState.hasRenderedResult = true;
   if (!keepStepper) renderStepper(7);
