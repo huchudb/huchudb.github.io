@@ -51,6 +51,7 @@ body.navi-wide .beta-header__inner{
     aspect-ratio:1200 / 300; /* = 4 / 1 */
   }
 }
+}
 
 /* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
 .navi-main > .beta-section.navi-intro-section{
@@ -434,136 +435,211 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
   color:#ffffff;
 }
 
-
 /* =========================================================
-   ✅ (개선) 7. 네비게이션 결과 카드 (제휴/비제휴)
+   Step7 결과 카드(제휴/비제휴) — 2026-02-19
 ========================================================= */
-.navi-lender-card{
-  margin-top:10px;
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  background:#ffffff;
-  padding:12px;
+
+.navi-result-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
 }
-.navi-lender-card--partner{
-  border-color:#111827;
+
+@media (max-width: 1100px){
+  .navi-result-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
-.navi-lender-card__head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
+@media (max-width: 640px){
+  .navi-result-grid{ grid-template-columns:1fr; }
 }
-.navi-lender-brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width:0;
-}
-.navi-lender-logo{
-  width:44px;
-  height:44px;
+
+.navi-result-card{
+  background:#fff;
+  border:1px solid #d1d5db;
   border-radius:12px;
-  border:1px solid #e5e7eb;
-  background:#ffffff;
+  padding:14px 14px 12px;
+  box-sizing:border-box;
+}
+
+.navi-result-card.is-partner{
+  border:2px solid #8b5cf6;
+  box-shadow:0 0 0 2px rgba(139,92,246,.08);
+}
+
+.navi-result-head{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.navi-result-logo{
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#fff;
   overflow:hidden;
+  flex:0 0 auto;
   display:flex;
   align-items:center;
   justify-content:center;
-  flex:0 0 auto;
+  position:relative;
 }
-.navi-lender-logo img{
+
+.navi-result-logo img{
   width:100%;
   height:100%;
   object-fit:contain;
+  position:relative;
+  z-index:1;
 }
-.navi-lender-title{
-  min-width:0;
-}
-.navi-lender-name-row{
+
+.navi-result-initials{
+  position:absolute;
+  inset:0;
   display:flex;
   align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.navi-lender-name-link,
-.navi-lender-name-text{
-  font-size:15px;
-  font-weight:800;
+  justify-content:center;
+  font-weight:900;
+  font-size:18px;
+  letter-spacing:.02em;
   color:#111827;
-  text-decoration:none;
-  line-height:1.2;
 }
-.navi-lender-name-link:hover{
-  text-decoration:underline;
+
+.navi-result-title{
+  font-size:24px;
+  font-weight:900;
+  line-height:1.08;
+  color:#111827;
 }
-.navi-badge{
-  display:inline-flex;
+
+.navi-result-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#6b7280;
+  line-height:1.25;
+}
+
+.navi-result-divider{
+  height:1px;
+  background:#e5e7eb;
+  margin:12px 0;
+}
+
+.navi-result-metrics{
+  display:flex;
+  gap:10px;
+  margin-top:2px;
+}
+
+.navi-metric{
+  flex:1;
+  border:1px solid #c7cbd1;
+  border-radius:10px;
+  padding:10px 8px;
+  text-align:center;
+}
+
+.navi-metric .lab{
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+  line-height:1.1;
+}
+
+.navi-metric .val{
+  margin-top:10px;
+  font-size:16px;
+  font-weight:900;
+  color:#111827;
+}
+
+.navi-result-notes{
+  margin-top:12px;
+  font-size:13px;
+  color:#374151;
+  line-height:1.45;
+}
+
+.navi-result-actions{
+  display:flex;
+  gap:14px;
   align-items:center;
-  padding:2px 8px;
-  border-radius:999px;
-  font-size:11px;
-  border:1px solid #e5e7eb;
-  background:#f3f4f6;
-  color:#4b5563;
+  justify-content:space-between;
+  padding-top:2px;
 }
-.navi-badge--partner{
+
+.navi-action-btn{
+  width:58px;
+  height:58px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  border:1px solid #9ca3af;
+  box-sizing:border-box;
+  user-select:none;
+}
+
+.navi-action-btn.is-disabled{
+  opacity:.45;
+  pointer-events:none;
+}
+
+.navi-action-phone{
+  background:#22c55e;
+  border-color:#22c55e;
+}
+
+.navi-action-phone svg{
+  width:28px;
+  height:28px;
+  fill:#ffffff;
+}
+
+.navi-action-kakao{
   background:#111827;
-  color:#f9fafb;
   border-color:#111827;
 }
 
-.navi-fee-grid{
-  display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  gap:8px;
-  margin-top:10px;
+.navi-action-kakao span{
+  color:#fde047;
+  font-weight:900;
+  font-size:12px;
+  line-height:1.05;
+  text-align:center;
+  display:block;
 }
-@media (max-width:520px){
-  .navi-fee-grid{ grid-template-columns:1fr; }
-}
-.navi-fee-box{
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:10px;
+
+.navi-action-home{
   background:#ffffff;
-}
-.navi-fee-label{
-  font-size:11px;
-  color:#6b7280;
-  margin-bottom:4px;
-}
-.navi-fee-value{
-  font-weight:800;
-  color:#111827;
-  font-size:13px;
+  border-color:#9ca3af;
 }
 
-.navi-lender-meta-line{
-  margin-top:8px;
-  font-size:11px;
-  color:#6b7280;
+.navi-action-home svg{
+  width:30px;
+  height:30px;
+  stroke:#111827;
 }
 
-.navi-lender-note{
-  margin-top:8px;
-  font-size:11px;
-  color:#4b5563;
-}
-.navi-lender-note--partner{
-  color:#111827;
-  font-weight:600;
-}
-
-.navi-lender-actions-row{
-  margin-top:10px;
+.navi-nonpartner-huchu{
   display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+  gap:10px;
   align-items:center;
+  padding-top:2px;
 }
-.navi-btn-disabled{
-  pointer-events:none;
-  cursor:default;
-  opacity:.65;
+
+.navi-huchu-img{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.navi-huchu-text{
+  font-size:14px;
+  font-weight:700;
+  color:#374151;
+  line-height:1.25;
 }
