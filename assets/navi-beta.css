@@ -643,3 +643,231 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
   color:#374151;
   line-height:1.25;
 }
+
+
+/* =========================================================
+   Navi single-card wizard (첫 화면 + 단계 전환)
+========================================================= */
+body.navi-single-card-mode .navi-main > #navi-stepper{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-stage{
+  margin-left:calc(50% - 50vw);
+  margin-right:calc(50% - 50vw);
+  width:100vw;
+  max-width:100vw;
+  background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
+  background-attachment:fixed;
+  background-position:center;
+  padding:72px 20px 96px;
+  box-sizing:border-box;
+  min-height:980px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-shell{
+  width:min(100%, 560px);
+  margin:0 auto;
+  border-radius:18px;
+  background:#eeeeee;
+  padding:34px 34px 38px;
+  box-sizing:border-box;
+  box-shadow:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] .navi-wizard-card-shell{
+  width:min(100%, 680px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step5"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6-1"] .navi-wizard-card-shell{
+  width:min(100%, 900px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+  width:min(100%, 1180px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body{
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section{
+  margin:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section + .navi-section{
+  margin-top:0;
+}
+
+body.navi-single-card-mode .navi-wizard-step-hidden{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-card{
+  border:none;
+  background:transparent;
+  padding:0;
+  margin-top:12px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+  font-size:24px;
+  line-height:1.25;
+  font-weight:800;
+  color:#111111;
+  text-align:center;
+  margin:0 0 18px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-sub{
+  text-align:center;
+  font-size:12px;
+  color:#5f6368;
+  margin-bottom:14px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1{
+  margin-top:0 !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  margin-top:4px;
+  margin-bottom:26px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+  content:"?";
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:36px;
+  border-radius:10px;
+  background:#ffb300;
+  color:#111;
+  font-weight:900;
+  font-size:30px;
+  line-height:1;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
+  transform:translateY(-2px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:20px 22px;
+  max-width:440px;
+  margin:0 auto;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips[data-odd="1"] > .navi-chip:last-child{
+  grid-column:2;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+  min-height:58px;
+  border-radius:0;
+  border:1px solid #a8a8a8;
+  background:#f3f3f3;
+  color:#222;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  white-space:normal;
+  line-height:1.25;
+  font-size:17px;
+  font-weight:500;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:hover:not(.is-selected):not(:disabled),
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:focus-visible:not(.is-selected):not(:disabled){
+  background:#ffffff;
+  color:#111;
+  border-color:#8a8a8a;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip.is-selected{
+  background:#ffffff;
+  color:#111;
+  border-color:#7c4dff;
+  box-shadow:0 0 0 2px rgba(124,77,255,.15);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:disabled{
+  min-height:58px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group{
+  gap:8px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group:not(#naviLoanCategoryChips) .navi-chip{
+  min-height:40px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-row{
+  justify-content:center;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-hint{
+  text-align:center;
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header{
+  justify-content:center;
+  text-align:center;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last-child{
+  justify-content:center;
+}
+
+@media (max-width: 768px){
+  body.navi-single-card-mode .navi-wizard-stage{
+    padding:40px 14px 64px;
+    min-height:720px;
+    background-attachment:scroll;
+  }
+  body.navi-single-card-mode .navi-wizard-card-shell{
+    width:min(100%, 520px);
+    border-radius:16px;
+    padding:24px 18px 24px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+    font-size:20px;
+    margin-bottom:14px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
+    margin-bottom:18px;
+    gap:8px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+    width:32px;
+    height:30px;
+    font-size:24px;
+    border-radius:8px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+    gap:12px 12px;
+    max-width:none;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+    min-height:54px;
+    font-size:14px;
+    padding:8px 8px;
+  }
+}
