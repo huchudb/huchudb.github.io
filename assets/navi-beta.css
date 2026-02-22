@@ -661,27 +661,26 @@ body.navi-single-card-mode .navi-wizard-stage{
   background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
   background-attachment:fixed;
   background-position:center;
-  padding:24px 20px 6px; /* 하단 여백 추가 축소 */
+  padding:14px 20px; /* 상/하 여백 동일 */
   box-sizing:border-box;
-  min-height:980px;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
+  min-height:700px;
+  display:grid;
+  place-items:center;
+  justify-content:initial;
+  align-items:initial;
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-  /* 첫 화면 카드를 그라데이션 영역 중앙에 배치 */
-  align-items:center;
+  min-height:620px; /* 첫 화면 배경 세로폭 축소 + 중앙배치 기준 높이 */
 }
 
-/* 첫 화면(대출 선택) 배경 세로폭 약 30% 축소 */
-body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-  min-height:686px; /* 기존 980px 대비 약 -30% */
+body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+  min-height:700px;
 }
 
 body.navi-single-card-mode .navi-wizard-card-shell{
   width:min(100%, 560px);
-  margin:0 auto;
+  margin:0;
   border-radius:18px;
   background:#eeeeee;
   padding:34px 34px 38px;
@@ -852,10 +851,16 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
 
 @media (max-width: 768px){
   body.navi-single-card-mode .navi-wizard-stage{
-    padding:16px 14px 4px;
-    min-height:640px;
-    margin-bottom:4px;
+    padding:10px 14px;
+    min-height:520px;
+    margin-bottom:0;
     background-attachment:scroll;
+  }
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+    min-height:460px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+    min-height:520px;
   }
   body.navi-single-card-mode .navi-wizard-card-shell{
     width:min(100%, 520px);
@@ -887,101 +892,34 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
   }
 }
 
-
-/* sticky-footer에서 남는 흰 여백을 줄이기 위해 메인 영역/그라데이션 영역을 연결 */
+/* single-card + sticky footer 하단 간격 정리 */
 body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
   display:flex;
   flex-direction:column;
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
 }
 body.navi-single-card-mode.beta-sticky-footer > main.beta-main > .beta-inner.navi-main{
   display:flex;
   flex-direction:column;
   flex:1 0 auto;
 }
-body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage{
-  flex:1 0 auto;
-}
-
-
-/* ===== Patch v2: footer-gap + first-screen height ===== */
-body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
+body.navi-single-card-mode .beta-inner.navi-main,
+body.navi-single-card-mode .navi-main{
   padding-bottom:0 !important;
   margin-bottom:0 !important;
 }
-body.navi-single-card-mode .beta-inner.navi-main{
-  padding-bottom:4px !important; /* 기존 하단 40px 패딩 제거(약 90% 감소) */
-  margin-bottom:0 !important;
-}
-body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage:last-child{
-  margin-bottom:0 !important;
-}
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage,
 body.navi-single-card-mode .navi-main > .navi-wizard-stage{
+  flex:0 0 auto;
   margin-bottom:0 !important;
 }
 
 @media (max-width: 768px){
-  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-    min-height:500px; /* 모바일도 함께 축소 */
-  }
-  body.navi-single-card-mode .beta-inner.navi-main{
-    padding-bottom:2px !important;
-  }
-}
-
-/* ===== Patch v3: PC exact center + mobile footer gap + mobile step1 height ===== */
-/* 공통: wizard stage가 flex-grow로 과하게 늘어나면서(특히 모바일) 배경 하단 여백이 커지는 현상 방지 */
-body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage{
-  flex: 0 0 auto !important;
-}
-
-/* 공통: main / navi-main 하단 여백을 완전히 제거(푸터 직전 흰 띠 축소) */
-body.navi-single-card-mode.beta-sticky-footer > main.beta-main,
-body.navi-single-card-mode > main.beta-main{
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-}
-body.navi-single-card-mode .beta-inner.navi-main,
-body.navi-single-card-mode .navi-main{
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-}
-body.navi-single-card-mode .navi-main > .navi-wizard-stage,
-body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage:last-child{
-  margin-bottom: 0 !important;
-}
-
-/* PC/공통: Step1 카드는 배경의 정중앙에 정확히 위치 (상하 패딩 동일) */
-body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-  display: grid !important;
-  place-items: center !important;
-  justify-content: initial !important;
-  align-items: initial !important;
-  padding-top: 14px !important;
-  padding-bottom: 14px !important;
-  min-height: 640px !important;
-}
-
-/* 카드 자체가 중앙 정렬 계산에 영향 없이 정확히 중앙 배치되도록 */
-body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .navi-wizard-card-shell{
-  margin: 0 !important;
-}
-
-@media (max-width: 768px){
-  /* 모바일: Step1 배경 세로폭을 콘텐츠 높이 + 최소 여백 기준으로 축소 */
-  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-    min-height: auto !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-  }
-
-  /* 모바일에서 푸터 직전 흰 영역/그라데이션 꼬리 여백 제거 강화 */
-  body.navi-single-card-mode .navi-wizard-stage{
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-  }
+  body.navi-single-card-mode.beta-sticky-footer > main.beta-main,
   body.navi-single-card-mode .beta-inner.navi-main,
-  body.navi-single-card-mode .navi-main,
-  body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
-    padding-bottom: 0 !important;
+  body.navi-single-card-mode .navi-main{
+    padding-bottom:0 !important;
+    margin-bottom:0 !important;
   }
 }
