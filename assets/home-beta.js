@@ -1,3166 +1,976 @@
-/* =========================================================
-   ✅ Navi stats (beta): /api/navi-stats
-   - 저장 시점: Step5 완료 후 '결과 확인하기' 버튼 클릭
-========================================================= */
+// /assets/home-beta.js
 
-function getKstDateKey(d = new Date()) {
-  // YYYY-MM-DD (KST)
-  try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-  } catch {
-    const tzOffsetMs = 9 * 60 * 60 * 1000;
-    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 10);
-  }
-}
+// ───────── 도넛 안 % 라벨 플러그인 ─────────
+const donutInsideLabelsPlugin = {
+  id: "donutInsideLabels",
+  afterDraw(chart) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data) return;
 
-async function postNaviStatsOncePerClick(payload) {
-  // 통계 저장 실패는 UX를 막지 않음
-  try {
-    const body = JSON.stringify(payload || {});
+    const { ctx } = chart;
+    const data = chart.data;
 
-    // ✅ 메인페이지 위젯 즉시 갱신 트리거(베스트에포트)
-    try {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("huchu:navi-stats-posted", { detail: payload || {} }));
-      }
-    } catch {}
+    ctx.save();
+    ctx.font = "bold 11px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-    // ✅ sendBeacon 우선 (페이지 이동/빠른 클릭에도 안정적, preflight 없음)
-    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "text/plain" });
-      navigator.sendBeacon(NAVI_STATS_ENDPOINT, blob);
-      return;
-    }
-
-    // ✅ fetch fallback (Content-Type 헤더를 넣지 않아 preflight(OPTIONS) 회피)
-    await fetch(NAVI_STATS_ENDPOINT, {
-      method: "POST",
-      body,
-      keepalive: true,
-      cache: "no-store"
+    meta.data.forEach((elem, idx) => {
+      const raw = data.datasets[0].data[idx];
+      if (!raw || raw <= 0) return;
+      const pos = elem.tooltipPosition();
+      const text = `${Number(raw).toFixed(1)}%`;
+      ctx.fillText(text, pos.x, pos.y);
     });
-  } catch (e) {
-    console.warn("navi-stats post failed:", e);
+
+    ctx.restore();
   }
-}
-
-
-/* =========================================================
-   ✅ Navi stats (A안)
-   - Step1 '대출상품군 선택' 클릭 시: 메인페이지 9개 항목 카운팅
-   - Step5 confirm은 event='confirm'으로 별도 집계(옵션)
-========================================================= */
-function toProductGroupStatKey(rawMainCategory) {
-  const s = String(rawMainCategory || "").replace(/\s+/g, "");
-  if (!s) return "";
-
-  if (s === "부동산담보대출") return "re_collateral";
-  if (s === "개인신용대출") return "personal_credit";
-  if (s === "법인신용대출") return "corporate_credit";
-
-  // 스탁론(상장/비상장) → 스탁론
-  if (s.startsWith("스탁론")) return "stock";
-
-  if (s === "의료사업자대출") return "medical";
-  if (s === "미술품담보대출") return "art";
-
-  // 매출채권유동화 + 선정산 → 매출채권 유동화
-  if (s.includes("매출채권") || s.includes("선정산")) return "receivable";
-
-  if (s === "전자어음") return "eao";
-  if (s.includes("경매배당금")) return "auction";
-
-  return "";
-}
-
-
-// Duplicate click guard (per product group) to prevent double counting on fast taps/clicks
-const __HUCHU_NAVI_CLICK_GUARD__ = {
-  lastAtByKey: Object.create(null)
 };
 
-function trackProductGroupClick(rawMainCategory) {
-  const key = toProductGroupStatKey(rawMainCategory);
-  if (!key) return;
-
-  const now = Date.now();
-  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
-  if (now - last < 700) return; // 700ms debounce per key
-  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
-
-  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
-  postNaviStatsOncePerClick({
-    event: "product_click",
-    productGroupKey: key,
-    productGroupRaw: String(rawMainCategory || "")
-  });
+// Chart.js v3/v4용 플러그인 등록
+if (window.Chart && Chart.register) {
+  Chart.register(donutInsideLabelsPlugin);
 }
 
-function setStep6Visible(isOn) {
-  const sec6 = document.getElementById("navi-step6");
-  if (sec6) sec6.classList.toggle("hide", !isOn);
-  syncWizardSingleCardView();
-}
-
-function setStep6_1Visible(isOn) {
-  const sec61 = document.getElementById("navi-step6-1");
-  if (sec61) sec61.classList.toggle("hide", !isOn);
-  syncWizardSingleCardView();
-}
-
-const WIZARD_STEP_IDS = [
-  "navi-step1",
-  "navi-step2",
-  "navi-step3",
-  "navi-step4",
-  "navi-step5",
-  "navi-step6",
-  "navi-step6-1",
-  "navi-step7",
-];
-
-function formatMainCategoryDisplayLabel(rawLabel, rawKey) {
-  const label = String(rawLabel || rawKey || "").trim();
-  const key = String(rawKey || "").trim();
-  const base = key || label;
-  const map = {
-    "개인신용대출": "신용대출_개인",
-    "법인신용대출": "신용대출_법인",
-    "온라인선정산": "선정산_카드",
-    "스탁론(상장)": "스탁론_상장\n(주식담보대출)",
-    "스탁론(비상장)": "스탁론_비상장\n(주식담보대출)",
-  };
-  return map[base] || map[label] || label;
-}
-
-function updateStep1GridOddState() {
-  const step1 = document.getElementById("naviLoanCategoryChips");
-  if (!step1) return;
-  const count = step1.querySelectorAll(".navi-chip").length;
-  if (!count) {
-    step1.removeAttribute("data-odd");
-    return;
-  }
-  step1.setAttribute("data-odd", count % 2 ? "1" : "0");
-}
-
-function ensureWizardSingleCardUI() {
-  const root = document.querySelector(".beta-inner.navi-main");
-  const step1 = document.getElementById("navi-step1");
-  if (!root || !step1) return;
-
-  if (!document.body.classList.contains("navi-single-card-mode")) {
-    document.body.classList.add("navi-single-card-mode");
-  }
-
-  if (!document.getElementById("naviWizardStage")) {
-    const stage = document.createElement("section");
-    stage.className = "beta-section navi-wizard-stage";
-    stage.id = "naviWizardStage";
-    stage.innerHTML = `
-      <div class="navi-wizard-card-shell">
-        <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
-      </div>
-    `;
-    root.insertBefore(stage, step1);
-
-    const body = stage.querySelector("#naviWizardCardBody");
-    if (body) {
-      WIZARD_STEP_IDS.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) body.appendChild(el);
-      });
-    }
-  }
-
-  if (!ensureWizardSingleCardUI._observerAttached) {
-    const observer = new MutationObserver(() => syncWizardSingleCardView());
-    WIZARD_STEP_IDS.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el, { attributes: true, attributeFilter: ["class", "style"] });
-    });
-    ensureWizardSingleCardUI._observerAttached = true;
-  }
-
-  updateStep1GridOddState();
-  syncWizardSingleCardView();
-}
-
-function syncWizardSingleCardView() {
-  const stage = document.getElementById("naviWizardStage");
-  if (!stage) return;
-
-  let activeEl = null;
-  WIZARD_STEP_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const hiddenByClass = el.classList.contains("hide");
-    const hiddenByStyle = el.style && el.style.display === "none";
-    const isVisible = !hiddenByClass && !hiddenByStyle;
-    if (isVisible) activeEl = el;
-  });
-
-  if (!activeEl) {
-    activeEl = document.getElementById("navi-step1");
-  }
-
-  WIZARD_STEP_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle("navi-wizard-step-hidden", el !== activeEl);
-  });
-
-  if (activeEl) {
-    stage.setAttribute("data-active-step", activeEl.id);
-  }
-}
-
-function setConfirmUIState() {
-  const btn = document.getElementById("naviConfirmBtn");
-  const hint = document.getElementById("naviConfirmHint");
-  if (!btn) return;
-
-  const ready = isStep5Complete();
-  btn.disabled = !ready;
-
-  if (hint) {
-    if (!ready) hint.textContent = "필수 입력을 완료하면 활성화됩니다.";
-    else if (!uiState.confirmed) hint.textContent = "버튼을 누르면 계산 결과가 표시되고 1회 저장됩니다.";
-    else hint.textContent = "입력값이 변경되면 다시 확인이 필요합니다.";
-  }
-}
-
-function invalidateConfirmed() {
-  if (!uiState.confirmed) return;
-  uiState.confirmed = false;
-  uiState.hasRenderedResult = false;
-  uiState.autoRevealed = false;
-  setStep6Visible(false);
-  setStep6_1Visible(false);
-  setConfirmUIState();
-}
-// /assets/navi-beta.js  (후추 네비게이션 – 베타용)
-// NOTE: stepper/단계 노출 제어 + Step6 1차 결과(업체명 비공개) + Step7 3컬럼(금리/플랫폼/중도상환) 렌더
-
-// ------------------------------------------------------
-// 공통 상수 / 유틸
-// ------------------------------------------------------
-
-const API_BASE = "https://huchudb-github-io.vercel.app";
-const NAVI_LOAN_CONFIG_ENDPOINT = `${API_BASE}/api/loan-config`;
-const LENDERS_CONFIG_API = `${API_BASE}/api/lenders-config`;
-const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
-const NAVI_LOAN_CONFIG_LOCAL_KEY = "huchu_navi_loan_config_v1";
+// ───────── 유틸 ─────────
+const onlyDigits = (s) => (s || "").replace(/[^0-9]/g, "");
+const toNumber   = (s) => Number(onlyDigits(s)) || 0;
 
 /**
- * Step5 폼 스키마 매트릭스 (최종본)
- * - 키: [부동산유형][대출종류]
- * - 값: { supported:boolean, fields:[{code,required,label,note?}, ...] }
+ * '조/억/만원/원'을 HTML(span)로 포맷
+ * - 숫자: .money-number
+ * - 단위: .money-unit
  */
-const STEP5_MATRIX = {"아파트":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"KB시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"다세대/연립":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"하우스머치시세"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"하우스머치시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"\"하우스머치시세”"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"오피스텔":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"DEP","required":true,"label":"반환 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"KB시세/시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"KB시세or매입가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"분양가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"예정 선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]}},"단독/다가구":{"일반담보대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"DEP","required":true,"label":"총 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REF","required":true,"label":"임대보증금 반환 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"경락잔금대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정 or 선순위임차인인수"},{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)","note":"OCC 선순위임차인인수 선택시 표현+필수로 변환"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":true,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주예정 or 임대예정"},{"code":"PV","required":true,"label":"매입가/감정가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 예정 임대보증금액(원)","note":"OCC 임대예정 선택시 표현+필수로 변환."}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":false,"fields":[]}},"토지/임야":{"일반담보대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"임대보증금반환대출":{"supported":false,"fields":[]},"지분대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"경락잔금대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)(원)"}]},"대환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세/감정가(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"PV","required":true,"label":"매입가/감정가(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":false,"fields":[]}},"근린생활시설":{"일반담보대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)"}]},"임대보증금반환대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"DEP","required":true,"label":"총 임대보증금(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REF","required":true,"label":"임대보증금 반환 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"}]},"지분대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"시세(원)"},{"code":"SP","required":true,"label":"지분율(%)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 임대보증금액(원)"}]},"경락잔금대출":{"supported":true,"fields":[{"code":"PV","required":true,"label":"낙찰가or감정가(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"ASB","required":false,"label":"인수되는 금액(원)"}]},"대환대출":{"supported":true,"fields":[{"code":"OCC","required":true,"label":"본인거주 or 임대"},{"code":"PV","required":true,"label":"시세(원)"},{"code":"SL","required":true,"label":"선순위 총 대출금액(원)"},{"code":"REF","required":true,"label":"상환할 선순위 금액(원)"},{"code":"REQ","required":false,"label":"추가 필요금액(원)"},{"code":"DEP","required":false,"label":"임대보증금액(원)","note":"OCC 임대중 선택시 표현+필수로 변환."}]},"매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":{"supported":true,"fields":[{"code":"PV","required":true,"label":"매입가"},{"code":"REQ","required":true,"label":"필요 대출금액(원)"},{"code":"SL","required":false,"label":"선순위 대출금액(원)"},{"code":"DEP","required":false,"label":"선순위 임대보증금액(원)"}]},"매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":{"supported":false,"fields":[]}}};
+function formatKoreanCurrencyJo(num) {
+  const n = Math.max(0, Math.floor(num));
 
-// 숫자 유틸
-function stripNonDigits(str) {
-  return (str || "").replace(/[^\d]/g, "");
-}
-function formatWithCommas(str) {
-  const digits = stripNonDigits(str);
-  if (!digits) return "";
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function getMoneyValueById(id) {
-  const el = document.getElementById(id);
-  if (!el) return 0;
-  const digits = stripNonDigits(el.value);
-  return digits ? Number(digits) : 0;
-}
-function setMoneyValueById(id, num) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.value = num ? formatWithCommas(String(num)) : "";
-}
-function setupMoneyInputs(root = document) {
-  const moneyInputs = root.querySelectorAll('input[data-type="money"]');
-  moneyInputs.forEach((input) => {
-    if (input.__moneyBound) return;
-    input.__moneyBound = true;
+  const ONE_MAN = 10_000;
+  const ONE_EOK = 100_000_000;
+  const ONE_JO  = 1_000_000_000_000;
 
-    input.addEventListener("input", (e) => {
-      const v = e.target.value;
-      e.target.value = formatWithCommas(v);
-    });
+  const parts = [];
 
-    if (input.value) {
-      input.value = formatWithCommas(input.value);
+  const pushPart = (value, unit) => {
+    if (!value) return;
+    parts.push(
+      `<span class="money-number">${value.toLocaleString("ko-KR")}</span>` +
+      `<span class="money-unit">${unit}</span>`
+    );
+  };
+
+  // 1만원 이상: 조/억/만원 분해
+  if (n >= ONE_MAN) {
+    let remain = n;
+
+    const jo  = Math.floor(remain / ONE_JO);
+    remain   %= ONE_JO;
+
+    const eok = Math.floor(remain / ONE_EOK);
+    remain   %= ONE_EOK;
+
+    const man = Math.floor(remain / ONE_MAN);
+
+    pushPart(jo,  "조");
+    pushPart(eok, "억");
+    pushPart(man, "만원");
+
+    return parts.join(" ");
+  }
+
+  // 1만원 미만 ~ 1원 이상: '원'
+  if (n > 0) {
+    return (
+      `<span class="money-number">${n.toLocaleString("ko-KR")}</span>` +
+      `<span class="money-unit">원</span>`
+    );
+  }
+
+  // 0 처리
+  return (
+    `<span class="money-number">0</span>` +
+    `<span class="money-unit">원</span>`
+  );
+}
+
+// 'YYYY-MM' → 'YYYY년 M월'
+// ───────── 대출현황 금액 텍스트 자동 폰트 축소 ─────────
+function autoFitLoanStatusText() {
+  const els = document.querySelectorAll(".beta-loanstatus-item__value .loan-amount-text");
+
+  els.forEach((el) => {
+    const parent = el.parentElement;
+    if (!parent) return;
+
+    // 현재 적용된 폰트 크기를 기준으로 시작
+    const computed = window.getComputedStyle(el);
+    let fontSize = parseFloat(computed.fontSize) || 18;
+    const minSize = 9;  // 이 이하로는 안 줄임
+
+    el.style.whiteSpace = "nowrap";
+
+    while (el.scrollWidth > parent.clientWidth && fontSize > minSize) {
+      fontSize -= 1;
+      el.style.fontSize = fontSize + "px";
     }
   });
 }
 
-// --------- 문자열 정규화(매칭 강건화) ----------
-function normKey(s) {
-  return String(s || "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[()·]/g, "")
-    .replace(/_/g, "")
-    .toLowerCase();
+// ───────── 기본 샘플 통계 (2025년 10월) ─────────
+const DEFAULT_ONTU_STATS = {
+  month: "2025-10",
+  summary: {
+    registeredFirms: 51,
+    dataFirms: 49,
+    // 18조 3,580억 776만원
+    totalLoan: 18_358_007_760_000,
+    // 16조 9,241억 4,401만원
+    totalRepaid: 16_924_144_010_000,
+    // 1조 4,338억 6,375만원
+    balance: 1_433_867_500_000
+  },
+  byType: {
+    // 퍼센트는 공시 비율 기준 (합계 ≒ 100%)
+    "부동산담보": {
+      ratio: 0.43,
+      // 6조 1,650억 6,141만원
+      amount: 6_165_061_410_000
+    },
+    "부동산PF": {
+      ratio: 0.02,
+      // 286억 7,727만원
+      amount: 286_077_270_000
+    },
+    "어음·매출채권담보": {
+      ratio: 0.09,
+      // 1조 2,900억 4,773만원
+      amount: 1_290_047_730_000
+    },
+    "기타담보(주식 등)": {
+      ratio: 0.38,
+      // 5조 4,480억 6,822만원
+      amount: 5_448_068_220_000
+    },
+    "개인신용": {
+      ratio: 0.06,
+      // 860억 3,182만원
+      amount: 860_031_820_000
+    },
+    "법인신용": {
+      ratio: 0.03,
+      // 430억 1,591만원
+      amount: 430_015_910_000
+    }
+  }
+};
+
+// ───────── API 베이스 ─────────
+const API_BASE = (function resolveApiBase(){
+  try{
+    const w = (typeof window !== "undefined") ? window : null;
+    let base = (w && w.API_BASE) ? String(w.API_BASE) : "";
+
+    if (!base) {
+      const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+      const isLocal =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host.endsWith(".local");
+
+      // ✅ 기본: 커스텀 도메인(운영)에서는 동일 오리진(/api/...) 우선
+      // 필요 시 window.API_BASE 로 언제든 override 가능
+      base = (isLocal || host === "huchudb-github-io.vercel.app") ? "" : "https://huchudb-github-io.vercel.app";
+    }
+
+    return base.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+})();
+
+/* =========================================================
+   ✅ Navi stats widget (beta): /api/navi-stats
+   - 메인 Hero 우측: 9개 상품군 월간 클릭 집계
+========================================================= */
+const NAVI_STATS_ENDPOINT = `${API_BASE}/api/navi-stats`;
+
+const NAVI_STATS_CACHE_KEY = (monthKey) => `huchu_navi_stats_cache_v1:${monthKey}`;
+
+function escapeHtml(input){
+  const s = String(input ?? "");
+  return s.replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
 }
-function includesNorm(list, value) {
-  const v = normKey(value);
-  return (list || []).some((x) => normKey(x) === v);
+
+function formatNumber(n){
+  const v = Number(n) || 0;
+  try { return v.toLocaleString("ko-KR"); } catch { return String(v); }
 }
-function includesRegion(regions, region) {
-  if (!region) return true;
-  const r = String(region || "").replace(/도$/g, "");
-  return (regions || []).some((x) => {
-    if (String(x) === "전국") return true;
-    const xr = String(x || "").replace(/도$/g, "");
-    return xr === r;
+
+function getKstMonthKey(d = new Date()) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit" }).format(d); // YYYY-MM
+  } catch {
+    const tzOffsetMs = 9 * 60 * 60 * 1000;
+    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 7);
+  }
+}
+function debounce(fn, wait = 120) {
+  let t = null;
+  return (...args) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+
+// ✅ HERO 배너 높이 = 네비 이용현황 카드 높이 (배너가 카드에 의해 커지는 현상 방지)
+function syncNaviStatsHeight() {
+  const banner = document.querySelector(".beta-hero-banner");
+  const card = document.querySelector(".navi-stats-card");
+  if (!banner || !card) return;
+
+  // 모바일(세로 스택)에서는 높이 강제하지 않음
+  const stacked = window.matchMedia && window.matchMedia("(max-width: 980px)").matches;
+  if (stacked) {
+    card.style.height = "";
+    return;
+  }
+
+  const h = Math.round(banner.getBoundingClientRect().height);
+  if (!h) return;
+
+  const prev = parseInt(String(card.style.height || "").replace("px", ""), 10) || 0;
+  if (Math.abs(prev - h) <= 2) return; // 미세 차이는 무시(깜빡임 방지)
+
+  card.style.height = `${h}px`;
+}
+const syncNaviStatsHeightDebounced = debounce(syncNaviStatsHeight, 120);
+
+function hookHeroBannerHeightSync() {
+  // 중복 바인딩 방지
+  if (window.__naviHeroSyncBound) {
+    syncNaviStatsHeightDebounced();
+    return;
+  }
+  window.__naviHeroSyncBound = true;
+
+  const banner = document.querySelector(".beta-hero-banner");
+  if (!banner) return;
+
+  const sync = () => syncNaviStatsHeightDebounced();
+
+  // 초기 1회(레이아웃 안정화 후)
+  requestAnimationFrame(sync);
+
+  // 이미지 로딩 후 1회
+  [...banner.querySelectorAll("img")].forEach((img) => {
+    if (!img.complete) img.addEventListener("load", sync, { once: true });
   });
-}
 
-// ------------------------------------------------------
-// ✅ admin(loan-config) 스키마 정규화 유틸
-// ------------------------------------------------------
+  // 리사이즈(디바운스)
+  window.addEventListener("resize", sync);
 
-function lendersAnyToArray(any) {
-  if (!any) return [];
-  if (Array.isArray(any)) return any;
-
-  if (typeof any === "object" && !Array.isArray(any)) {
-    return Object.entries(any)
-      .map(([id, v]) => {
-        if (!v || typeof v !== "object") return null;
-        return { ...v, id: v.id || id };
-      })
-      .filter(Boolean);
-  }
-  return [];
-}
-
-const REGION_LABEL_TO_KEY = {
-  "서울": "seoul",
-  "경기": "gyeonggi",
-  "경상": "gyeongsang",
-  "전라": "jeolla",
-  "충청": "chungcheong",
-  "강원": "gangwon",
-  "인천": "incheon",
-  "제주": "jeju",
-};
-
-const REGION_KEY_TO_LABEL = {
-  seoul: "서울",
-  gyeonggi: "경기",
-  incheon: "인천",
-  chungcheong: "충청",
-  jeolla: "전라",
-  gyeongsang: "경상",
-  gangwon: "강원",
-  jeju: "제주",
-};
-
-const PROP_LABEL_TO_KEY = {
-  "아파트": "apt",
-  "다세대/연립": "villa",
-  "오피스텔": "officetel",
-  "단독/다가구": "detached",
-  "토지/임야": "land",
-  "근린생활시설": "commercial",
-};
-
-const PROP_KEY_TO_LABEL = {
-  apt: "아파트",
-  villa: "다세대/연립",
-  officetel: "오피스텔",
-  detached: "단독/다가구",
-  land: "토지/임야",
-  commercial: "근린생활시설",
-};
-
-function regionKeyFromLabel(label) {
-  if (!label) return "";
-  const t = String(label).replace(/도$/g, "").trim();
-  if (REGION_LABEL_TO_KEY[t]) return REGION_LABEL_TO_KEY[t];
-
-  const head2 = t.slice(0, 2);
-  if (REGION_LABEL_TO_KEY[head2]) return REGION_LABEL_TO_KEY[head2];
-
-  const low = String(label).toLowerCase();
-  if (REGION_KEY_TO_LABEL[low]) return low;
-
-  return "";
-}
-
-function propKeyFromLabel(label) {
-  if (!label) return "";
-  return PROP_LABEL_TO_KEY[String(label).trim()] || "";
-}
-
-// --------- 퍼센트/수수료 파싱 ----------
-function parseNumberLoose(v) {
-  if (v == null) return null;
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  const s = String(v);
-  const m = s.match(/-?\d+(\.\d+)?/);
-  return m ? Number(m[0]) : null;
-}
-
-// "만원/원" 혼재 가능성 대비
-function toWonMaybe(v) {
-  const n = parseNumberLoose(v);
-  if (n == null) return 0;
-  if (n >= 1000000) return n;
-  return n * 10000;
-}
-
-// admin regions 구조에서 현재 선택(지역+유형)에 해당하는 셀을 찾아준다.
-function getAdminRegionCell(lender, regionLabel, propertyTypeLabel) {
-  const regionsObj = lender?.regions;
-  if (!regionsObj || typeof regionsObj !== "object") return null;
-
-  const rk = regionKeyFromLabel(regionLabel);
-  const pk = propKeyFromLabel(propertyTypeLabel);
-  if (!rk || !pk) return null;
-
-  const regionCfg = regionsObj[rk];
-  if (!regionCfg || typeof regionCfg !== "object") return null;
-
-  const cell = regionCfg[pk];
-  if (!cell || typeof cell !== "object") return null;
-
-  return cell;
-}
-
-// regions -> (표시용) realEstateConfig 유사 구조 생성
-function deriveRealEstateConfigFromRegions(regionsObj) {
-  const out = { regions: [], propertyTypes: [], loanTypes: [] };
-
-  if (!regionsObj || typeof regionsObj !== "object") return out;
-
-  const regionSet = new Set();
-  const propSet = new Set();
-  const loanSet = new Set();
-
-  for (const [rk, regionCfg] of Object.entries(regionsObj)) {
-    if (!regionCfg || typeof regionCfg !== "object") continue;
-
-    let regionHasAny = false;
-
-    for (const [pk, cell] of Object.entries(regionCfg)) {
-      if (!cell || typeof cell !== "object") continue;
-      const enabled = cell.enabled === true || cell.enabled === "true";
-      if (!enabled) continue;
-
-      regionHasAny = true;
-      const propLabel = PROP_KEY_TO_LABEL[pk] || pk;
-      propSet.add(propLabel);
-
-      (cell.loanTypes || []).forEach((t) => loanSet.add(t));
-    }
-
-    if (regionHasAny) {
-      regionSet.add(REGION_KEY_TO_LABEL[rk] || rk);
-    }
-  }
-
-  out.regions = Array.from(regionSet);
-  out.propertyTypes = Array.from(propSet);
-  out.loanTypes = Array.from(loanSet);
-  return out;
-}
-
-function normalizeLenderRecord(raw) {
-  if (!raw || typeof raw !== "object") return null;
-
-  const l = { ...raw };
-
-  l.id = l.id || l.lenderId || l.slug || "";
-  l.displayName = l.displayName || l.name || l.id || "(이름 없음)";
-
-  if (!Array.isArray(l.loanCategories) || !l.loanCategories.length) {
-    l.loanCategories = Array.isArray(l.products)
-      ? l.products
-      : Array.isArray(l.loanCategories)
-        ? l.loanCategories
-        : [];
-  }
-
-  if (!l.channels || typeof l.channels !== "object") l.channels = {};
-  l.channels.phoneNumber = l.channels.phoneNumber || l.phoneNumber || "";
-  l.channels.kakaoUrl = l.channels.kakaoUrl || l.kakaoUrl || "";
-
-  if (typeof l.displayOrder !== "number") {
-    const o = parseNumberLoose(l.partnerOrder);
-    l.displayOrder = o != null ? o : l.displayOrder;
-  }
-
-  if (
-    (!l.realEstateConfig || typeof l.realEstateConfig !== "object") &&
-    l.regions &&
-    typeof l.regions === "object"
-  ) {
-    l.realEstateConfig = deriveRealEstateConfigFromRegions(l.regions);
-  }
-
-  // ✅ 추가조건(admin) 정규화
-  if (!Array.isArray(l.extraConditions)) {
-    if (Array.isArray(l.extraCondition)) l.extraConditions = l.extraCondition;
-    else if (Array.isArray(l.extraConditionIds)) l.extraConditions = l.extraConditionIds;
-    else l.extraConditions = [];
-  }
-  l.extraConditions = Array.isArray(l.extraConditions) ? l.extraConditions : [];
-
-  return l;
-}
-
-function normalizeLenderList(list) {
-  return (list || []).map(normalizeLenderRecord).filter(Boolean);
-}
-
-function fmtRange(min, max, unitText, fallback = "미등록") {
-  if (min == null && max == null) return fallback;
-  if (min != null && max != null) {
-    if (Math.abs(min - max) < 1e-9) return `${min}${unitText}`;
-    return `${min}${unitText} ~ ${max}${unitText}`;
-  }
-  const only = min != null ? min : max;
-  return `${only}${unitText}`;
-}
-
-// ------------------------------------------------------
-// 서버 설정 로드 (admin 정보)
-// ------------------------------------------------------
-
-async function loadLendersConfig() {
-  try {
-    const res = await fetch(LENDERS_CONFIG_API, { method: "GET" });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      throw new Error(`lenders-config GET 실패: HTTP ${res.status} ${t}`);
-    }
-
-    const json = await res.json();
-    const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
-
-    const out = { version: json?.version ?? 1, lenders: lendersArr };
-    console.log("✅ lendersConfig loaded from server:", out);
-    return out;
-  } catch (e) {
-    console.warn("⚠️ lenders-config API 실패, localStorage 대체:", e);
-    try {
-      const raw = localStorage.getItem("huchu_lenders_config_beta");
-      if (!raw) return { version: 1, lenders: [] };
-      const parsed = JSON.parse(raw);
-      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
-      return { version: parsed?.version ?? 1, lenders: lendersArr };
-    } catch {
-      return { version: 1, lenders: [] };
-    }
-  }
-}
-
-// ✅ 전역 1회만
-let naviLoanConfig = { version: 1, lenders: [] };
-
-// ✅ admin(meta) 기반 렌더링용
-let naviMeta = null;
-
-function getMeta() {
-  return (naviLoanConfig && typeof naviLoanConfig === "object" && naviLoanConfig.meta && typeof naviLoanConfig.meta === "object")
-    ? naviLoanConfig.meta
-    : (naviMeta && typeof naviMeta === "object" ? naviMeta : null);
-}
-
-function setMeta(meta) {
-  if (meta && typeof meta === "object") naviMeta = meta;
-}
-
-function findByKey(list, key) {
-  if (!Array.isArray(list)) return null;
-  return list.find((x) => x && typeof x === "object" && String(x.key) === String(key)) || null;
-}
-
-function loanTypeLabelFromKey(key) {
-  const meta = getMeta();
-  const lt = meta?.loanTypes;
-  if (!lt || typeof lt !== "object") return String(key || "");
-  const all = []
-    .concat(Array.isArray(lt.base) ? lt.base : [])
-    .concat(Array.isArray(lt.aptv) ? lt.aptv : [])
-    .filter(Boolean);
-  const hit = findByKey(all, key);
-  return hit ? hit.label : String(key || "");
+  // 페이지 로드 완료 후 1회
+  window.addEventListener("load", sync, { once: true });
 }
 
 
+// 'YYYY-MM' → 'YYYY년 M월'
+function formatMonthLabel(monthKey) {
+  const [y, m] = String(monthKey || "").split("-");
+  const mm = String(Number(m || "0"));
+  if (!y || !m) return "";
+  return `${y}년 ${mm}월`;
+}
 
-// loan-config + lenders-config 병합(가능하면 admin 원본 우선)
-async function loadNaviLoanConfig() {
-  let fromLoanConfig = null;
+// ✅ 메인 위젯 9개 항목(서버 집계 키 고정)
+const NAVI_GROUPS = [
+  { key: "re_collateral",   label: "부동산 담보대출",     iconSrc: "/assets/navi-icons/re_collateral.png" },
+  { key: "personal_credit", label: "개인 신용대출",       iconSrc: "/assets/navi-icons/personal_credit.png" },
+  { key: "corporate_credit",label: "법인 신용대출",       iconSrc: "/assets/navi-icons/corporate_credit.png" },
+  { key: "stock",           label: "스탁론",             iconSrc: "/assets/navi-icons/stock.png" },
+  { key: "medical",         label: "의료사업자대출",      iconSrc: "/assets/navi-icons/medical.png" },
+  { key: "art",             label: "미술품 담보대출",     iconSrc: "/assets/navi-icons/art.png" },
+  { key: "receivable",      label: "매출채권 유동화",     iconSrc: "/assets/navi-icons/receivable.png" },
+  { key: "eao",             label: "전자어음",           iconSrc: "/assets/navi-icons/eao.png" },
+  { key: "auction",         label: "경매배당금 담보대출",  iconSrc: "/assets/navi-icons/auction.png" },
+];
 
-  // 1) loan-config (Upstash 단일 소스)에서 읽기
-  try {
-    const res = await fetch(NAVI_LOAN_CONFIG_ENDPOINT, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
+async function fetchNaviStats(monthKey, opts = {}) {
+  const mk = monthKey || getKstMonthKey();
+  const url = `${NAVI_STATS_ENDPOINT}?month=${encodeURIComponent(mk)}&_t=${Date.now()}`;
+  const res = await fetch(url, { cache: "no-store", signal: opts.signal });
+  if (!res.ok) throw new Error(`navi-stats ${res.status}`);
+  return await res.json();
+}
 
-    if (res.ok) {
-      const json = await res.json();
-      const lendersArr = normalizeLenderList(lendersAnyToArray(json?.lenders));
-      if (lendersArr.length) {
-        fromLoanConfig = { version: json?.version ?? 1, meta: (json?.meta && typeof json.meta === "object") ? json.meta : null, lenders: lendersArr };
-        console.log("✅ loan-config from API(normalized):", fromLoanConfig.lenders.length);
-      } else {
-        console.warn("ℹ️ loan-config는 있으나 lenders가 비어있음");
-      }
-    } else {
-      console.warn("loan-config GET 실패:", res.status, await res.text().catch(() => ""));
-    }
-  } catch (e) {
-    console.warn("loan-config API 불러오기 실패:", e);
-  }
+function renderNaviStatsWidget(payload, opts = {}) {
+  const mount = document.getElementById("naviStatsMount");
+  if (!mount) return;
 
-  // 2) lenders-config (뷰 endpoint) 우선 적용
-  const lendersConfig = await loadLendersConfig();
-  if (lendersConfig && Array.isArray(lendersConfig.lenders) && lendersConfig.lenders.length) {
-    naviLoanConfig = { version: lendersConfig.version ?? 1, meta: (lendersConfig.meta && typeof lendersConfig.meta === "object") ? lendersConfig.meta : (fromLoanConfig?.meta || null), lenders: lendersConfig.lenders };
-    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
-    console.log("✅ naviLoanConfig ← lenders-config 적용:", naviLoanConfig.lenders.length);
-    return;
-  }
+  const animate = opts.animate !== false;
+  const monthKey = (payload && payload.monthKey) ? String(payload.monthKey) : getKstMonthKey();
+  const counts = (payload && payload.productGroups) ? payload.productGroups : {};
 
-  // 3) loan-config fallback
-  if (fromLoanConfig && Array.isArray(fromLoanConfig.lenders) && fromLoanConfig.lenders.length) {
-    naviLoanConfig = fromLoanConfig;
-    localStorage.setItem(NAVI_LOAN_CONFIG_LOCAL_KEY, JSON.stringify(naviLoanConfig));
-    console.log("✅ naviLoanConfig ← loan-config 적용:", naviLoanConfig.lenders.length);
-    return;
-  }
+  const tilesHtml = NAVI_GROUPS.map((g, i) => {
+    const v = Number(counts[g.key] || 0) || 0;
+    const initial = animate ? 0 : v;
 
-  // 4) localStorage fallback
-  try {
-    const raw = localStorage.getItem(NAVI_LOAN_CONFIG_LOCAL_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const lendersArr = normalizeLenderList(lendersAnyToArray(parsed?.lenders));
-      if (lendersArr.length) {
-        naviLoanConfig = { version: parsed?.version ?? 1, lenders: lendersArr };
-        console.log("✅ loan-config from localStorage:", naviLoanConfig.lenders.length);
+    return `
+      <div class="navi-tile" data-key="${escapeHtml(g.key)}" style="--delay:${i * 45}ms">
+        <div class="navi-tile__icon" aria-hidden="true">
+          ${g.iconSrc ? `<img class="navi-tile__img" src="${escapeHtml(g.iconSrc)}" alt="" loading="lazy" decoding="async" />` : ""}
+        </div>
+        <div class="navi-tile__count" aria-label="${escapeHtml(g.label)} ${v}">
+          <span class="num" data-target="${v}">${initial}</span>
+        </div>
+        <div class="navi-tile__label">${escapeHtml(g.label)}</div>
+      </div>
+    `;
+  }).join("");
+
+  mount.innerHTML = `
+    <section class="navi-stats-card${animate ? " is-anim" : ""}" aria-label="후추 네비게이션 이용 현황">
+      <header class="navi-stats-head">
+        <div class="navi-stats-title">
+          <span class="navi-live" aria-label="LIVE">
+            <span class="navi-live__dot" aria-hidden="true"></span>
+            LIVE
+          </span>
+          <span class="navi-stats-title__text">후추 네비게이션 이용 현황</span>
+        </div>
+        <div class="navi-stats-month">${escapeHtml(formatMonthLabel(monthKey))}</div>
+      </header>
+      <div class="navi-stats-tiles">${tilesHtml}</div>
+    </section>
+  `;
+
+  // ✅ 숫자 카운트업(레이아웃 영향 없음)
+  if (animate) {
+    const prefersReduced =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+    const animateCountUp = (el, target, duration = 900) => {
+      if (!el) return;
+      const from = Number(String(el.textContent || "0").replace(/[^\d.-]/g, "")) || 0;
+      const to = Number(target) || 0;
+
+      if (prefersReduced || duration <= 0 || from === to) {
+        el.textContent = String(to);
         return;
       }
-    }
-  } catch (e) {
-    console.warn("loan-config localStorage 로드 실패:", e);
+
+      const start = performance.now();
+      const step = (now) => {
+        const p = Math.min(1, (now - start) / duration);
+        const v = Math.round(from + (to - from) * easeOutCubic(p));
+        el.textContent = String(v);
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+
+    // 타일 입장 애니메이션은 CSS로 처리, 여기서는 숫자만 업데이트
+    mount.querySelectorAll(".navi-tile__count .num").forEach((el) => {
+      const target = Number(el.getAttribute("data-target") || "0") || 0;
+      animateCountUp(el, target, 900);
+    });
+
+    // 애니메이션 클래스는 1회만(재렌더 시에도 깜빡임 최소화)
+    setTimeout(() => {
+      const card = mount.querySelector(".navi-stats-card");
+      if (card) card.classList.remove("is-anim");
+    }, 900);
   }
 
-  console.log("ℹ️ loan-config 없음, 빈 구조로 시작");
-  naviLoanConfig = { version: 1, lenders: [] };
+  // ✅ 배너와 높이 동기화(안정 버전)
+  hookHeroBannerHeightSync();
+  syncNaviStatsHeightDebounced();
 }
 
-// ------------------------------------------------------
-// 네비게이션 상태
-// ------------------------------------------------------
+async function initNaviStatsWidget() {
+  const mount = document.getElementById("naviStatsMount");
+  if (!mount) return;
 
-const uiState = {
-  confirmed: false,
-  hasRenderedResult: false,
-};
+  const monthKey = getKstMonthKey();
 
-const userState = {
-  mainCategory: null, // 부동산담보대출, 개인신용대출 ...
-  region: null,
-  propertyType: null,
-  realEstateLoanType: null, // (표시용) 일반담보대출, 매입잔금(일반) ...
-  realEstateLoanTypeKey: null, // (매칭용) 일반담보대출, 매입잔금_일반 ...
-  subregionKey: null, // (매칭/가산용) gangnam, bundang, songdo ...
-  subregionLabel: null, // (표시용)
-  occupancy: null, // self | rental (예정 포함)
-  // 핵심 숫자 입력
-  propertyValue: 0,
-  sharePercent: 100,
-  seniorLoan: 0,
-  deposit: 0,
-  refinanceAmount: 0,
-  requestedAmount: 0,
-  assumedBurden: 0, // 경락 인수 권리 등
-  // 추가 정보
-  extra: {
-    incomeType: null,
-    creditBand: null,
-    repayPlan: null,
-    needTiming: null,
-    others: [], // 세금체납, 연체기록, ...
-    tokens: [], // ✅ (추가) admin '추가조건(선택)' 토큰(동적 Step6-1용)
-  },
-};
+  // 1) 캐시(또는 0값)로 즉시 렌더 + 애니메이션(숫자/타일은 레이아웃 영향 없음)
+  let cached = null;
+  try {
+    cached = JSON.parse(localStorage.getItem(NAVI_STATS_CACHE_KEY(monthKey)) || "null");
+  } catch {
+    cached = null;
+  }
 
-// ------------------------------------------------------
-// Stepper / 단계 노출 제어 (JS로 동적 삽입)
-// ------------------------------------------------------
+  const seed = (cached && typeof cached === "object")
+    ? { ...cached, monthKey }
+    : { monthKey, productGroups: {} };
 
-function ensureStepper() {
-  const root = document.querySelector(".beta-inner.navi-main");
-  const step1 = document.getElementById("navi-step1");
-  if (!root || !step1) return;
+  // requestAnimationFrame으로 첫 레이아웃 확정 후 렌더
+  requestAnimationFrame(() => renderNaviStatsWidget(seed, { animate: true }));
+  // 2) 서버에서 최신값을 받아와 캐시+화면을 갱신(실패 시 캐시 렌더만 유지)
+  if (!window.__naviStatsFetchInFlight) {
+    window.__naviStatsFetchInFlight = true;
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 2500);
 
-  if (document.getElementById("navi-stepper")) return;
+      const fresh = await fetchNaviStats(monthKey, { signal: ac.signal });
 
-  const wrap = document.createElement("section");
-  wrap.className = "beta-section navi-section";
-  wrap.id = "navi-stepper";
+      clearTimeout(timer);
 
-  wrap.innerHTML = `
-    <div class="beta-card beta-card--wide" style="padding:10px 12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <div style="font-weight:700;font-size:13px;color:#111827;">진행 단계</div>
-        <div id="naviStepperMeta" style="font-size:11px;color:#6b7280;">
-          총 7단계 (6-1은 선택)
-        </div>
+      if (fresh && fresh.productGroups) {
+        // monthKey 누락 방어
+        if (!fresh.monthKey) fresh.monthKey = monthKey;
+
+        localStorage.setItem(NAVI_STATS_CACHE_KEY(monthKey), JSON.stringify(fresh));
+        renderNaviStatsWidget(fresh, { animate: false });
+        syncNaviStatsHeightDebounced();
+      }
+    } catch (e) {
+      // 무시: 캐시/seed 렌더만으로도 동작
+    } finally {
+      window.__naviStatsFetchInFlight = false;
+    }
+  }
+}
+
+
+const ONTU_API  = `${API_BASE}/api/ontu-stats`;
+
+// ───────── 온투업 통계 가져오기 ─────────
+async function fetchOntuStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/ontu-stats?t=${Date.now()}`, {
+      headers: { "Accept": "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+
+    // ✅ 서버 응답 형태가 바뀌어도(예: byMonth 루트, products.byType 등) 최신 월을 자동으로 잡아서 렌더링
+    const isMonthKey = (k) => /^\d{4}-\d{2}$/.test(String(k || ""));
+    let month = String(json?.month || "").trim();
+    let summary = json?.summary || null;
+    let byType = json?.byType || json?.products?.byType || null;
+    let byLender = json?.byLender || json?.lenders || json?.lenderBalances || null;
+
+    // Case A) { byMonth: { "2025-11": { summary, byType }, ... } }
+    if (json && json.byMonth && typeof json.byMonth === "object") {
+      const keys = Object.keys(json.byMonth).filter(isMonthKey).sort();
+      const latest = keys.length ? keys[keys.length - 1] : "";
+      const node = latest ? (json.byMonth[latest] || {}) : {};
+
+      month = latest || month;
+      summary = node.summary || node?.products?.summary || summary;
+      byType = node.byType || node?.products?.byType || byType;
+    }
+
+    // Case B) { months:[...], latestMonth:"2025-11", data:{...} } 등: 가능한 필드 최대한 흡수
+    month = month || String(json?.latestMonth || json?.latest || "").trim();
+
+    if (!summary || !byType) {
+      throw new Error("Invalid payload: missing summary/byType");
+    }
+    if (!month) {
+      // 최소한 화면 표시용 월 라벨을 만들기 위해 summary 안의 month 같은 필드도 체크
+      month = String(summary?.month || "").trim() || "unknown";
+    }
+    return { month, summary, byType, byLender };
+  } catch (err) {
+    console.warn("ontu-stats fetch failed:", err);
+    return {
+      month: DEFAULT_ONTU_STATS.month,
+      summary: DEFAULT_ONTU_STATS.summary,
+      byType: DEFAULT_ONTU_STATS.byType,
+      byLender: null,
+    };
+  }
+}
+
+
+// ───────── 오차범위(±) 계산: 두 값(A,B) 비교 ─────────
+function calcPlusMinusFromTwoValues(a, b) {
+  const A = Number(a) || 0;
+  const B = Number(b) || 0;
+  if (A <= 0 || B <= 0) return null;
+
+  const diff = Math.abs(A - B);
+  const plusMinus = diff / 2;
+  const avg = (A + B) / 2;
+  const pct = avg > 0 ? (plusMinus / avg) * 100 : 0;
+
+  return { plusMinus, pct, a: A, b: B };
+}
+
+function sumByLenderTotal(byLender) {
+  if (!byLender || typeof byLender !== "object") return 0;
+  let total = 0;
+  for (const typeMap of Object.values(byLender)) {
+    if (!typeMap || typeof typeMap !== "object") continue;
+    for (const amt of Object.values(typeMap)) {
+      total += Number(amt) || 0;
+    }
+  }
+  return total;
+}
+
+
+function sumByTypeTotal(byType) {
+  if (!byType || typeof byType !== "object") return 0;
+  let total = 0;
+  for (const [k, obj] of Object.entries(byType)) {
+    if (!k || String(k).startsWith("__")) continue;
+    const amt = Number(obj?.amount ?? obj) || 0;
+    total += amt;
+  }
+  return total;
+}
+
+function formatPct(p) {
+  const v = Number(p) || 0;
+  if (!isFinite(v)) return "0.00";
+  // 작은 값은 2자리, 큰 값은 1자리로 가독성
+  const fixed = v >= 10 ? v.toFixed(1) : v.toFixed(2);
+  return fixed.replace(/\.00$/, ".00"); // 유지(디자인 일관)
+}
+
+function renderProductFootnoteHtml(summary, byType, byLender) {
+  const source = "※출처: 온라인투자연계금융업 중앙기록관리기관";
+
+  const balance = Number(summary?.balance || 0);
+  let lendersTotal = sumByLenderTotal(byLender);
+  if (!(lendersTotal > 0)) {
+    // byLender가 내려오지 않는 경우(구버전/슬림 응답) → 상품유형 합산으로 대체
+    lendersTotal = sumByTypeTotal(byType);
+  }
+
+  const calc = calcPlusMinusFromTwoValues(balance, lendersTotal);
+
+  // byLender가 없거나 비교가 불가능하면 출처만 노출
+  if (!calc) {
+    return `
+      <div class="beta-product-footnote">
+        <div class="beta-product-footnote__source">${source}</div>
       </div>
-      <div id="naviStepperBar" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"></div>
+    `;
+  }
+
+  const errPctNum = Number(calc.pct) || 0;
+  const errPctTxt = formatPct(errPctNum);
+  const errWonHtml = formatKoreanCurrencyJo(calc.plusMinus);
+  const errPctShownZero = parseFloat(errPctTxt) === 0;
+  const errLabel = errPctShownZero
+    ? `오차범위: ±${errPctTxt}% 미만(±${errWonHtml})`
+    : `오차범위: ±${errPctTxt}%(±${errWonHtml})`;
+
+  return `
+    <div class="beta-product-footnote">
+      <div class="beta-product-footnote__source">${source}</div>
+      <div class="beta-product-footnote__errline">
+        <span class="beta-product-footnote__err">${errLabel}</span>
+        <span class="beta-help">
+          <button class="beta-help__btn" type="button" aria-expanded="false" aria-label="오차범위 안내">?</button>
+          <div class="beta-help__popover" role="tooltip">
+            동일 기준월에서 '전체 대출잔액'과 '온투업체별 대출잔액 합산액'의 평균값을 기준으로 계산
+          </div>
+        </span>
+      </div>
     </div>
   `;
-  root.insertBefore(wrap, step1);
+}
+function bindBetaHelpPopovers(scopeEl) {
+  const root = scopeEl || document;
+
+  // 버튼 토글(모바일/터치용)
+  root.querySelectorAll(".beta-help__btn").forEach((btn) => {
+    if (btn.__bound) return;
+    btn.__bound = true;
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const wrap = btn.closest(".beta-help");
+      if (!wrap) return;
+
+      const open = wrap.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+
+      // 다른 툴팁은 닫기
+      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
+        if (el !== wrap) {
+          el.classList.remove("is-open");
+          const b = el.querySelector(".beta-help__btn");
+          if (b) b.setAttribute("aria-expanded", "false");
+        }
+      });
+    });
+  });
+
+  // 바깥 클릭 시 닫기(전역 1회)
+  if (!window.__betaHelpGlobalCloseBound) {
+    window.__betaHelpGlobalCloseBound = true;
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".beta-help.is-open").forEach((el) => {
+        el.classList.remove("is-open");
+        const b = el.querySelector(".beta-help__btn");
+        if (b) b.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
 }
 
-function renderStepper(activeKey) {
-  const bar = document.getElementById("naviStepperBar");
-  if (!bar) return;
+// ───────── 대출현황 렌더 ─────────
+function renderLoanStatus(summary, monthStr) {
+  const container = document.getElementById("ontuLoanStatus");
+  const monthEl   = document.getElementById("dashboardMonth");
+  if (!container) return;
 
-  const steps = [
-    { key: 1, label: "1. 상품군" },
-    { key: 2, label: "2. 지역" },
-    { key: 3, label: "3. 유형" },
-    { key: 4, label: "4. 대출종류" },
-    { key: 5, label: "5. 핵심입력" },
-    { key: 6, label: "6. 1차결과" },
-    { key: 6.1, label: "6-1. 선택조건" },
-    { key: 7, label: "7. 업체결과" },
+  if (!summary) {
+    container.innerHTML = `
+      <div class="notice error">
+        <p>온투업 통계를 불러오지 못했습니다.</p>
+      </div>
+    `;
+    if (monthEl) monthEl.textContent = "";
+    return;
+  }
+
+  if (monthEl) {
+    monthEl.textContent = formatMonthLabel(monthStr);
+  }
+
+  const items = [
+    {
+      // 49개 → 숫자/단위 분리
+      label: "데이터 수집 온투업체수",
+      value: summary.dataFirms != null
+        ? (
+            `<span class="money-number">${summary.dataFirms.toLocaleString("ko-KR")}</span>` +
+            `<span class="money-unit">개</span>`
+          )
+        : "-"
+    },
+    {
+      label: "누적대출금액",
+      value: summary.totalLoan != null ? formatKoreanCurrencyJo(summary.totalLoan) : "-"
+    },
+    {
+      label: "누적상환금액",
+      value: summary.totalRepaid != null ? formatKoreanCurrencyJo(summary.totalRepaid) : "-"
+    },
+    {
+      label: "대출잔액",
+      value: summary.balance != null ? formatKoreanCurrencyJo(summary.balance) : "-"
+    }
   ];
 
-  const active = activeKey ?? 1;
-
-  bar.innerHTML = steps
-    .map((s) => {
-      const isDone = s.key < active;
-      const isActive = s.key === active;
-      const bg = isActive ? "#111827" : isDone ? "#2563eb" : "#e5e7eb";
-      const fg = isActive || isDone ? "#fff" : "#374151";
-      const op = s.key === 6.1 ? 0.85 : 1;
-
-      return `
-        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;background:${bg};color:${fg};font-size:11px;opacity:${op};">
-          <span style="font-weight:700;">${s.label}</span>
+  container.innerHTML = `
+    <div class="beta-loanstatus-grid">
+      ${items
+        .map(
+          (it) => `
+        <div class="beta-loanstatus-item">
+          <div class="beta-loanstatus-item__label">${it.label}</div>
+          <div class="beta-loanstatus-item__value">
+            <span class="loan-amount-text">${it.value}</span>
+          </div>
         </div>
-      `;
-    })
-    .join("");
-}
-
-function setSectionVisible(sectionId, visible) {
-  const el = document.getElementById(sectionId);
-  if (!el) return;
-
-  // 섹션은 기본적으로 .hide(display:none)로 숨김 처리되어 있으므로
-  // 보여줄 때는 반드시 hide 클래스를 제거해야 합니다.
-  if (visible) {
-    el.classList.remove("hide");
-    // 이전에 inline 으로 숨김 처리된 경우를 대비해 display를 초기화
-    el.style.display = "";
-  } else {
-    el.classList.add("hide");
-    el.style.display = "none";
-  }
-  syncWizardSingleCardView();
-}
-
-function setStepperVisible(visible) {
-  const el = document.getElementById("navi-stepper");
-  if (!el) return;
-  if (visible) {
-    el.classList.remove("hide");
-    el.style.display = "";
-  } else {
-    el.classList.add("hide");
-    el.style.display = "none";
-  }
-}
-
-function clearInputValueById(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.value = "";
-  try {
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-  } catch (_) {}
-}
-
-function resetRealEstateDraftState() {
-  // ✅ Step2~5 선택/입력 리셋 (부동산담보대출 작성 중 상태 제거)
-  userState.region = null;
-  userState.propertyType = null;
-  userState.realEstateLoanType = null;
-  userState.realEstateLoanTypeKey = null;
-
-  userState.subregionKey = null;
-  userState.subregionLabel = null;
-
-  userState.occupancy = null;
-
-  // 숫자 입력값 리셋
-  userState.propertyValue = 0;
-  userState.sharePercent = 100;
-  userState.seniorLoan = 0;
-  userState.deposit = 0;
-  userState.refinanceAmount = 0;
-  userState.requestedAmount = 0;
-  userState.assumedBurden = 0;
-
-  // Step5 입력창 초기화
-  clearInputValueById("naviInputPropertyValue");
-  clearInputValueById("naviInputSharePercent");
-  clearInputValueById("naviInputSeniorLoan");
-  clearInputValueById("naviInputDeposit");
-  clearInputValueById("naviInputRefinanceAmount");
-  clearInputValueById("naviInputRequestedAmount");
-  clearInputValueById("naviInputAssumedBurden");
-
-  // 칩 선택 해제 (Step2~4, 거주형태, LTV UP)
-  document.querySelectorAll("#navi-step2 .navi-chip, #navi-step3 .navi-chip, #navi-step4 .navi-chip, #naviOccChips .navi-chip, #naviSubregionChips .navi-chip")
-    .forEach((b) => b.classList.remove("is-selected"));
-
-  // Step5 스키마/입력영역을 비워두기
-  const s5 = document.getElementById("naviStep5Fields");
-  if (s5) s5.innerHTML = "";
-
-  // 결과도 리셋
-  const panel = document.getElementById("naviResultPanel");
-  const sum = document.getElementById("naviResultSummary");
-  if (panel) panel.innerHTML = "";
-  if (sum) sum.textContent = "";
-
-  // 확정/결과 플래그 리셋
-  uiState.confirmed = false;
-  uiState.hasRenderedResult = false;
-
-  // Step6/6-1 숨김
-  setStep6Visible(false);
-  setStep6_1Visible(false);
-
-  // LTV UP 영역 숨김
-  const sru = document.getElementById("naviSubregionWrap");
-  if (sru) sru.classList.add("hide");
-}
-
-
-// ------------------------------------------------------
-// Step4: 아파트/빌라만 7개 대출종류 노출 (JS로 칩 추가)
-// ------------------------------------------------------
-
-
-function ensureLoanTypeChips() {
-  // meta가 있으면 propertyType loanSet에 맞춰 칩을 재구성
-  const meta = getMeta();
-  if (meta && meta.loanTypes) {
-    renderLoanTypeChipsFromMeta();
-    return;
-  }
-
-  // (fallback) 구버전: 매입잔금 칩 보장
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  if (!container) return;
-
-  const need = [
-    { t: "매입잔금(일반)", label: "매입잔금(일반)" },
-    { t: "매입잔금(분양)", label: "매입잔금(분양)" },
-  ];
-
-  need.forEach((x) => {
-    const exists = Array.from(container.querySelectorAll(".navi-chip")).some(
-      (b) => b.getAttribute("data-loan-type") === x.t
-    );
-    if (!exists) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "navi-chip";
-      btn.setAttribute("data-loan-type", x.t);
-      btn.textContent = x.label;
-      container.appendChild(btn);
-    }
-  });
-}
-
-function updateLoanTypeChipVisibility() {
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  // meta 기반이면 칩 목록 자체가 propertyType에 맞춰 재구성됨
-  const meta = getMeta();
-  if (meta && meta.loanTypes) {
-    renderLoanTypeChipsFromMeta();
-    return;
-  }
-  if (!container) return;
-
-  const prop = userState.propertyType;
-  const isAptOrVilla = prop === "아파트" || prop === "다세대/연립";
-  const isLand = prop === "토지/임야";
-
-  const chips = container.querySelectorAll(".navi-chip");
-  chips.forEach((chip) => {
-    const loanType = chip.getAttribute("data-loan-type") || "";
-    const k = normKey(loanType);
-
-    const isBuyout = k.includes("매입잔금");
-    const isDepositReturn = k.includes("임대보증금반환");
-
-    let visible = true;
-
-    if (isBuyout) visible = isAptOrVilla;
-    if (isLand && isDepositReturn) visible = false;
-
-    chip.style.display = visible ? "" : "none";
-
-    if (!visible && chip.classList.contains("is-selected")) {
-      chip.classList.remove("is-selected");
-      if (userState.realEstateLoanType && normKey(userState.realEstateLoanType) === k) {
-        userState.realEstateLoanType = null;
-        userState.occupancy = null;
-        uiState.hasRenderedResult = false;
-        document
-          .querySelectorAll("#naviOccupancyChips .navi-chip")
-          .forEach((c) => c.classList.remove("is-selected"));
-      }
-    }
-  });
-}
-
-// ------------------------------------------------------
-// Step5: 폼 스키마 적용 (라벨/필수/노출)
-// ------------------------------------------------------
-
-function getStep5Schema() {
-  const prop = userState.propertyType;
-  const loan = userState.realEstateLoanType;
-  if (!prop || !loan) return null;
-
-  const byProp = STEP5_MATRIX[prop];
-  if (!byProp) return null;
-
-  const keys = Object.keys(byProp || {});
-  const foundKey = keys.find((k) => normKey(k) === normKey(loan));
-  const schema = foundKey ? byProp[foundKey] : null;
-
-  if (!schema || !schema.supported) return null;
-  return schema;
-}
-
-function ensureAssumedBurdenField() {
-  const grid = document.querySelector("#navi-step5 .navi-field-grid");
-  if (!grid) return;
-
-  if (document.getElementById("naviInputAssumedBurden")) return;
-
-  const label = document.createElement("label");
-  label.setAttribute("data-field-code", "ASB");
-  label.style.display = "none";
-
-  label.innerHTML = `
-    인수되는 권리 금액 (원)
-    <input type="text" id="naviInputAssumedBurden" data-type="money" placeholder="예) 50000000" />
-    <span class="navi-help">※ 경락 시 인수되는 보증금/점유권리 등(예: 대항력 있는 임차인 보증금)</span>
+      `
+        )
+        .join("")}
+    </div>
   `;
-  grid.appendChild(label);
 
-  setupMoneyInputs(label);
-  const input = label.querySelector("input");
-  if (input) {
-    input.addEventListener("input", () => recalcAndUpdateSummary());
-  }
+  autoFitLoanStatusText();
 }
 
-function setLabelText(labelEl, text) {
-  if (!labelEl) return;
-  const nodes = Array.from(labelEl.childNodes || []);
-  const textNode = nodes.find((n) => n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "");
-  if (textNode) {
-    textNode.textContent = `\n              ${text}\n              `;
+// ───────── 상품유형별 대출잔액 렌더 ─────────
+
+// 도넛 & 우측 카드 공통 색상 (라벨 순서와 매칭)
+const PRODUCT_COLORS = [
+  "#1d4ed8", // 부동산담보
+  "#f97316", // 부동산PF
+  "#f43f5e", // 어음·매출채권담보
+  "#facc15", // 기타담보(주식 등)
+  "#22c55e", // 개인신용
+  "#a855f7"  // 법인신용
+];
+
+let donutChart = null;
+
+function renderProductSection(summary, byType, byLender) {
+  const section = document.getElementById("ontuProductSection");
+  if (!section) return;
+
+  if (!summary || !byType || !Object.keys(byType).length) {
+    section.innerHTML = `
+      <div class="notice error">
+        <p>상품유형별 대출잔액 정보를 불러오지 못했습니다.</p>
+      </div>
+    `;
     return;
   }
-  const span = document.createElement("span");
-  span.textContent = text;
-  labelEl.insertBefore(span, labelEl.firstChild);
-}
 
-// ✅ (유지) OCC 제목을 "거주형태"로 고정 + PV 위로 이동 + 중복 제거
-function ensureOccBlockPlacementAndTitle() {
-  const occChips = document.getElementById("naviOccupancyChips");
-  if (!occChips) return;
+  const balance = Number(summary.balance || 0);
 
-  const block = occChips.closest("label") || occChips.parentElement;
-  if (!block) return;
+  const labels   = [];
+  const percents = [];
+  const amounts  = [];
 
-  Array.from(block.childNodes).forEach((n) => {
-    if (n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "") {
-      block.removeChild(n);
-    }
-  });
+  for (const [name, cfg] of Object.entries(byType)) {
+    const ratio  = Number(cfg.ratio ?? cfg.share ?? 0);
+    const amount =
+      cfg.amount != null ? Number(cfg.amount) : balance ? Math.round(balance * ratio) : 0;
 
-  Array.from(block.children).forEach((el) => {
-    const t = (el.textContent || "").trim();
-    const hasControls =
-      el.querySelector("button, input, select, textarea, #naviOccupancyChips, .navi-chip") != null;
-
-    if (t === "거주형태" && !hasControls && el.getAttribute("data-occ-title") !== "1") {
-      el.remove();
-    }
-  });
-
-  let titleEl = block.querySelector('[data-occ-title="1"]');
-  if (!titleEl) {
-    titleEl = document.createElement("div");
-    titleEl.setAttribute("data-occ-title", "1");
-    titleEl.style.display = "block";
-    titleEl.style.fontWeight = "600";
-    titleEl.style.marginBottom = "6px";
-    block.insertBefore(titleEl, block.firstChild);
+    labels.push(name);
+    percents.push(Math.round(ratio * 1000) / 10); // 0.425 → 42.5
+    amounts.push(amount);
   }
-  titleEl.textContent = "거주형태";
 
-  const grid = document.querySelector("#navi-step5 .navi-field-grid");
-  const pvInput = document.getElementById("naviInputPropertyValue");
-  const pvLabel = pvInput ? pvInput.closest("label") : null;
+  // 메인 카드 + 도넛 + 유형별 금액 카드
+  section.innerHTML = `
+    <div class="beta-product-card">
+      <div class="beta-product-card__header">
+        <span class="beta-product-card__title">상품유형별 대출잔액</span>
+      </div>
+      <div class="beta-product-grid">
+        <div class="beta-product-donut-wrap">
+          <div class="beta-product-donut-inner">
+            <canvas id="productDonut" aria-label="상품유형별 대출잔액 도넛 차트"></canvas>
+            <div class="beta-product-donut-center" id="productDonutCenter">
+              <div class="beta-product-donut-center__label-row">
+                <span class="beta-product-donut-center__chip"></span>
+                <span class="beta-product-donut-center__label"></span>
+              </div>
+              <div class="beta-product-donut-center__value"></div>
+            </div>
+          </div>
+        </div>
+        <div class="beta-product-boxes">
+          ${labels
+            .map((name, idx) => {
+              const color = PRODUCT_COLORS[idx] || "#e5e7eb";
+              return `
+                <div class="beta-product-box" style="--product-color:${color};">
+                  <div class="beta-product-box__title">${name}</div>
+                  <div class="beta-product-box__amount">${formatKoreanCurrencyJo(
+                    amounts[idx]
+                  )}</div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+      </div>
+    </div>
+    ${renderProductFootnoteHtml(summary, byType, byLender)}
+  `;
 
-  if (grid && pvLabel) {
-    if (block.parentElement === grid) {
-      if (block !== pvLabel && block.nextSibling !== pvLabel) {
-        grid.insertBefore(block, pvLabel);
+  // 툴팁(오차범위 ?) 토글 바인딩
+  bindBetaHelpPopovers(section);
+
+  const canvas   = document.getElementById("productDonut");
+  const centerEl = document.getElementById("productDonutCenter");
+
+  let centerChipEl  = null;
+  let centerLabelEl = null;
+  let centerValueEl = null;
+
+  if (centerEl) {
+    centerChipEl  = centerEl.querySelector(".beta-product-donut-center__chip");
+    centerLabelEl = centerEl.querySelector(".beta-product-donut-center__label");
+    centerValueEl = centerEl.querySelector(".beta-product-donut-center__value");
+  }
+
+  // 도넛 중앙 텍스트/칩 갱신
+  function updateCenter(index) {
+    if (!centerLabelEl || !centerValueEl) return;
+
+    if (index == null || index < 0 || index >= labels.length) {
+      index = 0;
+    }
+
+    centerLabelEl.textContent = labels[index];
+    centerValueEl.innerHTML   = formatKoreanCurrencyJo(amounts[index]);
+
+    if (centerChipEl) {
+      const color = PRODUCT_COLORS[index] || "#e5e7eb";
+      centerChipEl.style.visibility = "visible";
+      centerChipEl.style.backgroundColor = color;
+    }
+  }
+
+  // 기본 상태: 0번(부동산담보) 정보 표시
+  updateCenter(0);
+
+  if (!canvas || !window.Chart) return;
+
+  const ctx = canvas.getContext("2d");
+  if (donutChart) {
+    donutChart.destroy();
+    donutChart = null;
+  }
+
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: percents,
+          backgroundColor: PRODUCT_COLORS,
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "60%",
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      layout: { padding: 4 },
+      onClick: (evt, elements) => {
+        if (!elements || !elements.length) {
+          updateCenter(0);
+          return;
+        }
+        const idx = elements[0].index;
+        updateCenter(idx);
+      },
+      onHover: (evt, elements) => {
+        const target = evt?.native?.target || evt?.target;
+        if (target && target.style) {
+          target.style.cursor = elements && elements.length ? "pointer" : "default";
+        }
       }
     }
-  }
-}
-
-function applyStep5Schema() {
-  ensureAssumedBurdenField();
-  ensureOccBlockPlacementAndTitle();
-
-  const schema = getStep5Schema();
-  const occBlock = document.getElementById("naviOccupancyChips")?.parentElement;
-  const helpEl = document.getElementById("naviLoanTypeHelp");
-
-  const fieldDefs = schema?.fields || [];
-  const visibleCodes = new Set(fieldDefs.map((f) => f.code));
-
-  const isBuyoutOrAuction =
-    normKey(userState.realEstateLoanType).includes("경락잔금") ||
-    normKey(userState.realEstateLoanType).includes("매입잔금");
-  const occSelfText = isBuyoutOrAuction ? "본인거주(예정)" : "본인거주";
-  const occRentText = isBuyoutOrAuction ? "임대(예정)" : "임대";
-
-  const occContainer = document.getElementById("naviOccupancyChips");
-  if (occContainer) {
-    const selfBtn = occContainer.querySelector('[data-occ="self"]');
-    const rentBtn = occContainer.querySelector('[data-occ="rental"]');
-    if (selfBtn) selfBtn.textContent = occSelfText;
-    if (rentBtn) rentBtn.textContent = occRentText;
-  }
-
-  const idToCode = {
-    naviInputPropertyValue: "PV",
-    naviInputSharePercent: "SP",
-    naviInputSeniorLoan: "SL",
-    naviInputDeposit: "DEP",
-    naviInputRefinanceAmount: "REF",
-    naviInputRequestedAmount: "REQ",
-    naviInputAssumedBurden: "ASB",
-  };
-
-  Object.entries(idToCode).forEach(([id, code]) => {
-    const input = document.getElementById(id);
-    const label = input ? input.closest("label") : null;
-    if (!label) return;
-
-    const def = fieldDefs.find((f) => f.code === code);
-    const shouldShow = Boolean(def);
-
-    label.style.display = shouldShow ? "" : "none";
-    label.toggleAttribute("data-required", Boolean(def?.required));
-
-    if (def?.label) {
-      const suffix = id === "naviInputSharePercent" ? " (%)" : " (원)";
-      const txt =
-        def.label.includes("(원)") || def.label.includes("(%)") ? def.label : def.label + suffix;
-      setLabelText(label, txt);
-    }
   });
+}
 
-  if (occBlock) {
-    occBlock.style.display = visibleCodes.has("OCC") ? "" : "none";
-    if (!visibleCodes.has("OCC")) {
-      userState.occupancy = null;
-      document
-        .querySelectorAll("#naviOccupancyChips .navi-chip")
-        .forEach((c) => c.classList.remove("is-selected"));
+// ───────── 초기화 ─────────
+async function initOntuStats() {
+  try {
+    let data = await fetchOntuStats();
+    if (!data || !data.summary || !Object.keys(data.byType || {}).length) {
+      data = { ...DEFAULT_ONTU_STATS };
     }
-  }
+    const month   = data.month || data.monthKey || DEFAULT_ONTU_STATS.month;
+    const summary = data.summary || DEFAULT_ONTU_STATS.summary;
+    const byType  = data.byType || DEFAULT_ONTU_STATS.byType;
+    const byLender = data.byLender || null;
 
-  const depDef = fieldDefs.find((f) => f.code === "DEP");
-  const asbDef = fieldDefs.find((f) => f.code === "ASB");
-
-  const depInput = document.getElementById("naviInputDeposit");
-  const depLabel = depInput ? depInput.closest("label") : null;
-
-  if (depLabel && depDef) {
-    const note = String(depDef.note || "");
-    const needsRental =
-      note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
-    const isRental = userState.occupancy === "rental";
-
-    if (needsRental) {
-      depLabel.style.display = isRental ? "" : "none";
-      depLabel.toggleAttribute("data-required", isRental);
-      if (!isRental) {
-        setMoneyValueById("naviInputDeposit", 0);
-      }
-    }
-  }
-
-  // ✅ ASB는 '경락잔금'에서만
-  const asbInput = document.getElementById("naviInputAssumedBurden");
-  const asbLabel = asbInput ? asbInput.closest("label") : null;
-  if (asbLabel) {
-    const isAuction = normKey(userState.realEstateLoanType).includes("경락잔금");
-    const hasAsbInSchema = Boolean(asbDef);
-    const shouldShow = isAuction && hasAsbInSchema;
-
-    asbLabel.style.display = shouldShow ? "" : "none";
-    asbLabel.toggleAttribute("data-required", false);
-
-    if (!shouldShow) {
-      setMoneyValueById("naviInputAssumedBurden", 0);
-      userState.assumedBurden = 0;
-    }
-  }
-
-  if (helpEl) {
-    if (!schema) {
-      helpEl.textContent =
-        "※ 선택하신 대출종류/부동산유형 조합에 대한 입력 스키마가 없습니다. 관리자 설정을 확인해주세요.";
-    }
+    renderLoanStatus(summary, month);
+    renderProductSection({ ...summary, month }, byType, byLender);
+  } catch (e) {
+    console.error("[initOntuStats] 치명적 오류:", e);
+    renderLoanStatus(DEFAULT_ONTU_STATS.summary, DEFAULT_ONTU_STATS.month);
+    renderProductSection(
+      { ...DEFAULT_ONTU_STATS.summary, month: DEFAULT_ONTU_STATS.month },
+      DEFAULT_ONTU_STATS.byType,
+      null
+    );
   }
 }
 
-function isRentalOcc() {
-  return userState.occupancy === "rental";
-}
-
-function isStep5Complete() {
-  const schema = getStep5Schema();
-  if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) return false;
-
-  // STEP5_MATRIX는 fieldDefs에 {code, required, label, note?} 형태를 사용합니다.
-  // (이전 버전의 {key, ...} 스키마와 혼재되지 않도록 code -> userState key로 매핑합니다.)
-  const CODE_TO_STATE_KEY = {
-    OCC: "occupancy",
-    PV: "propertyValue",
-    SP: "sharePercent",
-    SL: "seniorLoan",
-    DEP: "deposit",
-    REF: "refinanceAmount",
-    REQ: "requestedAmount",
-    ASB: "assumedBurden",
-  };
-
-  const isRental = isRentalOcc();
-
-  // required input
-  for (const f of schema.fields) {
-    if (!f) continue;
-
-    const code = String(f.code || "").trim();
-    const key = f.key || CODE_TO_STATE_KEY[code] || "";
-    if (!key) continue;
-
-    // 기본 required + (DEP: OCC 임대 선택 시 note 기반으로 required 승격) 반영
-    let required = Boolean(f.required);
-
-    if (!required && code === "DEP") {
-      const note = String(f.note || "");
-      const needsRental =
-        note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
-      if (needsRental && isRental) required = true;
-    }
-
-    if (!required) continue;
-
-    const v = userState[key];
-
-    if (v === null || v === undefined) return false;
-
-    if (typeof v === "string") {
-      if (v.trim() === "") return false;
-    } else if (typeof v === "number") {
-      if (!Number.isFinite(v)) return false;
-
-      // 금액/시세 입력은 0이면 "미입력"으로 간주
-      const mustBePositive = code === "PV" || code === "REQ";
-      if (mustBePositive && v <= 0) return false;
-
-      if (key === "sharePercent" && v <= 0) return false;
-    }
-  }
-
-  // ✅ 부동산담보대출 + (서울/경기/인천 등) LTV UP 지역인 경우: 반드시 1번 클릭해야 Step6 진행 가능
-  const isRE = userState.mainCategory === "부동산담보대출";
-  if (isRE) {
-    const regionKey = regionKeyFromLabel(userState.region);
-    const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
-    if (list.length) {
-      // null = 미선택, "" = 선택안함(클릭 완료)
-      if (userState.subregionKey === null) return false;
-    }
-  }
-
-  return true;
-}
-
-
-// ------------------------------------------------------
-// UI 이벤트 바인딩
-// ------------------------------------------------------
-
-// chip helpers
-function singleSelectChip(container, target) {
-  const chips = container.querySelectorAll(".navi-chip");
-  chips.forEach((c) => c.classList.remove("is-selected"));
-  target.classList.add("is-selected");
-}
-function toggleChip(target) {
-  target.classList.toggle("is-selected");
-}
-
-// 상단 MENU
+// 상단 MENU 드롭다운
 function setupBetaMenu() {
-  const toggle = document.getElementById("betaMenuToggle");
+  const btn   = document.getElementById("betaMenuToggle");
   const panel = document.getElementById("betaMenuPanel");
-  if (!toggle || !panel) return;
+  if (!btn || !panel) return;
 
-  toggle.addEventListener("click", (e) => {
+  const close = () => {
+    panel.classList.add("hide");
+    btn.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    panel.classList.remove("hide");
+    btn.setAttribute("aria-expanded", "true");
+  };
+
+  btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const isHidden = panel.classList.contains("hide");
-    if (isHidden) {
-      panel.classList.remove("hide");
-      toggle.setAttribute("aria-expanded", "true");
-    } else {
-      panel.classList.add("hide");
-      toggle.setAttribute("aria-expanded", "false");
-    }
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    if (expanded) close();
+    else open();
   });
 
   document.addEventListener("click", (e) => {
-    if (!panel.classList.contains("hide")) {
-      if (!panel.contains(e.target) && e.target !== toggle) {
-        panel.classList.add("hide");
-        toggle.setAttribute("aria-expanded", "false");
-      }
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      close();
     }
   });
 }
 
-
-
-// ------------------------------------------------------
-// ✅ meta 기반 칩 렌더 (admin SoT)
-// ------------------------------------------------------
-function applyMetaChips() {
-  const meta = getMeta();
-  if (!meta) return;
-
-  // Step1: 상품군
-  const step1 = document.getElementById("naviLoanCategoryChips");
-  if (step1 && Array.isArray(meta.productGroups) && meta.productGroups.length) {
-    step1.innerHTML = meta.productGroups.map((g) => {
-      const k = String(g.key || "");
-      const label = String(g.label || g.key || "");
-      const displayLabel = formatMainCategoryDisplayLabel(label, k);
-      return `<button type="button" class="navi-chip" data-main-cat="${escapeHtmlAttr(k)}">${escapeHtml(displayLabel).replaceAll("\n", "<br />")}</button>`;
-    }).join("");
-    updateStep1GridOddState();
-  }
-
-  // Step2: 지역
-  const step2 = document.getElementById("naviRegionChips");
-  if (step2 && Array.isArray(meta.regions) && meta.regions.length) {
-    step2.innerHTML = meta.regions.map((r) => {
-      const label = String(r.label || r.key || "");
-      return `<button type="button" class="navi-chip" data-region="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
-    }).join("");
-  }
-
-  // Step3: 부동산 유형
-  const step3 = document.getElementById("naviPropertyTypeChips");
-  if (step3 && Array.isArray(meta.propertyTypes) && meta.propertyTypes.length) {
-    step3.innerHTML = meta.propertyTypes.map((p) => {
-      const label = String(p.label || p.key || "");
-      return `<button type="button" class="navi-chip" data-prop="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
-    }).join("");
-  }
-
-  // Step4: 대출종류 (propertyType 선택 전에는 기본(base)만 먼저 표시)
-  renderLoanTypeChipsFromMeta();
-
-  // Step2-추가: 세부지역 (region 선택되면 표시)
-  renderSubregionChips();
-}
-
-function renderLoanTypeChipsFromMeta() {
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  if (!container) return;
-
-  const meta = getMeta();
-  const lt = meta?.loanTypes;
-  if (!lt || typeof lt !== "object") return;
-
-  const propLabel = userState.propertyType;
-  // propertyTypes에서 loanSet 결정 (aptv / base)
-  let setKey = "base";
-  if (Array.isArray(meta.propertyTypes) && propLabel) {
-    const hit = meta.propertyTypes.find((p) => p && p.label === propLabel);
-    if (hit && hit.loanSet) {
-      setKey = (hit.loanSet === "aptv") ? "aptv" : "base";
-    }
-  }
-
-  const list = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
-  container.innerHTML = list.map((x) => {
-    const k = String(x.key || "");
-    const label = String(x.label || x.key || "");
-    return `<button type="button" class="navi-chip" data-loan-type="${escapeHtmlAttr(k)}" data-loan-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
-  }).join("");
-
-  // ✅ (UX) 재렌더링 이후에도 선택된 대출종류 칩의 강조(검정 배경)를 유지
-  // - recalcAndUpdateSummary()에서 Step4 칩을 재구성하는 흐름이 있어, 선택 표시가 초기화될 수 있음
-  const chosenKey = userState.realEstateLoanTypeKey || "";
-  const chosenLabel = userState.realEstateLoanType || "";
-  if (chosenKey || chosenLabel) {
-    const btns = Array.from(container.querySelectorAll(".navi-chip"));
-    const hitByKey = chosenKey ? btns.find((b) => b.getAttribute("data-loan-type") === chosenKey) : null;
-    const hitByLabel = (!hitByKey && chosenLabel)
-      ? btns.find((b) => (b.getAttribute("data-loan-label") || b.textContent || "") === chosenLabel)
-      : null;
-    const hit = hitByKey || hitByLabel;
-    if (hit) singleSelectChip(container, hit);
-  }
-
-}
-
-// Step2 세부지역(LTV Up)
-// ------------------------------------------------------
-// Step2: LTV UP 세부지역(서브리전) — 표시/필수 선택/필터링
-//  - meta.SUBREGION_LTV_UP 는 "후보 리스트"만 제공
-//  - 실제 노출은 lenders[*].regions[*][*].ltvUp 에 숫자(>0)가 존재하는 것만 노출
-// ------------------------------------------------------
-
-function hasAnyLtvUpValue(regionKey, subKey, lenders) {
-  if (!regionKey || !subKey) return false;
-  const arr = Array.isArray(lenders) ? lenders : [];
-  for (const l of arr) {
-    const regionCfg = l && l.regions && l.regions[regionKey];
-    if (!regionCfg || typeof regionCfg !== "object") continue;
-
-    for (const cell of Object.values(regionCfg)) {
-      if (!cell || typeof cell !== "object") continue;
-
-      // enabled 셀만 의미 있는 설정으로 간주
-      const enabled = cell.enabled === true || cell.enabled === "true";
-      if (!enabled) continue;
-
-      const up = cell.ltvUp;
-      if (!up || typeof up !== "object") continue;
-
-      const v = parseNumberLoose(up[subKey]);
-      if (v != null && v > 0) return true;
-    }
-  }
-  return false;
-}
-
-function getAvailableSubregionsForRegion(regionKey) {
-  const meta = getMeta();
-  const raw = (meta && meta.SUBREGION_LTV_UP && regionKey && Array.isArray(meta.SUBREGION_LTV_UP[regionKey]))
-    ? meta.SUBREGION_LTV_UP[regionKey]
-    : [];
-
-  const items = [];
-  raw.forEach((it) => {
-    const key = String(it && (it.key ?? it.id ?? it.code ?? "")).trim();
-    if (!key) return;
-    const label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
-    items.push({ key, label });
-  });
-
-  if (!items.length) return [];
-
-  const lenders = (naviLoanConfig && Array.isArray(naviLoanConfig.lenders)) ? naviLoanConfig.lenders : [];
-  if (!lenders.length) return items; // lenders 미로딩 시엔 후보 리스트 그대로 노출
-
-  return items.filter((it) => hasAnyLtvUpValue(regionKey, it.key, lenders));
-}
-
-function isSubregionRequiredForCurrentRegion() {
-  const regionKey = regionKeyFromLabel(userState.region);
-  if (!regionKey) return false;
-  return getAvailableSubregionsForRegion(regionKey).length > 0;
-}
-
-
-function renderSubregionChips() {
-  const wrap = document.getElementById("naviSubregionWrap");
-  const container = document.getElementById("naviSubregionChips");
-  if (!wrap || !container) return;
-
-  const regionKey = regionKeyFromLabel(userState.region);
-  const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
-
-  if (!list.length) {
-    wrap.classList.add("hide");
-    container.innerHTML = "";
-    userState.subregionKey = null;
-    userState.subregionLabel = null;
-    return;
-  }
-
-  wrap.classList.remove("hide");
-
-  const chips = [];
-  // ✅ A안(추천): “선택안함” 포함 버튼을 반드시 1번 클릭해야 진행 가능
-  chips.push(
-    `<button type="button" class="navi-chip" data-subregion-key="" data-subregion-label="선택안함">선택안함</button>`
-  );
-
-  list.forEach((it) => {
-    const key = String(it && (it.key ?? it.id ?? it.code ?? "")).trim();
-    if (!key) return;
-
-    const label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
-    const add = Number(it && (it.add ?? it.addPct ?? it.addPercent ?? it.percent ?? it.pct ?? 0));
-    const badge = (Number.isFinite(add) && add > 0) ? ` (+${add}%)` : "";
-
-    chips.push(
-      `<button type="button" class="navi-chip" data-subregion-key="${escapeHtmlAttr(key)}" data-subregion-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}${badge}</button>`
-    );
-  });
-
-  container.innerHTML = chips.join("");
-
-  // ✅ 선택 복원: ""(선택안함)도 유효한 선택
-  if (userState.subregionKey !== null) {
-    const key = String(userState.subregionKey);
-    const selector = `#naviSubregionChips .navi-chip[data-subregion-key="${CSS.escape(key)}"]`;
-    const sel = document.querySelector(selector);
-    if (sel) sel.classList.add("is-selected");
-  }
-}
-
-
-// HTML escape helpers
-function escapeHtml(s) {
-  return String(s || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-function escapeHtmlAttr(s) {
-  return escapeHtml(s).replaceAll("`", "&#96;");
-}
-
-function setupStep1() {
-  const container = document.getElementById("naviLoanCategoryChips");
-  if (!container) return;
-
-  container.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const btn = target.closest(".navi-chip");
-    if (!(btn instanceof HTMLElement)) return;
-
-    const next = btn.getAttribute("data-main-cat");
-    if (!next) return;
-
-    const prev = userState.mainCategory;
-    if (prev === next) return;
-
-    // UI 선택 상태
-    document.querySelectorAll("#naviLoanCategoryChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
-    btn.classList.add("is-selected");
-
-    // ✅ 상품군 변경 시: 작성 중이던 부동산담보대출 입력/선택은 모두 리셋
-    userState.mainCategory = next;
-    // ✅ Step1 클릭 집계(메인페이지 9개)
-    trackProductGroupClick(next);
-
-    resetRealEstateDraftState();
-
-    // ✅ 추가조건(선택) 리셋
-    userState.extra.incomeType = null;
-    userState.extra.creditBand = null;
-    userState.extra.repayPlan = null;
-    userState.extra.needTiming = null;
-    userState.extra.others = [];
-    userState.extra.tokens = [];
-    uiState.hasRenderedResult = false;
-    uiState.autoRevealed = false;
-    document.querySelectorAll("#navi-step6-1 .navi-chip").forEach((b) => b.classList.remove("is-selected"));
-
-    // 결과/단계 갱신
-    recalcAndUpdateSummary();
-
-    const isRE = next === "부동산담보대출";
-    if (!isRE) {
-      // ✅ 부동산담보대출 외: 진행단계 없이 바로 7. 네비게이션 결과 표시
-      const ready = Boolean(naviLoanConfig && Array.isArray(naviLoanConfig.lenders) && naviLoanConfig.lenders.length);
-      if (ready) {
-        Promise.resolve().then(() => {
-          try {
-            renderFinalResult();
-          } catch (err) {
-            console.error(err);
-          }
-        });
-      }
-      return;
-    }
-
-    // ✅ 부동산담보대출: 다음 단계로 자연스럽게 이동
-    const s2 = document.getElementById("navi-step2");
-    if (s2) s2.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-}
-
-
-function setupStep2() {
-  const container = document.getElementById("naviRegionChips");
-  if (!container) return;
-  container.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
-
-    singleSelectChip(container, target);
-    userState.region = target.getAttribute("data-region");
-    // 세부지역(LTV Up) 초기화
-    userState.subregionKey = null;
-    userState.subregionLabel = null;
-    renderSubregionChips();
-
-    uiState.hasRenderedResult = false;
-    recalcAndUpdateSummary();
-  });
-}
-
-function setupSubregion() {
-  const container = document.getElementById("naviSubregionChips");
-  if (!container) return;
-
-  container.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const btn = target.closest(".navi-chip");
-    if (!(btn instanceof HTMLElement)) return;
-
-    // data-subregion-key: ""(선택안함)도 허용해야 함
-    const kAttr = btn.getAttribute("data-subregion-key");
-    if (kAttr === null) return;
-
-    document.querySelectorAll("#naviSubregionChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
-    btn.classList.add("is-selected");
-
-    // ✅ 핵심: null=미선택, ""=선택안함, "gangnam"=가산 지역
-    userState.subregionKey = kAttr;
-
-    const lbl = btn.getAttribute("data-subregion-label") || "";
-    // "선택안함"은 요약 표시에 굳이 넣지 않음 (필수 클릭만 보장)
-    userState.subregionLabel = (kAttr === "") ? null : lbl;
-
-    invalidateConfirmed();
-    recalcAndUpdateSummary();
-  });
-}
-
-
-
-
-function setupStep3() {
-  const container = document.getElementById("naviPropertyTypeChips");
-  if (!container) return;
-  container.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
-
-    singleSelectChip(container, target);
-    userState.propertyType = target.getAttribute("data-prop");
-
-    updateLoanTypeChipVisibility();
-
-    userState.realEstateLoanType = null;
-    userState.occupancy = null;
-    uiState.hasRenderedResult = false;
-    document
-      .querySelectorAll("#naviRealEstateLoanTypeChips .navi-chip, #naviOccupancyChips .navi-chip")
-      .forEach((c) => c.classList.remove("is-selected"));
-
-    recalcAndUpdateSummary();
-  });
-}
-
-function setupStep4() {
-  const container = document.getElementById("naviRealEstateLoanTypeChips");
-  const helpEl = document.getElementById("naviLoanTypeHelp");
-  if (!container) return;
-
-  const helpTexts = {
-    일반담보대출: "시세·선순위대출·임대보증금·필요대출금액을 합산해 LTV를 계산합니다.",
-    임대보증금반환대출:
-      "임대보증금 반환을 위한 대출입니다. (입력 스키마에 따라) 선순위 + 반환 보증금 + 추가 필요금액을 기준으로 LTV를 계산합니다.",
-    지분대출: "지분율만큼 시세를 반영하여 LTV를 계산합니다. (예: 시세 5억, 지분 50% → 2.5억 기준)",
-    경락잔금대출:
-      "낙찰가(또는 감정가)와 선순위·필요 대출금액을 기준으로 잔금대출 LTV를 계산합니다. (인수 권리 금액 입력 가능)",
-    대환대출:
-      "선순위/보증금 중 상환 예정금액 + 신규 필요 대출금액을 합산하여 대환 후 LTV를 계산합니다.",
-    "매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-  };
-
-  container.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
-    if (target.style.display === "none") return;
-
-    singleSelectChip(container, target);
-    const loanTypeKey = target.getAttribute("data-loan-type");
-    const loanTypeLabel = target.getAttribute("data-loan-label") || target.textContent || loanTypeKey;
-    userState.realEstateLoanTypeKey = loanTypeKey;
-    userState.realEstateLoanType = loanTypeLabel;
-
-    userState.occupancy = null;
-    document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
-    uiState.hasRenderedResult = false;
-
-    if (helpEl && (loanTypeKey || loanTypeLabel) && helpTexts[loanTypeKey || loanTypeLabel]) {
-      helpEl.textContent = "※ " + helpTexts[loanTypeKey || loanTypeLabel];
-    }
-
-    applyStep5Schema();
-    recalcAndUpdateSummary();
-  });
-}
-
-function setupStep5() {
-  const amountWarningEl = document.getElementById("naviAmountWarning");
-
-  const confirmBtn = document.getElementById("naviConfirmBtn");
-  if (!confirmBtn) return;
-  if (confirmBtn && !confirmBtn.__bound) {
-    confirmBtn.__bound = true;
-    confirmBtn.addEventListener("click", async () => {
-      if (!isStep5Complete()) {
-        toast("필수 항목을 먼저 입력해 주세요.");
-        setConfirmUIState();
-        return;
-      }
-
-      uiState.confirmed = true;
-      setStep6Visible(true);
-      recalcAndUpdateSummary(false);
-
-      const payload = {
-        event: "confirm",
-        ts: Date.now(),
-        dateKst: getKstDateKey(),
-        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
-        regionKey: uiState.region || "",
-        propertyTypeKey: uiState.propertyType || "",
-        loanTypeKey: uiState.realEstateLoanType || "",
-        amountMan: Number(uiState.requestedAmount) || 0,
-      };
-      postNaviStatsOncePerClick(payload);
-
-      setConfirmUIState();
-      const target = document.getElementById("navi-step6");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-  setConfirmUIState();
-  const occContainer = document.getElementById("naviOccupancyChips");
-
-  [
-    "naviInputPropertyValue",
-    "naviInputSharePercent",
-    "naviInputSeniorLoan",
-    "naviInputDeposit",
-    "naviInputRefinanceAmount",
-    "naviInputRequestedAmount",
-    "naviInputAssumedBurden",
-  ].forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("input", () => {
-      uiState.hasRenderedResult = false;
-      invalidateConfirmed();
-      recalcAndUpdateSummary();
-    });
-  });
-
-  if (occContainer) {
-    occContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-
-      singleSelectChip(occContainer, target);
-      userState.occupancy = target.getAttribute("data-occ");
-
-      applyStep5Schema();
-
-      uiState.hasRenderedResult = false;
-      invalidateConfirmed();
-      recalcAndUpdateSummary();
-    });
-  }
-
-  if (amountWarningEl) amountWarningEl.style.display = "none";
-}
-
-// ------------------------------------------------------
-// ✅ Step6-1: admin 추가조건(선택) 토큰 기반 동적 UI
-// ------------------------------------------------------
-
-// ✅ Step6-1: 토큰(label) 표시 보정
-// - 관리자에 저장된 토큰이 "그룹::라벨" 형태가 아닐 경우(예: apt_kb_not_listed),
-//   화면에는 사람이 읽을 수 있는 라벨을 보여주되, 매칭/저장 토큰은 원본 그대로 유지합니다.
-const EXTRA_TOKEN_LABEL_MAP = {
-  apt_kb_not_listed: "KB시세 미등록",
-  apt_lt_100_units: "100세대 미만",
-  apt_single_complex: "단일 단지",
-
-  borrower_age_20_69: "차주 연령 20~69",
-  borrower_age_70_plus: "차주 연령 70+",
-
-  borrower_credit_kcb_gte_454: "KCB 454점 이상",
-  borrower_credit_kcb_lt_454: "KCB 454점 미만",
-  borrower_credit_nice_gte_600: "NICE 600점 이상",
-  borrower_credit_nice_lt_600: "NICE 600점 미만",
-
-  borrower_income_none_but_pay: "증빙소득 없음(이자 납입 가능)",
-  borrower_income_nonwage: "근로외 증빙소득",
-  borrower_income_wage: "근로소득",
-
-  borrower_need_within_1w: "1주일 이내",
-  borrower_need_within_1m: "1개월 이내",
-
-  borrower_repay_within_3m: "3개월 이내",
-  borrower_repay_3m_to_1y: "3개월 초과~1년 미만",
-  borrower_repay_gte_1y: "1년 이상",
-
-  borrower_flag_card_overdue: "카드 연체",
-  borrower_flag_interest_overdue: "이자 연체",
-  borrower_flag_seizure: "압류/가압류",
-  borrower_flag_tax_arrears: "세금 체납",
-};
-
-function inferExtraTokenGroup(token) {
-  const t = String(token || "").trim().toLowerCase();
-  if (!t) return "기타";
-
-  if (t.startsWith("borrower_income_")) return "소득유형";
-  if (t.startsWith("borrower_credit_")) return "신용점수";
-  if (t.startsWith("borrower_repay_")) return "상환계획";
-  if (t.startsWith("borrower_need_")) return "필요시기";
-
-  // 그 외(담보/연령/기타 플래그 등)는 '기타'로 묶습니다.
-  return "기타";
-}
-
-function humanizeExtraTokenLabel(token) {
-  const s = String(token || "").trim();
-  if (!s) return "";
-
-  if (EXTRA_TOKEN_LABEL_MAP[s]) return EXTRA_TOKEN_LABEL_MAP[s];
-
-  // 패턴 기반 (새 토큰이 추가되더라도 기본 가독성 확보)
-  const t = s.toLowerCase();
-
-  // borrower_* : prefix 제거
-  if (t.startsWith("borrower_")) {
-    const rest = s.slice("borrower_".length);
-    // 너무 공격적으로 변환하지 않고, 최소한의 공백/기호만 정리
-    return rest.replaceAll("_", " ");
-  }
-
-  // apt_* : prefix 제거
-  if (t.startsWith("apt_")) {
-    const rest = s.slice("apt_".length);
-    return rest.replaceAll("_", " ");
-  }
-
-  return s;
-}
-
-function splitExtraToken(raw) {
-  const s = String(raw || "").trim();
-  if (!s) return { group: "기타", label: "" };
-
-  // 우선순위: "::" > ":" > "|"
-  if (s.includes("::")) {
-    const [g, ...rest] = s.split("::");
-    const group = (g || "").trim() || "기타";
-    const label = rest.join("::").trim();
-    return { group, label: label || humanizeExtraTokenLabel(s) };
-  }
-  if (s.includes(":")) {
-    const [g, ...rest] = s.split(":");
-    const group = (g || "").trim() || "기타";
-    const label = rest.join(":").trim();
-    return { group, label: label || humanizeExtraTokenLabel(s) };
-  }
-  if (s.includes("|")) {
-    const [g, ...rest] = s.split("|");
-    const group = (g || "").trim() || "기타";
-    const label = rest.join("|").trim();
-    return { group, label: label || humanizeExtraTokenLabel(s) };
-  }
-
-  // 그룹/라벨이 없는 토큰은 prefix 기반으로 그룹을 추론하고, 라벨은 사람이 읽을 수 있게 변환합니다.
-  return { group: inferExtraTokenGroup(s), label: humanizeExtraTokenLabel(s) };
-}
-
-
-function normalizeExtraGroupTitle(groupRaw) {
-  const g = String(groupRaw || "").trim();
-  const nk = normKey(g);
-
-  if (nk.includes("소득") || nk.includes("income")) return "소득유형";
-  if (nk.includes("신용") || nk.includes("credit")) return "신용점수";
-  if (nk.includes("상환") || nk.includes("repay")) return "상환계획";
-  if (nk.includes("필요") || nk.includes("시기") || nk.includes("timing") || nk.includes("need")) return "필요시기";
-  if (nk.includes("기타") || nk.includes("etc")) return "기타";
-  return g || "기타";
-}
-
-function getAllExtraTokensFromLenders() {
-  const lenders = naviLoanConfig.lenders || [];
-  const set = new Set();
-
-  lenders.forEach((l) => {
-    const arr = Array.isArray(l.extraConditions) ? l.extraConditions : [];
-    arr.forEach((t) => {
-      const s = String(t || "").trim();
-      if (s) set.add(s);
-    });
-  });
-
-  return Array.from(set);
-}
-
-function buildExtraCatalog(tokens) {
-  const map = new Map(); // title -> Map(token -> label)
-
-  (tokens || []).forEach((t) => {
-    const { group, label } = splitExtraToken(t);
-    const title = normalizeExtraGroupTitle(group);
-    if (!map.has(title)) map.set(title, new Map());
-    map.get(title).set(t, label || t);
-  });
-
-  const order = ["소득유형", "신용점수", "상환계획", "필요시기", "기타"];
-  const titles = Array.from(map.keys()).sort((a, b) => {
-    const ia = order.indexOf(a);
-    const ib = order.indexOf(b);
-    if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-    return a.localeCompare(b, "ko");
-  });
-
-  return titles.map((title) => {
-    const inner = map.get(title);
-    const items = Array.from(inner.entries())
-      .map(([token, lbl]) => ({ token, label: lbl }))
-      .sort((a, b) => a.label.localeCompare(b.label, "ko"));
-    return { title, items };
-  });
-}
-
-function hideLegacyExtraUI() {
-  const legacyIds = [
-    "naviExtraIncomeType",
-    "naviExtraCreditBand",
-    "naviExtraRepayPlan",
-    "naviExtraNeedTiming",
-    "naviExtraOthers",
-  ];
-  legacyIds.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    // 너무 공격적으로 부모를 숨기지 않고, 영역 자체만 숨김
-    el.style.display = "none";
-  });
-}
-
-function ensureDynamicExtraUI() {
-  const step61Card = document.querySelector("#navi-step6-1 .navi-card");
-  if (!step61Card) return false;
-
-  if (document.getElementById("naviExtraDynamicRoot")) return true;
-
-  const tokens = getAllExtraTokensFromLenders();
-  if (!tokens.length) return false;
-
-  hideLegacyExtraUI();
-
-  const catalog = buildExtraCatalog(tokens);
-
-  const root = document.createElement("div");
-  root.id = "naviExtraDynamicRoot";
-  root.style.marginTop = "10px";
-
-  root.innerHTML = `
-    <div style="margin-bottom:8px;font-size:11px;color:#6b7280;">
-      ※ 아래 선택항목은 <strong>관리자(추가조건 선택)</strong>에 저장된 <strong>토큰</strong>과 동일하게 매칭됩니다. (선택한 조건만 결과에 반영)
-    </div>
-    <div id="naviExtraSelectedCount" style="margin-bottom:10px;font-size:12px;color:#111827;font-weight:700;">선택한 조건: 0개</div>
-    <div id="naviExtraDynamicGroups"></div>
-  `;
-
-  step61Card.appendChild(root);
-
-  const groupsWrap = root.querySelector("#naviExtraDynamicGroups");
-  if (!groupsWrap) return true;
-
-  groupsWrap.innerHTML = catalog
-    .map((g) => {
-      const chips = g.items
-        .map(
-          (it) =>
-            `<button type="button" class="navi-chip" data-extra-token="${String(it.token).replace(/"/g, "&quot;")}">${it.label}</button>`
-        )
-        .join("");
-      return `
-        <div style="margin:12px 0;">
-          <div style="font-size:12px;font-weight:800;color:#111827;margin-bottom:6px;">${g.title}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">${chips}</div>
-        </div>
-      `;
-    })
-    .join("");
-
-  // 기존 선택 상태 반영
-  syncDynamicExtraSelectionUI();
-  updateDynamicExtraSelectedCount();
-
-  return true;
-}
-
-function updateDynamicExtraSelectedCount() {
-  const el = document.getElementById("naviExtraSelectedCount");
-  if (!el) return;
-  const n = Array.isArray(userState.extra.tokens) ? userState.extra.tokens.length : 0;
-  el.textContent = `선택한 조건: ${n}개`;
-}
-
-function syncDynamicExtraSelectionUI() {
-  const root = document.getElementById("naviExtraDynamicRoot");
-  if (!root) return;
-
-  const selected = new Set((userState.extra.tokens || []).map((x) => normKey(x)));
-  root.querySelectorAll(".navi-chip[data-extra-token]").forEach((btn) => {
-    const token = btn.getAttribute("data-extra-token") || "";
-    const on = selected.has(normKey(token));
-    btn.classList.toggle("is-selected", on);
-  });
-}
-
-
-function renderLockedResultPanel() {
-  const panel = document.getElementById("naviResultPanel");
-  const summaryEl = document.getElementById("naviResultSummary");
-  if (summaryEl) summaryEl.textContent = "업체명 공개는 6-1(차주 추가정보) 선택조건 입력 후 가능합니다.";
-  if (panel) {
-    panel.innerHTML = `
-      <div class="navi-empty-card">
-        <div style="font-weight:700;margin-bottom:4px;">업체명 공개 대기 중</div>
-        <div style="font-size:11px;">
-          6-1(차주 추가정보)에서 <strong>최소 1개</strong> 이상 선택하면<br/>
-          추천 온투업체(업체명)가 자동으로 표시됩니다.
-        </div>
-      </div>
-    `;
-  }
-  uiState.hasRenderedResult = false;
-}
-
-function autoRevealAfterExtraChanged() {
-  const isRE = userState.mainCategory === "부동산담보대출";
-  if (!isRE) return;
-  if (!uiState.confirmed) return;
-
-  syncInputsToState();
-
-  const step5Complete = isStep5Complete();
-  const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
-  const coreMatched = step5Complete && globalMinOK ? filterLenders(false) : [];
-  const primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
-  if (!primaryEligible) return;
-
-  // ✅ 선택조건이 0개면 '대기' 상태로 유지
-  if (!hasAnyExtraSelected()) {
-    renderLockedResultPanel();
-    return;
-  }
-
-  // ✅ 자동 공개/갱신: 스크롤 이동 없이 결과만 즉시 갱신
-  renderFinalResult({ silent: true, skipScroll: true, keepStepper: true });
-  uiState.autoRevealed = true;
-}
-
-
-function setupStep6Extra() {
-  // ✅ 동적 UI 우선
-  const built = ensureDynamicExtraUI();
-  if (built) {
-    const root = document.getElementById("naviExtraDynamicRoot");
-    if (!root) return;
-
-    // 중복 바인딩 방지
-    if (root.__bound) return;
-    root.__bound = true;
-
-    root.addEventListener("click", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
-      if (!t.classList.contains("navi-chip")) return;
-
-      const token = t.getAttribute("data-extra-token");
-      if (!token) return;
-
-      toggleChip(t);
-
-      const arr = Array.isArray(userState.extra.tokens) ? userState.extra.tokens : [];
-      const idx = arr.findIndex((x) => normKey(x) === normKey(token));
-      if (t.classList.contains("is-selected")) {
-        if (idx === -1) arr.push(token);
-      } else {
-        if (idx !== -1) arr.splice(idx, 1);
-      }
-      userState.extra.tokens = arr;
-
-      updateDynamicExtraSelectedCount();
-
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-
-    return;
-  }
-
-  // ----------------------------
-  // (fallback) 기존 정적 UI 유지
-  // ----------------------------
-
-  const incomeContainer = document.getElementById("naviExtraIncomeType");
-  if (incomeContainer) {
-    incomeContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-      singleSelectChip(incomeContainer, target);
-      userState.extra.incomeType = target.getAttribute("data-income");
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-  }
-
-  const creditContainer = document.getElementById("naviExtraCreditBand");
-  if (creditContainer) {
-    creditContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-      singleSelectChip(creditContainer, target);
-      userState.extra.creditBand = target.getAttribute("data-credit");
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-  }
-
-  const repayContainer = document.getElementById("naviExtraRepayPlan");
-  if (repayContainer) {
-    repayContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-      singleSelectChip(repayContainer, target);
-      userState.extra.repayPlan = target.getAttribute("data-repay");
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-  }
-
-  const needContainer = document.getElementById("naviExtraNeedTiming");
-  if (needContainer) {
-    needContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-      singleSelectChip(needContainer, target);
-      userState.extra.needTiming = target.getAttribute("data-need");
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-  }
-
-  const othersContainer = document.getElementById("naviExtraOthers");
-  if (othersContainer) {
-    othersContainer.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
-
-      toggleChip(target);
-      const val = target.getAttribute("data-etc");
-      if (!val) return;
-
-      const arr = userState.extra.others || [];
-      const idx = arr.indexOf(val);
-      if (target.classList.contains("is-selected")) {
-        if (idx === -1) arr.push(val);
-      } else {
-        if (idx !== -1) arr.splice(idx, 1);
-      }
-      userState.extra.others = arr;
-
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary(true);
-      autoRevealAfterExtraChanged();
-    });
-  }
-}
-
-// 버튼들
-function setupResultButtons() {
-  const recalcBtn = document.getElementById("naviRecalcBtn");
-  if (recalcBtn) {
-    recalcBtn.addEventListener("click", () => {
-      uiState.hasRenderedResult = false;
-      recalcAndUpdateSummary();
-    });
-  }
-
-  const showBtn = document.getElementById("naviShowResultBtn");
-  if (showBtn) {
-    showBtn.addEventListener("click", () => {
-      if (!hasAnyExtraSelected()) {
-        alert("업체명 공개를 위해 6-1(차주 추가정보)을 최소 1개 이상 선택해주세요.");
-        const s61 = document.getElementById("navi-step6-1");
-        if (s61) s61.scrollIntoView({ behavior: "smooth", block: "start" });
-        return;
-      }
-      renderFinalResult();
-    });
-  }
-
-  const adjustBtn = document.getElementById("naviAdjustConditionBtn");
-  if (adjustBtn) {
-    adjustBtn.addEventListener("click", () => {
-      const target = document.getElementById("navi-step1");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
-  const captureBtn = document.getElementById("naviCaptureBtn");
-  if (captureBtn) {
-    captureBtn.addEventListener("click", async () => {
-      const panel = document.getElementById("naviResultWrapper");
-      if (!panel || typeof html2canvas === "undefined") {
-        alert("이미지 저장 기능을 사용할 수 없습니다. 브라우저의 캡처 기능을 이용해주세요.");
-        return;
-      }
-      try {
-        const canvas = await html2canvas(panel, {
-          backgroundColor: "#ffffff",
-          scale: window.devicePixelRatio || 2,
-        });
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL("image/png");
-        link.download = "huchu-navi-result.png";
-        link.click();
-      } catch (e) {
-        console.error("capture error:", e);
-        alert("이미지 생성 중 오류가 발생했습니다. 브라우저 캡처 기능을 이용해주세요.");
-      }
-    });
-  }
-}
-
-// ------------------------------------------------------
-// 필터링 / 계산 로직
-// ------------------------------------------------------
-
-function syncInputsToState() {
-  userState.propertyValue = getMoneyValueById("naviInputPropertyValue");
-  const shareEl = document.getElementById("naviInputSharePercent");
-  userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 100;
-
-  userState.seniorLoan = getMoneyValueById("naviInputSeniorLoan");
-  userState.deposit = getMoneyValueById("naviInputDeposit");
-  userState.refinanceAmount = getMoneyValueById("naviInputRefinanceAmount");
-  userState.requestedAmount = getMoneyValueById("naviInputRequestedAmount");
-  userState.assumedBurden = getMoneyValueById("naviInputAssumedBurden");
-}
-
-function getPrincipalAmount() {
-  const lt = normKey(userState.realEstateLoanType);
-  if (lt.includes("임대보증금반환")) {
-    return (userState.deposit || 0) + (userState.requestedAmount || 0);
-  }
-  return userState.requestedAmount || 0;
-}
-
-function calcLtv() {
-  const {
-    propertyValue,
-    sharePercent,
-    seniorLoan,
-    deposit,
-    refinanceAmount,
-    requestedAmount,
-    assumedBurden,
-    realEstateLoanType,
-  } = userState;
-
-  if (!propertyValue) {
-    return { ltv: null, totalDebtAfter: null, baseValue: null };
-  }
-
-  const ratio = sharePercent && sharePercent > 0 ? sharePercent / 100 : 1;
-  const baseValue = propertyValue * ratio;
-
-  let totalDebtAfter = 0;
-
-  const seniorPlusDeposit = (seniorLoan || 0) + (deposit || 0);
-  const req = requestedAmount || 0;
-  const asb = assumedBurden || 0;
-
-  if (!realEstateLoanType || normKey(realEstateLoanType) === normKey("일반담보대출")) {
-    totalDebtAfter = seniorPlusDeposit + req;
-  } else if (normKey(realEstateLoanType).includes("임대보증금반환")) {
-    totalDebtAfter = seniorPlusDeposit + req;
-  } else if (normKey(realEstateLoanType).includes("지분")) {
-    totalDebtAfter = seniorPlusDeposit + req;
-  } else if (normKey(realEstateLoanType).includes("경락잔금")) {
-    totalDebtAfter = (seniorLoan || 0) + req + asb + (deposit || 0);
-  } else if (normKey(realEstateLoanType).includes("대환")) {
-    const remaining = seniorPlusDeposit - (refinanceAmount || 0);
-    totalDebtAfter = (remaining > 0 ? remaining : 0) + req;
-  } else if (normKey(realEstateLoanType).includes("매입잔금")) {
-    totalDebtAfter = (seniorLoan || 0) + req + (deposit || 0);
-  } else {
-    totalDebtAfter = seniorPlusDeposit + req;
-  }
-
-  if (!baseValue) {
-    return { ltv: null, totalDebtAfter, baseValue };
-  }
-
-  const ltv = totalDebtAfter / baseValue;
-  return { ltv, totalDebtAfter, baseValue };
-}
-
-function passesGlobalMinAmount() {
-  const amt = getPrincipalAmount();
-  if (!amt) return false;
-
-  const prop = userState.propertyType;
-  if (!prop) return false;
-
-  const isAptOrOfficetel = prop === "아파트" || prop === "오피스텔";
-  const minByUserRule = isAptOrOfficetel ? 10000000 : 30000000;
-  return amt >= minByUserRule;
-}
-
-function checkGlobalMinAmount() {
-  const warningEl = document.getElementById("naviAmountWarning");
-  if (!warningEl) return;
-
-  const amt = getPrincipalAmount();
-  if (!amt) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
-    return;
-  }
-
-  const prop = userState.propertyType;
-  if (!prop) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
-    return;
-  }
-
-  const isAptOrOfficetel = prop === "아파트" || prop === "오피스텔";
-  const minByUserRule = isAptOrOfficetel ? 10000000 : 30000000;
-  if (amt < minByUserRule) {
-    warningEl.style.display = "block";
-    const txt = isAptOrOfficetel
-      ? "주의: 아파트/오피스텔은 최소 대출금액 1,000만원 이상부터 가능합니다."
-      : "주의: 해당 부동산 유형은 최소 대출금액 3,000만원 이상부터 가능합니다.";
-    warningEl.textContent = txt;
-  } else {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
-  }
-}
-
-function hasAnyExtraSelected() {
-  const e = userState.extra || {};
-  if (Array.isArray(e.tokens) && e.tokens.length) return true;
-  return Boolean(
-    e.incomeType ||
-      e.creditBand ||
-      e.repayPlan ||
-      e.needTiming ||
-      (Array.isArray(e.others) && e.others.length)
-  );
-}
-
-// 온투업 리스트 필터링 (추가조건 미적용 / 적용 두 케이스 모두 사용)
-function filterLenders(applyExtras = false) {
-  const lenders = naviLoanConfig.lenders || [];
-  if (!lenders.length) return [];
-
-  const { mainCategory, region, propertyType, realEstateLoanType, realEstateLoanTypeKey, subregionKey, extra } = userState;
-
-  const principalAmount = getPrincipalAmount();
-  const { ltv } = calcLtv();
-
-  const filtered = lenders.filter((l) => {
-    if (l.isActive === false) return false;
-    if (l.isNewLoanActive === false) return false;
-
-    if (mainCategory) {
-      const cats = l.loanCategories || [];
-      if (cats.length && !includesNorm(cats, mainCategory)) return false;
-    }
-
-    if (mainCategory === "부동산담보대출") {
-      const cell = getAdminRegionCell(l, region, propertyType);
-
-      if (cell) {
-        const enabled = cell.enabled === true || cell.enabled === "true";
-        if (!enabled) return false;
-
-        if (realEstateLoanTypeKey || realEstateLoanType) {
-          const sel = realEstateLoanTypeKey || realEstateLoanType;
-          const types = cell.loanTypes || [];
-          if (types.length && !types.some((t) => normKey(t) === normKey(sel))) return false;
-        }
-
-        if (principalAmount) {
-          const lenderMinWon = toWonMaybe(l.realEstateMinLoanAmount);
-          if (lenderMinWon && principalAmount < lenderMinWon) return false;
-        }
-
-        let maxPct = parseNumberLoose(cell.ltvMax);
-        // ✅ 세부지역 LTV Up 가산 (업체별 설정)
-        if (subregionKey && cell.ltvUp && typeof cell.ltvUp === "object") {
-          const add = parseNumberLoose(cell.ltvUp[subregionKey]);
-          if (add != null && add > 0) maxPct = (maxPct || 0) + add;
-        }
-        if (maxPct != null && maxPct > 0 && ltv != null) {
-          if (ltv * 100 > maxPct + 1e-6) return false;
-        }
-      } else {
-        const cfg = l.realEstateConfig || {};
-
-        if (region) {
-          const rgs = cfg.regions || [];
-          if (rgs.length && !includesRegion(rgs, region)) return false;
-        }
-
-        if (propertyType) {
-          const props = cfg.propertyTypes || [];
-          if (props.length && !includesNorm(props, propertyType)) return false;
-        }
-
-        if (realEstateLoanType) {
-          const types = cfg.loanTypes || [];
-          if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
-        }
-
-        if (principalAmount) {
-          const minMap = cfg.minLoanByProperty || {};
-          const aptMin = minMap["아파트"] ?? 0;
-          const otherMin = minMap["_기타"] ?? 0;
-          const isApt = propertyType === "아파트";
-          const lenderMin = isApt ? aptMin : otherMin;
-          if (lenderMin && principalAmount < lenderMin) return false;
-        }
-
-        if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
-          if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
-        }
-      }
-    }
-
-    // ✅ 추가조건(6-1) — admin extraConditions 토큰 "정확 매칭"
-    if (applyExtras) {
-      let selected = [];
-
-      // ✅ 동적 토큰 우선
-      if (Array.isArray(extra.tokens) && extra.tokens.length) {
-        selected = [...extra.tokens];
-      } else {
-        if (extra.incomeType) selected.push(extra.incomeType);
-        if (extra.creditBand) selected.push(extra.creditBand);
-        if (extra.repayPlan) selected.push(extra.repayPlan);
-        if (extra.needTiming) selected.push(extra.needTiming);
-        if (Array.isArray(extra.others) && extra.others.length) selected.push(...extra.others);
-      }
-
-      if (selected.length) {
-        const allowed = Array.isArray(l.extraConditions) ? l.extraConditions : [];
-
-        // ✅ 선택조건을 썼는데 업체가 extraConditions 미등록이면 제외
-        if (!allowed.length) return false;
-
-        for (const s of selected) {
-          const sv = normKey(s);
-          const ok = allowed.some((x) => normKey(x) === sv);
-          if (!ok) return false;
-        }
-      }
-    }
-
-    if (extra.others && extra.others.length) {
-      const blocked = l.blockedFlags || {};
-      for (const tag of extra.others) {
-        if (tag === "세금체납" && blocked["taxArrears"]) return false;
-        if (tag === "연체기록" && blocked["delinquency"]) return false;
-        if (tag === "압류·가압류" && blocked["seizure"]) return false;
-        if (tag === "개인회생" && blocked["bankruptcy"]) return false;
-      }
-    }
-
-    return true;
-  });
-
-  filtered.sort((a, b) => {
-    if (a.isPartner && !b.isPartner) return -1;
-    if (!a.isPartner && b.isPartner) return 1;
-
-    const ao = typeof a.displayOrder === "number" ? a.displayOrder : 9999;
-    const bo = typeof b.displayOrder === "number" ? b.displayOrder : 9999;
-    if (ao !== bo) return ao - bo;
-
-    const an = a.displayName || "";
-    const bn = b.displayName || "";
-    return an.localeCompare(bn, "ko");
-  });
-
-  return filtered;
-}
-
-// ------------------------------------------------------
-// Step6(1차 결과): 업체명 비공개 + 금리/수수료 범위
-// ------------------------------------------------------
-
-function ensurePrimaryFeeUI() {
-  const step6Card = document.querySelector("#navi-step6 .navi-card");
-  if (!step6Card) return;
-
-  if (document.getElementById("naviPrimaryFeePanel")) return;
-
-  const div = document.createElement("div");
-  div.id = "naviPrimaryFeePanel";
-  div.style.marginTop = "10px";
-  div.innerHTML = `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">대출금리 (최소~최대)</div>
-        <div id="naviRangeInterest" style="font-weight:800;color:#111827;">-</div>
-      </div>
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">플랫폼수수료 (최소~최대)</div>
-        <div id="naviRangePlatform" style="font-weight:800;color:#111827;">-</div>
-      </div>
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">중도상환수수료 (최소~최대)</div>
-        <div id="naviRangePrepay" style="font-weight:800;color:#111827;">-</div>
-      </div>
-    </div>
-    <div style="margin-top:6px;font-size:11px;color:#6b7280;">
-      ※ 1차 결과는 <strong>업체명 비공개</strong>로, 조건에 따른 예상 범위만 제공합니다.
-    </div>
-  `;
-  step6Card.appendChild(div);
-}
-
-function getFinancialInputsForCategory(lender, category) {
-  const fin = lender?.financialInputs || {};
-  if (!category) return null;
-
-  if (fin[category]) return fin[category];
-
-  const keys = Object.keys(fin);
-  const k = keys.find((x) => normKey(x) === normKey(category));
-  return k ? fin[k] : null;
-}
-
-function calcFeeRanges(lenders, category) {
-  let iMin = null,
-    iMax = null;
-  let pMin = null,
-    pMax = null;
-  let ppMin = null,
-    ppMax = null;
-
-  (lenders || []).forEach((l) => {
-    const f = getFinancialInputsForCategory(l, category);
-    if (!f) return;
-
-    const i = parseNumberLoose(f.interestAvg);
-    const p = parseNumberLoose(f.platformFeeAvg);
-    const pp = parseNumberLoose(f.prepayFeeAvg);
-
-    if (i != null) {
-      if (iMin == null || i < iMin) iMin = i;
-      if (iMax == null || i > iMax) iMax = i;
-    }
-    if (p != null) {
-      if (pMin == null || p < pMin) pMin = p;
-      if (pMax == null || p > pMax) pMax = p;
-    }
-    if (pp != null) {
-      if (ppMin == null || pp < ppMin) ppMin = pp;
-      if (ppMax == null || pp > ppMax) ppMax = pp;
-    }
-  });
-
-  return { iMin, iMax, pMin, pMax, ppMin, ppMax };
-}
-
-function updatePrimaryFeeUI(coreMatched) {
-  ensurePrimaryFeeUI();
-
-  const { iMin, iMax, pMin, pMax, ppMin, ppMax } = calcFeeRanges(coreMatched, userState.mainCategory);
-
-  const iEl = document.getElementById("naviRangeInterest");
-  const pEl = document.getElementById("naviRangePlatform");
-  const ppEl = document.getElementById("naviRangePrepay");
-  if (iEl) iEl.textContent = fmtRange(iMin, iMax, "%", "미등록");
-  if (pEl) pEl.textContent = fmtRange(pMin, pMax, "%", "미등록");
-  if (ppEl) ppEl.textContent = fmtRange(ppMin, ppMax, "%", "미등록");
-}
-
-// ------------------------------------------------------
-// 계산 결과 요약 / 카운트 업데이트 + 단계 노출 제어
-// ------------------------------------------------------
-
-function updateStepVisibility(primaryEligible) {
-  const isRE = userState.mainCategory === "부동산담보대출";
-
-  // ✅ 진행단계는 부동산 담보대출에만 노출
-  setStepperVisible(isRE);
-
-  // Step1 미선택
-  if (!userState.mainCategory) {
-    setSectionVisible("navi-step2", false);
-    setSectionVisible("navi-step3", false);
-    setSectionVisible("navi-step4", false);
-    setSectionVisible("navi-step5", false);
-    setSectionVisible("navi-step6", false);
-    setSectionVisible("navi-step6-1", false);
-    setSectionVisible("navi-step7", false);
-    return;
-  }
-
-  // ✅ 부동산담보대출 외: 상품군 선택 → 바로 결과(7)만 노출
-  if (!isRE) {
-    setSectionVisible("navi-step2", false);
-    setSectionVisible("navi-step3", false);
-    setSectionVisible("navi-step4", false);
-    setSectionVisible("navi-step5", false);
-    setSectionVisible("navi-step6", false);
-    setSectionVisible("navi-step6-1", false);
-    setSectionVisible("navi-step7", Boolean(primaryEligible));
-    return;
-  }
-
-  // ✅ 부동산담보대출 플로우
-  setSectionVisible("navi-step2", true);
-
-  // ✅ LTV UP(세부지역) 선택이 필요한 지역이면, 세부지역을 1번 클릭(선택안함 포함)해야 Step3 진행
-  const needsSub = isSubregionRequiredForCurrentRegion();
-  const subDone = !needsSub || userState.subregionKey !== null; // ""(선택안함)도 완료로 간주
-  const s3Ready = Boolean(userState.region && subDone);
-
-  setSectionVisible("navi-step3", s3Ready);
-  setSectionVisible("navi-step4", Boolean(s3Ready && userState.propertyType));
-
-  const s5Ready = Boolean(s3Ready && userState.propertyType && userState.realEstateLoanType);
-  setSectionVisible("navi-step5", s5Ready);
-
-  const canShowStep6 = Boolean(uiState.confirmed && isStep5Complete());
-  setSectionVisible("navi-step6", canShowStep6);
-
-  const canShowExtra = Boolean(uiState.confirmed && primaryEligible);
-  setSectionVisible("navi-step6-1", canShowExtra);
-
-  const extraSelected = hasAnyExtraSelected();
-  setSectionVisible("navi-step7", Boolean(uiState.confirmed && primaryEligible && extraSelected));
-}
-
-
-function resolveActiveStep(primaryEligible) {
-  if (!userState.mainCategory) return 1;
-
-  const isRE = userState.mainCategory === "부동산담보대출";
-
-  if (isRE) {
-    if (!userState.region) return 2;
-
-    // ✅ LTV UP(세부지역) 선택이 필요한 지역이면, 세부지역 선택 전까지는 Step2로 유지
-    if (isSubregionRequiredForCurrentRegion() && userState.subregionKey === null) return 2;
-
-    if (!userState.propertyType) return 3;
-    if (!userState.realEstateLoanType) return 4;
-    if (!isStep5Complete()) return 5;
-    if (!primaryEligible) return 6;
-    if (uiState.hasRenderedResult) return 7;
-    return 6;
-  }
-
-  // ✅ non-RE: 바로 Step6 흐름
-  if (!primaryEligible) return 6;
-  if (uiState.hasRenderedResult) return 7;
-  return 6;
-}
-
-function recalcAndUpdateSummary(onlyExtra = false) {
-  const isRE = userState.mainCategory === "부동산담보대출";
-
-  // ✅ Step6/6-1은 "부동산 담보대출"에서만 사용
-  if (isRE) {
-    if (!uiState.confirmed) {
-      // 아직 "결과확인하기" 전이면 Step6/6-1은 항상 숨김
-      setStep6Visible(false);
-      setStep6_1Visible(false);
-      if (onlyExtra) return;
-    } else {
-      setStep6Visible(true);
-    }
-  } else {
-    // 다른 상품군은 Step6/6-1을 쓰지 않음
-    setStep6Visible(false);
-    setStep6_1Visible(false);
-  }
-
-  syncInputsToState();
-
-  // ✅ non-RE일 때는 최소금액 경고 숨김
-  if (!isRE) {
-    const warningEl = document.getElementById("naviAmountWarning");
-    if (warningEl) {
-      warningEl.style.display = "none";
-      warningEl.textContent = "";
-    }
-  } else {
-    checkGlobalMinAmount();
-  }
-
-  const calcTextEl = document.getElementById("naviCalcSummaryText");
-  const calcSubEl = document.getElementById("naviCalcSubText");
-  const countInfoEl = document.getElementById("naviCalcCountInfo");
-  const extraCountEl = document.getElementById("naviExtraCountInfo");
-  const resultSummaryEl = document.getElementById("naviResultSummary");
-
-  if (!calcTextEl || !calcSubEl || !resultSummaryEl) return;
-
-  ensureStepper();
-  ensureLoanTypeChips();
-  updateLoanTypeChipVisibility();
-
-  // ✅ Step6-1 동적 UI 구축(가능하면)
-  ensureDynamicExtraUI();
-
-  if (isRE && userState.realEstateLoanType) {
-    applyStep5Schema();
-  }
-
-  const { mainCategory, propertyType, realEstateLoanType } = userState;
-
-  let primaryEligible = false;
-
-  if (!mainCategory) {
-    calcTextEl.textContent = "대출 상품군이 선택되지 않았습니다. 1단계에서 먼저 대출 상품군을 선택해주세요.";
-    calcSubEl.textContent = "";
-    if (countInfoEl) countInfoEl.style.display = "none";
-    if (extraCountEl) extraCountEl.style.display = "none";
-    resultSummaryEl.textContent = "상품군, 지역, 대출종류를 입력하시면 추천 온투업 결과를 볼 수 있습니다.";
-
-    updateStepVisibility(false);
-    renderStepper(1);
-    return;
-  }
-
-  let baseSummary = `선택 상품군: ${mainCategory}`;
-  if (propertyType) baseSummary += ` / 부동산 유형: ${propertyType}`;
-  if (realEstateLoanType) baseSummary += ` / 대출종류: ${realEstateLoanType}`;
-  if (isRE && userState.subregionLabel) baseSummary += ` / 세부지역(LTV Up): ${userState.subregionLabel}`;
-  calcTextEl.textContent = baseSummary;
-
-  // ✅ 부동산담보대출만 LTV 설명
-  if (isRE) {
-    const { ltv, totalDebtAfter, baseValue } = calcLtv();
-    if (ltv == null || !baseValue) {
-      calcSubEl.textContent = "시세(또는 낙찰가) 등 핵심 정보가 부족하여 LTV를 계산할 수 없습니다.";
-    } else {
-      const pct = (ltv * 100).toFixed(1);
-      const totalStr = formatWithCommas(String(Math.round(totalDebtAfter)));
-      const baseStr = formatWithCommas(String(Math.round(baseValue)));
-      calcSubEl.textContent = `예상 총 부담액은 약 ${totalStr}원, 담보가치는 약 ${baseStr}원으로 예상 LTV는 약 ${pct}% 수준입니다.`;
-    }
-  } else {
-    calcSubEl.textContent = "선택한 상품군 기준으로 가능한 온투업체를 확인합니다. (지역 선택 없이 진행)";
-  }
-
-  // -----------------------------
-  // ✅ 매칭 로직: RE / non-RE 분기
-  // -----------------------------
-  let coreMatched = [];
-  let extraMatched = [];
-
-  if (isRE) {
-    const step5Complete = isStep5Complete();
-    const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
-
-    coreMatched = step5Complete ? filterLenders(false) : [];
-    extraMatched = step5Complete ? filterLenders(true) : [];
-
-    primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
-
-    if (countInfoEl) {
-      if (!userState.realEstateLoanType) {
-        countInfoEl.style.display = "none";
-      } else if (!step5Complete) {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = "아직 입력이 부족합니다. 5단계 필수 항목을 모두 입력하면 1차 결과를 확인할 수 있습니다.";
-      } else if (!globalMinOK) {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = "현재 입력한 대출금액이 최소 기준 미만입니다. (아파트/오피스텔 1,000만원·그 외 3,000만원 이상)";
-      } else if (!coreMatched.length) {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = "현재 조건으로는 매칭되는 온투업체가 없습니다. LTV/대출금액/유형/지역을 조정해보세요.";
-      } else {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = `✅ 1차 결과: 조건상 매칭 온투업체 ${coreMatched.length}곳 (업체명 비공개)`;
-        updatePrimaryFeeUI(coreMatched);
-      }
-    }
-  } else {
-    // non-RE: 상품군만으로 바로 필터링
-    coreMatched = filterLenders(false);
-    extraMatched = filterLenders(true);
-    primaryEligible = Boolean(coreMatched.length);
-
-    if (countInfoEl) {
-      countInfoEl.style.display = "inline-block";
-      if (!coreMatched.length) {
-        countInfoEl.textContent = "현재 선택한 상품군으로는 매칭되는 온투업체가 없습니다. (관리자 설정 확인 필요)";
-      } else {
-        countInfoEl.textContent = `✅ 1차 결과: 조건상 매칭 온투업체 ${coreMatched.length}곳 (업체명 비공개)`;
-        updatePrimaryFeeUI(coreMatched);
-      }
-    }
-  }
-
-  if (extraCountEl) {
-    if (!primaryEligible) {
-      extraCountEl.style.display = "none";
-    } else if (!extraMatched.length) {
-      extraCountEl.style.display = "inline-block";
-      extraCountEl.textContent = "추가조건까지 고려하면 추천 가능한 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
-    } else {
-      extraCountEl.style.display = "inline-block";
-      extraCountEl.textContent = `추가조건까지 반영한 추천 온투업체: ${extraMatched.length}곳`;
-    }
-  }
-
-  if (!primaryEligible) {
-    resultSummaryEl.textContent = "아직 1차 결과(대출 가능 여부)가 확정되지 않았습니다. 위 단계 입력을 완료해주세요.";
-  } else {
-    if (isRE) {
-      const { ltv: l } = calcLtv();
-      const ltvText = l != null ? ` / 예상 LTV 약 ${(l * 100).toFixed(1)}%` : "";
-      resultSummaryEl.textContent = `1차 결과 통과: 업체명 공개는 6-1 선택조건 입력 후 가능합니다.${ltvText}`;
-    } else {
-      resultSummaryEl.textContent = "1차 결과 통과: 업체명 공개는 6-1 선택조건 입력 후 가능합니다.";
-    }
-  }
-
-  updateStepVisibility(primaryEligible);
-  const active = resolveActiveStep(primaryEligible);
-  renderStepper(active);
-
-  if (!primaryEligible) uiState.hasRenderedResult = false;
-
-  if (!primaryEligible) {
-    const panel = document.getElementById("naviResultPanel");
-    if (panel) {
-      panel.innerHTML = `
-        <div class="navi-empty-card">
-          아직 결과가 없습니다.<br />
-          <span style="font-size:11px;">
-            위 조건을 모두 입력하신 후 1차 결과가 가능으로 나오면 <strong>[네비게이션 결과 보기]</strong> 버튼이 활성 흐름으로 이어집니다.
-          </span>
-        </div>
-      `;
-    }
-  }
-
-  setConfirmUIState();
-}
-
-// ------------------------------------------------------
-// 최종 결과 렌더링 (Step7) - 3컬럼(금리/플랫폼/중도상환)
-// ------------------------------------------------------
-
-function renderFee3Cols(lender) {
-  const f = getFinancialInputsForCategory(lender, userState.mainCategory) || {};
-  const i = f.interestAvg;
-  const p = f.platformFeeAvg;
-  const pp = f.prepayFeeAvg;
-
-  return `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0;">
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">대출금리(평균)</div>
-        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(i), parseNumberLoose(i), "%", "미등록")}</div>
-      </div>
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">플랫폼수수료(평균)</div>
-        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(p), parseNumberLoose(p), "%", "미등록")}</div>
-      </div>
-      <div style="flex:1;min-width:160px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;">
-        <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">중도상환수수료(평균)</div>
-        <div style="font-weight:800;color:#111827;">${fmtRange(parseNumberLoose(pp), parseNumberLoose(pp), "%", "미등록")}</div>
-      </div>
-    </div>
-  `;
-}
-
-function renderFinalResult(opts = {}) {
-  const silent = Boolean(opts && opts.silent);
-  const skipScroll = Boolean(opts && opts.skipScroll);
-  const keepStepper = Boolean(opts && opts.keepStepper);
-
-  const panel = document.getElementById("naviResultPanel");
-  const summaryEl = document.getElementById("naviResultSummary");
-  if (!panel || !summaryEl) return;
-
-  const { mainCategory } = userState;
-  if (!mainCategory) {
-    if (!silent) alert("먼저 1단계에서 대출 상품군을 선택해주세요.");
-    return;
-  }
-
-  syncInputsToState();
-
-  const isRE = mainCategory === "부동산담보대출";
-
-  if (isRE) {
-    const step5Complete = isStep5Complete();
-    const coreMatched = step5Complete ? filterLenders(false) : [];
-    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && coreMatched.length);
-
-    if (!primaryEligible) {
-      if (!silent) alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
-      return;
-    }
-  } else {
-    const coreMatched = filterLenders(false);
-    const primaryEligible = Boolean(coreMatched.length);
-    if (!primaryEligible) {
-      if (!silent) alert("현재 상품군으로는 매칭되는 온투업체가 없습니다. 관리자 설정을 확인해주세요.");
-      return;
-    }
-  }
-
-  const matched = filterLenders(true);
-
-  if (!matched.length) {
-    summaryEl.textContent = "현재 추가조건까지 고려하면 추천 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
-    panel.innerHTML = `
-      <div class="navi-empty-card">
-        <div style="font-weight:600;margin-bottom:4px;">추가조건 적용 결과: 추천 온투업체가 없습니다.</div>
-        <div style="font-size:11px;">
-          · 선택조건(6-1)을 일부 해제하면 선택지가 늘 수 있습니다.<br/>
-          · 조건을 완화하거나 다른 상품군을 선택해보세요.
-        </div>
-      </div>
-    `;
-    uiState.hasRenderedResult = false;
-    renderStepper(6);
-    return;
-  }
-
-  const { ltv } = calcLtv();
-  const ltvText = isRE && ltv != null ? ` / 예상 LTV 약 ${(ltv * 100).toFixed(1)}%` : "";
-  summaryEl.textContent = `추천 온투업체 ${matched.length}곳${ltvText}`;
-
-  const condParts = [];
-  if (userState.mainCategory) condParts.push(userState.mainCategory);
-  if (userState.propertyType) condParts.push(userState.propertyType);
-  if (userState.realEstateLoanType) condParts.push(userState.realEstateLoanType);
-  if (userState.region) condParts.push(userState.region);
-  const condSummary = condParts.join(" / ");
-
-  // ✅ Step7: 카드형 결과 UI (제휴/비제휴 카드 분기)
-const escapeHtml = (v) =>
-  String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-
-const toInitials = (name) => {
-  const s = String(name || "").trim();
-  if (!s) return "?";
-  const parts = s.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
-  // 한글/영문 모두 2글자까지
-  return s.slice(0, 2).toUpperCase();
-};
-
-const fmtPctCompact = (num) => {
-  const n = parseNumberLoose(num);
-  if (n == null || !isFinite(n)) return "-";
-  const r = Math.round(n * 10) / 10;
-  const s = String(r);
-  return (s.endsWith(".0") ? s.slice(0, -2) : s) + "%";
-};
-
-const safeHttpUrl = (u) => {
-  const s = String(u || "").trim();
-  if (!s) return "";
-  if (!/^https?:\/\//i.test(s)) return "";
-  return s;
-};
-
-const safeTelHref = (phone) => {
-  const p = String(phone || "").trim();
-  if (!p) return "";
-  const cleaned = p.replace(/[^0-9+]/g, "");
-  return cleaned ? `tel:${cleaned}` : "";
-};
-
-const cardsHtml = matched
-  .map((l) => {
-    const isPartner = Boolean(l && l.isPartner);
-    const displayName = l && (l.displayName || l.name) ? String(l.displayName || l.name) : "(이름 없음)";
-    const nameHtml = escapeHtml(displayName);
-
-    // 등록번호(옵션) — admin에서 입력한 값을 그대로 표시
-    const licenseRaw = String(l?.licenseNo || l?.registrationNo || l?.ontuLicenseNo || "").trim();
-    const licenseLine = licenseRaw
-      ? (licenseRaw.includes("온라인") ? licenseRaw : `온라인투자연계금융업 ${licenseRaw}`)
-      : "온라인투자연계금융업";
-    const licenseHtml = escapeHtml(licenseLine);
-
-    const initials = escapeHtml(toInitials(displayName));
-    const logoData = typeof l?.logoDataUrl === "string" ? l.logoDataUrl : (typeof l?.logo === "string" ? l.logo : "");
-
-    const f = getFinancialInputsForCategory(l, userState.mainCategory) || {};
-    const interest = fmtPctCompact(f.interestAvg);
-    const platform = fmtPctCompact(f.platformFeeAvg);
-    const prepay = fmtPctCompact(f.prepayFeeAvg);
-
-    const phone = String(l?.channels?.phoneNumber || l?.phoneNumber || "").trim();
-    const kakao = String(l?.channels?.kakaoUrl || l?.kakaoUrl || "").trim();
-    const homepage = String(l?.homepage || l?.homepageUrl || "").trim();
-
-    const telHref = safeTelHref(phone);
-    const kakaoHref = safeHttpUrl(kakao);
-    const homeHref = safeHttpUrl(homepage);
-
-    const notes2 = isPartner ? "최적 조건 가능 업체!" : "정확한 조건은 업체에 문의하세요.";
-
-    const actionsHtml = isPartner
-      ? `
-        <div class="navi-result-divider"></div>
-        <div class="navi-result-actions">
-          ${telHref ? `<a class="navi-action-btn navi-action-phone" href="${escapeHtml(telHref)}" aria-label="전화 상담">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
-          </a>` : `<div class="navi-action-btn navi-action-phone is-disabled" aria-label="전화 미등록">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
-          </div>`}
-
-          ${kakaoHref ? `<a class="navi-action-btn navi-action-kakao" href="${escapeHtml(kakaoHref)}" target="_blank" rel="noopener noreferrer" aria-label="카톡 상담">
-            <span>카톡<br/>상담</span>
-          </a>` : `<div class="navi-action-btn navi-action-kakao is-disabled" aria-label="카톡 미등록"><span>카톡<br/>상담</span></div>`}
-
-          ${homeHref ? `<a class="navi-action-btn navi-action-home" href="${escapeHtml(homeHref)}" target="_blank" rel="noopener noreferrer" aria-label="홈페이지">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M3 12h18"></path>
-              <path d="M12 3a14 14 0 0 1 0 18"></path>
-              <path d="M12 3a14 14 0 0 0 0 18"></path>
-            </svg>
-          </a>` : `<div class="navi-action-btn navi-action-home is-disabled" aria-label="홈페이지 미등록">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M3 12h18"></path>
-              <path d="M12 3a14 14 0 0 1 0 18"></path>
-              <path d="M12 3a14 14 0 0 0 0 18"></path>
-            </svg>
-          </div>`}
-        </div>
-      `
-      : `
-        <div class="navi-result-divider"></div>
-        <div class="navi-nonpartner-huchu">
-          <img class="navi-huchu-img" src="/assets/media/huchu-sad.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';" />
-          <div class="navi-huchu-text">미제휴 업체로서<br/>조건이 좋지 않을 수 있습니다.</div>
-        </div>
-      `;
-
-    return `
-      <div class="navi-result-card ${isPartner ? "is-partner" : ""}">
-        <div class="navi-result-head">
-          <div class="navi-result-logo" aria-hidden="true">
-            <span class="navi-result-initials">${initials}</span>
-            ${logoData ? `<img src="${escapeHtml(logoData)}" alt="${nameHtml} 로고" onerror="this.style.display='none';" />` : ""}
-          </div>
-          <div class="navi-result-headtext">
-            <div class="navi-result-title">${nameHtml}</div>
-            <div class="navi-result-sub">${licenseHtml}</div>
-          </div>
-        </div>
-
-        <div class="navi-result-divider"></div>
-
-        <div class="navi-result-metrics">
-          <div class="navi-metric"><div class="lab">금리</div><div class="val">${interest}</div></div>
-          <div class="navi-metric"><div class="lab">플랫폼<br/>수수료</div><div class="val">${platform}</div></div>
-          <div class="navi-metric"><div class="lab">중도상환<br/>수수료</div><div class="val">${prepay}</div></div>
-        </div>
-
-        <div class="navi-result-notes">
-          <div>* 과거 데이터 기반의 평균 조건 입니다.</div>
-          <div>** ${escapeHtml(notes2)}</div>
-        </div>
-
-        ${actionsHtml}
-      </div>
-    `;
-  })
-  .join("");
-
-panel.innerHTML = `<div class="navi-result-grid">${cardsHtml}</div>`;
-
-
-
-  uiState.hasRenderedResult = true;
-  if (!keepStepper) renderStepper(7);
-
-  if (!skipScroll) {
-    const s7 = document.getElementById("navi-step7");
-    if (s7) s7.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-// ------------------------------------------------------
-// 초기화
-// ------------------------------------------------------
-
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ navi-beta.js loaded (20251230-fix-step1-bind)");
-  // ✅ meta 로딩 전(약 1~2초)에는 하드코딩된 칩이 잠깐 보일 수 있어, 먼저 "불러오는 중"으로 덮어씀
-  try {
-    const step1 = document.getElementById("naviLoanCategoryChips");
-    if (step1) {
-      step1.innerHTML = '<button type="button" class="navi-chip" disabled style="opacity:.65;cursor:default;">불러오는 중…</button>';
-    }
-  } catch (_) {}
+// DOM 로드 후 실행
+document.addEventListener("DOMContentLoaded", () => {
+  initNaviStatsWidget();
+  hookHeroBannerHeightSync();
+  // 네비 위젯 렌더 이후 한번 더
+  setTimeout(syncNaviStatsHeightDebounced, 0);
+
+  initOntuStats();
   setupBetaMenu();
-  ensureStepper();
-  ensureLoanTypeChips();
-  ensureWizardSingleCardUI();
 
-  // ✅ 초기 렌더링(설정 로딩 전)에는 Step1만 노출해서 '전체 스텝 깜빡임' 방지
-  updateStepVisibility(false);
-setupMoneyInputs();
-
-  await loadNaviLoanConfig();
-
-  // ✅ meta(선택지 정의) 기반으로 Step1~Step4 칩을 재렌더
-  setMeta(naviLoanConfig?.meta || null);
-  applyMetaChips();
-  ensureWizardSingleCardUI();
-
-  // ✅ 설정 로딩 후에도 현재 선택 상태 기준으로 다시 반영
-  updateStepVisibility(false);
-
-  // ✅ lenders 로드된 후에 동적 6-1 UI 구성
-  ensureDynamicExtraUI();
-
-  setupStep1();
-  setupStep2();
-  setupSubregion();
-  setupStep3();
-  setupStep4();
-
-  ensureAssumedBurdenField();
-  setupStep5();
-
-  setupStep6Extra();
-  setupResultButtons();
-
-  recalcAndUpdateSummary();
-  syncWizardSingleCardView();
+  window.addEventListener("resize", () => {
+    autoFitLoanStatusText();
+  });
 });
+
+// ===== 메인 히어로 배너 슬라이드 =====
+const heroSlides = document.querySelectorAll(".beta-hero-banner__slide");
+const heroPrev   = document.querySelector(".hero-nav--prev");
+const heroNext   = document.querySelector(".hero-nav--next");
+
+const HERO_SLIDE_INTERVAL = 5000;
+
+let heroIndex = 0;
+let heroTimer = null;
+
+function showHeroSlide(index) {
+  heroSlides.forEach((slide, i) => {
+    slide.classList.toggle("is-active", i === index);
+  });
+  heroIndex = index;
+  syncNaviStatsHeightDebounced();
+}
+
+function showNextHero() {
+  const next = (heroIndex + 1) % heroSlides.length;
+  showHeroSlide(next);
+}
+
+function showPrevHero() {
+  const prev = (heroIndex - 1 + heroSlides.length) % heroSlides.length;
+  showHeroSlide(prev);
+}
+
+function startHeroAutoSlide() {
+  if (heroTimer) clearInterval(heroTimer);
+  heroTimer = setInterval(showNextHero, HERO_SLIDE_INTERVAL);
+}
+
+if (heroSlides.length > 0) {
+  showHeroSlide(0);
+  startHeroAutoSlide();
+
+  if (heroPrev) {
+    heroPrev.addEventListener("click", () => {
+      showPrevHero();
+      startHeroAutoSlide();
+    });
+  }
+
+  if (heroNext) {
+    heroNext.addEventListener("click", () => {
+      showNextHero();
+      startHeroAutoSlide();
+    });
+  }
+}
