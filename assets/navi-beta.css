@@ -655,14 +655,23 @@ body.navi-single-card-mode .navi-main > #navi-stepper{
 body.navi-single-card-mode .navi-wizard-stage{
   margin-left:calc(50% - 50vw);
   margin-right:calc(50% - 50vw);
+  margin-bottom:8px; /* footer 위 간격 축소 */
   width:100vw;
   max-width:100vw;
   background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
   background-attachment:fixed;
   background-position:center;
-  padding:72px 20px 96px;
+  padding:24px 20px 12px; /* 상/하 여백 축소 */
   box-sizing:border-box;
   min-height:980px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+  /* 첫 화면 카드를 그라데이션 영역 중앙에 배치 */
+  align-items:center;
 }
 
 body.navi-single-card-mode .navi-wizard-card-shell{
@@ -838,8 +847,9 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
 
 @media (max-width: 768px){
   body.navi-single-card-mode .navi-wizard-stage{
-    padding:40px 14px 64px;
+    padding:18px 14px 8px;
     min-height:720px;
+    margin-bottom:4px;
     background-attachment:scroll;
   }
   body.navi-single-card-mode .navi-wizard-card-shell{
@@ -870,4 +880,19 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
     font-size:14px;
     padding:8px 8px;
   }
+}
+
+
+/* sticky-footer에서 남는 흰 여백을 줄이기 위해 메인 영역/그라데이션 영역을 연결 */
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
+  display:flex;
+  flex-direction:column;
+}
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main > .beta-inner.navi-main{
+  display:flex;
+  flex-direction:column;
+  flex:1 0 auto;
+}
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage{
+  flex:1 0 auto;
 }
