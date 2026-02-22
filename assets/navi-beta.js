@@ -99,11 +99,120 @@ function trackProductGroupClick(rawMainCategory) {
 function setStep6Visible(isOn) {
   const sec6 = document.getElementById("navi-step6");
   if (sec6) sec6.classList.toggle("hide", !isOn);
+  syncWizardSingleCardView();
 }
 
 function setStep6_1Visible(isOn) {
   const sec61 = document.getElementById("navi-step6-1");
   if (sec61) sec61.classList.toggle("hide", !isOn);
+  syncWizardSingleCardView();
+}
+
+const WIZARD_STEP_IDS = [
+  "navi-step1",
+  "navi-step2",
+  "navi-step3",
+  "navi-step4",
+  "navi-step5",
+  "navi-step6",
+  "navi-step6-1",
+  "navi-step7",
+];
+
+function formatMainCategoryDisplayLabel(rawLabel, rawKey) {
+  const label = String(rawLabel || rawKey || "").trim();
+  const key = String(rawKey || "").trim();
+  const base = key || label;
+  const map = {
+    "개인신용대출": "신용대출_개인",
+    "법인신용대출": "신용대출_법인",
+    "온라인선정산": "선정산_카드",
+    "스탁론(상장)": "스탁론_상장\n(주식담보대출)",
+    "스탁론(비상장)": "스탁론_비상장\n(주식담보대출)",
+  };
+  return map[base] || map[label] || label;
+}
+
+function updateStep1GridOddState() {
+  const step1 = document.getElementById("naviLoanCategoryChips");
+  if (!step1) return;
+  const count = step1.querySelectorAll(".navi-chip").length;
+  if (!count) {
+    step1.removeAttribute("data-odd");
+    return;
+  }
+  step1.setAttribute("data-odd", count % 2 ? "1" : "0");
+}
+
+function ensureWizardSingleCardUI() {
+  const root = document.querySelector(".beta-inner.navi-main");
+  const step1 = document.getElementById("navi-step1");
+  if (!root || !step1) return;
+
+  if (!document.body.classList.contains("navi-single-card-mode")) {
+    document.body.classList.add("navi-single-card-mode");
+  }
+
+  if (!document.getElementById("naviWizardStage")) {
+    const stage = document.createElement("section");
+    stage.className = "beta-section navi-wizard-stage";
+    stage.id = "naviWizardStage";
+    stage.innerHTML = `
+      <div class="navi-wizard-card-shell">
+        <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
+      </div>
+    `;
+    root.insertBefore(stage, step1);
+
+    const body = stage.querySelector("#naviWizardCardBody");
+    if (body) {
+      WIZARD_STEP_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) body.appendChild(el);
+      });
+    }
+  }
+
+  if (!ensureWizardSingleCardUI._observerAttached) {
+    const observer = new MutationObserver(() => syncWizardSingleCardView());
+    WIZARD_STEP_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ["class", "style"] });
+    });
+    ensureWizardSingleCardUI._observerAttached = true;
+  }
+
+  updateStep1GridOddState();
+  syncWizardSingleCardView();
+}
+
+function syncWizardSingleCardView() {
+  const stage = document.getElementById("naviWizardStage");
+  if (!stage) return;
+
+  let activeEl = null;
+  WIZARD_STEP_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const hiddenByClass = el.classList.contains("hide");
+    const hiddenByStyle = el.style && el.style.display === "none";
+    const isVisible = !hiddenByClass && !hiddenByStyle;
+    if (isVisible) activeEl = el;
+  });
+
+  if (!activeEl) {
+    activeEl = document.getElementById("navi-step1");
+  }
+
+  WIZARD_STEP_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("navi-wizard-step-hidden", el !== activeEl);
+  });
+
+  if (activeEl) {
+    stage.setAttribute("data-active-step", activeEl.id);
+  }
 }
 
 function setConfirmUIState() {
@@ -689,6 +798,7 @@ function setSectionVisible(sectionId, visible) {
     el.classList.add("hide");
     el.style.display = "none";
   }
+  syncWizardSingleCardView();
 }
 
 function setStepperVisible(visible) {
@@ -1197,8 +1307,10 @@ function applyMetaChips() {
     step1.innerHTML = meta.productGroups.map((g) => {
       const k = String(g.key || "");
       const label = String(g.label || g.key || "");
-      return `<button type="button" class="navi-chip" data-main-cat="${escapeHtmlAttr(k)}">${escapeHtml(label)}</button>`;
+      const displayLabel = formatMainCategoryDisplayLabel(label, k);
+      return `<button type="button" class="navi-chip" data-main-cat="${escapeHtmlAttr(k)}">${escapeHtml(displayLabel).replaceAll("\n", "<br />")}</button>`;
     }).join("");
+    updateStep1GridOddState();
   }
 
   // Step2: 지역
@@ -3018,8 +3130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupBetaMenu();
   ensureStepper();
   ensureLoanTypeChips();
-
-  
+  ensureWizardSingleCardUI();
 
   // ✅ 초기 렌더링(설정 로딩 전)에는 Step1만 노출해서 '전체 스텝 깜빡임' 방지
   updateStepVisibility(false);
@@ -3030,6 +3141,7 @@ setupMoneyInputs();
   // ✅ meta(선택지 정의) 기반으로 Step1~Step4 칩을 재렌더
   setMeta(naviLoanConfig?.meta || null);
   applyMetaChips();
+  ensureWizardSingleCardUI();
 
   // ✅ 설정 로딩 후에도 현재 선택 상태 기준으로 다시 반영
   updateStepVisibility(false);
@@ -3050,4 +3162,5 @@ setupMoneyInputs();
   setupResultButtons();
 
   recalcAndUpdateSummary();
+  syncWizardSingleCardView();
 });
