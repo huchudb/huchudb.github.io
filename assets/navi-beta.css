@@ -927,3 +927,61 @@ body.navi-single-card-mode .navi-main > .navi-wizard-stage{
     padding-bottom:2px !important;
   }
 }
+
+/* ===== Patch v3: PC exact center + mobile footer gap + mobile step1 height ===== */
+/* 공통: wizard stage가 flex-grow로 과하게 늘어나면서(특히 모바일) 배경 하단 여백이 커지는 현상 방지 */
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage{
+  flex: 0 0 auto !important;
+}
+
+/* 공통: main / navi-main 하단 여백을 완전히 제거(푸터 직전 흰 띠 축소) */
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main,
+body.navi-single-card-mode > main.beta-main{
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+body.navi-single-card-mode .beta-inner.navi-main,
+body.navi-single-card-mode .navi-main{
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+body.navi-single-card-mode .navi-main > .navi-wizard-stage,
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage:last-child{
+  margin-bottom: 0 !important;
+}
+
+/* PC/공통: Step1 카드는 배경의 정중앙에 정확히 위치 (상하 패딩 동일) */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+  display: grid !important;
+  place-items: center !important;
+  justify-content: initial !important;
+  align-items: initial !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  min-height: 640px !important;
+}
+
+/* 카드 자체가 중앙 정렬 계산에 영향 없이 정확히 중앙 배치되도록 */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .navi-wizard-card-shell{
+  margin: 0 !important;
+}
+
+@media (max-width: 768px){
+  /* 모바일: Step1 배경 세로폭을 콘텐츠 높이 + 최소 여백 기준으로 축소 */
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+    min-height: auto !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  /* 모바일에서 푸터 직전 흰 영역/그라데이션 꼬리 여백 제거 강화 */
+  body.navi-single-card-mode .navi-wizard-stage{
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  body.navi-single-card-mode .beta-inner.navi-main,
+  body.navi-single-card-mode .navi-main,
+  body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
+    padding-bottom: 0 !important;
+  }
+}
