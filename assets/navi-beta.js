@@ -158,6 +158,16 @@ function ensureWizardSingleCardUI() {
     stage.className = "beta-section navi-wizard-stage";
     stage.id = "naviWizardStage";
     stage.innerHTML = `
+      <div class="navi-user-flow-progress hide" id="naviUserFlowProgress" aria-hidden="true">
+        <div class="navi-user-flow-progress__track"></div>
+        <div class="navi-user-flow-progress__dots" aria-label="진행 단계">
+          <span class="navi-user-flow-progress__dot" data-ui-step="1">1</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="2">2</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="3">3</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="4">4</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="5">5</span>
+        </div>
+      </div>
       <div class="navi-wizard-card-shell">
         <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
       </div>
@@ -212,7 +222,39 @@ function syncWizardSingleCardView() {
 
   if (activeEl) {
     stage.setAttribute("data-active-step", activeEl.id);
+    syncUserFlowProgress(activeEl.id);
+  } else {
+    syncUserFlowProgress("");
   }
+}
+
+function getUserFlowVisibleStepIndex(sectionId) {
+  const map = {
+    "navi-step2": 1,
+    "navi-step3": 2,
+    "navi-step4": 3,
+    "navi-step5": 4,
+    "navi-step6": 5,
+    "navi-step6-1": 5,
+    "navi-step7": 5,
+  };
+  return map[sectionId] || 0;
+}
+
+function syncUserFlowProgress(sectionId) {
+  const progress = document.getElementById("naviUserFlowProgress");
+  if (!progress) return;
+
+  const isVisible = !!sectionId && userState.mainCategory === "부동산담보대출" && getUserFlowVisibleStepIndex(sectionId) > 0;
+  progress.classList.toggle("hide", !isVisible);
+  progress.setAttribute("aria-hidden", isVisible ? "false" : "true");
+
+  const activeUiStep = isVisible ? getUserFlowVisibleStepIndex(sectionId) : 0;
+  progress.querySelectorAll(".navi-user-flow-progress__dot").forEach((dot) => {
+    const n = Number(dot.getAttribute("data-ui-step") || 0);
+    dot.classList.toggle("is-active", n === activeUiStep);
+    dot.classList.toggle("is-done", n < activeUiStep);
+  });
 }
 
 function setConfirmUIState() {
@@ -1444,49 +1486,116 @@ function renderSubregionChips() {
   const container = document.getElementById("naviSubregionChips");
   if (!wrap || !container) return;
 
-  const regionKey = regionKeyFromLabel(userState.region);
-  const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
-
-  if (!list.length) {
+  const list = getSubregionsForSelectedRegion();
+  if (!Array.isArray(list) || !list.length) {
     wrap.classList.add("hide");
     container.innerHTML = "";
-    userState.subregionKey = null;
-    userState.subregionLabel = null;
+    renderStep2RegionRows();
     return;
   }
 
   wrap.classList.remove("hide");
 
   const chips = [];
-  // ✅ A안(추천): “선택안함” 포함 버튼을 반드시 1번 클릭해야 진행 가능
-  chips.push(
-    `<button type="button" class="navi-chip" data-subregion-key="" data-subregion-label="선택안함">선택안함</button>`
-  );
-
   list.forEach((it) => {
     const key = String(it && (it.key ?? it.id ?? it.code ?? "")).trim();
     if (!key) return;
 
-    const label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
-    const add = Number(it && (it.add ?? it.addPct ?? it.addPercent ?? it.percent ?? it.pct ?? 0));
-    const badge = (Number.isFinite(add) && add > 0) ? ` (+${add}%)` : "";
+    let label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
+    if (!label) label = key;
+    if (label === "기타") label = "그외";
 
     chips.push(
-      `<button type="button" class="navi-chip" data-subregion-key="${escapeHtmlAttr(key)}" data-subregion-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}${badge}</button>`
+      `<button type="button" class="navi-chip" data-subregion-key="${escapeHtmlAttr(key)}" data-subregion-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`
     );
   });
 
   container.innerHTML = chips.join("");
 
-  // ✅ 선택 복원: ""(선택안함)도 유효한 선택
   if (userState.subregionKey !== null) {
     const key = String(userState.subregionKey);
     const selector = `#naviSubregionChips .navi-chip[data-subregion-key="${CSS.escape(key)}"]`;
     const sel = document.querySelector(selector);
     if (sel) sel.classList.add("is-selected");
   }
+
+  renderStep2RegionRows();
 }
 
+function renderStep2RegionRows() {
+  const container = document.getElementById("naviRegionChips");
+  const subWrap = document.getElementById("naviSubregionWrap");
+  const subChips = document.getElementById("naviSubregionChips");
+  if (!container) return;
+
+  const rawButtons = Array.from(container.querySelectorAll('.navi-chip[data-region]'));
+  const regionMap = new Map();
+  rawButtons.forEach((btn) => {
+    const region = (btn.getAttribute('data-region') || '').trim();
+    if (!region) return;
+    const label = (btn.textContent || region).trim();
+    if (!regionMap.has(region)) regionMap.set(region, label);
+  });
+
+  if (!regionMap.size) return;
+
+  const preferred = ["서울", "경기", "인천", "충청도", "전라도", "경상도", "강원도", "제주도"];
+  const ordered = [];
+  preferred.forEach((k) => { if (regionMap.has(k)) ordered.push(k); });
+  Array.from(regionMap.keys()).forEach((k) => { if (!ordered.includes(k)) ordered.push(k); });
+
+  const hasSub = !!(subWrap && !subWrap.classList.contains('hide') && subChips && subChips.children.length);
+  const selectedRegion = String(userState.region || '').trim();
+
+  const firstBandSet = new Set(["서울", "경기", "인천"]);
+  let rows = [];
+
+  if (hasSub && selectedRegion && ordered.includes(selectedRegion)) {
+    const firstBand = ordered.filter((r) => firstBandSet.has(r));
+    const restBand = ordered.filter((r) => !firstBandSet.has(r));
+    const remainingFirst = firstBand.filter((r) => r !== selectedRegion);
+    const remainingRest = restBand.filter((r) => r !== selectedRegion);
+    rows.push({ regions: [selectedRegion], inlineSub: true });
+    if (remainingFirst.length) rows.push({ regions: remainingFirst });
+    if (remainingRest.length) rows.push({ regions: remainingRest });
+  } else {
+    const firstBand = ordered.filter((r) => firstBandSet.has(r));
+    const restBand = ordered.filter((r) => !firstBandSet.has(r));
+    if (firstBand.length) rows.push({ regions: firstBand });
+    if (restBand.length) rows.push({ regions: restBand });
+  }
+
+  const makeBtnHtml = (region) => {
+    const labelMap = {
+      "충청도": "충청",
+      "전라도": "전라",
+      "경상도": "경상",
+      "강원도": "강원",
+      "제주도": "제주",
+    };
+    const label = labelMap[region] || regionMap.get(region) || region;
+    const selected = (String(userState.region || '') === region) ? ' is-selected' : '';
+    return `<button type="button" class="navi-chip${selected}" data-region="${escapeHtmlAttr(region)}">${escapeHtml(label)}</button>`;
+  };
+
+  container.innerHTML = rows.map((row) => {
+    const rowCls = row.inlineSub ? 'navi-region-row navi-region-row--inline' : 'navi-region-row';
+    const regionHtml = row.regions.map(makeBtnHtml).join('');
+    const inlineSlot = row.inlineSub ? '<div class="navi-region-inline-subslot" id="naviRegionInlineSubslot"></div>' : '';
+    return `<div class="${rowCls}">${regionHtml}${inlineSlot}</div>`;
+  }).join('');
+
+  if (subWrap) {
+    const slot = document.getElementById('naviRegionInlineSubslot');
+    if (slot && hasSub) {
+      slot.appendChild(subWrap);
+      subWrap.classList.remove('hide');
+    } else {
+      const layout = document.getElementById('naviStep2RegionLayout');
+      if (layout && subWrap.parentElement !== layout) layout.appendChild(subWrap);
+    }
+  }
+}
 
 // HTML escape helpers
 function escapeHtml(s) {
@@ -1569,21 +1678,44 @@ function setupStep1() {
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
+
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
 
-    singleSelectChip(container, target);
-    userState.region = target.getAttribute("data-region");
+    const btn = target.closest(".navi-chip[data-region]");
+    if (!(btn instanceof HTMLElement)) return;
+    if (!container.contains(btn)) return;
+
+    container.querySelectorAll('.navi-chip[data-region]').forEach((b) => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+
+    userState.region = btn.getAttribute("data-region");
     // 세부지역(LTV Up) 초기화
     userState.subregionKey = null;
     userState.subregionLabel = null;
     renderSubregionChips();
+    renderStep2RegionRows();
 
     uiState.hasRenderedResult = false;
     recalcAndUpdateSummary();
   });
+
+  const backBtn = document.getElementById("naviStep2BackBtn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      document.querySelectorAll('#naviLoanCategoryChips .navi-chip').forEach((b) => b.classList.remove('is-selected'));
+      userState.mainCategory = null;
+      resetRealEstateDraftState();
+      renderStep2RegionRows();
+      uiState.hasRenderedResult = false;
+      uiState.autoRevealed = false;
+      recalcAndUpdateSummary();
+      try { syncWizardSingleCardView(); } catch (_) {}
+      const s1 = document.getElementById('navi-step1');
+      if (s1) s1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }
 
 function setupSubregion() {
@@ -1612,6 +1744,7 @@ function setupSubregion() {
     userState.subregionLabel = (kAttr === "") ? null : lbl;
 
     invalidateConfirmed();
+    renderStep2RegionRows();
     recalcAndUpdateSummary();
   });
 }
