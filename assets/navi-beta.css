@@ -435,310 +435,491 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
   color:#ffffff;
 }
 
+/* =========================================================
+   Step7 결과 카드(제휴/비제휴) — 2026-02-19
+========================================================= */
 
-/* ======================================================
-   부동산담보대출 Step1(지역 선택) 디자인 정비 (진행도/지역칩/세부지역/BACK)
-   기존 구조를 유지한 채 내부 배치만 재구성
-   ====================================================== */
+.navi-result-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
 
-/* 진행도(부동산담보대출 전용 1~5) */
-#navi-stepper.navi-stepper-wrap{
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-  margin: 14px auto 10px;
-  max-width: 760px;
+@media (max-width: 1100px){
+  .navi-result-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
-#navi-stepper .navi-stepper-head,
-#navi-stepper .navi-stepper-track,
-#navi-stepper .navi-stepper-track-fill,
-#navi-stepper .navi-stepper-dot,
-#navi-stepper .navi-stepper-meta{
-  display:none !important;
+@media (max-width: 640px){
+  .navi-result-grid{ grid-template-columns:1fr; }
 }
-.navi-wizard-progress{
-  position: relative;
-  width: min(620px, 92%);
-  margin: 0 auto;
-  padding: 12px 8px 4px;
+
+.navi-result-card{
+  background:#fff;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:14px 14px 12px;
+  box-sizing:border-box;
 }
-.navi-wizard-progress__line{
-  position:absolute;
-  left:48px;
-  right:48px;
-  top:31px;
-  height:2px;
-  background:#c4c4c4;
+
+.navi-result-card.is-partner{
+  border:2px solid #8b5cf6;
+  box-shadow:0 0 0 2px rgba(139,92,246,.08);
 }
-.navi-wizard-progress__dots{
-  position:relative;
+
+.navi-result-head{
   display:flex;
-  justify-content:space-between;
+  gap:12px;
   align-items:center;
 }
-.navi-wizard-progress__dot{
-  width:44px;
-  height:44px;
+
+.navi-result-logo{
+  width:56px;
+  height:56px;
   border-radius:999px;
-  background:#ffffff;
-  border:1px solid #ffffff;
+  border:1px solid #d1d5db;
+  background:#fff;
+  overflow:hidden;
+  flex:0 0 auto;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:800;
-  line-height:1;
-  color:#6f8ee4;
-  box-shadow:none;
-}
-.navi-wizard-progress__dot span{
-  font-size:18px;
-}
-.navi-wizard-progress__dot.is-active{
-  background:#000;
-  border-color:#000;
-  color:#fff;
-}
-.navi-wizard-progress__dot.is-done{
-  background:#fff;
-  color:#6f8ee4;
-}
-
-/* Step2 (지역 선택) 카드 내부 스타일 */
-#navi-step2.navi-step2-design{
   position:relative;
 }
-#navi-step2.navi-step2-design .navi-section-title{
-  font-size:34px;
-  font-weight:800;
-  text-align:center;
-  line-height:1.15;
-  margin:2px 0 34px;
-  letter-spacing:-0.02em;
-}
-#navi-step2.navi-step2-design .navi-step2-hide{
-  display:none !important;
-}
 
-#navi-step2.navi-step2-design #naviStep2RegionBoard{
-  position:relative;
-  width:min(100%, 690px);
-  margin:0 auto;
-}
-#navi-step2.navi-step2-design #naviRegionChips{
-  display:none !important; /* 버튼 원본 보관소 */
-}
-#navi-step2.navi-step2-design #naviSubregionWrap{
-  margin:0;
-  padding:0;
-  background:transparent;
-  border:0;
-}
-#navi-step2.navi-step2-design #naviSubregionWrap .navi-subregion-title,
-#navi-step2.navi-step2-design #naviSubregionWrap .navi-subregion-sub{
-  display:none !important;
-}
-
-#navi-step2.navi-step2-design .navi-step2-row{
-  display:flex;
-  align-items:center;
-  gap:24px;
-  margin-bottom:26px;
-  flex-wrap:nowrap;
-}
-#navi-step2.navi-step2-design .navi-step2-row--bottom{
-  margin-bottom:0;
-}
-#navi-step2.navi-step2-design #naviStep2RegionBoard.is-inline-subregion .navi-step2-row--top{
-  gap:22px;
-}
-#navi-step2.navi-step2-design .navi-step2-sub-inline{
-  display:none;
-  align-items:center;
-  min-width:0;
-  flex:1;
-}
-#navi-step2.navi-step2-design .navi-step2-sub-inline.is-visible{
-  display:flex;
-}
-#navi-step2.navi-step2-design .navi-step2-sub-inline #naviSubregionWrap{
+.navi-result-logo img{
   width:100%;
-}
-#navi-step2.navi-step2-design #naviSubregionChips{
-  position:relative;
-  display:flex;
-  align-items:center;
-  gap:16px;
-  flex-wrap:nowrap;
-  min-width:0;
-}
-#navi-step2.navi-step2-design #naviSubregionChips::before{
-  content:"";
-  position:absolute;
-  left:0;
-  right:0;
-  top:50%;
-  transform:translateY(-50%);
-  border-top:3px dashed #c9c9c9;
-  z-index:0;
-}
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip{
+  height:100%;
+  object-fit:contain;
   position:relative;
   z-index:1;
 }
 
-#navi-step2.navi-step2-design .navi-step2-row .navi-chip,
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip{
+.navi-result-initials{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:18px;
+  letter-spacing:.02em;
+  color:#111827;
+}
+
+.navi-result-title{
+  font-size:24px;
+  font-weight:900;
+  line-height:1.08;
+  color:#111827;
+}
+
+.navi-result-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#6b7280;
+  line-height:1.25;
+}
+
+.navi-result-divider{
+  height:1px;
+  background:#e5e7eb;
+  margin:12px 0;
+}
+
+.navi-result-metrics{
+  display:flex;
+  gap:10px;
+  margin-top:2px;
+}
+
+.navi-metric{
+  flex:1;
+  border:1px solid #c7cbd1;
   border-radius:10px;
-  border:1px solid #bdbdbd;
-  background:#fff;
-  color:#111;
-  padding:0 10px;
-  min-width:108px;
-  height:66px;
+  padding:10px 8px;
+  text-align:center;
+}
+
+.navi-metric .lab{
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+  line-height:1.1;
+}
+
+.navi-metric .val{
+  margin-top:10px;
+  font-size:16px;
+  font-weight:900;
+  color:#111827;
+}
+
+.navi-result-notes{
+  margin-top:12px;
+  font-size:13px;
+  color:#374151;
+  line-height:1.45;
+}
+
+.navi-result-actions{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between;
+  padding-top:2px;
+}
+
+.navi-action-btn{
+  width:58px;
+  height:58px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  border:1px solid #9ca3af;
+  box-sizing:border-box;
+  user-select:none;
+}
+
+.navi-action-btn.is-disabled{
+  opacity:.45;
+  pointer-events:none;
+}
+
+.navi-action-phone{
+  background:#22c55e;
+  border-color:#22c55e;
+}
+
+.navi-action-phone svg{
+  width:28px;
+  height:28px;
+  fill:#ffffff;
+}
+
+.navi-action-kakao{
+  background:#111827;
+  border-color:#111827;
+}
+
+.navi-action-kakao span{
+  color:#fde047;
+  font-weight:900;
+  font-size:12px;
+  line-height:1.05;
+  text-align:center;
+  display:block;
+}
+
+.navi-action-home{
+  background:#ffffff;
+  border-color:#9ca3af;
+}
+
+.navi-action-home svg{
+  width:30px;
+  height:30px;
+  stroke:#111827;
+}
+
+.navi-nonpartner-huchu{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding-top:2px;
+}
+
+.navi-huchu-img{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.navi-huchu-text{
+  font-size:14px;
+  font-weight:700;
+  color:#374151;
+  line-height:1.25;
+}
+
+
+/* =========================================================
+   Navi single-card wizard (첫 화면 + 단계 전환)
+========================================================= */
+body.navi-single-card-mode .navi-main > #navi-stepper{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-stage{
+  margin-left:calc(50% - 50vw);
+  margin-right:calc(50% - 50vw);
+  margin-bottom:0 !important; /* footer 위 간격 제거 */
+  width:100vw;
+  max-width:100vw;
+  background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
+  background-attachment:fixed;
+  background-position:center;
+  padding:14px 20px; /* 상/하 여백 동일 */
+  box-sizing:border-box;
+  min-height:700px;
+  display:grid;
+  place-items:center;
+  justify-content:initial;
+  align-items:initial;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+  min-height:620px; /* 첫 화면 배경 세로폭 축소 + 중앙배치 기준 높이 */
+}
+
+body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+  min-height:700px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-shell{
+  width:min(100%, 560px);
+  margin:0;
+  border-radius:18px;
+  background:#eeeeee;
+  padding:34px 34px 38px;
+  box-sizing:border-box;
+  box-shadow:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] .navi-wizard-card-shell{
+  width:min(100%, 680px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step5"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6-1"] .navi-wizard-card-shell{
+  width:min(100%, 900px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+  width:min(100%, 1180px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body{
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section{
+  margin:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section + .navi-section{
+  margin-top:0;
+}
+
+body.navi-single-card-mode .navi-wizard-step-hidden{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-card{
+  border:none;
+  background:transparent;
+  padding:0;
+  margin-top:12px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+  font-size:24px;
+  line-height:1.25;
+  font-weight:800;
+  color:#111111;
+  text-align:center;
+  margin:0 0 18px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-sub{
+  text-align:center;
+  font-size:12px;
+  color:#5f6368;
+  margin-bottom:14px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1{
+  margin-top:0 !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
   display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  margin-top:4px;
+  margin-bottom:26px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+  content:"?";
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:36px;
+  border-radius:10px;
+  background:#ffb300;
+  color:#111;
+  font-weight:900;
+  font-size:30px;
+  line-height:1;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
+  transform:translateY(-2px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:20px 22px;
+  max-width:440px;
+  margin:0 auto;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips[data-odd="1"] > .navi-chip:last-child{
+  grid-column:2;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+  min-height:58px;
+  border-radius:0;
+  border:1px solid #a8a8a8;
+  background:#f3f3f3;
+  color:#222;
+  padding:10px 12px;
+  display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
-  line-height:1.2;
   white-space:normal;
+  line-height:1.25;
   font-size:17px;
-  font-weight:600;
-  letter-spacing:-0.02em;
-}
-#navi-step2.navi-step2-design .navi-step2-row .navi-chip:hover,
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip:hover{
-  background:#fafafa;
-}
-#navi-step2.navi-step2-design .navi-step2-row .navi-chip.is-selected,
-#navi-step2.navi-step2-design .navi-step2-row .navi-chip.is-region-selected{
-  background:#f1df60;
-  border-color:#b9a33b;
-}
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip{
-  min-width:78px;
-  height:52px;
-  border-radius:14px;
-  font-size:16px;
   font-weight:500;
-  padding:0 12px;
-  white-space:nowrap;
-}
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip.is-selected,
-#navi-step2.navi-step2-design #naviSubregionChips .navi-chip.is-subregion-selected{
-  border-color:#8b8b8b;
-  background:#fff;
-  font-weight:700;
 }
 
-/* Step2 카드 하단 Back 버튼 (좌측 고정) */
-#navi-step2.navi-step2-design .navi-step2-back-btn{
-  margin-top:34px;
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  min-width:124px;
-  height:52px;
-  padding:0 16px 0 12px;
-  border-radius:8px;
-  border:0;
-  background:#000;
-  color:#fff;
-  font-size:17px;
-  font-weight:700;
-  cursor:pointer;
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:hover:not(.is-selected):not(:disabled),
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:focus-visible:not(.is-selected):not(:disabled){
+  background:#ffffff;
+  color:#111;
+  border-color:#8a8a8a;
 }
-#navi-step2.navi-step2-design .navi-step2-back-btn__icon{
-  display:inline-flex;
-  align-items:center;
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip.is-selected{
+  background:#ffffff;
+  color:#111;
+  border-color:#7c4dff;
+  box-shadow:0 0 0 2px rgba(124,77,255,.15);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:disabled{
+  min-height:58px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group{
+  gap:8px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group:not(#naviLoanCategoryChips) .navi-chip{
+  min-height:40px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-row{
   justify-content:center;
-  width:30px;
-  height:30px;
-  border-radius:999px;
-  background:#111;
-  color:#fff;
-  font-size:24px;
-  line-height:1;
-}
-#navi-step2.navi-step2-design .navi-step2-back-btn:hover{
-  filter:brightness(1.05);
 }
 
-/* 모바일 대응: 동일 디자인 톤 유지 + 줄바꿈 허용 */
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-hint{
+  text-align:center;
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header{
+  justify-content:center;
+  text-align:center;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last-child{
+  justify-content:center;
+}
+
 @media (max-width: 768px){
-  #navi-stepper.navi-stepper-wrap{
-    margin: 8px auto 8px;
+  body.navi-single-card-mode .navi-wizard-stage{
+    padding:10px 14px;
+    min-height:520px;
+    margin-bottom:0;
+    background-attachment:scroll;
   }
-  .navi-wizard-progress{
-    width:min(360px, 96%);
-    padding-top:8px;
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+    min-height:460px;
   }
-  .navi-wizard-progress__line{
-    left:26px;
-    right:26px;
-    top:22px;
-    height:2px;
+  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+    min-height:520px;
   }
-  .navi-wizard-progress__dot{
-    width:34px;
-    height:34px;
+  body.navi-single-card-mode .navi-wizard-card-shell{
+    width:min(100%, 520px);
+    border-radius:16px;
+    padding:24px 18px 24px;
   }
-  .navi-wizard-progress__dot span{
-    font-size:16px;
-  }
-
-  #navi-step2.navi-step2-design .navi-section-title{
-    font-size:24px;
-    margin-bottom:22px;
-  }
-
-  #navi-step2.navi-step2-design .navi-step2-row{
-    gap:10px;
+  body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+    font-size:20px;
     margin-bottom:14px;
-    flex-wrap:wrap;
   }
-  #navi-step2.navi-step2-design .navi-step2-row .navi-chip{
-    min-width:calc(50% - 5px);
-    flex:1 1 calc(50% - 5px);
-    height:54px;
-    font-size:15px;
-    padding:0 8px;
-  }
-  #navi-step2.navi-step2-design .navi-step2-sub-inline{
-    display:block;
-    width:100%;
-    flex:0 0 100%;
-  }
-  #navi-step2.navi-step2-design #naviStep2RegionBoard.is-inline-subregion .navi-step2-row--top{
-    gap:10px;
-  }
-  #navi-step2.navi-step2-design #naviSubregionChips{
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
+    margin-bottom:18px;
     gap:8px;
-    flex-wrap:wrap;
-    margin-top:8px;
   }
-  #navi-step2.navi-step2-design #naviSubregionChips::before{
-    display:none;
-  }
-  #navi-step2.navi-step2-design #naviSubregionChips .navi-chip{
-    min-width:auto;
-    flex:1 1 calc(25% - 6px);
-    height:42px;
-    font-size:14px;
-    border-radius:10px;
-    padding:0 8px;
-  }
-
-  #navi-step2.navi-step2-design .navi-step2-back-btn{
-    margin-top:22px;
-    min-width:110px;
-    height:46px;
-    font-size:15px;
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+    width:32px;
+    height:30px;
+    font-size:24px;
     border-radius:8px;
   }
-  #navi-step2.navi-step2-design .navi-step2-back-btn__icon{
-    width:24px;
-    height:24px;
-    font-size:20px;
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+    gap:12px 12px;
+    max-width:none;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+    min-height:54px;
+    font-size:14px;
+    padding:8px 8px;
+  }
+}
+
+/* single-card + sticky footer 하단 간격 정리 */
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
+  display:flex;
+  flex-direction:column;
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
+}
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main > .beta-inner.navi-main{
+  display:flex;
+  flex-direction:column;
+  flex:1 0 auto;
+}
+body.navi-single-card-mode .beta-inner.navi-main,
+body.navi-single-card-mode .navi-main{
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
+}
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage,
+body.navi-single-card-mode .navi-main > .navi-wizard-stage{
+  flex:0 0 auto;
+  margin-bottom:0 !important;
+}
+
+@media (max-width: 768px){
+  body.navi-single-card-mode.beta-sticky-footer > main.beta-main,
+  body.navi-single-card-mode .beta-inner.navi-main,
+  body.navi-single-card-mode .navi-main{
+    padding-bottom:0 !important;
+    margin-bottom:0 !important;
   }
 }
