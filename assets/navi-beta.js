@@ -671,6 +671,19 @@ function setStepperVisible(visible) {
   el.classList.toggle("hide", !visible);
 }
 
+function setSectionVisible(sectionId, visible) {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+
+  if (visible) {
+    el.classList.remove("hide");
+    el.style.display = "";
+  } else {
+    el.classList.add("hide");
+    el.style.display = "none";
+  }
+}
+
 function clearInputValueById(id) {
   const el = document.getElementById(id);
   if (!el) return;
