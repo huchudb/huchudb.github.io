@@ -99,11 +99,162 @@ function trackProductGroupClick(rawMainCategory) {
 function setStep6Visible(isOn) {
   const sec6 = document.getElementById("navi-step6");
   if (sec6) sec6.classList.toggle("hide", !isOn);
+  syncWizardSingleCardView();
 }
 
 function setStep6_1Visible(isOn) {
   const sec61 = document.getElementById("navi-step6-1");
   if (sec61) sec61.classList.toggle("hide", !isOn);
+  syncWizardSingleCardView();
+}
+
+const WIZARD_STEP_IDS = [
+  "navi-step1",
+  "navi-step2",
+  "navi-step3",
+  "navi-step4",
+  "navi-step5",
+  "navi-step6",
+  "navi-step6-1",
+  "navi-step7",
+];
+
+function formatMainCategoryDisplayLabel(rawLabel, rawKey) {
+  const label = String(rawLabel || rawKey || "").trim();
+  const key = String(rawKey || "").trim();
+  const base = key || label;
+  const map = {
+    "개인신용대출": "신용대출_개인",
+    "법인신용대출": "신용대출_법인",
+    "온라인선정산": "선정산_카드",
+    "스탁론(상장)": "스탁론_상장\n(주식담보대출)",
+    "스탁론(비상장)": "스탁론_비상장\n(주식담보대출)",
+  };
+  return map[base] || map[label] || label;
+}
+
+function updateStep1GridOddState() {
+  const step1 = document.getElementById("naviLoanCategoryChips");
+  if (!step1) return;
+  const count = step1.querySelectorAll(".navi-chip").length;
+  if (!count) {
+    step1.removeAttribute("data-odd");
+    return;
+  }
+  step1.setAttribute("data-odd", count % 2 ? "1" : "0");
+}
+
+function ensureWizardSingleCardUI() {
+  const root = document.querySelector(".beta-inner.navi-main");
+  const step1 = document.getElementById("navi-step1");
+  if (!root || !step1) return;
+
+  if (!document.body.classList.contains("navi-single-card-mode")) {
+    document.body.classList.add("navi-single-card-mode");
+  }
+
+  if (!document.getElementById("naviWizardStage")) {
+    const stage = document.createElement("section");
+    stage.className = "beta-section navi-wizard-stage";
+    stage.id = "naviWizardStage";
+    stage.innerHTML = `
+      <div class="navi-user-flow-progress hide" id="naviUserFlowProgress" aria-hidden="true">
+        <div class="navi-user-flow-progress__track"></div>
+        <div class="navi-user-flow-progress__dots" aria-label="진행 단계">
+          <span class="navi-user-flow-progress__dot" data-ui-step="1">1</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="2">2</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="3">3</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="4">4</span>
+          <span class="navi-user-flow-progress__dot" data-ui-step="5">5</span>
+        </div>
+      </div>
+      <div class="navi-wizard-card-shell">
+        <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
+      </div>
+    `;
+    root.insertBefore(stage, step1);
+
+    const body = stage.querySelector("#naviWizardCardBody");
+    if (body) {
+      WIZARD_STEP_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) body.appendChild(el);
+      });
+    }
+  }
+
+  if (!ensureWizardSingleCardUI._observerAttached) {
+    const observer = new MutationObserver(() => syncWizardSingleCardView());
+    WIZARD_STEP_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ["class", "style"] });
+    });
+    ensureWizardSingleCardUI._observerAttached = true;
+  }
+
+  updateStep1GridOddState();
+  syncWizardSingleCardView();
+}
+
+function syncWizardSingleCardView() {
+  const stage = document.getElementById("naviWizardStage");
+  if (!stage) return;
+
+  let activeEl = null;
+  WIZARD_STEP_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const hiddenByClass = el.classList.contains("hide");
+    const hiddenByStyle = el.style && el.style.display === "none";
+    const isVisible = !hiddenByClass && !hiddenByStyle;
+    if (isVisible) activeEl = el;
+  });
+
+  if (!activeEl) {
+    activeEl = document.getElementById("navi-step1");
+  }
+
+  WIZARD_STEP_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("navi-wizard-step-hidden", el !== activeEl);
+  });
+
+  if (activeEl) {
+    stage.setAttribute("data-active-step", activeEl.id);
+    syncUserFlowProgress(activeEl.id);
+  } else {
+    syncUserFlowProgress("");
+  }
+}
+
+function getUserFlowVisibleStepIndex(sectionId) {
+  const map = {
+    "navi-step2": 1,
+    "navi-step3": 2,
+    "navi-step4": 3,
+    "navi-step5": 4,
+    "navi-step6": 5,
+    "navi-step6-1": 5,
+    "navi-step7": 5,
+  };
+  return map[sectionId] || 0;
+}
+
+function syncUserFlowProgress(sectionId) {
+  const progress = document.getElementById("naviUserFlowProgress");
+  if (!progress) return;
+
+  const isVisible = !!sectionId && userState.mainCategory === "부동산담보대출" && getUserFlowVisibleStepIndex(sectionId) > 0;
+  progress.classList.toggle("hide", !isVisible);
+  progress.setAttribute("aria-hidden", isVisible ? "false" : "true");
+
+  const activeUiStep = isVisible ? getUserFlowVisibleStepIndex(sectionId) : 0;
+  progress.querySelectorAll(".navi-user-flow-progress__dot").forEach((dot) => {
+    const n = Number(dot.getAttribute("data-ui-step") || 0);
+    dot.classList.toggle("is-active", n === activeUiStep);
+    dot.classList.toggle("is-done", n < activeUiStep);
+  });
 }
 
 function setConfirmUIState() {
@@ -689,6 +840,7 @@ function setSectionVisible(sectionId, visible) {
     el.classList.add("hide");
     el.style.display = "none";
   }
+  syncWizardSingleCardView();
 }
 
 function setStepperVisible(visible) {
@@ -1197,8 +1349,10 @@ function applyMetaChips() {
     step1.innerHTML = meta.productGroups.map((g) => {
       const k = String(g.key || "");
       const label = String(g.label || g.key || "");
-      return `<button type="button" class="navi-chip" data-main-cat="${escapeHtmlAttr(k)}">${escapeHtml(label)}</button>`;
+      const displayLabel = formatMainCategoryDisplayLabel(label, k);
+      return `<button type="button" class="navi-chip" data-main-cat="${escapeHtmlAttr(k)}">${escapeHtml(displayLabel).replaceAll("\n", "<br />")}</button>`;
     }).join("");
+    updateStep1GridOddState();
   }
 
   // Step2: 지역
@@ -1320,12 +1474,6 @@ function getAvailableSubregionsForRegion(regionKey) {
   return items.filter((it) => hasAnyLtvUpValue(regionKey, it.key, lenders));
 }
 
-function getSubregionsForSelectedRegion() {
-  const regionKey = regionKeyFromLabel(userState.region);
-  if (!regionKey) return [];
-  return getAvailableSubregionsForRegion(regionKey);
-}
-
 function isSubregionRequiredForCurrentRegion() {
   const regionKey = regionKeyFromLabel(userState.region);
   if (!regionKey) return false;
@@ -1338,49 +1486,116 @@ function renderSubregionChips() {
   const container = document.getElementById("naviSubregionChips");
   if (!wrap || !container) return;
 
-  const regionKey = regionKeyFromLabel(userState.region);
-  const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
-
-  if (!list.length) {
+  const list = getSubregionsForSelectedRegion();
+  if (!Array.isArray(list) || !list.length) {
     wrap.classList.add("hide");
     container.innerHTML = "";
-    userState.subregionKey = null;
-    userState.subregionLabel = null;
+    renderStep2RegionRows();
     return;
   }
 
   wrap.classList.remove("hide");
 
   const chips = [];
-  // ✅ A안(추천): “선택안함” 포함 버튼을 반드시 1번 클릭해야 진행 가능
-  chips.push(
-    `<button type="button" class="navi-chip" data-subregion-key="" data-subregion-label="선택안함">선택안함</button>`
-  );
-
   list.forEach((it) => {
     const key = String(it && (it.key ?? it.id ?? it.code ?? "")).trim();
     if (!key) return;
 
-    const label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
-    const add = Number(it && (it.add ?? it.addPct ?? it.addPercent ?? it.percent ?? it.pct ?? 0));
-    const badge = (Number.isFinite(add) && add > 0) ? ` (+${add}%)` : "";
+    let label = String(it && (it.label ?? it.name ?? it.title ?? key)).trim();
+    if (!label) label = key;
+    if (label === "기타") label = "그외";
 
     chips.push(
-      `<button type="button" class="navi-chip" data-subregion-key="${escapeHtmlAttr(key)}" data-subregion-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}${badge}</button>`
+      `<button type="button" class="navi-chip" data-subregion-key="${escapeHtmlAttr(key)}" data-subregion-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`
     );
   });
 
   container.innerHTML = chips.join("");
 
-  // ✅ 선택 복원: ""(선택안함)도 유효한 선택
   if (userState.subregionKey !== null) {
     const key = String(userState.subregionKey);
     const selector = `#naviSubregionChips .navi-chip[data-subregion-key="${CSS.escape(key)}"]`;
     const sel = document.querySelector(selector);
     if (sel) sel.classList.add("is-selected");
   }
+
+  renderStep2RegionRows();
 }
 
+function renderStep2RegionRows() {
+  const container = document.getElementById("naviRegionChips");
+  const subWrap = document.getElementById("naviSubregionWrap");
+  const subChips = document.getElementById("naviSubregionChips");
+  if (!container) return;
+
+  const rawButtons = Array.from(container.querySelectorAll('.navi-chip[data-region]'));
+  const regionMap = new Map();
+  rawButtons.forEach((btn) => {
+    const region = (btn.getAttribute('data-region') || '').trim();
+    if (!region) return;
+    const label = (btn.textContent || region).trim();
+    if (!regionMap.has(region)) regionMap.set(region, label);
+  });
+
+  if (!regionMap.size) return;
+
+  const preferred = ["서울", "경기", "인천", "충청도", "전라도", "경상도", "강원도", "제주도"];
+  const ordered = [];
+  preferred.forEach((k) => { if (regionMap.has(k)) ordered.push(k); });
+  Array.from(regionMap.keys()).forEach((k) => { if (!ordered.includes(k)) ordered.push(k); });
+
+  const hasSub = !!(subWrap && !subWrap.classList.contains('hide') && subChips && subChips.children.length);
+  const selectedRegion = String(userState.region || '').trim();
+
+  const firstBandSet = new Set(["서울", "경기", "인천"]);
+  let rows = [];
+
+  if (hasSub && selectedRegion && ordered.includes(selectedRegion)) {
+    const firstBand = ordered.filter((r) => firstBandSet.has(r));
+    const restBand = ordered.filter((r) => !firstBandSet.has(r));
+    const remainingFirst = firstBand.filter((r) => r !== selectedRegion);
+    const remainingRest = restBand.filter((r) => r !== selectedRegion);
+    rows.push({ regions: [selectedRegion], inlineSub: true });
+    if (remainingFirst.length) rows.push({ regions: remainingFirst });
+    if (remainingRest.length) rows.push({ regions: remainingRest });
+  } else {
+    const firstBand = ordered.filter((r) => firstBandSet.has(r));
+    const restBand = ordered.filter((r) => !firstBandSet.has(r));
+    if (firstBand.length) rows.push({ regions: firstBand });
+    if (restBand.length) rows.push({ regions: restBand });
+  }
+
+  const makeBtnHtml = (region) => {
+    const labelMap = {
+      "충청도": "충청",
+      "전라도": "전라",
+      "경상도": "경상",
+      "강원도": "강원",
+      "제주도": "제주",
+    };
+    const label = labelMap[region] || regionMap.get(region) || region;
+    const selected = (String(userState.region || '') === region) ? ' is-selected' : '';
+    return `<button type="button" class="navi-chip${selected}" data-region="${escapeHtmlAttr(region)}">${escapeHtml(label)}</button>`;
+  };
+
+  container.innerHTML = rows.map((row) => {
+    const rowCls = row.inlineSub ? 'navi-region-row navi-region-row--inline' : 'navi-region-row';
+    const regionHtml = row.regions.map(makeBtnHtml).join('');
+    const inlineSlot = row.inlineSub ? '<div class="navi-region-inline-subslot" id="naviRegionInlineSubslot"></div>' : '';
+    return `<div class="${rowCls}">${regionHtml}${inlineSlot}</div>`;
+  }).join('');
+
+  if (subWrap) {
+    const slot = document.getElementById('naviRegionInlineSubslot');
+    if (slot && hasSub) {
+      slot.appendChild(subWrap);
+      subWrap.classList.remove('hide');
+    } else {
+      const layout = document.getElementById('naviStep2RegionLayout');
+      if (layout && subWrap.parentElement !== layout) layout.appendChild(subWrap);
+    }
+  }
+}
 
 // HTML escape helpers
 function escapeHtml(s) {
@@ -1463,21 +1678,44 @@ function setupStep1() {
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
+
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
 
-    singleSelectChip(container, target);
-    userState.region = target.getAttribute("data-region");
+    const btn = target.closest(".navi-chip[data-region]");
+    if (!(btn instanceof HTMLElement)) return;
+    if (!container.contains(btn)) return;
+
+    container.querySelectorAll('.navi-chip[data-region]').forEach((b) => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+
+    userState.region = btn.getAttribute("data-region");
     // 세부지역(LTV Up) 초기화
     userState.subregionKey = null;
     userState.subregionLabel = null;
     renderSubregionChips();
+    renderStep2RegionRows();
 
     uiState.hasRenderedResult = false;
     recalcAndUpdateSummary();
   });
+
+  const backBtn = document.getElementById("naviStep2BackBtn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      document.querySelectorAll('#naviLoanCategoryChips .navi-chip').forEach((b) => b.classList.remove('is-selected'));
+      userState.mainCategory = null;
+      resetRealEstateDraftState();
+      renderStep2RegionRows();
+      uiState.hasRenderedResult = false;
+      uiState.autoRevealed = false;
+      recalcAndUpdateSummary();
+      try { syncWizardSingleCardView(); } catch (_) {}
+      const s1 = document.getElementById('navi-step1');
+      if (s1) s1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }
 
 function setupSubregion() {
@@ -1506,6 +1744,7 @@ function setupSubregion() {
     userState.subregionLabel = (kAttr === "") ? null : lbl;
 
     invalidateConfirmed();
+    renderStep2RegionRows();
     recalcAndUpdateSummary();
   });
 }
@@ -2858,70 +3097,146 @@ function renderFinalResult(opts = {}) {
   if (userState.region) condParts.push(userState.region);
   const condSummary = condParts.join(" / ");
 
-  const reqAmt = getPrincipalAmount() ? formatWithCommas(String(getPrincipalAmount())) + "원" : "입력 없음";
+  // ✅ Step7: 카드형 결과 UI (제휴/비제휴 카드 분기)
+const escapeHtml = (v) =>
+  String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
-  let html = "";
-  html += `<div style="margin-bottom:8px;font-size:12px;color:#374151;">`;
-  html += `<div>요청 조건 요약: <strong>${condSummary || "조건 미입력"}</strong></div>`;
-  html += `<div>요청 대출금액(원): <strong>${reqAmt}</strong></div>`;
-  html += `</div>`;
+const toInitials = (name) => {
+  const s = String(name || "").trim();
+  if (!s) return "?";
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0].slice(0, 1) + parts[1].slice(0, 1)).toUpperCase();
+  // 한글/영문 모두 2글자까지
+  return s.slice(0, 2).toUpperCase();
+};
 
-  matched.forEach((l) => {
-    const cats = l.loanCategories || [];
-    const cfg = l.realEstateConfig || {};
-    const regions = cfg.regions || [];
-    const props = cfg.propertyTypes || [];
-    const types = cfg.loanTypes || [];
-    const phone = l.channels?.phoneNumber || "";
-    const kakao = l.channels?.kakaoUrl || "";
+const fmtPctCompact = (num) => {
+  const n = parseNumberLoose(num);
+  if (n == null || !isFinite(n)) return "-";
+  const r = Math.round(n * 10) / 10;
+  const s = String(r);
+  return (s.endsWith(".0") ? s.slice(0, -2) : s) + "%";
+};
 
-    html += `<div class="navi-lender-item">`;
-    html += `<div class="navi-lender-name">${l.displayName || "(이름 없음)"}`;
-    if (l.isPartner) {
-      html += ` <span class="navi-tag" style="background:#111827;color:#f9fafb;border-color:#111827;">제휴 온투업체</span>`;
-    }
-    html += `</div>`;
+const safeHttpUrl = (u) => {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) return "";
+  return s;
+};
 
-    html += renderFee3Cols(l);
+const safeTelHref = (phone) => {
+  const p = String(phone || "").trim();
+  if (!p) return "";
+  const cleaned = p.replace(/[^0-9+]/g, "");
+  return cleaned ? `tel:${cleaned}` : "";
+};
 
-    html += `<div class="navi-lender-meta" style="margin-top:8px;">`;
-    if (cats.length) html += `상품군: ${cats.join(", ")} `;
-    if (regions.length) html += `| 취급지역: ${regions.join(", ")} `;
-    if (props.length) html += `| 담보유형: ${props.join(", ")} `;
-    if (types.length) html += `| 대출종류: ${types.join(", ")} `;
-    html += `</div>`;
+const cardsHtml = matched
+  .map((l) => {
+    const isPartner = Boolean(l && l.isPartner);
+    const displayName = l && (l.displayName || l.name) ? String(l.displayName || l.name) : "(이름 없음)";
+    const nameHtml = escapeHtml(displayName);
 
-    html += `<div>`;
-    if (l.isPartner) {
-      html += `<span class="navi-tag">후추와 제휴된 온투업체 (광고비 지급)</span>`;
-      html += `<span class="navi-tag">※ 제휴업체는 동일 조건일 때 보다 낮은 비용·우선 상담 가능</span>`;
-    } else {
-      html += `<span class="navi-tag">비제휴 온투업체 (정보제공용)</span>`;
-    }
-    html += `</div>`;
+    // 등록번호(옵션) — admin에서 입력한 값을 그대로 표시
+    const licenseRaw = String(l?.licenseNo || l?.registrationNo || l?.ontuLicenseNo || "").trim();
+    const licenseLine = licenseRaw
+      ? (licenseRaw.includes("온라인") ? licenseRaw : `온라인투자연계금융업 ${licenseRaw}`)
+      : "온라인투자연계금융업";
+    const licenseHtml = escapeHtml(licenseLine);
 
-    if (l.isPartner) {
-      html += `<div class="navi-lender-actions">`;
-      if (phone) {
-        const telHref = phone.replace(/\s+/g, "");
-        html += `<a class="navi-btn-secondary" href="tel:${telHref}">유선 상담 (${phone})</a>`;
-      } else {
-        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">유선 상담 번호 미등록</span>`;
-      }
-      if (kakao) {
-        html += `<a class="navi-btn-primary" href="${kakao}" target="_blank" rel="noopener noreferrer">카카오톡 채팅상담 바로가기</a>`;
-      } else {
-        html += `<span class="navi-btn-secondary" style="cursor:default;opacity:.7;">카카오톡 채널 미등록</span>`;
-      }
-      html += `</div>`;
-    } else {
-      html += `<div class="navi-help" style="margin-top:8px;">※ 비제휴 업체는 상담 채널을 공개하지 않습니다.</div>`;
-    }
+    const initials = escapeHtml(toInitials(displayName));
+    const logoData = typeof l?.logoDataUrl === "string" ? l.logoDataUrl : (typeof l?.logo === "string" ? l.logo : "");
 
-    html += `</div>`;
-  });
+    const f = getFinancialInputsForCategory(l, userState.mainCategory) || {};
+    const interest = fmtPctCompact(f.interestAvg);
+    const platform = fmtPctCompact(f.platformFeeAvg);
+    const prepay = fmtPctCompact(f.prepayFeeAvg);
 
-  panel.innerHTML = html;
+    const phone = String(l?.channels?.phoneNumber || l?.phoneNumber || "").trim();
+    const kakao = String(l?.channels?.kakaoUrl || l?.kakaoUrl || "").trim();
+    const homepage = String(l?.homepage || l?.homepageUrl || "").trim();
+
+    const telHref = safeTelHref(phone);
+    const kakaoHref = safeHttpUrl(kakao);
+    const homeHref = safeHttpUrl(homepage);
+
+    const notes2 = isPartner ? "최적 조건 가능 업체!" : "정확한 조건은 업체에 문의하세요.";
+
+    const actionsHtml = isPartner
+      ? `
+        <div class="navi-result-divider"></div>
+        <div class="navi-result-actions">
+          ${telHref ? `<a class="navi-action-btn navi-action-phone" href="${escapeHtml(telHref)}" aria-label="전화 상담">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
+          </a>` : `<div class="navi-action-btn navi-action-phone is-disabled" aria-label="전화 미등록">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8c1.4 2.7 3.9 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V21c0 .6-.4 1-1 1C11 22 2 13 2 2c0-.6.4-1 1-1h3.1c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1l-2.4 1.9z"/></svg>
+          </div>`}
+
+          ${kakaoHref ? `<a class="navi-action-btn navi-action-kakao" href="${escapeHtml(kakaoHref)}" target="_blank" rel="noopener noreferrer" aria-label="카톡 상담">
+            <span>카톡<br/>상담</span>
+          </a>` : `<div class="navi-action-btn navi-action-kakao is-disabled" aria-label="카톡 미등록"><span>카톡<br/>상담</span></div>`}
+
+          ${homeHref ? `<a class="navi-action-btn navi-action-home" href="${escapeHtml(homeHref)}" target="_blank" rel="noopener noreferrer" aria-label="홈페이지">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3a14 14 0 0 1 0 18"></path>
+              <path d="M12 3a14 14 0 0 0 0 18"></path>
+            </svg>
+          </a>` : `<div class="navi-action-btn navi-action-home is-disabled" aria-label="홈페이지 미등록">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3a14 14 0 0 1 0 18"></path>
+              <path d="M12 3a14 14 0 0 0 0 18"></path>
+            </svg>
+          </div>`}
+        </div>
+      `
+      : `
+        <div class="navi-result-divider"></div>
+        <div class="navi-nonpartner-huchu">
+          <img class="navi-huchu-img" src="/assets/media/huchu-sad.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';" />
+          <div class="navi-huchu-text">미제휴 업체로서<br/>조건이 좋지 않을 수 있습니다.</div>
+        </div>
+      `;
+
+    return `
+      <div class="navi-result-card ${isPartner ? "is-partner" : ""}">
+        <div class="navi-result-head">
+          <div class="navi-result-logo" aria-hidden="true">
+            <span class="navi-result-initials">${initials}</span>
+            ${logoData ? `<img src="${escapeHtml(logoData)}" alt="${nameHtml} 로고" onerror="this.style.display='none';" />` : ""}
+          </div>
+          <div class="navi-result-headtext">
+            <div class="navi-result-title">${nameHtml}</div>
+            <div class="navi-result-sub">${licenseHtml}</div>
+          </div>
+        </div>
+
+        <div class="navi-result-divider"></div>
+
+        <div class="navi-result-metrics">
+          <div class="navi-metric"><div class="lab">금리</div><div class="val">${interest}</div></div>
+          <div class="navi-metric"><div class="lab">플랫폼<br/>수수료</div><div class="val">${platform}</div></div>
+          <div class="navi-metric"><div class="lab">중도상환<br/>수수료</div><div class="val">${prepay}</div></div>
+        </div>
+
+        <div class="navi-result-notes">
+          <div>* 과거 데이터 기반의 평균 조건 입니다.</div>
+          <div>** ${escapeHtml(notes2)}</div>
+        </div>
+
+        ${actionsHtml}
+      </div>
+    `;
+  })
+  .join("");
+
+panel.innerHTML = `<div class="navi-result-grid">${cardsHtml}</div>`;
+
+
 
   uiState.hasRenderedResult = true;
   if (!keepStepper) renderStepper(7);
@@ -2948,8 +3263,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupBetaMenu();
   ensureStepper();
   ensureLoanTypeChips();
-
-  
+  ensureWizardSingleCardUI();
 
   // ✅ 초기 렌더링(설정 로딩 전)에는 Step1만 노출해서 '전체 스텝 깜빡임' 방지
   updateStepVisibility(false);
@@ -2960,6 +3274,7 @@ setupMoneyInputs();
   // ✅ meta(선택지 정의) 기반으로 Step1~Step4 칩을 재렌더
   setMeta(naviLoanConfig?.meta || null);
   applyMetaChips();
+  ensureWizardSingleCardUI();
 
   // ✅ 설정 로딩 후에도 현재 선택 상태 기준으로 다시 반영
   updateStepVisibility(false);
@@ -2980,4 +3295,5 @@ setupMoneyInputs();
   setupResultButtons();
 
   recalcAndUpdateSummary();
+  syncWizardSingleCardView();
 });
