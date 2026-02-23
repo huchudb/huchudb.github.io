@@ -101,27 +101,33 @@
       </section>
 
       <!-- 2. 지역 선택 -->
-      <section class="beta-section navi-section hide" id="navi-step2">
-        <div class="navi-section-title">2. 지역 선택</div>
+      <section class="beta-section navi-section hide navi-step2-region" id="navi-step2">
+        <div class="navi-section-title">지역을 선택하세요</div>
         <div class="navi-section-sub">담보 또는 사업장이 위치한 지역을 선택해주세요.</div>
-        <div class="navi-chip-group" id="naviRegionChips">
-          <button type="button" class="navi-chip" data-region="서울">서울</button>
-          <button type="button" class="navi-chip" data-region="경기">경기</button>
-          <button type="button" class="navi-chip" data-region="인천">인천</button>
-          <button type="button" class="navi-chip" data-region="충청도">충청</button>
-          <button type="button" class="navi-chip" data-region="전라도">전라</button>
-          <button type="button" class="navi-chip" data-region="경상도">경상</button>
-          <button type="button" class="navi-chip" data-region="강원도">강원</button>
-          <button type="button" class="navi-chip" data-region="제주도">제주</button>
+
+        <div class="navi-step2-region-layout" id="naviStep2RegionLayout">
+          <div class="navi-chip-group" id="naviRegionChips">
+            <button type="button" class="navi-chip" data-region="서울">서울</button>
+            <button type="button" class="navi-chip" data-region="경기">경기</button>
+            <button type="button" class="navi-chip" data-region="인천">인천</button>
+            <button type="button" class="navi-chip" data-region="충청도">충청</button>
+            <button type="button" class="navi-chip" data-region="전라도">전라</button>
+            <button type="button" class="navi-chip" data-region="경상도">경상</button>
+            <button type="button" class="navi-chip" data-region="강원도">강원</button>
+            <button type="button" class="navi-chip" data-region="제주도">제주</button>
+          </div>
+
+          <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
+            <div class="navi-subregion-title">세부지역(LTV Up)</div>
+            <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
+            <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
+          </div>
         </div>
 
-        <!-- (추가) 세부지역 LTV Up (서울/경기/인천 등) -->
-        <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
-          <div class="navi-subregion-title">세부지역(LTV Up)</div>
-          <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
-          <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
-        </div>
-
+        <button type="button" class="navi-step-back-btn" id="naviStep2BackBtn" aria-label="이전 단계로 이동">
+          <span class="navi-step-back-btn__icon" aria-hidden="true">←</span>
+          <span class="navi-step-back-btn__label">Back</span>
+        </button>
       </section>
 
       <!-- 3. 부동산 유형 선택 (부동산담보대출 일 때만) -->
