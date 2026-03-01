@@ -185,11 +185,10 @@
       <!-- 5. 대출 핵심정보 입력 -->
       <section class="beta-section navi-section hide" id="navi-step5">
         <div class="navi-section-title">대출 핵심 정보 입력</div>
-        
 
-        <div class="navi-card">
-          <p id="naviLoanTypeHelp" class="navi-help" style="margin-top:0;">
-            ※ 부동산 담보대출 기준 예시입니다. 선택하신 대출종류에 따라 자동 계산 방식이 달라집니다.
+        <div class="navi-card navi-step5-card">
+          <p id="naviLoanTypeHelp" class="navi-help navi-step5-help" style="margin-top:0;">
+            ※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.
           </p>
 
           <div class="navi-step5-status" id="naviStep5Status" aria-hidden="true">
@@ -198,67 +197,99 @@
             </div>
           </div>
 
-
-          
-<div class="navi-step5-split">
+          <div class="navi-step5-split">
             <div class="navi-step5-left">
               <div class="navi-occ-tree">
-                <div class="navi-occ-title">거주형태 선택</div>
-                <div style="margin-top:8px;">
-            <span style="font-size:12px;color:#374151;">거주형태 / 임대계획</span>
-            <div class="navi-chip-group" id="naviOccupancyChips" style="margin-top:4px;">
-              <button type="button" class="navi-chip" data-occ="self">본인거주(예정)</button>
-              <button type="button" class="navi-chip" data-occ="rental">임대(예정)</button>
-            </div>
-          </div>
+                <div class="navi-occ-root">거주형태 선택</div>
+                <div class="navi-occ-branches">
+                  <div class="navi-occ-branch-lines" aria-hidden="true"></div>
+                  <div class="navi-chip-group navi-step5-occ-chips" id="naviOccupancyChips">
+                    <button type="button" class="navi-chip navi-step5-occ-btn" data-occ="self">본인거주</button>
+                    <button type="button" class="navi-chip navi-step5-occ-btn" data-occ="rental">임대</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="navi-step5-vline" aria-hidden="true"></div>
-            <div class="navi-step5-right">
-<div class="navi-field-grid navi-field-grid--step5">
 
-            <label>
-              시세 / 낙찰가 (원)
-              <input type="text" id="naviInputPropertyValue" data-type="money" placeholder="예) 500000000" />
-              <div class="navi-money-ko" id="naviKoPV"></div>
-            </label>
-            <label>
-              지분율 (%)
-              <input type="number" id="naviInputSharePercent" min="1" max="100" step="1" placeholder="예) 100" />
-              <span class="navi-help">※ 지분대출이 아닌 경우 100%로 간주합니다.</span>
-            </label>
-            <label>
-              선순위 대출금액 (원)
-              <input type="text" id="naviInputSeniorLoan" data-type="money" placeholder="예) 200000000" />
-              <div class="navi-money-ko" id="naviKoSL"></div>
-            </label>
-            <label>
-              임대보증금액 (원)
-              <input type="text" id="naviInputDeposit" data-type="money" placeholder="예) 100000000" />
-            </label>
-            <label>
-              (대환용) 선순위 중 상환 예정금액 (원)
-              <input type="text" id="naviInputRefinanceAmount" data-type="money" placeholder="예) 150000000" />
-            </label>
-            <label>
-              필요 대출금액 (원)
-              <input type="text" id="naviInputRequestedAmount" data-type="money" placeholder="예) 50000000" />
-              <div class="navi-money-ko" id="naviKoREQ"></div>
-              <span class="navi-help">※ 부동산 유형에 따라 최소 대출금액 기준이 적용됩니다.</span>
-            </label>
+            <div class="navi-step5-vline" aria-hidden="true"></div>
+
+            <div class="navi-step5-right">
+              <div class="navi-field-grid navi-field-grid--step5" id="naviStep5FieldGrid">
+                <label class="navi-step5-field" data-field-code="PV">
+                  <span class="navi-field-label">시세 / 낙찰가 (원)</span>
+                  <div class="navi-step5-pill">
+                    <input type="text" id="naviInputPropertyValue" data-type="money" placeholder="시세/낙찰가를 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoPV"></div>
+                </label>
+
+                <label class="navi-step5-field" data-field-code="SP">
+                  <span class="navi-field-label">지분율 (%)</span>
+                  <div class="navi-step5-pill">
+                    <input type="number" id="naviInputSharePercent" min="1" max="100" step="1" placeholder="지분율을 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoSP"></div>
+                </label>
+
+                <label class="navi-step5-field" data-field-code="SL">
+                  <span class="navi-field-label">선순위 대출금액 (원)</span>
+                  <div class="navi-step5-pill">
+                    <input type="text" id="naviInputSeniorLoan" data-type="money" placeholder="선순위 대출금액을 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoSL"></div>
+                </label>
+
+                <label class="navi-step5-field" data-field-code="DEP">
+                  <span class="navi-field-label">임대보증금액 (원)</span>
+                  <div class="navi-step5-pill">
+                    <input type="text" id="naviInputDeposit" data-type="money" placeholder="임대보증금액을 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoDEP"></div>
+                </label>
+
+                <label class="navi-step5-field" data-field-code="REF">
+                  <span class="navi-field-label">(대환용) 선순위 중 상환 예정금액 (원)</span>
+                  <div class="navi-step5-pill">
+                    <input type="text" id="naviInputRefinanceAmount" data-type="money" placeholder="상환 예정금액을 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoREF"></div>
+                </label>
+
+                <label class="navi-step5-field" data-field-code="REQ">
+                  <span class="navi-field-label">필요 대출금액 (원)</span>
+                  <div class="navi-step5-pill">
+                    <input type="text" id="naviInputRequestedAmount" data-type="money" placeholder="필요 대출금액을 입력하세요" />
+                  </div>
+                  <div class="navi-money-ko" id="naviKoREQ"></div>
+                </label>
+              </div>
+
+              <button type="button" id="naviStep5CTA" class="navi-step5-cta hide">
+                추가 정보 선택하여<br/>가능업체 선택하기
+              </button>
+
+              <!-- (내부 로직용) 기존 확인 버튼은 숨김 처리 -->
+              <div class="navi-confirm-row navi-step5-confirm" aria-hidden="true">
+                <button id="naviConfirmBtn" type="button" class="btn btn-primary" disabled>결과 확인하기</button>
+                <span id="naviConfirmHint" class="navi-confirm-hint">필수 입력을 완료하면 활성화됩니다.</span>
+              </div>
+
+              <p id="naviAmountWarning" class="navi-warning" style="display:none;"></p>
+            </div>
           </div>
 
-          
-
-          <p id="naviAmountWarning" class="navi-warning" style="display:none;"></p>
-      <div class="navi-confirm-row">
-        <button id="naviConfirmBtn" type="button" class="btn btn-primary" disabled>결과 확인하기</button>
-        <span id="naviConfirmHint" class="navi-confirm-hint">필수 입력을 완료하면 활성화됩니다.</span>
-      </div>
+          <div id="naviStep5Actions">
+            <button type="button" id="naviStep5BackBtn" aria-label="Back">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
+              </svg>
+              Back
+            </button>
+          </div>
         </div>
       </section>
 
-      <!-- 6. 자동 계산 결과 요약 -->
+<!-- 6. 자동 계산 결과 요약 -->
       <section class="beta-section navi-section hide" id="navi-step6">
         <div class="navi-section-title">6. 자동 계산 결과 요약</div>
         <div class="navi-section-sub">
