@@ -1,393 +1,1324 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>후추 네비게이션 (베타) | 온투업 담보대출·P2P 대출 탐색</title>
-  <meta name="description" content="온투업(P2P) 담보대출·개인신용대출·스탁론 등 다양한 온투업 대출 상품을 조건에 맞게 탐색하고, 적합한 온투업체를 추천받는 후추 네비게이션(베타)입니다.">
+/* =========================================================
+   Navi beta styles
+   - extracted from /assets/styles.css (common) on 2025-12-29
+   - includes Navi-only UI + wide layout rules for Navi page
+========================================================= */
 
-  <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
+body.navi-wide .beta-inner,
+body.navi-wide .beta-header__inner{
+  max-width:none;
+}
 
-    <link rel="stylesheet" href="/assets/navi-beta.css?v=20251230-fixdup1" />
-<!-- 캡처용 라이브러리 (이미지 저장 기능) -->
-  <script type="module" src="/assets/beta-shell.js?v=20260106-menu1"></script>
+/* ======================= NAVI (후추 네비게이션 베타) ======================= */
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
-  <script type="module" src="/assets/navi-beta.js?v=20251230-fixdup1"></script>
-
-  <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
-  <style>
-    /* CSS 로드 전에도 hide 클래스가 즉시 적용되도록(FOUC 방지) */
-    .hide { display: none !important; }
-  </style>
-
-</head>
-<body class="beta-body beta-sticky-footer navi-single-card-mode">
-
-  <!-- 상단 헤더 -->
-  <header class="huchu-header beta-header" role="banner">
-    <div class="huchu-header__inner beta-header__inner">
-      <!-- 로고 -->
-      <a href="/beta/index.html" class="huchu-logo" aria-label="후추 Huchu 홈">
-        <img class="logo-img" src="/assets/logo/huchu-logo.png" alt="후추 로고" />
-        <span class="logo-fallback">
-          <span class="logo-mark">%</span>
-          <span class="logo-text">후추 Huchu</span>
-        </span>
-      </a>
-
-      <!-- MENU -->
-      <div class="beta-menu-wrap">
-        <button
-          id="betaMenuToggle"
-          class="beta-menu-toggle"
-          type="button"
-          aria-haspopup="true"
-          aria-expanded="false"
-        >
-          <span class="beta-menu-toggle__label">MENU</span>
-        </button>
-
-        <div id="betaMenuPanel" class="beta-menu-panel hide">
-          <a class="beta-menu-link" href="/beta/ontu-stats.html">온투업 대출통계</a>
-          <a class="beta-menu-link" href="/beta/products/index.html">온투업 대출상품정보</a>
-          <a class="beta-menu-link" href="/beta/navi-beta.html">후추 네비게이션</a>
-          <a class="beta-menu-link" href="/company.html">회사소개</a>
-          <a class="beta-menu-link" href="/contact.html">광고문의</a>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main class="beta-main">
-    <div class="beta-inner navi-main">
-
-<!-- 인트로 -->
-<section class="beta-section navi-intro-section">
-  <div class="beta-card beta-card--wide navi-intro-card">
-    <picture class="navi-intro-picture">
-      <source
-        media="(max-width: 768px)"
-        srcset="/assets/media/navi-intro-banner.mobile.png"
-        type="image/png"
-      />
-      <img
-        class="navi-intro-banner"
-        src="/assets/media/navi-intro-banner.png"
-        alt="후추 네비게이션"
-        width="2500"
-        height="300"
-        loading="eager"
-        decoding="async"
-      />
-    </picture>
-  </div>
-      </section>
-
-      <!-- 1. 대출 상품군 선택 -->
-      <section class="beta-section navi-section" id="navi-step1">
-        <div class="navi-section-title navi-step1-title">어떤 대출이 필요하세요</div>
-        <div class="navi-chip-group" id="naviLoanCategoryChips">
-          <button type="button" class="navi-chip" data-main-cat="부동산담보대출">부동산 담보대출</button>
-          <button type="button" class="navi-chip" data-main-cat="개인신용대출">개인신용대출</button>
-          <button type="button" class="navi-chip" data-main-cat="스탁론">스탁론</button>
-          <button type="button" class="navi-chip" data-main-cat="법인신용대출">법인신용대출</button>
-          <button type="button" class="navi-chip" data-main-cat="매출채권유동화">매출채권유동화</button>
-          <button type="button" class="navi-chip" data-main-cat="의료사업자대출">의료사업자대출</button>
-          <button type="button" class="navi-chip" data-main-cat="온라인선정산">온라인선정산</button>
-          <button type="button" class="navi-chip" data-main-cat="전자어음">전자어음</button>
-        </div>
-      </section>
-
-      <!-- 2. 지역 선택 -->
-      <section class="beta-section navi-section hide" id="navi-step2">
-        <div class="navi-section-title">지역을 선택하세요</div>
-        <div class="navi-section-sub">담보 또는 사업장이 위치한 지역을 선택해주세요.</div>
-        <div class="navi-chip-group" id="naviRegionChips">
-          <button type="button" class="navi-chip" data-region="서울">서울</button>
-          <button type="button" class="navi-chip" data-region="경기">경기</button>
-          <button type="button" class="navi-chip" data-region="인천">인천</button>
-          <button type="button" class="navi-chip" data-region="충청">충청</button>
-          <button type="button" class="navi-chip" data-region="전라">전라</button>
-          <button type="button" class="navi-chip" data-region="경상">경상</button>
-          <button type="button" class="navi-chip" data-region="강원">강원</button>
-          <button type="button" class="navi-chip" data-region="제주">제주</button>
-        </div>
-
-        <!-- (추가) 세부지역 LTV Up (서울/경기/인천 등) -->
-        <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
-          <div class="navi-subregion-title">세부지역(LTV Up)</div>
-          <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
-          <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
-        </div>
-
-        <div id="naviStep2Actions">
-          <button type="button" id="naviStep2BackBtn">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M14.7 6.3a1 1 0 0 1 0 1.4L11.41 11H20a1 1 0 1 1 0 2h-8.59l3.29 3.29a1 1 0 1 1-1.4 1.42l-5-5a1 1 0 0 1 0-1.42l5-5a1 1 0 0 1 1.4 0z"/>
-            </svg>
-            <span>Back</span>
-          </button>
-        </div>
+.navi-main{
+  /* NOTE: 이 div는 beta-inner 클래스와 함께 사용됨.
+     - 기존 960px 제한 때문에 본문이 헤더/푸터보다 좁게 보였음
+     - 헤더/공통 컨테이너와 동일한 폭(1200px) + 동일한 좌우 패딩(24px)으로 통일 */
+  max-width:1200px;
+  margin:0 auto 0;
+  width:100%;
+  padding:0 24px 40px;
+  box-sizing:border-box;
+}
 
 
-      </section>
+/* 인트로 배너 (기존 텍스트 블록 대체) */
+.beta-card.navi-intro-card{
+  padding:0;
+  overflow:hidden;
+}
 
-      <!-- 3. 부동산 유형 선택 (부동산담보대출 일 때만) -->
-      <section class="beta-section navi-section hide" id="navi-step3">
-        <div class="navi-section-title">부동산 유형 선택</div>
-        <div class="navi-section-sub">담보로 제공할 부동산의 유형을 선택해주세요.</div>
-        <div class="navi-chip-group" id="naviPropertyTypeChips">
-          <button type="button" class="navi-chip" data-prop="아파트">아파트</button>
-          <button type="button" class="navi-chip" data-prop="오피스텔">오피스텔</button>
-          <button type="button" class="navi-chip" data-prop="다세대/연립">빌라/다세대</button>
-          <button type="button" class="navi-chip" data-prop="단독/다가구">단독/다가구</button>
-          <button type="button" class="navi-chip" data-prop="토지/임야">토지/임야</button>
-          <button type="button" class="navi-chip" data-prop="근린생활시설">근린생활시설</button>
-        </div>
-        <p class="navi-help">
-          ※ 부동산이 아닌 상품군(개인신용대출, 스탁론 등)은 이 단계가 필수가 아닙니다.
-        </p>
-              <div id="naviStep3Actions">
-          <button type="button" id="naviStep3BackBtn" aria-label="Back">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
-            </svg>
-            Back
-          </button>
-        </div>
-      </section>
+/* ✅ picture가 레이아웃 박스(비율)를 잡고, img는 그 안을 채우게 하면
+   모바일/PC 소스 전환 시에도 찌그러짐(왜곡) 없이 안정적으로 렌더링됩니다. */
+.navi-intro-picture{
+  display:block;
+  width:100%;
+  /* PC 배너 비율(기존 2500x300 기준) */
+  aspect-ratio:2500 / 300;
+}
 
-      <!-- 4. 대출종류 선택 (부동산 담보대출 내부) -->
-      <section class="beta-section navi-section hide" id="navi-step4">
-        <div class="navi-section-title">대출 종류 선택</div>
-        <div class="navi-section-sub">필요하신 부동산 담보대출의 세부 종류를 선택해주세요.</div>
-        <div class="navi-chip-group" id="naviRealEstateLoanTypeChips">
-          <button type="button" class="navi-chip" data-loan-type="일반담보대출" data-loan-label="일반담보대출"><span class="navi-chip-label">일반<br>담보대출</span></button>
-          <button type="button" class="navi-chip" data-loan-type="임대보증금반환대출" data-loan-label="임대보증금반환대출"><span class="navi-chip-label">임대보증금<br>반환 대출</span></button>
-          <button type="button" class="navi-chip" data-loan-type="지분대출" data-loan-label="지분대출"><span class="navi-chip-label">지분대출</span></button>
-          <button type="button" class="navi-chip" data-loan-type="경락잔금대출" data-loan-label="경락잔금대출"><span class="navi-chip-label">경락잔금대출</span></button>
-          <button type="button" class="navi-chip" data-loan-type="대환대출" data-loan-label="대환대출"><span class="navi-chip-label">대환대출</span></button>
-          <button type="button" class="navi-chip" data-loan-type="매입잔금(일반)" data-loan-label="매입잔금(일반)"><span class="navi-chip-label">매입잔금대출<br>(일반)</span></button>
-          <button type="button" class="navi-chip" data-loan-type="매입잔금(분양)" data-loan-label="매입잔금(분양)"><span class="navi-chip-label">매입잔금대출<br>(분양)</span></button>
-        </div>
-              <div id="naviStep4Actions">
-          <button type="button" id="naviStep4BackBtn" aria-label="Back">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
-            </svg>
-            Back
-          </button>
-        </div>
-      </section>
+.navi-intro-banner{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover; /* 비율 유지 + 박스 채움(필요 시 가장자리 약간 크롭) */
+}
 
-      <!-- 5. 대출 핵심정보 입력 -->
-      <section class="beta-section navi-section hide" id="navi-step5">
-        <div class="navi-section-title">5. 대출 핵심정보 입력</div>
-        <div class="navi-section-sub">
-          선택하신 대출에 대한 기본 정보를 입력해주세요.
-        </div>
+/* ✅ 모바일(1200x300 = 4:1) 배너 비율 적용 */
+@media (max-width: 768px){
+  .navi-intro-picture{
+    aspect-ratio:1200 / 300; /* = 4 / 1 */
+  }
+}
 
-        <div class="navi-card">
-          <p id="naviLoanTypeHelp" class="navi-help" style="margin-top:0;">
-            ※ 부동산 담보대출 기준 예시입니다. 선택하신 대출종류에 따라 자동 계산 방식이 달라집니다.
-          </p>
+/* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
+.navi-main > .beta-section.navi-intro-section{
+  margin-top:0;
+  padding-top:0;
+  margin-bottom:0;
+}
+@media (max-width: 768px){
+  .navi-main > .beta-section.navi-intro-section{
+    margin-bottom:0;}
+}
 
-          
-<div style="margin-top:8px;">
-            <span style="font-size:12px;color:#374151;">거주형태 / 임대계획</span>
-            <div class="navi-chip-group" id="naviOccupancyChips" style="margin-top:4px;">
-              <button type="button" class="navi-chip" data-occ="self">본인거주(예정)</button>
-              <button type="button" class="navi-chip" data-occ="rental">임대(예정)</button>
-            </div>
-          </div>
-<div class="navi-field-grid">
-            <label>
-              시세 / 낙찰가 (원)
-              <input type="text" id="naviInputPropertyValue" data-type="money" placeholder="예) 500000000" />
-            </label>
-            <label>
-              지분율 (%)
-              <input type="number" id="naviInputSharePercent" min="1" max="100" step="1" placeholder="예) 100" />
-              <span class="navi-help">※ 지분대출이 아닌 경우 100%로 간주합니다.</span>
-            </label>
-            <label>
-              선순위 대출금액 (원)
-              <input type="text" id="naviInputSeniorLoan" data-type="money" placeholder="예) 200000000" />
-            </label>
-            <label>
-              임대보증금액 (원)
-              <input type="text" id="naviInputDeposit" data-type="money" placeholder="예) 100000000" />
-            </label>
-            <label>
-              (대환용) 선순위 중 상환 예정금액 (원)
-              <input type="text" id="naviInputRefinanceAmount" data-type="money" placeholder="예) 150000000" />
-            </label>
-            <label>
-              필요 대출금액 (원)
-              <input type="text" id="naviInputRequestedAmount" data-type="money" placeholder="예) 50000000" />
-              <span class="navi-help">※ 부동산 유형에 따라 최소 대출금액 기준이 적용됩니다.</span>
-            </label>
-          </div>
 
-          
 
-          <p id="naviAmountWarning" class="navi-warning" style="display:none;"></p>
-      <div class="navi-confirm-row">
-        <button id="naviConfirmBtn" type="button" class="btn btn-primary" disabled>결과 확인하기</button>
-        <span id="naviConfirmHint" class="navi-confirm-hint">필수 입력을 완료하면 활성화됩니다.</span>
-      </div>
-        </div>
-      </section>
+/* Step1 섹션: 인트로 배너와 타이틀 사이 간격 (PC/모바일 분기) */
+#navi-step1.beta-section.navi-section{
+  margin-top:26px;
+}
+@media (max-width: 768px){
+  #navi-step1.beta-section.navi-section{
+    margin-top:18px;
+  }
+}
 
-      <!-- 6. 자동 계산 결과 요약 -->
-      <section class="beta-section navi-section hide" id="navi-step6">
-        <div class="navi-section-title">6. 자동 계산 결과 요약</div>
-        <div class="navi-section-sub">
-          입력값을 기준으로 <strong>LTV·대출여력</strong>을 자동 계산합니다.
-        </div>
+/* (옵션) wide 모드가 필요할 때만 수동으로 body에 navi-wide를 붙이면 전체폭으로 확장 */
+body.navi-wide .navi-main{
+  max-width:none;
+}
 
-        <div class="navi-card">
-          <div id="naviCalcSummaryText" style="font-size:12px;color:#374151;">
-            아직 계산 정보가 부족합니다. 위 1~5단계를 먼저 선택·입력해주세요.
-          </div>
-          <div id="naviCalcSubText" class="navi-help"></div>
-          <div id="naviCalcCountInfo" class="navi-info-chip" style="display:none;"></div>
-        </div>
-      </section>
+/* 섹션 기본 타이틀/텍스트 */
+.navi-section{
+  margin-bottom:18px;
+}
+.navi-section-title{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:6px;
+  color:#111827;
+}
 
-      <!-- 6-1. 차주 추가정보 (선택) -->
-      <section class="beta-section navi-section hide" id="navi-step6-1">
-        <div class="navi-section-title">6-1. 차주 추가정보 (선택)</div>
-        <div class="navi-section-sub">
-          아래 정보는 모두 선택하지 않아도 됩니다. 다만 많이 입력하실수록 보다 정확하게 온투업체를 매칭할 수 있습니다.
-        </div>
+/* Step1: 메인 질문 타이틀 */
+.navi-step1-title{
+  font-size:19.2px; /* 기존 24px 대비 -20% */
+  line-height:1.2;
+  margin-bottom:12px;
+}
+.navi-section-sub{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:8px;
+}
+.navi-help{
+  font-size:11px;
+  color:#9ca3af;
+  margin-top:4px;
+}
 
-        <div class="navi-card">
-          <div style="margin-bottom:6px;font-size:12px;color:#374151;">
-            · 선택하신 추가조건은 <strong>추천 온투업체 필터링 및 정렬</strong>에 반영됩니다.
-          </div>
+/* 칩 그룹 / 칩 */
+.navi-chip-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.navi-chip{
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  font-size:12px;
+  color:#374151;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.navi-chip.is-selected{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#111827;
+}
 
-          <div class="navi-section-sub" style="margin-top:4px;">1) 소득유형</div>
-          <div class="navi-chip-group" id="naviExtraIncomeType">
-            <button type="button" class="navi-chip" data-income="근로소득">근로소득</button>
-            <button type="button" class="navi-chip" data-income="근로외증빙소득">근로외 증빙소득</button>
-            <button type="button" class="navi-chip" data-income="증빙소득없음">증빙소득 없음</button>
-            <button type="button" class="navi-chip" data-income="무증빙·이자납입가능">
-              증빙소득 없으나 이자 납입가능
-            </button>
-          </div>
+/* 입력 필드 그리드 */
+.navi-field-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px 12px;
+  margin-top:8px;
+}
+.navi-field-grid label{
+  font-size:12px;
+  color:#374151;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.navi-field-grid input[type="text"],
+.navi-field-grid input[type="number"]{
+  font-size:12px;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+}
 
-          <div class="navi-section-sub" style="margin-top:10px;">2) 신용점수 구간</div>
-          <div class="navi-chip-group" id="naviExtraCreditBand">
-            <button type="button" class="navi-chip" data-credit="600미만">600점 미만</button>
-            <button type="button" class="navi-chip" data-credit="600이상">600점 이상</button>
-          </div>
+/* 카드 */
+.navi-card{
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  padding:12px 14px;
+  margin-top:8px;
+}
 
-          <div class="navi-section-sub" style="margin-top:10px;">3) 상환계획</div>
-          <div class="navi-chip-group" id="naviExtraRepayPlan">
-            <button type="button" class="navi-chip" data-repay="3개월내">3개월 내</button>
-            <button type="button" class="navi-chip" data-repay="3개월초과~1년미만">3개월 초과~1년 미만</button>
-            <button type="button" class="navi-chip" data-repay="1년이상">1년 이상</button>
-          </div>
+/* 결과 헤더 */
+.navi-result-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+.navi-result-title{
+  font-size:15px;
+  font-weight:700;
+  color:#111827;
+}
+.navi-result-count{
+  font-size:12px;
+  color:#4b5563;
+}
 
-          <div class="navi-section-sub" style="margin-top:10px;">4) 대출금 필요시기</div>
-          <div class="navi-chip-group" id="naviExtraNeedTiming">
-            <button type="button" class="navi-chip" data-need="당일">당일</button>
-            <button type="button" class="navi-chip" data-need="1주일내">1주일 내</button>
-            <button type="button" class="navi-chip" data-need="한달이내">한달 이내</button>
-          </div>
+/* 버튼 */
+.navi-btn-primary,
+.navi-btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+  border:1px solid transparent;
+  background:transparent;
+}
+.navi-btn-primary{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#111827;
+}
+.navi-btn-secondary{
+  background:#f9fafb;
+  color:#374151;
+  border-color:#d1d5db;
+}
 
-          <div class="navi-section-sub" style="margin-top:10px;">5) 기타사항</div>
-          <div class="navi-chip-group" id="naviExtraOthers">
-            <button type="button" class="navi-chip" data-etc="세금체납">세금체납</button>
-            <button type="button" class="navi-chip" data-etc="연체기록">연체기록</button>
-            <button type="button" class="navi-chip" data-etc="압류·가압류">압류·가압류</button>
-            <button type="button" class="navi-chip" data-etc="개인회생">개인회생</button>
-          </div>
+/* 태그/뱃지 */
+.navi-tag{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  border:1px solid #e5e7eb;
+  background:#f3f4f6;
+  color:#4b5563;
+  margin-right:4px;
+  margin-bottom:2px;
+}
 
-          <p class="navi-help" style="margin-top:10px;">
-            ※ 온투업 전업종 공통 취급 불가 안내(선택이 아닌 안내용): 임차인·무상거주자 동의 불가, 맹지, 법인소유자,
-            시세 1억 미만 등은 별도 제한이 있을 수 있습니다.
-          </p>
+/* 온투업 리스트 */
+.navi-lender-item{
+  border-top:1px dashed #e5e7eb;
+  padding-top:8px;
+  margin-top:8px;
+}
+.navi-lender-name{
+  font-size:14px;
+  font-weight:700;
+  color:#111827;
+  margin-bottom:4px;
+}
+.navi-lender-meta{
+  font-size:11px;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.navi-lender-actions{
+  margin-top:4px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
 
-          <div id="naviExtraCountInfo" class="navi-info-chip" style="display:none;"></div>
-        </div>
-      </section>
+/* 경고/안내 */
+.navi-warning{
+  font-size:11px;
+  color:#b91c1c;
+  margin-top:4px;
+}
+.navi-info-chip{
+  font-size:11px;
+  color:#2563eb;
+  background:#eff6ff;
+  border-radius:999px;
+  padding:2px 8px;
+  display:inline-block;
+  margin-top:4px;
+}
 
-      <!-- 7. 네비게이션 결과 -->
-      <section class="beta-section navi-section hide" id="navi-step7">
-        <div class="navi-section-title">7. 네비게이션 결과</div>
+/* 결과 없을 때 카드 */
+.navi-empty-card{
+  border-radius:10px;
+  border:1px dashed #d1d5db;
+  background:#f9fafb;
+  padding:16px;
+  text-align:center;
+  font-size:12px;
+  color:#6b7280;
+}
+.navi-tip-list{
+  padding-left:16px;
+  margin:6px 0 0;
+  font-size:11px;
+  color:#4b5563;
+}
 
-        <div class="navi-card" id="naviResultWrapper">
-          <div class="navi-result-header">
-            <div>
-              <div class="navi-result-title">조건에 따른 온투업 추천 결과</div>
-              <div id="naviResultSummary" class="navi-result-count">
-                아직 계산이 완료되지 않았습니다. 위 단계를 먼저 입력해주세요.
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button type="button" class="navi-btn-secondary" id="naviRecalcBtn">
-                조건 다시 계산
-              </button>
-              <button type="button" class="navi-btn-primary" id="naviShowResultBtn">
-                네비게이션 결과 보기
-              </button>
-            </div>
-          </div>
+/* 네비 – 모바일 레이아웃 */
+@media (max-width:768px){
+  .navi-main{
+    padding:0 18px 32px;
+  }
+  .navi-field-grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
 
-          <div id="naviResultPanel" style="font-size:12px;color:#374151;">
-            <div class="navi-empty-card">
-              아직 결과가 없습니다.<br />
-              <span style="font-size:11px;">
-                위 조건을 모두 입력하신 후 <strong>[네비게이션 결과 보기]</strong> 버튼을 눌러주세요.
-              </span>
-            </div>
-          </div>
 
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="navi-btn-secondary" id="naviAdjustConditionBtn">
-              조건 조정하기
-            </button>
-            <button type="button" class="navi-btn-secondary" id="naviCaptureBtn">
-              결과 화면 이미지 저장
-            </button>
-          </div>
+/* =========================================================
+   ✅ Navi (beta): confirm flow + stats widget
+========================================================= */
+.navi-confirm-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+.navi-confirm-hint{
+  font-size:13px;
+  color:var(--muted);
+}
 
-          <p class="navi-help" style="margin-top:6px;">
-            · 결과 이미지는 개인정보 없이 <strong>조건 요약 + 추천 온투업 리스트</strong>만 포함되며, 상담 채널 공유용으로 활용하실 수 있습니다.
-          </p>
-        </div>
-      </section>
+.navi-stats-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px 14px 12px;
+}
+.navi-stats-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.navi-stats-title{
+  font-weight:800;
+  font-size:15px;
+}
+.navi-stats-month{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.navi-stats-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+@media (max-width: 860px){
+  .navi-stats-grid{ grid-template-columns:1fr; }
+}
+.navi-stats-col{
+  border:1px solid var(--chip-line);
+  background:var(--chip-bg);
+  border-radius:12px;
+  padding:10px;
+}
+.navi-stats-col h4{
+  margin:0 0 8px 0;
+  font-size:13px;
+}
+.navi-stats-list{
+  margin:0;
+  padding-left:18px;
+  font-size:13px;
+}
+.navi-stats-list li{
+  margin:4px 0;
+}
+.navi-stats-count{
+  color:var(--muted);
+  margin-left:6px;
+}
+.navi-stats-empty{
+  font-size:13px;
+  color:var(--muted);
+}
 
-    </div>
-  </main>
 
-  <footer class="beta-footer" role="contentinfo">
-    <div class="beta-footer__top">
-      <a href="/company.html">회사소개</a>
-      <a href="/terms.html">서비스이용약관</a>
-      <a href="/privacy.html">개인정보 취급방침</a>
-    </div>
-    <div class="beta-footer__bottom">
-      <div class="beta-footer__brand">
-        <img
-          src="/assets/logo/huchu-logo-white.png"
-          alt="HUCHU 로고"
-          class="beta-footer__logo-img"
-        />
-        <span class="beta-footer__logo-text">HUCHU</span>
-      </div>
-      <div class="beta-footer__info">
-        <p>상호: 후추랩 | 대표: 장현성</p>
-        <p>주소: 경기도 고양시 일산동구 정발산로 15, 4층 411호</p>
-        <p>E-MAIL: support@huchulab.com | 사업자번호: 546-03-03940</p>
-        <p>2025 © HUCHU. ALL RIGHTS RESERVED.</p>
-      </div>
-    </div>
-  </footer>
+/* =========================
+   Navi: 세부지역(LTV Up)
+========================= */
+.navi-subregion-wrap{
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.02);
+}
+.navi-subregion-title{
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.navi-subregion-sub{
+  font-size: 12px;
+  opacity: .85;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.navi-chip-group--sub .navi-chip{
+  padding: 8px 12px;
+  font-size: 13px;
+}
 
-</body>
-</html>
+
+/* Sticky footer (PC 포함): 내용이 짧을 때도 푸터가 화면 하단에 붙도록 */
+body.beta-body.beta-sticky-footer{
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+}
+body.beta-body.beta-sticky-footer > main.beta-main{
+  flex:1 0 auto;
+}
+body.beta-body.beta-sticky-footer > footer.beta-footer{
+  margin-top:auto;
+}
+
+
+/* =========================
+   Hover 가독성 개선
+   - 커서 hover 시 텍스트(흰색) + 골드 배경으로 통일
+========================= */
+:root{
+  --navi-hover-gold:#C9A227;
+}
+
+/* 칩(버튼) */
+.navi-main .navi-chip:hover:not(.is-selected):not(:disabled),
+.navi-main .navi-chip:focus-visible:not(.is-selected):not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
+
+/* Navi 내부 버튼(커스텀) */
+.navi-main .navi-btn-primary:hover:not(:disabled),
+.navi-main .navi-btn-primary:focus-visible:not(:disabled),
+.navi-main .navi-btn-secondary:hover:not(:disabled),
+.navi-main .navi-btn-secondary:focus-visible:not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
+
+/* 공통 btn (결과 확인하기 등) */
+.navi-main .btn.btn-primary:hover:not(:disabled),
+.navi-main .btn.btn-primary:focus-visible:not(:disabled){
+  background:var(--navi-hover-gold);
+  border-color:var(--navi-hover-gold);
+  color:#ffffff;
+}
+
+/* =========================================================
+   Step7 결과 카드(제휴/비제휴) — 2026-02-19
+========================================================= */
+
+.navi-result-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
+
+@media (max-width: 1100px){
+  .navi-result-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 640px){
+  .navi-result-grid{ grid-template-columns:1fr; }
+}
+
+.navi-result-card{
+  background:#fff;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:14px 14px 12px;
+  box-sizing:border-box;
+}
+
+.navi-result-card.is-partner{
+  border:2px solid #8b5cf6;
+  box-shadow:0 0 0 2px rgba(139,92,246,.08);
+}
+
+.navi-result-head{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.navi-result-logo{
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#fff;
+  overflow:hidden;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.navi-result-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  position:relative;
+  z-index:1;
+}
+
+.navi-result-initials{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:18px;
+  letter-spacing:.02em;
+  color:#111827;
+}
+
+.navi-result-title{
+  font-size:24px;
+  font-weight:900;
+  line-height:1.08;
+  color:#111827;
+}
+
+.navi-result-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#6b7280;
+  line-height:1.25;
+}
+
+.navi-result-divider{
+  height:1px;
+  background:#e5e7eb;
+  margin:12px 0;
+}
+
+.navi-result-metrics{
+  display:flex;
+  gap:10px;
+  margin-top:2px;
+}
+
+.navi-metric{
+  flex:1;
+  border:1px solid #c7cbd1;
+  border-radius:10px;
+  padding:10px 8px;
+  text-align:center;
+}
+
+.navi-metric .lab{
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+  line-height:1.1;
+}
+
+.navi-metric .val{
+  margin-top:10px;
+  font-size:16px;
+  font-weight:900;
+  color:#111827;
+}
+
+.navi-result-notes{
+  margin-top:12px;
+  font-size:13px;
+  color:#374151;
+  line-height:1.45;
+}
+
+.navi-result-actions{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between;
+  padding-top:2px;
+}
+
+.navi-action-btn{
+  width:58px;
+  height:58px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  border:1px solid #9ca3af;
+  box-sizing:border-box;
+  user-select:none;
+}
+
+.navi-action-btn.is-disabled{
+  opacity:.45;
+  pointer-events:none;
+}
+
+.navi-action-phone{
+  background:#22c55e;
+  border-color:#22c55e;
+}
+
+.navi-action-phone svg{
+  width:28px;
+  height:28px;
+  fill:#ffffff;
+}
+
+.navi-action-kakao{
+  background:#111827;
+  border-color:#111827;
+}
+
+.navi-action-kakao span{
+  color:#fde047;
+  font-weight:900;
+  font-size:12px;
+  line-height:1.05;
+  text-align:center;
+  display:block;
+}
+
+.navi-action-home{
+  background:#ffffff;
+  border-color:#9ca3af;
+}
+
+.navi-action-home svg{
+  width:30px;
+  height:30px;
+  stroke:#111827;
+}
+
+.navi-nonpartner-huchu{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding-top:2px;
+}
+
+.navi-huchu-img{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.navi-huchu-text{
+  font-size:14px;
+  font-weight:700;
+  color:#374151;
+  line-height:1.25;
+}
+
+
+/* =========================================================
+   Navi single-card wizard (첫 화면 + 단계 전환)
+========================================================= */
+body.navi-single-card-mode .navi-main > #navi-stepper{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-stage{
+  margin-left:calc(50% - 50vw);
+  margin-right:calc(50% - 50vw);
+  margin-bottom:0 !important; /* footer 위 간격 제거 */
+  width:100vw;
+  max-width:100vw;
+  background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
+  background-attachment:fixed;
+  background-position:center;
+  padding:14px 20px; /* 상/하 여백 동일 */
+  box-sizing:border-box;
+  min-height:700px;
+  display:grid;
+  place-items:center;
+  justify-content:initial;
+  align-items:initial;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+  min-height:620px; /* 첫 화면 배경 세로폭 축소 + 중앙배치 기준 높이 */
+}
+
+body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+  min-height:700px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-shell{
+  width:min(100%, 560px);
+  margin:0;
+  border-radius:18px;
+  background:#ffffff;
+  padding:34px 34px 38px;
+  box-sizing:border-box;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] .navi-wizard-card-shell{
+  width:min(100%, 680px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step5"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6"] .navi-wizard-card-shell,
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6-1"] .navi-wizard-card-shell{
+  width:min(100%, 900px);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+  width:min(100%, 1180px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body{
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section{
+  margin:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body > .navi-section + .navi-section{
+  margin-top:0;
+}
+
+body.navi-single-card-mode .navi-wizard-step-hidden{
+  display:none !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-card{
+  border:none;
+  background:transparent;
+  padding:0;
+  margin-top:12px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+  font-size:24px;
+  line-height:1.25;
+  font-weight:800;
+  color:#111111;
+  text-align:center;
+  margin:0 0 18px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-section-sub{
+  text-align:center;
+  font-size:12px;
+  color:#5f6368;
+  margin-bottom:14px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1{
+  margin-top:0 !important;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  margin-top:4px;
+  margin-bottom:26px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+  content:"?";
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:36px;
+  border-radius:10px;
+  background:#ffb300;
+  color:#111;
+  font-weight:900;
+  font-size:30px;
+  line-height:1;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
+  transform:translateY(-2px);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:20px 22px;
+  max-width:440px;
+  margin:0 auto;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips[data-odd="1"] > .navi-chip:last-child{
+  grid-column:2;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+  min-height:58px;
+  border-radius:0;
+  border:1px solid #a8a8a8;
+  background:#f3f3f3;
+  color:#222;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  white-space:normal;
+  line-height:1.25;
+  font-size:17px;
+  font-weight:500;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:hover:not(.is-selected):not(:disabled),
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:focus-visible:not(.is-selected):not(:disabled){
+  background:#ffffff;
+  color:#111;
+  border-color:#8a8a8a;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip.is-selected{
+  background:#ffffff;
+  color:#111;
+  border-color:#7c4dff;
+  box-shadow:0 0 0 2px rgba(124,77,255,.15);
+}
+
+body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip:disabled{
+  min-height:58px;
+  border-radius:0;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group{
+  gap:8px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-chip-group:not(#naviLoanCategoryChips) .navi-chip{
+  min-height:40px;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-row{
+  justify-content:center;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-confirm-hint{
+  text-align:center;
+  width:100%;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header{
+  justify-content:center;
+  text-align:center;
+}
+
+body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last-child{
+  justify-content:center;
+}
+
+@media (max-width: 768px){
+  body.navi-single-card-mode .navi-wizard-stage{
+    padding:10px 14px;
+    min-height:520px;
+    margin-bottom:0;
+    background-attachment:scroll;
+  }
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
+    min-height:460px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+    min-height:520px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-shell{
+    width:min(100%, 520px);
+    border-radius:16px;
+    padding:24px 18px 24px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
+    font-size:20px;
+    margin-bottom:14px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title{
+    margin-bottom:18px;
+    gap:8px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #navi-step1 .navi-section-title::after{
+    width:32px;
+    height:30px;
+    font-size:24px;
+    border-radius:8px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips{
+    gap:12px 12px;
+    max-width:none;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body #naviLoanCategoryChips .navi-chip{
+    min-height:54px;
+    font-size:14px;
+    padding:8px 8px;
+  }
+}
+
+/* single-card + sticky footer 하단 간격 정리 */
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main{
+  display:flex;
+  flex-direction:column;
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
+}
+body.navi-single-card-mode.beta-sticky-footer > main.beta-main > .beta-inner.navi-main{
+  display:flex;
+  flex-direction:column;
+  flex:1 0 auto;
+}
+body.navi-single-card-mode .beta-inner.navi-main,
+body.navi-single-card-mode .navi-main{
+  padding-bottom:0 !important;
+  margin-bottom:0 !important;
+}
+body.navi-single-card-mode .beta-inner.navi-main > .navi-wizard-stage,
+body.navi-single-card-mode .navi-main > .navi-wizard-stage{
+  flex:0 0 auto;
+  margin-bottom:0 !important;
+}
+
+@media (max-width: 768px){
+  body.navi-single-card-mode.beta-sticky-footer > main.beta-main,
+  body.navi-single-card-mode .beta-inner.navi-main,
+  body.navi-single-card-mode .navi-main{
+    padding-bottom:0 !important;
+    margin-bottom:0 !important;
+  }
+}
+
+
+/* =========================================================
+   ✅ Navi wizard progress (Step 1~5) — 2026-03-01
+   - 기존 stepper(#navi-stepper)는 single-card-mode에서 숨김 처리됨
+   - 디자인 시안(지역선택) 기준: 원형 1~5 + 연결선
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  box-sizing:border-box;
+}
+
+body.navi-single-card-mode .navi-wizard-progress{
+  width:min(100%, 560px);
+  padding:0 10px;
+  box-sizing:border-box;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-track{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-track::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  height:4px;
+  border-radius:999px;
+  background:rgba(255,255,255,.38);
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot{
+  position:relative;
+  z-index:1;
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:16px;
+  background:rgba(255,255,255,.88);
+  color:#2563eb;
+  user-select:none;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot.is-done{
+  background:#000000;
+  color:#ffffff;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot.is-active{
+  background:#f5d54b;
+  color:#111111;
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .navi-wizard-progress{
+  display:none;
+}
+
+/* =========================================================
+   ✅ Step2(지역선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #navi-step2 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips{
+  gap:18px 22px;
+  justify-content:flex-start;
+  margin-top:4px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip{
+  border-radius:0;
+  width:74px;
+  height:56px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* Back 버튼 */
+#naviStep2Actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+#naviStep2BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+#naviStep2BackBtn svg{
+  width:16px;
+  height:16px;
+  display:block;
+  fill:currentColor;
+}
+
+
+/* =========================================================
+   ✅ Step3(부동산 유형 선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #navi-step3 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px 22px;
+  justify-content:center;
+  margin-top:6px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips .navi-chip{
+  border-radius:0;
+  min-width:120px;
+  height:56px;
+  padding:0 16px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* =========================================================
+   ✅ Step4(대출 종류 선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #navi-step4 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px 22px;
+  justify-content:center;
+  margin-top:6px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip{
+  border-radius:0;
+  min-width:140px;
+  height:60px;
+  padding:0 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+  white-space:normal;
+  line-height:1.12;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip-label{
+  display:inline-block;
+  line-height:1.12;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* Back 버튼 (Step3/4 공통) */
+#naviStep3Actions, #naviStep4Actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+#naviStep3BackBtn, #naviStep4BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+#naviStep3BackBtn svg, #naviStep4BackBtn svg{
+  width:16px;
+  height:16px;
+  display:block;
+  fill:currentColor;
+}
+
+
+/* ------------------------------
+   Step5 (아파트-일반담보) 디자인 모드
+------------------------------ */
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-status { display:block; }
+#navi-step5 .navi-step5-status { display:none; margin: 10px 0 14px; }
+.navi-step5-statusbar{
+  height:64px;
+  border-radius:10px;
+  background:#3b3f44;
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+}
+.navi-step5-statuschip{
+  width:56px;
+  height:56px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:18px;
+  letter-spacing:-0.2px;
+  color:#fff;
+}
+.navi-step5-statuschip--pending{ background:#ffd24d; color:transparent; }
+.navi-step5-statuschip--ok{ background:#20d000; }
+.navi-step5-statuschip--no{ background:#e11d2e; }
+#navi-step5[data-step5-status="pending"] .navi-step5-statusbar{ justify-content:center; }
+#navi-step5[data-step5-status="ok"] .navi-step5-statusbar{ justify-content:flex-end; }
+#navi-step5[data-step5-status="no"] .navi-step5-statusbar{ justify-content:flex-start; }
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-split{
+  display:grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 18px;
+  align-items:center;
+  margin-top: 6px;
+}
+#navi-step5 .navi-step5-split{ display:block; }
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-vline{
+  height: 210px;
+  background: rgba(17,24,39,0.18);
+  border-radius: 1px;
+  justify-self:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-left{
+  display:flex;
+  justify-content:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-occ-tree{
+  min-width: 220px;
+  text-align:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-occ-title{
+  display:inline-block;
+  padding:10px 18px;
+  border-radius:999px;
+  background:#d1d5db;
+  color:#111827;
+  font-weight:700;
+  font-size:14px;
+  box-shadow: inset 0 0 0 1px rgba(17,24,39,0.08);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips{
+  display:flex;
+  gap:18px;
+  justify-content:center;
+  margin-top: 20px !important;
+  position:relative;
+  padding-top: 22px;
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips:before{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:50%;
+  width:1px;
+  height:18px;
+  background: rgba(17,24,39,0.55);
+  transform: translateX(-0.5px);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips:after{
+  content:"";
+  position:absolute;
+  top:20px;
+  left:25px;
+  right:25px;
+  height:1px;
+  background: rgba(17,24,39,0.55);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips .navi-chip{
+  min-width: 84px;
+  border-radius:2px;
+  padding:10px 14px;
+  background:#fff;
+  border:1px solid rgba(17,24,39,0.55);
+  box-shadow:none;
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips .navi-chip.is-selected{
+  background:#ffd24d;
+  border-color:#111827;
+  color:#111827;
+}
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-right{
+  display:flex;
+  justify-content:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  width: 280px;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label{display:none;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label:not([style*="display: none"]){display:block;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label{font-size:0;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 input{
+  width:100%;
+  height:44px;
+  border-radius:999px;
+  border:1px solid rgba(17,24,39,0.18);
+  padding: 0 16px;
+  font-size:16px;
+  text-align:right;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-money-ko{
+  margin-top:6px;
+  font-size:12px;
+  color: rgba(17,24,39,0.55);
+  text-align:right;
+  min-height: 14px;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-help,
+#navi-step5[data-step5-mode="apt-general"] .navi-section-sub,
+#navi-step5[data-step5-mode="apt-general"] #naviLoanTypeHelp{
+  display:none !important;
+}
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-extra-btn{
+  position:absolute;
+  right: 38px;
+  bottom: 28px;
+  border:0;
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:14px;
+  font-weight:800;
+  color:#fff;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, #ff5cab 0%, #ffa33a 100%);
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-extra-btn.hide{ display:none; }
+
