@@ -980,12 +980,18 @@ body.navi-single-card-mode .navi-wizard-progress-dot{
 }
 
 body.navi-single-card-mode .navi-wizard-progress-dot.is-done{
-  background:#f5d54b;
-  color:#2563eb;
+  background:#000000;
+  color:#ffffff;
 }
 
 body.navi-single-card-mode .navi-wizard-progress-dot.is-active{
+  background:#f5d54b;
+  color:#111111;
   box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .navi-wizard-progress{
+  display:none;
 }
 
 /* =========================================================
@@ -1044,6 +1050,116 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #na
 }
 
 #naviStep2BackBtn svg{
+  width:16px;
+  height:16px;
+  display:block;
+  fill:currentColor;
+}
+
+
+/* =========================================================
+   ✅ Step3(부동산 유형 선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #navi-step3 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px 22px;
+  justify-content:center;
+  margin-top:6px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips .navi-chip{
+  border-radius:0;
+  min-width:120px;
+  height:56px;
+  padding:0 16px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"] #naviPropertyTypeChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* =========================================================
+   ✅ Step4(대출 종류 선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #navi-step4 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px 22px;
+  justify-content:center;
+  margin-top:6px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip{
+  border-radius:0;
+  min-width:140px;
+  height:60px;
+  padding:0 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+  white-space:normal;
+  line-height:1.12;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip-label{
+  display:inline-block;
+  line-height:1.12;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #naviRealEstateLoanTypeChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* Back 버튼 (Step3/4 공통) */
+#naviStep3Actions, #naviStep4Actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+#naviStep3BackBtn, #naviStep4BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+#naviStep3BackBtn svg, #naviStep4BackBtn svg{
   width:16px;
   height:16px;
   display:block;
