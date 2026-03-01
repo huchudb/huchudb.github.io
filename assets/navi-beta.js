@@ -158,8 +158,19 @@ function ensureWizardSingleCardUI() {
     stage.className = "beta-section navi-wizard-stage";
     stage.id = "naviWizardStage";
     stage.innerHTML = `
-      <div class="navi-wizard-card-shell">
-        <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
+      <div class="navi-wizard-stage-inner">
+        <div class="navi-wizard-progress" aria-hidden="true">
+          <div class="navi-wizard-progress-track" id="naviWizardProgressTrack">
+            <div class="navi-wizard-progress-dot" data-step="1">1</div>
+            <div class="navi-wizard-progress-dot" data-step="2">2</div>
+            <div class="navi-wizard-progress-dot" data-step="3">3</div>
+            <div class="navi-wizard-progress-dot" data-step="4">4</div>
+            <div class="navi-wizard-progress-dot" data-step="5">5</div>
+          </div>
+        </div>
+        <div class="navi-wizard-card-shell">
+          <div class="navi-wizard-card-body" id="naviWizardCardBody"></div>
+        </div>
       </div>
     `;
     root.insertBefore(stage, step1);
@@ -212,8 +223,31 @@ function syncWizardSingleCardView() {
 
   if (activeEl) {
     stage.setAttribute("data-active-step", activeEl.id);
+    updateWizardProgressByActiveStepId(activeEl.id);
   }
 }
+
+
+function updateWizardProgressByActiveStepId(activeStepId) {
+  const track = document.getElementById("naviWizardProgressTrack");
+  if (!track) return;
+
+  let step = 1;
+  switch (String(activeStepId || "")) {
+    case "navi-step1": step = 1; break;
+    case "navi-step2": step = 2; break;
+    case "navi-step3": step = 3; break;
+    case "navi-step4": step = 4; break;
+    default: step = 5; break; // step5~7은 5로 유지(디자인 기준 1~5)
+  }
+
+  track.querySelectorAll(".navi-wizard-progress-dot").forEach((dot) => {
+    const n = Number(dot.getAttribute("data-step") || "0");
+    dot.classList.toggle("is-done", n > 0 && n < step);
+    dot.classList.toggle("is-active", n === step);
+  });
+}
+
 
 function setConfirmUIState() {
   const btn = document.getElementById("naviConfirmBtn");
@@ -1566,9 +1600,54 @@ function setupStep1() {
 }
 
 
+
+function setupStep2Back() {
+  const btn = document.getElementById("naviStep2BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+
+  btn.addEventListener("click", () => {
+    // Step1 선택 해제
+    document.querySelectorAll("#naviLoanCategoryChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
+
+    // 상태 리셋
+    userState.mainCategory = null;
+    resetRealEstateDraftState();
+
+    // 추가조건(선택) 리셋
+    if (userState && userState.extra) {
+      userState.extra.incomeType = null;
+      userState.extra.creditBand = null;
+      userState.extra.repayPlan = null;
+      userState.extra.needTiming = null;
+      userState.extra.others = [];
+      userState.extra.tokens = [];
+    }
+    try {
+      document.querySelectorAll("#navi-step6-1 .navi-chip").forEach((b) => b.classList.remove("is-selected"));
+    } catch (_) {}
+
+    // confirm 플래그 리셋
+    uiState.confirmed = false;
+    uiState.hasRenderedResult = false;
+    uiState.autoRevealed = false;
+
+    // 단계/요약 갱신
+    recalcAndUpdateSummary();
+
+    // 상단(스테이지)로 이동
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step1");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+  });
+}
+
+
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
+  setupStep2Back();
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
