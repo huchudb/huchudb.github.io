@@ -201,15 +201,20 @@ function syncWizardSingleCardView() {
   const stage = document.getElementById("naviWizardStage");
   if (!stage) return;
 
-  let activeEl = null;
-  WIZARD_STEP_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const hiddenByClass = el.classList.contains("hide");
-    const hiddenByStyle = el.style && el.style.display === "none";
-    const isVisible = !hiddenByClass && !hiddenByStyle;
-    if (isVisible) activeEl = el;
-  });
+  // ✅ Back 버튼 등에서 "이전 스텝을 강제로 보여주기" 위한 override
+  const forcedId = (uiState && uiState.forcedWizardStepId) ? String(uiState.forcedWizardStepId) : "";
+  let activeEl = forcedId ? document.getElementById(forcedId) : null;
+
+  if (!activeEl) {
+    WIZARD_STEP_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const hiddenByClass = el.classList.contains("hide");
+      const hiddenByStyle = el.style && el.style.display === "none";
+      const isVisible = !hiddenByClass && !hiddenByStyle;
+      if (isVisible) activeEl = el;
+    });
+  }
 
   if (!activeEl) {
     activeEl = document.getElementById("navi-step1");
@@ -228,25 +233,48 @@ function syncWizardSingleCardView() {
 }
 
 
+
+function clearWizardForcedStep() {
+  if (!uiState) return;
+  if (!uiState.forcedWizardStepId) return;
+  uiState.forcedWizardStepId = null;
+}
+
 function updateWizardProgressByActiveStepId(activeStepId) {
   const track = document.getElementById("naviWizardProgressTrack");
   if (!track) return;
 
-  let step = 1;
-  switch (String(activeStepId || "")) {
-    case "navi-step1": step = 1; break;
-    case "navi-step2": step = 2; break;
-    case "navi-step3": step = 3; break;
-    case "navi-step4": step = 4; break;
-    default: step = 5; break; // step5~7은 5로 유지(디자인 기준 1~5)
+  const isRE = userState && userState.mainCategory === "부동산담보대출";
+
+  let step = 0;
+
+  if (isRE) {
+    // ✅ 디자인 기준: (부동산담보대출) Step1=지역선택(navi-step2)부터 카운트
+    switch (String(activeStepId || "")) {
+      case "navi-step2": step = 1; break;
+      case "navi-step3": step = 2; break;
+      case "navi-step4": step = 3; break;
+      case "navi-step5": step = 4; break;
+      default: step = 5; break; // step6~7
+    }
+  } else {
+    // ✅ 기타 상품군: 기존 흐름 유지(표시상 step1부터)
+    switch (String(activeStepId || "")) {
+      case "navi-step1": step = 1; break;
+      case "navi-step2": step = 2; break;
+      case "navi-step3": step = 3; break;
+      case "navi-step4": step = 4; break;
+      default: step = 5; break;
+    }
   }
 
   track.querySelectorAll(".navi-wizard-progress-dot").forEach((dot) => {
     const n = Number(dot.getAttribute("data-step") || "0");
-    dot.classList.toggle("is-done", n > 0 && n < step);
-    dot.classList.toggle("is-active", n === step);
+    dot.classList.toggle("is-done", step > 0 && n > 0 && n < step);
+    dot.classList.toggle("is-active", step > 0 && n === step);
   });
 }
+
 
 
 function setConfirmUIState() {
@@ -724,6 +752,7 @@ async function loadNaviLoanConfig() {
 
 const uiState = {
   confirmed: false,
+  forcedWizardStepId: null, // single-card-mode에서 Back 시 이전 스텝을 강제로 보여주기 위한 override
   hasRenderedResult: false,
 };
 
@@ -945,7 +974,8 @@ function ensureLoanTypeChips() {
       btn.type = "button";
       btn.className = "navi-chip";
       btn.setAttribute("data-loan-type", x.t);
-      btn.textContent = x.label;
+      btn.setAttribute("data-loan-label", x.label);
+      btn.innerHTML = `<span class="navi-chip-label">${formatLoanTypeLabelHtml(x.t, x.label)}</span>`;
       container.appendChild(btn);
     }
   });
@@ -1360,8 +1390,11 @@ function applyMetaChips() {
   const step3 = document.getElementById("naviPropertyTypeChips");
   if (step3 && Array.isArray(meta.propertyTypes) && meta.propertyTypes.length) {
     step3.innerHTML = meta.propertyTypes.map((p) => {
+      const key = String(p.key || p.label || "");
       const label = String(p.label || p.key || "");
-      return `<button type="button" class="navi-chip" data-prop="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
+      // ✅ 디자인 표기만 일부 보정(내부 key는 유지)
+      const display = (key === "다세대/연립") ? "빌라/다세대" : label;
+      return `<button type="button" class="navi-chip" data-prop="${escapeHtmlAttr(key)}" data-prop-label="${escapeHtmlAttr(label)}">${escapeHtml(display)}</button>`;
     }).join("");
   }
 
@@ -1370,6 +1403,17 @@ function applyMetaChips() {
 
   // Step2-추가: 세부지역 (region 선택되면 표시)
   renderSubregionChips();
+}
+
+
+function formatLoanTypeLabelHtml(key, label) {
+  const k = String(key || "");
+  // ✅ 특정 라벨은 시안처럼 2줄 표기
+  if (k === "일반담보대출") return "일반<br />담보대출";
+  if (k === "임대보증금반환대출") return "임대보증금<br />반환 대출";
+  if (k === "매입잔금(일반)" || k === "매입잔금_일반") return "매입잔금대출<br />(일반)";
+  if (k === "매입잔금(분양)" || k === "매입잔금_분양") return "매입잔금대출<br />(분양)";
+  return escapeHtml(String(label || k));
 }
 
 function renderLoanTypeChipsFromMeta() {
@@ -1384,7 +1428,7 @@ function renderLoanTypeChipsFromMeta() {
   // propertyTypes에서 loanSet 결정 (aptv / base)
   let setKey = "base";
   if (Array.isArray(meta.propertyTypes) && propLabel) {
-    const hit = meta.propertyTypes.find((p) => p && p.label === propLabel);
+    const hit = meta.propertyTypes.find((p) => p && (p.key === propLabel || p.label === propLabel));
     if (hit && hit.loanSet) {
       setKey = (hit.loanSet === "aptv") ? "aptv" : "base";
     }
@@ -1394,7 +1438,8 @@ function renderLoanTypeChipsFromMeta() {
   container.innerHTML = list.map((x) => {
     const k = String(x.key || "");
     const label = String(x.label || x.key || "");
-    return `<button type="button" class="navi-chip" data-loan-type="${escapeHtmlAttr(k)}" data-loan-label="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
+    const labelHtml = formatLoanTypeLabelHtml(k, label);
+    return `<button type="button" class="navi-chip" data-loan-type="${escapeHtmlAttr(k)}" data-loan-label="${escapeHtmlAttr(label)}"><span class="navi-chip-label">${labelHtml}</span></button>`;
   }).join("");
 
   // ✅ (UX) 재렌더링 이후에도 선택된 대출종류 칩의 강조(검정 배경)를 유지
@@ -1644,6 +1689,37 @@ function setupStep2Back() {
 }
 
 
+
+function setupStep3Back() {
+  const btn = document.getElementById("naviStep3BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+
+  btn.addEventListener("click", () => {
+    if (uiState) uiState.forcedWizardStepId = "navi-step2";
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step2");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+    syncWizardSingleCardView();
+  });
+}
+
+function setupStep4Back() {
+  const btn = document.getElementById("naviStep4BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+
+  btn.addEventListener("click", () => {
+    if (uiState) uiState.forcedWizardStepId = "navi-step3";
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step3");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+    syncWizardSingleCardView();
+  });
+}
+
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
@@ -1651,10 +1727,13 @@ function setupStep2() {
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
 
-    singleSelectChip(container, target);
-    userState.region = target.getAttribute("data-region");
+    const btn = target.closest(".navi-chip");
+    if (!(btn instanceof HTMLElement)) return;
+
+    clearWizardForcedStep();
+    singleSelectChip(container, btn);
+    userState.region = btn.getAttribute("data-region");
     // 세부지역(LTV Up) 초기화
     userState.subregionKey = null;
     userState.subregionLabel = null;
@@ -1701,12 +1780,16 @@ function setupSubregion() {
 function setupStep3() {
   const container = document.getElementById("naviPropertyTypeChips");
   if (!container) return;
+  setupStep3Back();
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
 
-    singleSelectChip(container, target);
+    const btn = target.closest(".navi-chip");
+    if (!(btn instanceof HTMLElement)) return;
+
+    clearWizardForcedStep();
+    singleSelectChip(container, btn);
     userState.propertyType = target.getAttribute("data-prop");
 
     updateLoanTypeChipVisibility();
@@ -1726,6 +1809,7 @@ function setupStep4() {
   const container = document.getElementById("naviRealEstateLoanTypeChips");
   const helpEl = document.getElementById("naviLoanTypeHelp");
   if (!container) return;
+  setupStep4Back();
 
   const helpTexts = {
     일반담보대출: "시세·선순위대출·임대보증금·필요대출금액을 합산해 LTV를 계산합니다.",
@@ -1749,12 +1833,15 @@ function setupStep4() {
   container.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("navi-chip")) return;
-    if (target.style.display === "none") return;
 
-    singleSelectChip(container, target);
-    const loanTypeKey = target.getAttribute("data-loan-type");
-    const loanTypeLabel = target.getAttribute("data-loan-label") || target.textContent || loanTypeKey;
+    const btn = target.closest(".navi-chip");
+    if (!(btn instanceof HTMLElement)) return;
+    if (btn.style.display === "none") return;
+
+    clearWizardForcedStep();
+    singleSelectChip(container, btn);
+    const loanTypeKey = btn.getAttribute("data-loan-type");
+    const loanTypeLabel = btn.getAttribute("data-loan-label") || btn.textContent || loanTypeKey;
     userState.realEstateLoanTypeKey = loanTypeKey;
     userState.realEstateLoanType = loanTypeLabel;
 
