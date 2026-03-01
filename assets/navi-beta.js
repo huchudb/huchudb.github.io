@@ -374,6 +374,7 @@ function setupMoneyInputs(root = document) {
     input.addEventListener("input", (e) => {
       const v = e.target.value;
       e.target.value = formatWithCommas(v);
+      if (isAptGeneralMortgage()) updateStep5AptKoLines();
     });
 
     if (input.value) {
@@ -1134,6 +1135,9 @@ function applyStep5Schema() {
   ensureOccBlockPlacementAndTitle();
 
   const schema = getStep5Schema();
+  setStep5ModeAttr();
+  syncStep5AptPlaceholders();
+
   const occBlock = document.getElementById("naviOccupancyChips")?.parentElement;
   const helpEl = document.getElementById("naviLoanTypeHelp");
 
@@ -1239,6 +1243,124 @@ function applyStep5Schema() {
   }
 }
 
+
+/* ------------------------------
+   Step5 (아파트-일반담보) UI helpers
+------------------------------ */
+function isAptGeneralMortgage() {
+  const pt = normKey(userState.propertyType || "");
+  const lt = normKey(userState.realEstateLoanType || "");
+  return pt.includes("아파트") && lt.includes("일반담보");
+}
+
+function formatWonKoreanShort(num) {
+  const n = Number(num || 0);
+  if (!isFinite(n) || n <= 0) return "";
+  const eok = Math.floor(n / 100000000);
+  const man = Math.floor((n % 100000000) / 10000);
+
+  const parts = [];
+  if (eok > 0) {
+    if (eok >= 1) parts.push(`${eok}억`);
+  }
+
+  if (man > 0) {
+    const t = Math.floor(man / 1000);
+    const h = Math.floor((man % 1000) / 100);
+    const ten = Math.floor((man % 100) / 10);
+    const one = man % 10;
+    let s = "";
+    if (t) s += `${t}천 `;
+    if (h) s += `${h}백 `;
+    if (ten) s += `${ten}십 `;
+    if (one) s += `${one}`;
+    s = s.trim();
+    parts.push(`${s}만원`);
+  } else if (eok > 0) {
+    // 억 단위만 있는 경우
+    parts[parts.length - 1] = `${eok}억원`;
+  }
+
+  return parts.join(" ").trim();
+}
+
+function updateMoneyKoLine(inputId, outId) {
+  const el = document.getElementById(inputId);
+  const out = document.getElementById(outId);
+  if (!el || !out) return;
+  const n = parseMoney(el.value);
+  out.textContent = n > 0 ? formatWonKoreanShort(n) : "";
+}
+
+function setStep5ModeAttr() {
+  const step5 = document.getElementById("navi-step5");
+  if (!step5) return;
+  if (isAptGeneralMortgage()) step5.setAttribute("data-step5-mode", "apt-general");
+  else step5.removeAttribute("data-step5-mode");
+}
+
+function setStep5StatusAttr(status) {
+  const step5 = document.getElementById("navi-step5");
+  if (!step5) return;
+  step5.setAttribute("data-step5-status", status);
+  const chip = document.getElementById("naviStep5StatusChip");
+  if (!chip) return;
+  chip.classList.remove("navi-step5-statuschip--pending", "navi-step5-statuschip--ok", "navi-step5-statuschip--no");
+  if (status === "ok") {
+    chip.classList.add("navi-step5-statuschip--ok");
+    chip.textContent = "";
+  } else if (status === "no") {
+    chip.classList.add("navi-step5-statuschip--no");
+    chip.textContent = "불가";
+  } else {
+    chip.classList.add("navi-step5-statuschip--pending");
+    chip.textContent = "";
+  }
+}
+
+function syncStep5AptPlaceholders() {
+  if (!isAptGeneralMortgage()) return;
+  const pv = document.getElementById("naviInputPropertyValue");
+  const sl = document.getElementById("naviInputSeniorLoan");
+  const rq = document.getElementById("naviInputRequestedAmount");
+  if (pv) pv.placeholder = "KB시세를 입력하세요";
+  if (sl) sl.placeholder = "선순위 대출금액을 입력하세요";
+  if (rq) rq.placeholder = "필요 대출금액을 입력하세요";
+}
+
+function updateStep5AptKoLines() {
+  updateMoneyKoLine("naviInputPropertyValue", "naviKoPV");
+  updateMoneyKoLine("naviInputSeniorLoan", "naviKoSL");
+  updateMoneyKoLine("naviInputRequestedAmount", "naviKoREQ");
+}
+
+function updateStep5AptExtraCta(step5Complete, primaryEligible) {
+  const btn = document.getElementById("naviStep5ExtraBtn");
+  if (!btn) return;
+
+  // ✅ 부동산담보대출 + 아파트-일반담보에서만 사용
+  if (!isAptGeneralMortgage()) {
+    btn.classList.add("hide");
+    return;
+  }
+
+  // ✅ 입력 완료 + 1차 가능업체 존재(=primaryEligible)일 때만 노출
+  if (step5Complete && primaryEligible) btn.classList.remove("hide");
+  else btn.classList.add("hide");
+
+  btn.onclick = () => {
+    // 결과확인 플로우(confirmed)와 동일하게 Step6/6-1을 보여주고 6-1로 안내
+    uiState.confirmed = true;
+    setStep6Visible(true);
+    setStep6_1Visible(true);
+    recalcAndUpdateSummary(true);
+    const s61 = document.getElementById("navi-step6-1");
+    if (s61) s61.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+}
+
+
+  
 function isRentalOcc() {
   return userState.occupancy === "rental";
 }
@@ -2211,6 +2333,17 @@ function autoRevealAfterExtraChanged() {
   const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
   const coreMatched = step5Complete && globalMinOK ? filterLenders(false) : [];
   const primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
+    // ✅ Step5 디자인 상태/표시 (아파트-일반담보)
+    if (isAptGeneralMortgage()) {
+      const status = !step5Complete ? "pending" : (primaryEligible ? "ok" : "no");
+      setStep5StatusAttr(status);
+      updateStep5AptKoLines();
+      updateStep5AptExtraCta(step5Complete, primaryEligible);
+    } else {
+      setStep5StatusAttr("pending");
+      updateStep5AptExtraCta(false, false);
+    }
+
   if (!primaryEligible) return;
 
   // ✅ 선택조건이 0개면 '대기' 상태로 유지
