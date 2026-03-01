@@ -374,7 +374,6 @@ function setupMoneyInputs(root = document) {
     input.addEventListener("input", (e) => {
       const v = e.target.value;
       e.target.value = formatWithCommas(v);
-      if (isAptGeneralMortgage()) updateStep5AptKoLines();
     });
 
     if (input.value) {
@@ -1034,14 +1033,26 @@ function getStep5Schema() {
   const loan = userState.realEstateLoanType;
   if (!prop || !loan) return null;
 
+  // ✅ fallback: 관리자 스키마가 없더라도 Step5 UI가 비지 않도록 최소 필드로 표시
+  const fallback = {
+    supported: true,
+    __fallback: true,
+    fields: [
+      { code: "PV", required: true, label: "시세/낙찰가(원)" },
+      { code: "SL", required: false, label: "선순위 대출금액(원)" },
+      { code: "REQ", required: true, label: "필요 대출금액(원)" },
+      { code: "OCC", required: false, label: "거주형태" },
+    ],
+  };
+
   const byProp = STEP5_MATRIX[prop];
-  if (!byProp) return null;
+  if (!byProp) return fallback;
 
   const keys = Object.keys(byProp || {});
   const foundKey = keys.find((k) => normKey(k) === normKey(loan));
   const schema = foundKey ? byProp[foundKey] : null;
 
-  if (!schema || !schema.supported) return null;
+  if (!schema || !schema.supported) return fallback;
   return schema;
 }
 
@@ -1052,13 +1063,16 @@ function ensureAssumedBurdenField() {
   if (document.getElementById("naviInputAssumedBurden")) return;
 
   const label = document.createElement("label");
+  label.className = "navi-step5-field";
   label.setAttribute("data-field-code", "ASB");
   label.style.display = "none";
 
   label.innerHTML = `
-    인수되는 권리 금액 (원)
-    <input type="text" id="naviInputAssumedBurden" data-type="money" placeholder="예) 50000000" />
-    <span class="navi-help">※ 경락 시 인수되는 보증금/점유권리 등(예: 대항력 있는 임차인 보증금)</span>
+    <span class="navi-field-label">인수되는 권리 금액 (원)</span>
+    <div class="navi-step5-pill">
+      <input type="text" id="naviInputAssumedBurden" data-type="money" placeholder="인수되는 금액을 입력하세요" />
+    </div>
+    <div class="navi-money-ko" id="naviKoASB"></div>
   `;
   grid.appendChild(label);
 
@@ -1071,21 +1085,97 @@ function ensureAssumedBurdenField() {
 
 function setLabelText(labelEl, text) {
   if (!labelEl) return;
+
+  const labelSpan = labelEl.querySelector && labelEl.querySelector(".navi-field-label");
+  if (labelSpan) {
+    labelSpan.textContent = text;
+    return;
+  }
+
   const nodes = Array.from(labelEl.childNodes || []);
   const textNode = nodes.find((n) => n.nodeType === Node.TEXT_NODE && String(n.textContent).trim() !== "");
   if (textNode) {
-    textNode.textContent = `\n              ${text}\n              `;
+    textNode.textContent = `
+              ${text}
+              `;
     return;
   }
+
   const span = document.createElement("span");
+  span.className = "navi-field-label";
   span.textContent = text;
   labelEl.insertBefore(span, labelEl.firstChild);
+}
+
+function makeStep5Placeholder(labelText) {
+  const raw = String(labelText || "").trim();
+  if (!raw) return "";
+  const cleaned = raw
+    .replace(/\(원\)/g, "")
+    .replace(/\(%\)/g, "")
+    .replace(/원/g, "")
+    .replace(/%/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  // 조사(을/를) 정확도보다 가독성 우선
+  return cleaned + "를 입력하세요";
+}
+
+function formatMoneyKorean(num) {
+  const n = Math.floor(Number(num || 0));
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const EOK = 100000000;
+  const MAN = 10000;
+
+  const eok = Math.floor(n / EOK);
+  const man = Math.floor((n % EOK) / MAN);
+
+  const manParts = (m) => {
+    const d = String(m).padStart(4, "0").split("").map((x) => Number(x));
+    const units = ["천", "백", "십", ""];
+    const out = [];
+    d.forEach((v, i) => {
+      if (!v) return;
+      const u = units[i];
+      out.push(String(v) + u);
+    });
+    return out.join(" ");
+  };
+
+  if (eok > 0 && man === 0) return `${eok}억원`;
+  if (eok > 0 && man > 0) return `${eok}억 ${manParts(man)}만원`;
+  if (eok === 0 && man > 0) return `${manParts(man)}만원`;
+  return `${n}원`;
+}
+
+function updateStep5MoneyKoHints() {
+  const map = [
+    ["naviInputPropertyValue", "naviKoPV"],
+    ["naviInputSeniorLoan", "naviKoSL"],
+    ["naviInputDeposit", "naviKoDEP"],
+    ["naviInputRefinanceAmount", "naviKoREF"],
+    ["naviInputRequestedAmount", "naviKoREQ"],
+    ["naviInputAssumedBurden", "naviKoASB"],
+  ];
+
+  map.forEach(([inputId, koId]) => {
+    const koEl = document.getElementById(koId);
+    const input = document.getElementById(inputId);
+    if (!koEl || !input) return;
+
+    const v = (input.getAttribute("data-type") === "money") ? getMoneyValueById(inputId) : 0;
+    koEl.textContent = v ? formatMoneyKorean(v) : "";
+  });
 }
 
 // ✅ (유지) OCC 제목을 "거주형태"로 고정 + PV 위로 이동 + 중복 제거
 function ensureOccBlockPlacementAndTitle() {
   const occChips = document.getElementById("naviOccupancyChips");
   if (!occChips) return;
+
+  // New Step5 layout uses a dedicated structure; skip legacy DOM moves.
+  if (document.querySelector("#navi-step5 .navi-step5-split")) return;
 
   const block = occChips.closest("label") || occChips.parentElement;
   if (!block) return;
@@ -1135,9 +1225,6 @@ function applyStep5Schema() {
   ensureOccBlockPlacementAndTitle();
 
   const schema = getStep5Schema();
-  setStep5ModeAttr();
-  syncStep5AptPlaceholders();
-
   const occBlock = document.getElementById("naviOccupancyChips")?.parentElement;
   const helpEl = document.getElementById("naviLoanTypeHelp");
 
@@ -1184,10 +1271,47 @@ function applyStep5Schema() {
       const txt =
         def.label.includes("(원)") || def.label.includes("(%)") ? def.label : def.label + suffix;
       setLabelText(label, txt);
+
+      // Step5 UI에서는 라벨을 숨기고 placeholder로 안내합니다.
+      const ph = makeStep5Placeholder(def.label);
+      if (ph) input.placeholder = ph;
     }
   });
 
+  // ✅ Step5 필드 순서를 스키마(fields) 순서대로 정렬 (OCC 제외)
+  const gridEl = document.getElementById("naviStep5FieldGrid") || document.querySelector("#navi-step5 .navi-field-grid");
+  if (gridEl && schema && Array.isArray(schema.fields)) {
+    const CODE_TO_ID = {
+      PV: "naviInputPropertyValue",
+      SP: "naviInputSharePercent",
+      SL: "naviInputSeniorLoan",
+      DEP: "naviInputDeposit",
+      REF: "naviInputRefinanceAmount",
+      REQ: "naviInputRequestedAmount",
+      ASB: "naviInputAssumedBurden",
+    };
+
+    const ordered = [];
+    schema.fields.forEach((f) => {
+      const c = String(f?.code || "").trim();
+      if (!c || c === "OCC") return;
+      const id = CODE_TO_ID[c];
+      const input = id ? document.getElementById(id) : null;
+      const lbl = input ? input.closest("label") : null;
+      if (lbl && !ordered.includes(lbl)) ordered.push(lbl);
+    });
+
+    // 기존에 있던 요소도 유지하되, 스키마 순서가 앞에 오도록 재배치
+    ordered.forEach((lbl) => gridEl.appendChild(lbl));
+  }
+
+  updateStep5MoneyKoHints();
+
   if (occBlock) {
+    const occLeft = document.querySelector("#navi-step5 .navi-step5-left");
+    if (occLeft) occLeft.style.display = visibleCodes.has("OCC") ? "" : "none";
+    const occVline = document.querySelector("#navi-step5 .navi-step5-vline");
+    if (occVline) occVline.style.display = visibleCodes.has("OCC") ? "" : "none";
     occBlock.style.display = visibleCodes.has("OCC") ? "" : "none";
     if (!visibleCodes.has("OCC")) {
       userState.occupancy = null;
@@ -1236,131 +1360,13 @@ function applyStep5Schema() {
   }
 
   if (helpEl) {
-    if (!schema) {
+    if (schema && schema.__fallback) {
       helpEl.textContent =
-        "※ 선택하신 대출종류/부동산유형 조합에 대한 입력 스키마가 없습니다. 관리자 설정을 확인해주세요.";
+        "※ 해당 조합의 입력 스키마가 등록되지 않아 기본 항목으로 안내합니다. (관리자 설정 확인 필요)";
     }
   }
 }
 
-
-/* ------------------------------
-   Step5 (아파트-일반담보) UI helpers
------------------------------- */
-function isAptGeneralMortgage() {
-  const pt = normKey(userState.propertyType || "");
-  const lt = normKey(userState.realEstateLoanType || "");
-  return pt.includes("아파트") && lt.includes("일반담보");
-}
-
-function formatWonKoreanShort(num) {
-  const n = Number(num || 0);
-  if (!isFinite(n) || n <= 0) return "";
-  const eok = Math.floor(n / 100000000);
-  const man = Math.floor((n % 100000000) / 10000);
-
-  const parts = [];
-  if (eok > 0) {
-    if (eok >= 1) parts.push(`${eok}억`);
-  }
-
-  if (man > 0) {
-    const t = Math.floor(man / 1000);
-    const h = Math.floor((man % 1000) / 100);
-    const ten = Math.floor((man % 100) / 10);
-    const one = man % 10;
-    let s = "";
-    if (t) s += `${t}천 `;
-    if (h) s += `${h}백 `;
-    if (ten) s += `${ten}십 `;
-    if (one) s += `${one}`;
-    s = s.trim();
-    parts.push(`${s}만원`);
-  } else if (eok > 0) {
-    // 억 단위만 있는 경우
-    parts[parts.length - 1] = `${eok}억원`;
-  }
-
-  return parts.join(" ").trim();
-}
-
-function updateMoneyKoLine(inputId, outId) {
-  const el = document.getElementById(inputId);
-  const out = document.getElementById(outId);
-  if (!el || !out) return;
-  const n = parseMoney(el.value);
-  out.textContent = n > 0 ? formatWonKoreanShort(n) : "";
-}
-
-function setStep5ModeAttr() {
-  const step5 = document.getElementById("navi-step5");
-  if (!step5) return;
-  if (isAptGeneralMortgage()) step5.setAttribute("data-step5-mode", "apt-general");
-  else step5.removeAttribute("data-step5-mode");
-}
-
-function setStep5StatusAttr(status) {
-  const step5 = document.getElementById("navi-step5");
-  if (!step5) return;
-  step5.setAttribute("data-step5-status", status);
-  const chip = document.getElementById("naviStep5StatusChip");
-  if (!chip) return;
-  chip.classList.remove("navi-step5-statuschip--pending", "navi-step5-statuschip--ok", "navi-step5-statuschip--no");
-  if (status === "ok") {
-    chip.classList.add("navi-step5-statuschip--ok");
-    chip.textContent = "";
-  } else if (status === "no") {
-    chip.classList.add("navi-step5-statuschip--no");
-    chip.textContent = "불가";
-  } else {
-    chip.classList.add("navi-step5-statuschip--pending");
-    chip.textContent = "";
-  }
-}
-
-function syncStep5AptPlaceholders() {
-  if (!isAptGeneralMortgage()) return;
-  const pv = document.getElementById("naviInputPropertyValue");
-  const sl = document.getElementById("naviInputSeniorLoan");
-  const rq = document.getElementById("naviInputRequestedAmount");
-  if (pv) pv.placeholder = "KB시세를 입력하세요";
-  if (sl) sl.placeholder = "선순위 대출금액을 입력하세요";
-  if (rq) rq.placeholder = "필요 대출금액을 입력하세요";
-}
-
-function updateStep5AptKoLines() {
-  updateMoneyKoLine("naviInputPropertyValue", "naviKoPV");
-  updateMoneyKoLine("naviInputSeniorLoan", "naviKoSL");
-  updateMoneyKoLine("naviInputRequestedAmount", "naviKoREQ");
-}
-
-function updateStep5AptExtraCta(step5Complete, primaryEligible) {
-  const btn = document.getElementById("naviStep5ExtraBtn");
-  if (!btn) return;
-
-  // ✅ 부동산담보대출 + 아파트-일반담보에서만 사용
-  if (!isAptGeneralMortgage()) {
-    btn.classList.add("hide");
-    return;
-  }
-
-  // ✅ 입력 완료 + 1차 가능업체 존재(=primaryEligible)일 때만 노출
-  if (step5Complete && primaryEligible) btn.classList.remove("hide");
-  else btn.classList.add("hide");
-
-  btn.onclick = () => {
-    // 결과확인 플로우(confirmed)와 동일하게 Step6/6-1을 보여주고 6-1로 안내
-    uiState.confirmed = true;
-    setStep6Visible(true);
-    setStep6_1Visible(true);
-    recalcAndUpdateSummary(true);
-    const s61 = document.getElementById("navi-step6-1");
-    if (s61) s61.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-}
-
-
-  
 function isRentalOcc() {
   return userState.occupancy === "rental";
 }
@@ -1434,6 +1440,46 @@ function isStep5Complete() {
 
   return true;
 }
+
+function setStep5StatusVisual(mode) {
+  const chip = document.getElementById("naviStep5StatusChip");
+  if (!chip) return;
+
+  chip.classList.remove("navi-step5-statuschip--pending", "navi-step5-statuschip--ok", "navi-step5-statuschip--deny");
+  chip.textContent = "";
+
+  if (mode === "ok") {
+    chip.classList.add("navi-step5-statuschip--ok");
+    return;
+  }
+  if (mode === "deny") {
+    chip.classList.add("navi-step5-statuschip--deny");
+    chip.textContent = "불가";
+    return;
+  }
+
+  chip.classList.add("navi-step5-statuschip--pending");
+}
+
+function updateStep5StatusUI(primaryEligible) {
+  const isRE = userState.mainCategory === "부동산담보대출";
+  if (!isRE) return;
+
+  const hasLoan = Boolean(userState.propertyType && userState.realEstateLoanType);
+  if (!hasLoan) return;
+
+  const cta = document.getElementById("naviStep5CTA");
+  if (cta) cta.style.display = primaryEligible ? "" : "none";
+
+  const complete = isStep5Complete();
+  if (!complete) {
+    setStep5StatusVisual("pending");
+    return;
+  }
+
+  setStep5StatusVisual(primaryEligible ? "ok" : "deny");
+}
+
 
 
 // ------------------------------------------------------
@@ -1842,6 +1888,22 @@ function setupStep4Back() {
   });
 }
 
+function setupStep5Back() {
+  const btn = document.getElementById("naviStep5BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+
+  btn.addEventListener("click", () => {
+    if (uiState) uiState.forcedWizardStepId = "navi-step4";
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step4");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+    syncWizardSingleCardView();
+  });
+}
+
+
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
@@ -1982,9 +2044,29 @@ function setupStep4() {
 
 function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
+  setupStep5Back();
 
   const confirmBtn = document.getElementById("naviConfirmBtn");
   if (!confirmBtn) return;
+
+  const ctaBtn = document.getElementById("naviStep5CTA");
+  if (ctaBtn && !ctaBtn.__bound) {
+    ctaBtn.__bound = true;
+    ctaBtn.addEventListener("click", () => {
+      // CTA는 "가능" 상태에서만 노출되므로, 기존 확인 로직을 그대로 재사용합니다.
+      try { confirmBtn.click(); } catch (_) {}
+
+      // 가능하면 6-1(추가조건)로 이동
+      setTimeout(() => {
+        const target = document.getElementById("navi-step6-1") || document.getElementById("navi-step6");
+        if (target && !target.classList.contains("hide")) {
+          try { target.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (_) {}
+        }
+        syncWizardSingleCardView();
+      }, 60);
+    });
+  }
+
   if (confirmBtn && !confirmBtn.__bound) {
     confirmBtn.__bound = true;
     confirmBtn.addEventListener("click", async () => {
@@ -2328,22 +2410,12 @@ function autoRevealAfterExtraChanged() {
   if (!uiState.confirmed) return;
 
   syncInputsToState();
+  updateStep5MoneyKoHints();
 
   const step5Complete = isStep5Complete();
   const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
   const coreMatched = step5Complete && globalMinOK ? filterLenders(false) : [];
   const primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
-    // ✅ Step5 디자인 상태/표시 (아파트-일반담보)
-    if (isAptGeneralMortgage()) {
-      const status = !step5Complete ? "pending" : (primaryEligible ? "ok" : "no");
-      setStep5StatusAttr(status);
-      updateStep5AptKoLines();
-      updateStep5AptExtraCta(step5Complete, primaryEligible);
-    } else {
-      setStep5StatusAttr("pending");
-      updateStep5AptExtraCta(false, false);
-    }
-
   if (!primaryEligible) return;
 
   // ✅ 선택조건이 0개면 '대기' 상태로 유지
@@ -3086,6 +3158,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     extraMatched = step5Complete ? filterLenders(true) : [];
 
     primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
+    updateStep5StatusUI(primaryEligible);
 
     if (countInfoEl) {
       if (!userState.realEstateLoanType) {
@@ -3110,6 +3183,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     coreMatched = filterLenders(false);
     extraMatched = filterLenders(true);
     primaryEligible = Boolean(coreMatched.length);
+    updateStep5StatusUI(primaryEligible);
 
     if (countInfoEl) {
       countInfoEl.style.display = "inline-block";
