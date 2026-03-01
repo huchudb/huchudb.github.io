@@ -51,7 +51,6 @@ body.navi-wide .beta-header__inner{
     aspect-ratio:1200 / 300; /* = 4 / 1 */
   }
 }
-}
 
 /* 인트로 섹션: 헤더 구분선과 배너 사이 여백 제거 + Step1과의 간격 확보 */
 .navi-main > .beta-section.navi-intro-section{
@@ -682,10 +681,10 @@ body.navi-single-card-mode .navi-wizard-card-shell{
   width:min(100%, 560px);
   margin:0;
   border-radius:18px;
-  background:#eeeeee;
+  background:#ffffff;
   padding:34px 34px 38px;
   box-sizing:border-box;
-  box-shadow:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] .navi-wizard-card-shell,
@@ -922,4 +921,131 @@ body.navi-single-card-mode .navi-main > .navi-wizard-stage{
     padding-bottom:0 !important;
     margin-bottom:0 !important;
   }
+}
+
+
+/* =========================================================
+   ✅ Navi wizard progress (Step 1~5) — 2026-03-01
+   - 기존 stepper(#navi-stepper)는 single-card-mode에서 숨김 처리됨
+   - 디자인 시안(지역선택) 기준: 원형 1~5 + 연결선
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  box-sizing:border-box;
+}
+
+body.navi-single-card-mode .navi-wizard-progress{
+  width:min(100%, 560px);
+  padding:0 10px;
+  box-sizing:border-box;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-track{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-track::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  height:4px;
+  border-radius:999px;
+  background:rgba(255,255,255,.38);
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot{
+  position:relative;
+  z-index:1;
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:16px;
+  background:rgba(255,255,255,.88);
+  color:#2563eb;
+  user-select:none;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot.is-done{
+  background:#f5d54b;
+  color:#2563eb;
+}
+
+body.navi-single-card-mode .navi-wizard-progress-dot.is-active{
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);
+}
+
+/* =========================================================
+   ✅ Step2(지역선택) UI — 디자인 반영
+========================================================= */
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #navi-step2 .navi-section-sub{
+  display:none;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips{
+  gap:18px 22px;
+  justify-content:flex-start;
+  margin-top:4px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip{
+  border-radius:0;
+  width:74px;
+  height:56px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  font-weight:700;
+  border:1px solid rgba(17,24,39,.45);
+  background:#ffffff;
+  color:#111827;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip.is-selected{
+  background:#111827;
+  border-color:#111827;
+  color:#ffffff;
+}
+
+/* Back 버튼 */
+#naviStep2Actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+#naviStep2BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+#naviStep2BackBtn svg{
+  width:16px;
+  height:16px;
+  display:block;
+  fill:currentColor;
 }
