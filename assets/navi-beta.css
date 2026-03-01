@@ -1165,3 +1165,160 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   display:block;
   fill:currentColor;
 }
+
+
+/* ------------------------------
+   Step5 (아파트-일반담보) 디자인 모드
+------------------------------ */
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-status { display:block; }
+#navi-step5 .navi-step5-status { display:none; margin: 10px 0 14px; }
+.navi-step5-statusbar{
+  height:64px;
+  border-radius:10px;
+  background:#3b3f44;
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+}
+.navi-step5-statuschip{
+  width:56px;
+  height:56px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:18px;
+  letter-spacing:-0.2px;
+  color:#fff;
+}
+.navi-step5-statuschip--pending{ background:#ffd24d; color:transparent; }
+.navi-step5-statuschip--ok{ background:#20d000; }
+.navi-step5-statuschip--no{ background:#e11d2e; }
+#navi-step5[data-step5-status="pending"] .navi-step5-statusbar{ justify-content:center; }
+#navi-step5[data-step5-status="ok"] .navi-step5-statusbar{ justify-content:flex-end; }
+#navi-step5[data-step5-status="no"] .navi-step5-statusbar{ justify-content:flex-start; }
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-split{
+  display:grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 18px;
+  align-items:center;
+  margin-top: 6px;
+}
+#navi-step5 .navi-step5-split{ display:block; }
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-vline{
+  height: 210px;
+  background: rgba(17,24,39,0.18);
+  border-radius: 1px;
+  justify-self:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-left{
+  display:flex;
+  justify-content:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-occ-tree{
+  min-width: 220px;
+  text-align:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-occ-title{
+  display:inline-block;
+  padding:10px 18px;
+  border-radius:999px;
+  background:#d1d5db;
+  color:#111827;
+  font-weight:700;
+  font-size:14px;
+  box-shadow: inset 0 0 0 1px rgba(17,24,39,0.08);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips{
+  display:flex;
+  gap:18px;
+  justify-content:center;
+  margin-top: 20px !important;
+  position:relative;
+  padding-top: 22px;
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips:before{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:50%;
+  width:1px;
+  height:18px;
+  background: rgba(17,24,39,0.55);
+  transform: translateX(-0.5px);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips:after{
+  content:"";
+  position:absolute;
+  top:20px;
+  left:25px;
+  right:25px;
+  height:1px;
+  background: rgba(17,24,39,0.55);
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips .navi-chip{
+  min-width: 84px;
+  border-radius:2px;
+  padding:10px 14px;
+  background:#fff;
+  border:1px solid rgba(17,24,39,0.55);
+  box-shadow:none;
+}
+#navi-step5[data-step5-mode="apt-general"] #naviOccupancyChips .navi-chip.is-selected{
+  background:#ffd24d;
+  border-color:#111827;
+  color:#111827;
+}
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-right{
+  display:flex;
+  justify-content:center;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  width: 280px;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label{display:none;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label:not([style*="display: none"]){display:block;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 label{font-size:0;}
+#navi-step5[data-step5-mode="apt-general"] .navi-field-grid--step5 input{
+  width:100%;
+  height:44px;
+  border-radius:999px;
+  border:1px solid rgba(17,24,39,0.18);
+  padding: 0 16px;
+  font-size:16px;
+  text-align:right;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-money-ko{
+  margin-top:6px;
+  font-size:12px;
+  color: rgba(17,24,39,0.55);
+  text-align:right;
+  min-height: 14px;
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-help,
+#navi-step5[data-step5-mode="apt-general"] .navi-section-sub,
+#navi-step5[data-step5-mode="apt-general"] #naviLoanTypeHelp{
+  display:none !important;
+}
+
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-extra-btn{
+  position:absolute;
+  right: 38px;
+  bottom: 28px;
+  border:0;
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:14px;
+  font-weight:800;
+  color:#fff;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, #ff5cab 0%, #ffa33a 100%);
+}
+#navi-step5[data-step5-mode="apt-general"] .navi-step5-extra-btn.hide{ display:none; }
+
