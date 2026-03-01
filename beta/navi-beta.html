@@ -136,31 +136,49 @@
 
       <!-- 3. 부동산 유형 선택 (부동산담보대출 일 때만) -->
       <section class="beta-section navi-section hide" id="navi-step3">
-        <div class="navi-section-title">3. 부동산 유형 선택</div>
+        <div class="navi-section-title">부동산 유형 선택</div>
         <div class="navi-section-sub">담보로 제공할 부동산의 유형을 선택해주세요.</div>
         <div class="navi-chip-group" id="naviPropertyTypeChips">
           <button type="button" class="navi-chip" data-prop="아파트">아파트</button>
           <button type="button" class="navi-chip" data-prop="오피스텔">오피스텔</button>
-          <button type="button" class="navi-chip" data-prop="다세대/연립">빌라·연립</button>
-          <button type="button" class="navi-chip" data-prop="단독/다가구">단독·다가구</button>
-          <button type="button" class="navi-chip" data-prop="토지/임야">토지·임야</button>
+          <button type="button" class="navi-chip" data-prop="다세대/연립">빌라/다세대</button>
+          <button type="button" class="navi-chip" data-prop="단독/다가구">단독/다가구</button>
+          <button type="button" class="navi-chip" data-prop="토지/임야">토지/임야</button>
           <button type="button" class="navi-chip" data-prop="근린생활시설">근린생활시설</button>
         </div>
         <p class="navi-help">
           ※ 부동산이 아닌 상품군(개인신용대출, 스탁론 등)은 이 단계가 필수가 아닙니다.
         </p>
+              <div id="naviStep3Actions">
+          <button type="button" id="naviStep3BackBtn" aria-label="Back">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
+            </svg>
+            Back
+          </button>
+        </div>
       </section>
 
       <!-- 4. 대출종류 선택 (부동산 담보대출 내부) -->
       <section class="beta-section navi-section hide" id="navi-step4">
-        <div class="navi-section-title">4. 대출종류 선택 (부동산 담보대출)</div>
+        <div class="navi-section-title">대출 종류 선택</div>
         <div class="navi-section-sub">필요하신 부동산 담보대출의 세부 종류를 선택해주세요.</div>
         <div class="navi-chip-group" id="naviRealEstateLoanTypeChips">
-          <button type="button" class="navi-chip" data-loan-type="일반담보대출">일반담보대출</button>
-          <button type="button" class="navi-chip" data-loan-type="임대보증금반환대출">임대보증금반환대출</button>
-          <button type="button" class="navi-chip" data-loan-type="지분대출">지분대출</button>
-          <button type="button" class="navi-chip" data-loan-type="경락잔금대출">경락잔금대출</button>
-          <button type="button" class="navi-chip" data-loan-type="대환대출">대환대출</button>
+          <button type="button" class="navi-chip" data-loan-type="일반담보대출" data-loan-label="일반담보대출"><span class="navi-chip-label">일반<br>담보대출</span></button>
+          <button type="button" class="navi-chip" data-loan-type="임대보증금반환대출" data-loan-label="임대보증금반환대출"><span class="navi-chip-label">임대보증금<br>반환 대출</span></button>
+          <button type="button" class="navi-chip" data-loan-type="지분대출" data-loan-label="지분대출"><span class="navi-chip-label">지분대출</span></button>
+          <button type="button" class="navi-chip" data-loan-type="경락잔금대출" data-loan-label="경락잔금대출"><span class="navi-chip-label">경락잔금대출</span></button>
+          <button type="button" class="navi-chip" data-loan-type="대환대출" data-loan-label="대환대출"><span class="navi-chip-label">대환대출</span></button>
+          <button type="button" class="navi-chip" data-loan-type="매입잔금(일반)" data-loan-label="매입잔금(일반)"><span class="navi-chip-label">매입잔금대출<br>(일반)</span></button>
+          <button type="button" class="navi-chip" data-loan-type="매입잔금(분양)" data-loan-label="매입잔금(분양)"><span class="navi-chip-label">매입잔금대출<br>(분양)</span></button>
+        </div>
+              <div id="naviStep4Actions">
+          <button type="button" id="naviStep4BackBtn" aria-label="Back">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
+            </svg>
+            Back
+          </button>
         </div>
       </section>
 
