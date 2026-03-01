@@ -754,6 +754,7 @@ const uiState = {
   confirmed: false,
   forcedWizardStepId: null, // single-card-mode에서 Back 시 이전 스텝을 강제로 보여주기 위한 override
   hasRenderedResult: false,
+  loanHelpText: "", // Step4에서 선택된 대출종류 안내문(스키마 fallback 메시지로 덮이는 것을 방지)
 };
 
 const userState = {
@@ -1363,6 +1364,14 @@ function applyStep5Schema() {
     if (schema && schema.__fallback) {
       helpEl.textContent =
         "※ 해당 조합의 입력 스키마가 등록되지 않아 기본 항목으로 안내합니다. (관리자 설정 확인 필요)";
+    } else {
+      // fallback 상태였다가 정상 스키마로 돌아온 경우, 안내문이 그대로 남지 않게 복원
+      const cur = String(helpEl.textContent || "");
+      if (cur.includes("입력 스키마가 등록되지")) {
+        helpEl.textContent =
+          uiState.loanHelpText ||
+          "※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.";
+      }
     }
   }
 }
@@ -1974,7 +1983,7 @@ function setupStep3() {
 
     clearWizardForcedStep();
     singleSelectChip(container, btn);
-    userState.propertyType = target.getAttribute("data-prop");
+    userState.propertyType = btn.getAttribute("data-prop");
 
     updateLoanTypeChipVisibility();
 
@@ -2035,6 +2044,7 @@ function setupStep4() {
 
     if (helpEl && (loanTypeKey || loanTypeLabel) && helpTexts[loanTypeKey || loanTypeLabel]) {
       helpEl.textContent = "※ " + helpTexts[loanTypeKey || loanTypeLabel];
+      uiState.loanHelpText = helpEl.textContent;
     }
 
     applyStep5Schema();
@@ -2122,10 +2132,11 @@ function setupStep5() {
     occContainer.addEventListener("click", (e) => {
       const target = e.target;
       if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("navi-chip")) return;
+      const btn = target.closest(".navi-chip");
+      if (!(btn instanceof HTMLElement)) return;
 
-      singleSelectChip(occContainer, target);
-      userState.occupancy = target.getAttribute("data-occ");
+      singleSelectChip(occContainer, btn);
+      userState.occupancy = btn.getAttribute("data-occ");
 
       applyStep5Schema();
 
