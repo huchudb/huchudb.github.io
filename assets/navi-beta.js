@@ -1221,6 +1221,276 @@ function ensureOccBlockPlacementAndTitle() {
   }
 }
 
+
+// ---------------------------------------------
+// Step5: 계산식 기반 UI 템플릿 (대출종류별 UI 변화)
+// ---------------------------------------------
+function getStep5TemplateKey() {
+  const k = normKey(userState.realEstateLoanType || "");
+  if (k.includes("임대보증금반환")) return "deposit_refund";
+  if (k.includes("지분")) return "equity";
+  if (k.includes("경락잔금")) return "auction";
+  if (k.includes("매입잔금")) return "purchase";
+  if (k.includes("대환")) return "refinance";
+  return "general";
+}
+
+function getStep5TemplateLabel(tpl) {
+  switch (tpl) {
+    case "deposit_refund": return "보증금반환형";
+    case "equity": return "지분형";
+    case "auction": return "경락잔금형";
+    case "purchase": return "매입잔금형";
+    case "refinance": return "대환형";
+    default: return "일반담보형";
+  }
+}
+
+function stripUnitFromLabel(s) {
+  return String(s || "").replace(/\((원|%)\)/g, "").trim();
+}
+
+function getStep5FieldDef(schema, code) {
+  const list = schema?.fields || [];
+  return list.find((f) => String(f?.code || "").trim() === code) || null;
+}
+
+function getStep5FieldLabel(schema, code, fallback) {
+  const def = getStep5FieldDef(schema, code);
+  const raw = def?.label || fallback || code;
+  return stripUnitFromLabel(raw);
+}
+
+function ensureStep5ModeBlock() {
+  const right = document.querySelector("#navi-step5 .navi-step5-right");
+  if (!right) return null;
+
+  let block = document.getElementById("naviStep5Mode");
+  const grid = document.getElementById("naviStep5FieldGrid") || right.querySelector(".navi-field-grid");
+
+  if (!block) {
+    block = document.createElement("div");
+    block.id = "naviStep5Mode";
+    block.className = "navi-step5-mode";
+    block.innerHTML = `
+      <div class="navi-step5-mode-head">
+        <span class="navi-step5-mode-title">계산 방식</span>
+        <span class="navi-step5-mode-badge" id="naviStep5ModeBadge"></span>
+      </div>
+      <div class="navi-step5-mode-body" id="naviStep5ModeBody"></div>
+      <div class="navi-step5-mode-foot" id="naviStep5ModeFoot"></div>
+    `;
+    if (grid) right.insertBefore(block, grid);
+    else right.prepend(block);
+  } else {
+    // grid 앞에 항상 유지 (외부 코드가 위치를 흔드는 경우 방어)
+    if (grid && block.parentElement === right && block.nextSibling !== grid) {
+      right.insertBefore(block, grid);
+    }
+  }
+  return block;
+}
+
+function renderStep5ModeBlock(schema, tpl) {
+  const block = ensureStep5ModeBlock();
+  if (!block) return;
+
+  const badge = document.getElementById("naviStep5ModeBadge");
+  const body = document.getElementById("naviStep5ModeBody");
+  const foot = document.getElementById("naviStep5ModeFoot");
+  if (badge) badge.textContent = getStep5TemplateLabel(tpl);
+
+  if (body) body.innerHTML = "";
+  if (foot) foot.textContent = "";
+
+  const pv = getStep5FieldLabel(schema, "PV", "담보가치");
+  const sp = getStep5FieldLabel(schema, "SP", "지분율");
+  const sl = getStep5FieldLabel(schema, "SL", "선순위");
+  const dep = getStep5FieldLabel(schema, "DEP", "임대보증금");
+  const req = getStep5FieldLabel(schema, "REQ", "필요대출");
+  const ref = getStep5FieldLabel(schema, "REF", "상환예정");
+  const asb = getStep5FieldLabel(schema, "ASB", "인수권리");
+
+  // 분모(담보가치) 라인
+  const denomLine =
+    tpl === "equity"
+      ? `담보가치(분모) = ${pv} × ${sp}`
+      : `담보가치(분모) = ${pv}`;
+
+  // 분자(총부담) 라인
+  let numerLines = [];
+  if (tpl === "auction") {
+    numerLines.push(`총부담(분자) = ${sl} + ${asb} + ${dep} + ${req}`);
+  } else if (tpl === "refinance") {
+    numerLines.push(`대환 후 선순위 = max(0, (${sl} + ${dep}) - ${ref})`);
+    numerLines.push(`총부담(분자) = 대환 후 선순위 + ${req}`);
+  } else {
+    numerLines.push(`총부담(분자) = ${sl} + ${dep} + ${req}`);
+  }
+
+  // 원금(심사/최소금액) 라인
+  const principalLine =
+    tpl === "deposit_refund"
+      ? `대출원금(심사) = ${dep} + ${req}`
+      : `대출원금(심사) = ${req}`;
+
+  const ltvLine = "LTV = 총부담 ÷ 담보가치";
+
+  const lines = [denomLine, ...numerLines, principalLine, ltvLine];
+
+  if (body) {
+    lines.forEach((t) => {
+      const div = document.createElement("div");
+      div.className = "navi-step5-mode-line";
+      div.textContent = t;
+      body.appendChild(div);
+    });
+  }
+
+  // 최소 신청금액 안내 (현재 로직 기준)
+  const prop = normKey(userState.propertyType || "");
+  const isAptOrOff = prop.includes("아파트") || prop.includes("오피스텔");
+  const minText = isAptOrOff ? "최소 신청금액: 1,000만원 (아파트/오피스텔)" : "최소 신청금액: 3,000만원 (그 외 유형)";
+  if (foot) foot.textContent = minText;
+}
+
+function getStep5GroupPlan(tpl) {
+  // NOTE: 실제 표시 여부는 스키마(fields)에 따라 자동 필터링됩니다.
+  switch (tpl) {
+    case "deposit_refund":
+      return [
+        { key: "principal", title: "반환/추가 필요", desc: "대출원금(심사)에 반영", codes: ["DEP", "REQ"] },
+        { key: "denom", title: "담보 기준", desc: "LTV 분모(담보가치) 계산", codes: ["PV", "SP"] },
+        { key: "burden", title: "기존 부담", desc: "총부담(분자)에 더해짐", codes: ["SL"] },
+      ];
+    case "equity":
+      return [
+        { key: "denom", title: "지분 기준", desc: "담보가치 = PV × 지분율", codes: ["PV", "SP"] },
+        { key: "burden", title: "기존 부담", desc: "총부담(분자)에 더해짐", codes: ["SL", "DEP"] },
+        { key: "need", title: "이번 대출", desc: "필요 금액", codes: ["REQ"] },
+      ];
+    case "auction":
+      return [
+        { key: "denom", title: "담보 기준", desc: "LTV 분모(담보가치)", codes: ["PV"] },
+        { key: "burden", title: "인수/부담", desc: "총부담(분자)에 더해짐", codes: ["SL", "ASB", "DEP"] },
+        { key: "need", title: "이번 대출", desc: "필요 금액", codes: ["REQ"] },
+      ];
+    case "refinance":
+      return [
+        { key: "denom", title: "담보 기준", desc: "LTV 분모(담보가치)", codes: ["PV", "SP"] },
+        { key: "burden", title: "대환 구조", desc: "max(0, 선순위+보증금-상환예정)", codes: ["SL", "DEP", "REF"] },
+        { key: "need", title: "추가 필요", desc: "대환 이후 추가 필요금", codes: ["REQ"] },
+      ];
+    case "purchase":
+      return [
+        { key: "denom", title: "매입 기준", desc: "LTV 분모(가격/시세)", codes: ["PV", "SP"] },
+        { key: "burden", title: "기존 부담", desc: "총부담(분자)에 더해짐", codes: ["SL", "DEP"] },
+        { key: "need", title: "매입 잔금", desc: "필요 금액", codes: ["REQ"] },
+      ];
+    default:
+      return [
+        { key: "denom", title: "담보 기준", desc: "LTV 분모(담보가치)", codes: ["PV", "SP"] },
+        { key: "burden", title: "기존 부담", desc: "총부담(분자)에 더해짐", codes: ["SL", "DEP"] },
+        { key: "need", title: "이번 대출", desc: "필요 금액", codes: ["REQ"] },
+      ];
+  }
+}
+
+function rebuildStep5Groups(schema, tpl) {
+  const gridEl = document.getElementById("naviStep5FieldGrid") || document.querySelector("#navi-step5 .navi-field-grid");
+  if (!gridEl || !schema || !Array.isArray(schema.fields)) return;
+
+  // 현재 라벨 노드 수집 (이미 그룹으로 감싸져 있어도 OK)
+  const labels = Array.from(gridEl.querySelectorAll("label.navi-step5-field"));
+  const byCode = new Map();
+  labels.forEach((lbl) => {
+    const code = String(lbl.getAttribute("data-field-code") || "").trim();
+    if (code) byCode.set(code, lbl);
+  });
+
+  // 스키마 순서(=사용자가 입력할 흐름) 기준 인덱스
+  const orderCodes = schema.fields
+    .map((f) => String(f?.code || "").trim())
+    .filter((c) => c && c !== "OCC");
+  const orderIndex = new Map(orderCodes.map((c, i) => [c, i]));
+
+  const plan = getStep5GroupPlan(tpl);
+  const used = new Set();
+
+  // 그룹별로 실제 존재하는 라벨만, 스키마 순서대로 담기
+  const frag = document.createDocumentFragment();
+
+  function makeGroupEl(g) {
+    const wrap = document.createElement("div");
+    wrap.className = "navi-step5-group";
+    wrap.setAttribute("data-group", g.key);
+
+    const head = document.createElement("div");
+    head.className = "navi-step5-group-title";
+
+    const t = document.createElement("div");
+    t.className = "navi-step5-group-titletext";
+    t.textContent = g.title;
+
+    const d = document.createElement("div");
+    d.className = "navi-step5-group-desc";
+    d.textContent = g.desc || "";
+
+    head.appendChild(t);
+    head.appendChild(d);
+
+    const inner = document.createElement("div");
+    inner.className = "navi-step5-group-grid";
+
+    wrap.appendChild(head);
+    wrap.appendChild(inner);
+
+    return { wrap, inner };
+  }
+
+  plan.forEach((g) => {
+    const { wrap, inner } = makeGroupEl(g);
+
+    const codes = (g.codes || [])
+      .filter((c) => byCode.has(c))
+      .sort((a, b) => (orderIndex.get(a) ?? 999) - (orderIndex.get(b) ?? 999));
+
+    codes.forEach((c) => {
+      used.add(c);
+      inner.appendChild(byCode.get(c));
+    });
+
+    // 실제로 들어간 라벨이 없으면 그룹을 만들지 않음
+    const hasVisible = Array.from(inner.children).some((el) => el && el.style && el.style.display !== "none");
+    if (hasVisible) frag.appendChild(wrap);
+  });
+
+  // 남은 필드가 있으면 마지막에 "기타"로 보관 (유지보수/확장 대응)
+  const leftovers = orderCodes
+    .filter((c) => byCode.has(c) && !used.has(c))
+    .sort((a, b) => (orderIndex.get(a) ?? 999) - (orderIndex.get(b) ?? 999));
+
+  if (leftovers.length) {
+    const { wrap, inner } = makeGroupEl({ key: "misc", title: "기타 입력", desc: "해당 상품 특성에 따라 필요", codes: [] });
+    leftovers.forEach((c) => inner.appendChild(byCode.get(c)));
+    const hasVisible = Array.from(inner.children).some((el) => el && el.style && el.style.display !== "none");
+    if (hasVisible) frag.appendChild(wrap);
+  }
+
+  gridEl.replaceChildren(frag);
+}
+
+function applyStep5TemplateUI(schema) {
+  const section = document.getElementById("navi-step5");
+  if (!section || !schema) return;
+
+  const tpl = getStep5TemplateKey();
+  section.setAttribute("data-step5-template", tpl);
+
+  renderStep5ModeBlock(schema, tpl);
+  rebuildStep5Groups(schema, tpl);
+}
+
 function applyStep5Schema() {
   ensureAssumedBurdenField();
   ensureOccBlockPlacementAndTitle();
@@ -1374,6 +1644,10 @@ function applyStep5Schema() {
       }
     }
   }
+
+
+  // ✅ 계산식 기반 Step5 UI 템플릿 적용 (대출종류별 UI 변화)
+  applyStep5TemplateUI(schema);
 }
 
 function isRentalOcc() {
