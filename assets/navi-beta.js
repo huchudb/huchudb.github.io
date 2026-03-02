@@ -1487,9 +1487,39 @@ function applyStep5TemplateUI(schema) {
   const tpl = getStep5TemplateKey();
   section.setAttribute("data-step5-template", tpl);
 
+  // ✅ Step5 그룹 재구성은 "조합 변경(부동산유형/대출종류/스키마 변경)" 때만 수행합니다.
+  // - 입력 중/금액 타이핑 중에 DOM을 replaceChildren 하면 포커스가 끊겨서 UX가 망가집니다.
+  // - 거주형태(OCC) 토글은 DEP/ASB 표시만 바꾸면 되므로 그룹 재구성 불필요.
+  const schemaSig = Array.isArray(schema.fields)
+    ? schema.fields
+        .map((f) => {
+          const code = String(f?.code || "").trim();
+          const req = f?.required ? "1" : "0";
+          const lbl = String(f?.label || "");
+          const note = String(f?.note || "");
+          return [code, req, lbl, note].join("~");
+        })
+        .join("|")
+    : "no_fields";
+
+  const sig = [
+    tpl,
+    normKey(userState.propertyType || ""),
+    normKey(userState.realEstateLoanType || ""),
+    schema.__fallback ? "fallback" : "ok",
+    schemaSig,
+  ].join("||");
+
+  if (uiState.step5UISig === sig) {
+    // 이미 동일 조합 UI가 적용된 상태: 그룹/모드블록 재렌더링 생략
+    return;
+  }
+
+  uiState.step5UISig = sig;
   renderStep5ModeBlock(schema, tpl);
   rebuildStep5Groups(schema, tpl);
 }
+
 
 function applyStep5Schema() {
   ensureAssumedBurdenField();
@@ -3387,11 +3417,6 @@ function recalcAndUpdateSummary(onlyExtra = false) {
 
   // ✅ Step6-1 동적 UI 구축(가능하면)
   ensureDynamicExtraUI();
-
-  if (isRE && userState.realEstateLoanType) {
-    applyStep5Schema();
-  }
-
   const { mainCategory, propertyType, realEstateLoanType } = userState;
 
   let primaryEligible = false;
