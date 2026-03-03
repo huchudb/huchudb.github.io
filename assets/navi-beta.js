@@ -1295,6 +1295,27 @@ function ensureOccBlockPlacementAndTitle() {
   }
 }
 
+// ------------------------------------------------------
+// ✅ Step5 스키마 적용은 "조합/거주형태 변경" 때만 (입력 중 리렌더 방지)
+// - 매 타이핑마다 Step5 DOM을 재정렬/재표시하면 포커스가 끊길 수 있습니다.
+// ------------------------------------------------------
+let __STEP5_SCHEMA_SIG__ = "";
+function getStep5SchemaSig() {
+  // 입력값(PV/SL/REQ/...) 변화는 포함하지 않음
+  return [
+    String(userState.propertyType || ""),
+    String(userState.realEstateLoanTypeKey || ""),
+    String(userState.realEstateLoanType || ""),
+    String(userState.occupancy || ""),
+  ].join("|");
+}
+function maybeApplyStep5Schema(force = false) {
+  const sig = getStep5SchemaSig();
+  if (!force && sig && sig === __STEP5_SCHEMA_SIG__) return;
+  __STEP5_SCHEMA_SIG__ = sig;
+  applyStep5Schema();
+}
+
 function applyStep5Schema() {
   ensureAssumedBurdenField();
   ensureOccBlockPlacementAndTitle();
@@ -2121,7 +2142,7 @@ function setupStep4() {
       uiState.loanHelpText = helpEl.textContent;
     }
 
-    applyStep5Schema();
+    maybeApplyStep5Schema(true);
     recalcAndUpdateSummary();
   });
 }
@@ -2212,7 +2233,7 @@ function setupStep5() {
       singleSelectChip(occContainer, btn);
       userState.occupancy = btn.getAttribute("data-occ");
 
-      applyStep5Schema();
+      maybeApplyStep5Schema(true);
 
       uiState.hasRenderedResult = false;
       invalidateConfirmed();
@@ -3189,8 +3210,12 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   ensureDynamicExtraUI();
 
   if (isRE && userState.realEstateLoanType) {
-    applyStep5Schema();
+    // ✅ 입력 중에는 리렌더하지 않고, 조합/거주형태 변경 시에만 적용
+    maybeApplyStep5Schema(false);
   }
+
+  // ✅ 금액 입력(콤마) 중에도 한글 금액 힌트만 갱신 (포커스 유지)
+  updateStep5MoneyKoHints();
 
   const { mainCategory, propertyType, realEstateLoanType } = userState;
 
