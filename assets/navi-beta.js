@@ -395,6 +395,43 @@ function includesNorm(list, value) {
   const v = normKey(value);
   return (list || []).some((x) => normKey(x) === v);
 }
+
+// --------- Step5_MATRIX 키 정규화(관리자 meta/표기 차이 대응) ----------
+function normalizePropertyTypeForMatrix(prop) {
+  const n = normKey(prop);
+  if (!n) return prop;
+  if (n.includes("빌라") || n.includes("다세대") || n.includes("연립")) return "다세대/연립";
+  if (n.includes("단독") || n.includes("다가구")) return "단독/다가구";
+  if (n.includes("오피스텔")) return "오피스텔";
+  if (n.includes("아파트")) return "아파트";
+  if (n.includes("토지") || n.includes("임야")) return "토지/임야";
+  if (n.includes("근린")) return "근린생활시설";
+  return prop;
+}
+
+function normalizeLoanTypeForMatrix(loan) {
+  const n = normKey(loan);
+  if (!n) return loan;
+
+  // 일반담보: "일반담보형", "일반담보" 등 변형을 통일
+  const isGeneral =
+    n.includes("일반") && n.includes("담보") &&
+    !n.includes("대환") && !n.includes("경락") && !n.includes("매입") && !n.includes("지분") &&
+    !n.includes("보증금") && !n.includes("반환");
+  if (isGeneral) return "일반담보대출";
+
+  if (n.includes("보증금") && n.includes("반환")) return "임대보증금반환대출";
+  if (n.includes("지분")) return "지분대출";
+  if (n.includes("경락") || n.includes("낙찰") || (n.includes("경매") && n.includes("잔금"))) return "경락잔금대출";
+  if (n.includes("대환")) return "대환대출";
+
+  // 매입잔금: meta 키가 "매입잔금_일반" / "매입잔금대출(일반)" 등으로 올 수 있음
+  if (n.includes("매입") && n.includes("잔금") && n.includes("분양")) return "매입잔금(분양)";
+  if (n.includes("매입") && n.includes("잔금")) return "매입잔금(일반)";
+
+  return loan;
+}
+
 function includesRegion(regions, region) {
   if (!region) return true;
   const r = String(region || "").replace(/도$/g, "");
@@ -785,6 +822,16 @@ const userState = {
   },
 };
 
+// ✅ (debug) module scope라 콘솔에서 직접 접근이 안 됩니다.
+// 필요시 window.__NAVI_DEBUG__ 로 상태/스키마를 확인하세요.
+try {
+  window.__NAVI_DEBUG__ = window.__NAVI_DEBUG__ || {};
+  window.__NAVI_DEBUG__.userState = userState;
+  window.__NAVI_DEBUG__.STEP5_MATRIX = STEP5_MATRIX;
+  window.__NAVI_DEBUG__.getStep5Schema = getStep5Schema;
+} catch (_) {}
+
+
 // ------------------------------------------------------
 // Stepper / 단계 노출 제어 (JS로 동적 삽입)
 // ------------------------------------------------------
@@ -1030,9 +1077,9 @@ function updateLoanTypeChipVisibility() {
 // ------------------------------------------------------
 
 function getStep5Schema() {
-  const prop = userState.propertyType;
-  const loan = userState.realEstateLoanType;
-  if (!prop || !loan) return null;
+  const propRaw = userState.propertyType;
+  const loanLabelRaw = userState.realEstateLoanType;
+  const loanKeyRaw = userState.realEstateLoanTypeKey;
 
   // ✅ fallback: 관리자 스키마가 없더라도 Step5 UI가 비지 않도록 최소 필드로 표시
   const fallback = {
@@ -1046,13 +1093,30 @@ function getStep5Schema() {
     ],
   };
 
-  const byProp = STEP5_MATRIX[prop];
+  // --- (A) 부동산유형 키 정규화 ---
+  const prop = normalizePropertyTypeForMatrix(propRaw);
+  if (!prop) return fallback;
+
+  // --- (B) 대출종류 키/라벨 정규화 ---
+  const cand0 = [loanKeyRaw, loanLabelRaw].filter(Boolean);
+  if (!cand0.length) return fallback;
+
+  const loanCandidates = [];
+  cand0.forEach((x) => {
+    loanCandidates.push(x);
+    const y = normalizeLoanTypeForMatrix(x);
+    if (y && y !== x) loanCandidates.push(y);
+  });
+
+  const byProp = STEP5_MATRIX[prop] || STEP5_MATRIX[propRaw];
   if (!byProp) return fallback;
 
   const keys = Object.keys(byProp || {});
-  const foundKey = keys.find((k) => normKey(k) === normKey(loan));
-  const schema = foundKey ? byProp[foundKey] : null;
+  const foundKey = keys.find((k) =>
+    loanCandidates.some((c) => normKey(k) === normKey(c))
+  );
 
+  const schema = foundKey ? byProp[foundKey] : null;
   if (!schema || !schema.supported) return fallback;
   return schema;
 }
@@ -1373,22 +1437,6 @@ function applyStep5Schema() {
           "※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.";
       }
     }
-  }
-}
-
-// ------------------------------------------------------
-// ✅ Step5 schema 적용은 "조합 변경" 시에만 수행 (입력 중 포커스 끊김 방지)
-// ------------------------------------------------------
-let __step5SchemaSig = "";
-function maybeApplyStep5Schema(force = false) {
-  const isRE = userState.mainCategory === "부동산담보대출";
-  if (!isRE) return;
-  if (!userState.realEstateLoanType) return;
-
-  const sig = [userState.propertyType || "", userState.realEstateLoanType || "", userState.occupancy || ""].join("|");
-  if (force || sig !== __step5SchemaSig) {
-    __step5SchemaSig = sig;
-    applyStep5Schema();
   }
 }
 
@@ -2063,7 +2111,7 @@ function setupStep4() {
       uiState.loanHelpText = helpEl.textContent;
     }
 
-    maybeApplyStep5Schema(true);
+    applyStep5Schema();
     recalcAndUpdateSummary();
   });
 }
@@ -2154,7 +2202,7 @@ function setupStep5() {
       singleSelectChip(occContainer, btn);
       userState.occupancy = btn.getAttribute("data-occ");
 
-      maybeApplyStep5Schema(true);
+      applyStep5Schema();
 
       uiState.hasRenderedResult = false;
       invalidateConfirmed();
@@ -3130,8 +3178,9 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   // ✅ Step6-1 동적 UI 구축(가능하면)
   ensureDynamicExtraUI();
 
-  // Step5 입력 UI는 조합 변경 시에만 갱신합니다.
-  maybeApplyStep5Schema();
+  if (isRE && userState.realEstateLoanType) {
+    applyStep5Schema();
+  }
 
   const { mainCategory, propertyType, realEstateLoanType } = userState;
 
