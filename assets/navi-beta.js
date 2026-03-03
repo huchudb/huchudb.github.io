@@ -1032,6 +1032,19 @@ function updateLoanTypeChipVisibility() {
 function mapPropertyTypeToSchemaKey(prop) {
   const k = normKey(prop);
   if (!k) return prop;
+
+  // ✅ meta propertyTypes의 key(apt/villa/...)도 지원
+  const keyMap = {
+    apt: "아파트",
+    villa: "다세대/연립",
+    officetel: "오피스텔",
+    detached: "단독/다가구",
+    land: "토지/임야",
+    commercial: "근린생활시설",
+  };
+  if (k in keyMap) return keyMap[k];
+
+  // ✅ 라벨/표기 흔들림도 방어
   if (k.includes("아파트")) return "아파트";
   if (k.includes("오피스텔")) return "오피스텔";
   if (k.includes("다세대") || k.includes("연립") || k.includes("빌라")) return "다세대/연립";
@@ -2044,7 +2057,7 @@ function setupStep3() {
 
     clearWizardForcedStep();
     singleSelectChip(container, btn);
-    userState.propertyType = btn.getAttribute("data-prop");
+    userState.propertyType = btn.getAttribute("data-prop-label") || btn.getAttribute("data-prop");
 
     updateLoanTypeChipVisibility();
 
