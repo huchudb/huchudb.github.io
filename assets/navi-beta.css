@@ -1395,3 +1395,25 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
     max-width:320px;
   }
 }
+
+
+/* ------------------------------------------------------
+   ✅ Step5: 조합별 UI/검증 보강(A~D)
+------------------------------------------------------ */
+
+#navi-step5 .navi-step5-occ-help{
+  margin-top:8px;
+  font-size:11px;
+  line-height:1.35;
+}
+
+/* 필드별 에러 표시 */
+#navi-step5 .navi-step5-field.is-error .navi-step5-pill{
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.45);
+}
+#navi-step5 .navi-step5-error{
+  margin-top:6px;
+  font-size:11px;
+  font-weight:700;
+  color:#b91c1c;
+}
