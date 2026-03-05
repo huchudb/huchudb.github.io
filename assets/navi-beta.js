@@ -1990,25 +1990,6 @@ function validateStep5(opts = {}) {
   return { ok: true, message: "" };
 }
 
-function setStep5StatusVisual(mode) {
-  const chip = document.getElementById("naviStep5StatusChip");
-  if (!chip) return;
-
-  chip.classList.remove("navi-step5-statuschip--pending", "navi-step5-statuschip--ok", "navi-step5-statuschip--deny");
-  chip.textContent = "";
-
-  if (mode === "ok") {
-    chip.classList.add("navi-step5-statuschip--ok");
-    return;
-  }
-  if (mode === "deny") {
-    chip.classList.add("navi-step5-statuschip--deny");
-    chip.textContent = "불가";
-    return;
-  }
-
-  chip.classList.add("navi-step5-statuschip--pending");
-}
 
 function updateStep5StatusUI(primaryEligible) {
   const isRE = userState.mainCategory === "부동산담보대출";
@@ -2019,14 +2000,6 @@ function updateStep5StatusUI(primaryEligible) {
 
   const cta = document.getElementById("naviStep5CTA");
   if (cta) cta.style.display = primaryEligible ? "" : "none";
-
-  const complete = isStep5Complete();
-  if (!complete) {
-    setStep5StatusVisual("pending");
-    return;
-  }
-
-  setStep5StatusVisual(primaryEligible ? "ok" : "deny");
 }
 
 
