@@ -1995,8 +1995,12 @@ function updateStep5StatusUI(primaryEligible) {
   const isRE = userState.mainCategory === "부동산담보대출";
   const cta = document.getElementById("naviStep5CTA");
   if (cta) {
+    const show = Boolean(isRE && primaryEligible);
     cta.textContent = "다음 단계로 넘어가기";
-    cta.style.display = isRE && primaryEligible ? "" : "none";
+    cta.style.display = show ? "" : "none";
+    cta.classList.toggle("hide", !show);
+    cta.disabled = !show;
+    cta.setAttribute("aria-hidden", show ? "false" : "true");
   }
 }
 
@@ -2006,8 +2010,12 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
   const cta = document.getElementById("naviStep5CTA");
 
   if (cta) {
+    const show = Boolean(isRE && step5Complete && globalMinOK && primaryEligible);
     cta.textContent = "다음 단계로 넘어가기";
-    cta.style.display = isRE && step5Complete && globalMinOK && primaryEligible ? "" : "none";
+    cta.style.display = show ? "" : "none";
+    cta.classList.toggle("hide", !show);
+    cta.disabled = !show;
+    cta.setAttribute("aria-hidden", show ? "false" : "true");
   }
 
   if (!warningEl) return;
