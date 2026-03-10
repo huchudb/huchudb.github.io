@@ -1993,13 +1993,44 @@ function validateStep5(opts = {}) {
 
 function updateStep5StatusUI(primaryEligible) {
   const isRE = userState.mainCategory === "부동산담보대출";
-  if (!isRE) return;
-
-  const hasLoan = Boolean(userState.propertyType && userState.realEstateLoanType);
-  if (!hasLoan) return;
-
   const cta = document.getElementById("naviStep5CTA");
-  if (cta) cta.style.display = primaryEligible ? "" : "none";
+  if (cta) {
+    cta.textContent = "다음 단계로 넘어가기";
+    cta.style.display = isRE && primaryEligible ? "" : "none";
+  }
+}
+
+function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, primaryEligible = false } = {}) {
+  const isRE = userState.mainCategory === "부동산담보대출";
+  const warningEl = document.getElementById("naviAmountWarning");
+  const cta = document.getElementById("naviStep5CTA");
+
+  if (cta) {
+    cta.textContent = "다음 단계로 넘어가기";
+    cta.style.display = isRE && step5Complete && globalMinOK && primaryEligible ? "" : "none";
+  }
+
+  if (!warningEl) return;
+
+  if (!isRE || !userState.realEstateLoanType || !step5Complete) {
+    warningEl.style.display = "none";
+    warningEl.textContent = "";
+    return;
+  }
+
+  if (!globalMinOK) {
+    checkGlobalMinAmount();
+    return;
+  }
+
+  if (primaryEligible) {
+    warningEl.style.display = "none";
+    warningEl.textContent = "";
+    return;
+  }
+
+  warningEl.style.display = "block";
+  warningEl.textContent = "LTV 초과로 대출이 불가능합니다.";
 }
 
 
@@ -2573,6 +2604,7 @@ function setupStep5() {
   if (!confirmBtn) return;
 
   const ctaBtn = document.getElementById("naviStep5CTA");
+  if (ctaBtn) ctaBtn.textContent = "다음 단계로 넘어가기";
   if (ctaBtn && !ctaBtn.__bound) {
     ctaBtn.__bound = true;
     ctaBtn.addEventListener("click", () => {
@@ -3650,6 +3682,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     if (countInfoEl) countInfoEl.style.display = "none";
     if (extraCountEl) extraCountEl.style.display = "none";
     resultSummaryEl.textContent = "상품군, 지역, 대출종류를 입력하시면 추천 온투업 결과를 볼 수 있습니다.";
+    updateStep5DecisionGate({ step5Complete: false, globalMinOK: false, primaryEligible: false });
 
     updateStepVisibility(false);
     renderStepper(1);
@@ -3692,6 +3725,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
 
     primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
     updateStep5StatusUI(primaryEligible);
+    updateStep5DecisionGate({ step5Complete, globalMinOK, primaryEligible });
 
     if (countInfoEl) {
       if (!userState.realEstateLoanType) {
@@ -3717,6 +3751,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     extraMatched = filterLenders(true);
     primaryEligible = Boolean(coreMatched.length);
     updateStep5StatusUI(primaryEligible);
+    updateStep5DecisionGate({ step5Complete: true, globalMinOK: true, primaryEligible });
 
     if (countInfoEl) {
       countInfoEl.style.display = "inline-block";
