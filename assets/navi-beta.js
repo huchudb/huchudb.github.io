@@ -1034,6 +1034,51 @@ function clearInputValueById(id) {
   } catch (_) {}
 }
 
+function setInputValueSilently(id, value = "") {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = value;
+}
+
+function resetStep4CoreInputs() {
+  userState.occupancy = null;
+  userState.propertyValue = 0;
+  userState.sharePercent = 0;
+  userState.seniorLoan = 0;
+  userState.deposit = 0;
+  userState.refinanceAmount = 0;
+  userState.requestedAmount = 0;
+  userState.assumedBurden = 0;
+
+  setInputValueSilently("naviInputPropertyValue", "");
+  setInputValueSilently("naviInputSharePercent", "");
+  setInputValueSilently("naviInputSeniorLoan", "");
+  setInputValueSilently("naviInputDeposit", "");
+  setInputValueSilently("naviInputRefinanceAmount", "");
+  setInputValueSilently("naviInputRequestedAmount", "");
+  setInputValueSilently("naviInputAssumedBurden", "");
+
+  document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
+  clearStep5FieldErrors();
+  updateStep5MoneyKoHints();
+
+  const warningEl = document.getElementById("naviAmountWarning");
+  if (warningEl) {
+    warningEl.style.display = "none";
+    warningEl.textContent = "";
+  }
+
+  const cta = document.getElementById("naviStep5CTA");
+  if (cta) {
+    cta.style.display = "none";
+    cta.classList.add("hide");
+    cta.disabled = true;
+    cta.setAttribute("aria-hidden", "true");
+  }
+
+  invalidateConfirmed();
+}
+
 function resetRealEstateDraftState() {
   // ✅ Step2~5 선택/입력 리셋 (부동산담보대출 작성 중 상태 제거)
   userState.region = null;
@@ -1694,6 +1739,9 @@ function isStep5Complete() {
   const schema = getStep5Schema();
   if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) return false;
 
+  const visibleCheck = validateVisibleStep5Inputs({ showErrors: false });
+  if (!visibleCheck.ok) return false;
+
   // STEP5_MATRIX는 fieldDefs에 {code, required, label, note?} 형태를 사용합니다.
   // (이전 버전의 {key, ...} 스키마와 혼재되지 않도록 code -> userState key로 매핑합니다.)
   const CODE_TO_STATE_KEY = {
@@ -1828,6 +1876,53 @@ function clearStep5FieldErrorByInputId(inputId) {
   clearStep5FieldErrorByCode(code);
 }
 
+function isVisibleStep5FieldByCode(code) {
+  const id = STEP5_CODE_TO_INPUT_ID[String(code || "").trim()];
+  const input = id ? document.getElementById(id) : null;
+  const label = input ? input.closest("label") : null;
+  if (!input || !label) return false;
+  return !(label.style.display === "none" || label.classList.contains("hide") || input.disabled);
+}
+
+function isInputFilledById(id) {
+  const input = document.getElementById(id);
+  if (!input) return false;
+  return String(input.value || "").trim() !== "";
+}
+
+function validateVisibleStep5Inputs(opts = {}) {
+  const showErrors = Boolean(opts.showErrors);
+  const schema = getStep5Schema();
+  if (!schema || !Array.isArray(schema.fields)) {
+    return { ok: false, message: "입력 스키마를 불러올 수 없습니다." };
+  }
+
+  for (const f of schema.fields) {
+    const code = String(f?.code || "").trim();
+    if (!code || code === "OCC") continue;
+    if (!isVisibleStep5FieldByCode(code)) continue;
+
+    const inputId = STEP5_CODE_TO_INPUT_ID[code];
+    const input = inputId ? document.getElementById(inputId) : null;
+    if (!input) continue;
+
+    const pres = getStep5FieldPresentation(f, code);
+    const label = pres?.label || f.label || "";
+    const name = niceFieldNameFromLabel(label);
+    const raw = String(input.value || "").trim();
+
+    if (!raw) {
+      const msg = code === "SP"
+        ? `${name}을(를) 입력해 주세요.`
+        : `${name}을(를) 입력해 주세요. 없으면 0을 입력해 주세요.`;
+      if (showErrors) markStep5FieldError(code, msg);
+      return { ok: false, message: msg };
+    }
+  }
+
+  return { ok: true, message: "" };
+}
+
 function markStep5FieldError(code, message) {
   const id = STEP5_CODE_TO_INPUT_ID[String(code || "").trim()];
   const input = id ? document.getElementById(id) : null;
@@ -1889,6 +1984,9 @@ function validateStep5(opts = {}) {
     REQ: "requestedAmount",
     ASB: "assumedBurden",
   };
+
+  const visibleCheck = validateVisibleStep5Inputs({ showErrors });
+  if (!visibleCheck.ok) return visibleCheck;
 
   // required fields
   for (const f of schema.fields) {
@@ -2535,8 +2633,11 @@ function setupStep3() {
 
     clearWizardForcedStep();
     singleSelectChip(container, btn);
-    userState.propertyType = btn.getAttribute("data-prop-label") || btn.getAttribute("data-prop");
+    const nextPropType = btn.getAttribute("data-prop-label") || btn.getAttribute("data-prop");
+    const propChanged = normKey(userState.propertyType) !== normKey(nextPropType);
+    userState.propertyType = nextPropType;
 
+    if (propChanged) resetStep4CoreInputs();
     updateLoanTypeChipVisibility();
 
     userState.realEstateLoanType = null;
@@ -2587,6 +2688,12 @@ function setupStep4() {
     singleSelectChip(container, btn);
     const loanTypeKey = btn.getAttribute("data-loan-type");
     const loanTypeLabel = btn.getAttribute("data-loan-label") || btn.textContent || loanTypeKey;
+    const prevLoanToken = userState.realEstateLoanTypeKey || userState.realEstateLoanType || "";
+    const nextLoanToken = loanTypeKey || loanTypeLabel || "";
+    const loanChanged = normKey(prevLoanToken) !== normKey(nextLoanToken);
+
+    if (loanChanged) resetStep4CoreInputs();
+
     userState.realEstateLoanTypeKey = loanTypeKey;
     userState.realEstateLoanType = loanTypeLabel;
 
@@ -3189,7 +3296,7 @@ function setupResultButtons() {
 function syncInputsToState() {
   userState.propertyValue = getMoneyValueById("naviInputPropertyValue");
   const shareEl = document.getElementById("naviInputSharePercent");
-  userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 100;
+  userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 0;
 
   userState.seniorLoan = getMoneyValueById("naviInputSeniorLoan");
   userState.deposit = getMoneyValueById("naviInputDeposit");
@@ -3312,6 +3419,33 @@ function hasAnyExtraSelected() {
   );
 }
 
+function toLtvRatio(raw) {
+  const n = parseNumberLoose(raw);
+  if (n == null || n <= 0) return null;
+  return n > 1 ? (n / 100) : n;
+}
+
+function getEffectiveLtvCapRatioForLender(l, cell, subregionKey) {
+  let ratio = null;
+
+  if (cell) {
+    let maxPct = parseNumberLoose(cell.ltvMax);
+    if (subregionKey && cell.ltvUp && typeof cell.ltvUp === "object") {
+      const add = parseNumberLoose(cell.ltvUp[subregionKey]);
+      if (add != null && add > 0) maxPct = (maxPct || 0) + add;
+    }
+    ratio = toLtvRatio(maxPct);
+  }
+
+  if (ratio != null && ratio > 0) return ratio;
+
+  const cfg = l && l.realEstateConfig ? l.realEstateConfig : {};
+  ratio = toLtvRatio(cfg.maxTotalLtv);
+  if (ratio != null && ratio > 0) return ratio;
+
+  return null;
+}
+
 // 온투업 리스트 필터링 (추가조건 미적용 / 적용 두 케이스 모두 사용)
 function filterLenders(applyExtras = false) {
   const lenders = naviLoanConfig.lenders || [];
@@ -3340,8 +3474,9 @@ function filterLenders(applyExtras = false) {
 
         if (realEstateLoanTypeKey || realEstateLoanType) {
           const sel = realEstateLoanTypeKey || realEstateLoanType;
-          const types = cell.loanTypes || [];
-          if (types.length && !types.some((t) => normKey(t) === normKey(sel))) return false;
+          const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
+          if (!types.length) return false;
+          if (!types.some((t) => normKey(t) === normKey(sel))) return false;
         }
 
         if (principalAmount) {
@@ -3349,14 +3484,10 @@ function filterLenders(applyExtras = false) {
           if (lenderMinWon && principalAmount < lenderMinWon) return false;
         }
 
-        let maxPct = parseNumberLoose(cell.ltvMax);
-        // ✅ 세부지역 LTV Up 가산 (업체별 설정)
-        if (subregionKey && cell.ltvUp && typeof cell.ltvUp === "object") {
-          const add = parseNumberLoose(cell.ltvUp[subregionKey]);
-          if (add != null && add > 0) maxPct = (maxPct || 0) + add;
-        }
-        if (maxPct != null && maxPct > 0 && ltv != null) {
-          if (ltv * 100 > maxPct + 1e-6) return false;
+        const capRatio = getEffectiveLtvCapRatioForLender(l, cell, subregionKey);
+        if (ltv != null) {
+          if (!(capRatio > 0)) return false;
+          if (ltv > capRatio + 1e-6) return false;
         }
       } else {
         const cfg = l.realEstateConfig || {};
@@ -3372,8 +3503,9 @@ function filterLenders(applyExtras = false) {
         }
 
         if (realEstateLoanType) {
-          const types = cfg.loanTypes || [];
-          if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
+          const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
+          if (!types.length) return false;
+          if (!types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
         }
 
         if (principalAmount) {
@@ -3385,8 +3517,10 @@ function filterLenders(applyExtras = false) {
           if (lenderMin && principalAmount < lenderMin) return false;
         }
 
-        if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
-          if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
+        if (ltv != null) {
+          const capRatio = getEffectiveLtvCapRatioForLender(l, null, null);
+          if (!(capRatio > 0)) return false;
+          if (ltv > capRatio + 1e-6) return false;
         }
       }
     }
@@ -3727,11 +3861,13 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   if (isRE) {
     const step5Complete = isStep5Complete();
     const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
+    const { ltv, baseValue, totalDebtAfter } = calcLtv();
+    const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
 
-    coreMatched = step5Complete ? filterLenders(false) : [];
-    extraMatched = step5Complete ? filterLenders(true) : [];
+    coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
+    extraMatched = step5Complete && ltvSane ? filterLenders(true) : [];
 
-    primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
+    primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
     updateStep5StatusUI(primaryEligible);
     updateStep5DecisionGate({ step5Complete, globalMinOK, primaryEligible });
 
@@ -3744,6 +3880,9 @@ function recalcAndUpdateSummary(onlyExtra = false) {
       } else if (!globalMinOK) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "현재 입력한 대출금액이 최소 기준 미만입니다. (아파트/오피스텔 1,000만원·그 외 3,000만원 이상)";
+      } else if (!ltvSane) {
+        countInfoEl.style.display = "inline-block";
+        countInfoEl.textContent = "현재 입력값 기준 LTV가 100%를 초과하여 대출이 불가능합니다.";
       } else if (!coreMatched.length) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "현재 조건으로는 매칭되는 온투업체가 없습니다. LTV/대출금액/유형/지역을 조정해보세요.";
@@ -3868,8 +4007,10 @@ function renderFinalResult(opts = {}) {
 
   if (isRE) {
     const step5Complete = isStep5Complete();
-    const coreMatched = step5Complete ? filterLenders(false) : [];
-    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && coreMatched.length);
+    const { ltv, baseValue, totalDebtAfter } = calcLtv();
+    const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
+    const coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
+    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && ltvSane && coreMatched.length);
 
     if (!primaryEligible) {
       if (!silent) alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
