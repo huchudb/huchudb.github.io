@@ -440,19 +440,18 @@ function getStep5FieldPresentation(def, code) {
   const ctx = getStep5Ctx();
   const c = String(code || "").trim();
   let label = String(def?.label || "").trim();
+  let placeholder = "";
 
   // ---- PV(담보가치) 라벨 보정 ----
   if (c === "PV") {
-    if (ctx.isAuction) label = "낙찰가/감정가(원)";
+    if (ctx.isAuction) label = "낙찰가(원)";
     else if (ctx.isBuyout && ctx.loanN.includes("분양")) label = "분양가(원)";
-    else if (ctx.isBuyout) label = "매입가/매매가(원)";
+    else if (ctx.isBuyout) label = "매입가(원)";
     else if (ctx.propN.includes("토지") || ctx.propN.includes("임야")) label = "감정가/공시지가(원)";
     else if (ctx.propN.includes("근린")) label = "시세/감정가(원)";
     else if (ctx.propN.includes("다세대") || ctx.propN.includes("연립") || ctx.propN.includes("빌라")) {
-      // 기존 스키마가 하우스머치 기반인 경우가 많음
       label = label && label.includes("하우스") ? label : "하우스머치시세(원)";
     } else {
-      // 아파트/오피스텔/단독 등
       if (!label) label = "시세(원)";
       if (label === "KB시세") label = "KB시세(원)";
     }
@@ -460,7 +459,7 @@ function getStep5FieldPresentation(def, code) {
 
   // ---- ASB/REF/DEP 등 표준화 ----
   if (c === "ASB") {
-    if (!label) label = "인수되는 금액(원)";
+    if (!label) label = "인수되는 선순위 금액(원)";
     label = label.replaceAll("권리", "").replaceAll("  ", " ").trim();
     if (!label.includes("(원)")) label += "(원)";
   }
@@ -469,9 +468,8 @@ function getStep5FieldPresentation(def, code) {
     if (!label.includes("(원)")) label += "(원)";
   }
   if (c === "DEP") {
-    // 경락/매입잔금에서 '예정'이 의미가 크면 표기 보정
-    if ((ctx.isAuction || ctx.isBuyout) && label && !label.includes("예정") && label.includes("임대보증금")) {
-      label = "선순위 예정 임대보증금(원)";
+    if ((ctx.isAuction || ctx.isBuyout) && label && label.includes("임대보증금")) {
+      label = "예정 선순위 임대보증금(원)";
     }
     if (!label) label = "임대보증금(원)";
     if (!label.includes("(원)")) label += "(원)";
@@ -486,11 +484,19 @@ function getStep5FieldPresentation(def, code) {
   }
   if (c === "SL") {
     if (!label) label = "선순위 대출금액(원)";
+    if (label.includes("선순위 총 대출금액")) label = "선순위 총 대출(원금)금액(원)";
+    else if (label.includes("선순위 대출금액")) label = "선순위 대출(원금)금액(원)";
     if (!label.includes("(원)")) label += "(원)";
   }
 
-  // placeholder는 label 기반으로 생성 (필요시 스키마에서 placeholder를 추가해도 됨)
-  const placeholder = makeStep5Placeholder(label);
+  placeholder = makeStep5Placeholder(label);
+  if (c === "PV" && ctx.isAuction) placeholder = "낙찰가를 입력하세요";
+  if (c === "PV" && ctx.isBuyout && !ctx.loanN.includes("분양")) placeholder = "매입가를 입력하세요";
+  if (c === "SL" && label.includes("총 대출")) placeholder = "선순위 총 대출(원금)금액을 입력하세요";
+  else if (c === "SL") placeholder = "선순위 대출(원금)금액을 입력하세요";
+  if (c === "ASB") placeholder = "인수되는 선순위 금액을 입력하세요";
+  if (c === "DEP" && (ctx.isAuction || ctx.isBuyout)) placeholder = "예정 선순위 임대보증금을 입력하세요";
+
   return { label, placeholder };
 }
 
@@ -1509,9 +1515,62 @@ function maybeApplyStep5Schema(force = false) {
   applyStep5Schema();
 }
 
+function setStep5TopMessage(message = "") {
+  const helpEl = document.getElementById("naviLoanTypeHelp");
+  if (!helpEl) return;
+  const msg = String(message || "").trim();
+  helpEl.textContent = msg;
+  helpEl.style.display = msg ? "block" : "none";
+}
+
+function hasStep5ConfiguredLender() {
+  const lenders = naviLoanConfig.lenders || [];
+  if (!lenders.length) return false;
+
+  const { mainCategory, region, propertyType, realEstateLoanType, realEstateLoanTypeKey } = userState;
+  if (mainCategory !== "부동산담보대출") return true;
+  if (!region || !propertyType || !(realEstateLoanTypeKey || realEstateLoanType)) return true;
+
+  const selectedLoan = realEstateLoanTypeKey || realEstateLoanType;
+
+  return lenders.some((l) => {
+    if (!l || l.isActive === false || l.isNewLoanActive === false) return false;
+
+    const cats = Array.isArray(l.loanCategories) ? l.loanCategories : [];
+    if (cats.length && !includesNorm(cats, mainCategory)) return false;
+
+    const cell = getAdminRegionCell(l, region, propertyType);
+    if (cell) {
+      const enabled = cell.enabled === true || cell.enabled === "true";
+      if (!enabled) return false;
+      const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
+      if (!types.length) return false;
+      if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
+      const capRatio = getEffectiveLtvCapRatioForLender(l, cell, userState.subregionKey);
+      return Boolean(capRatio > 0);
+    }
+
+    const cfg = l.realEstateConfig || {};
+    if (region) {
+      const rgs = cfg.regions || [];
+      if (rgs.length && !includesRegion(rgs, region)) return false;
+    }
+    if (propertyType) {
+      const props = cfg.propertyTypes || [];
+      if (props.length && !includesNorm(props, propertyType)) return false;
+    }
+    const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
+    if (!types.length) return false;
+    if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
+    const capRatio = getEffectiveLtvCapRatioForLender(l, null, null);
+    return Boolean(capRatio > 0);
+  });
+}
+
 function applyStep5Schema() {
   ensureAssumedBurdenField();
   ensureOccBlockPlacementAndTitle();
+  setStep5TopMessage("");
 
   const schema = getStep5Schema();
   const occBlock = document.getElementById("naviOccupancyChips")?.parentElement;
@@ -1519,6 +1578,25 @@ function applyStep5Schema() {
 
   const fieldDefs = schema?.fields || [];
   const visibleCodes = new Set(fieldDefs.map((f) => f.code));
+
+  const splitEl = document.querySelector("#navi-step5 .navi-step5-split");
+  const ctaEl = document.getElementById("naviStep5CTA");
+  const confirmRowEl = document.querySelector("#navi-step5 .navi-step5-confirm");
+  const warningEl = document.getElementById("naviAmountWarning");
+  const configReady = hasStep5ConfiguredLender();
+
+  if (!configReady) {
+    setStep5TopMessage("※ 선택하신 지역·부동산유형·대출종류를 현재 취급하는 업체가 없습니다. 다른 조건을 선택해 주세요.");
+    if (splitEl) splitEl.style.display = "none";
+    if (ctaEl) { ctaEl.style.display = "none"; ctaEl.classList.add("hide"); }
+    if (confirmRowEl) confirmRowEl.style.display = "none";
+    if (warningEl) { warningEl.style.display = "none"; warningEl.textContent = ""; }
+    clearStep5FieldErrors();
+    return;
+  }
+
+  if (splitEl) splitEl.style.display = "";
+  if (confirmRowEl) confirmRowEl.style.display = "";
 
   const isBuyoutOrAuction =
   normKey(userState.realEstateLoanType).includes("경락잔금") ||
@@ -1709,18 +1787,7 @@ if (asbLabel) {
 }
 
   if (helpEl) {
-    if (schema && schema.__fallback) {
-      helpEl.textContent =
-        "※ 해당 조합의 입력 스키마가 등록되지 않아 기본 항목으로 안내합니다. (관리자 설정 확인 필요)";
-    } else {
-      // fallback 상태였다가 정상 스키마로 돌아온 경우, 안내문이 그대로 남지 않게 복원
-      const cur = String(helpEl.textContent || "");
-      if (cur.includes("입력 스키마가 등록되지")) {
-        helpEl.textContent =
-          uiState.loanHelpText ||
-          "※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.";
-      }
-    }
+    setStep5TopMessage("");
 
 // ✅ (D) 숨김/조건부 숨김 필드의 에러 표시 제거
 ["PV", "SP", "SL", "DEP", "REF", "REQ", "ASB"].forEach((c) => {
@@ -1736,6 +1803,7 @@ function isRentalOcc() {
 }
 
 function isStep5Complete() {
+  if (!hasStep5ConfiguredLender()) return false;
   const schema = getStep5Schema();
   if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) return false;
 
@@ -2106,9 +2174,10 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
   const isRE = userState.mainCategory === "부동산담보대출";
   const warningEl = document.getElementById("naviAmountWarning");
   const cta = document.getElementById("naviStep5CTA");
+  const configReady = !isRE || hasStep5ConfiguredLender();
 
   if (cta) {
-    const show = Boolean(isRE && step5Complete && globalMinOK && primaryEligible);
+    const show = Boolean(isRE && configReady && step5Complete && globalMinOK && primaryEligible);
     cta.textContent = "다음 단계로 넘어가기";
     cta.style.display = show ? "" : "none";
     cta.classList.toggle("hide", !show);
@@ -2118,7 +2187,7 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
 
   if (!warningEl) return;
 
-  if (!isRE || !userState.realEstateLoanType || !step5Complete) {
+  if (!isRE || !configReady || !userState.realEstateLoanType || !step5Complete) {
     warningEl.style.display = "none";
     warningEl.textContent = "";
     return;
@@ -2563,6 +2632,58 @@ function setupStep5Back() {
 }
 
 
+function ensureBackActionButton(sectionId, wrapId, btnId) {
+  const section = document.getElementById(sectionId);
+  if (!section) return null;
+  const card = section.querySelector(".navi-card");
+  if (!card) return null;
+
+  let wrap = document.getElementById(wrapId);
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = wrapId;
+    wrap.className = "navi-step-back-actions";
+    wrap.innerHTML = `
+      <button type="button" id="${btnId}" aria-label="Back">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
+        </svg>
+        Back
+      </button>
+    `;
+    card.appendChild(wrap);
+  }
+  return wrap.querySelector("button");
+}
+
+function setupStep6Back() {
+  const btn = ensureBackActionButton("navi-step6", "naviStep6Actions", "naviStep6BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+  btn.addEventListener("click", () => {
+    if (uiState) uiState.forcedWizardStepId = "navi-step5";
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step5");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+    syncWizardSingleCardView();
+  });
+}
+
+function setupStep61Back() {
+  const btn = ensureBackActionButton("navi-step6-1", "naviStep61Actions", "naviStep61BackBtn");
+  if (!btn || btn.__bound) return;
+  btn.__bound = true;
+  btn.addEventListener("click", () => {
+    if (uiState) uiState.forcedWizardStepId = "navi-step5";
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step5");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+    syncWizardSingleCardView();
+  });
+}
+
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
@@ -2656,25 +2777,7 @@ function setupStep4() {
   const helpEl = document.getElementById("naviLoanTypeHelp");
   if (!container) return;
   setupStep4Back();
-
-  const helpTexts = {
-    일반담보대출: "시세·선순위대출·임대보증금·필요대출금액을 합산해 LTV를 계산합니다.",
-    임대보증금반환대출:
-      "임대보증금 반환을 위한 대출입니다. (입력 스키마에 따라) 선순위 + 반환 보증금 + 추가 필요금액을 기준으로 LTV를 계산합니다.",
-    지분대출: "지분율만큼 시세를 반영하여 LTV를 계산합니다. (예: 시세 5억, 지분 50% → 2.5억 기준)",
-    경락잔금대출:
-      "낙찰가(또는 감정가)와 선순위·필요 대출금액을 기준으로 잔금대출 LTV를 계산합니다. (인수 권리 금액 입력 가능)",
-    대환대출:
-      "선순위/보증금 중 상환 예정금액 + 신규 필요 대출금액을 합산하여 대환 후 LTV를 계산합니다.",
-    "매입잔금_일반":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(일반)":
-      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금_분양":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-    "매입잔금(분양)":
-      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
-  };
+  setStep5TopMessage("");
 
   container.addEventListener("click", (e) => {
     const target = e.target;
@@ -2701,9 +2804,9 @@ function setupStep4() {
     document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
     uiState.hasRenderedResult = false;
 
-    if (helpEl && (loanTypeKey || loanTypeLabel) && helpTexts[loanTypeKey || loanTypeLabel]) {
-      helpEl.textContent = "※ " + helpTexts[loanTypeKey || loanTypeLabel];
-      uiState.loanHelpText = helpEl.textContent;
+    if (helpEl) {
+      uiState.loanHelpText = "";
+      setStep5TopMessage("");
     }
 
     maybeApplyStep5Schema(true);
@@ -4286,6 +4389,8 @@ setupMoneyInputs();
   setupStep5();
 
   setupStep6Extra();
+  setupStep6Back();
+  setupStep61Back();
   setupResultButtons();
 
   recalcAndUpdateSummary();
