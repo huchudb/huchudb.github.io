@@ -1183,6 +1183,42 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   justify-content:center;
   margin:10px 0 18px;
 }
+#navi-step5 .navi-step5-statusbar{
+  width:260px;
+  height:70px;
+  border-radius:8px;
+  background:#3c3f42;
+  position:relative;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+#navi-step5 .navi-step5-statuschip{
+  position:absolute;
+  top:7px;
+  width:56px;
+  height:56px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  letter-spacing:-0.02em;
+  color:#ffffff;
+}
+#navi-step5 .navi-step5-statuschip--pending{
+  left:calc(50% - 28px);
+  background:#f7c948;
+  color:#111827;
+}
+#navi-step5 .navi-step5-statuschip--ok{
+  left:calc(100% - 63px);
+  background:#20c933;
+  color:#0b1b0e;
+}
+#navi-step5 .navi-step5-statuschip--deny{
+  left:7px;
+  background:#ef4444;
+  color:#ffffff;
+}
 #navi-step5 .navi-step5-split{
   display:flex;
   align-items:stretch;
@@ -1360,24 +1396,85 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   }
 }
 
-
-/* ------------------------------------------------------
-   ✅ Step5: 조합별 UI/검증 보강(A~D)
------------------------------------------------------- */
-
-#navi-step5 .navi-step5-occ-help{
-  margin-top:8px;
-  font-size:11px;
-  line-height:1.35;
+#naviStep6BackBtn,
+#naviStep61BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+#naviStep6BackBtn svg,
+#naviStep61BackBtn svg{
+  width:16px;
+  height:16px;
+  fill:currentColor;
+}
+#naviStep6Actions,
+#naviStep61Actions,
+.navi-step-back-actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
 }
 
-/* 필드별 에러 표시 */
-#navi-step5 .navi-step5-field.is-error .navi-step5-pill{
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.45);
+
+/* Step6 / 6-1 Back 버튼을 다른 페이지와 동일 톤으로 통일 */
+#navi-step6 .navi-step-back-actions > button,
+#navi-step6-1 .navi-step-back-actions > button,
+#naviStep6BackBtn,
+#naviStep61BackBtn{
+  display:inline-flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  padding:10px 14px !important;
+  border-radius:8px !important;
+  border:0 !important;
+  background:#000000 !important;
+  color:#ffffff !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+  box-shadow:none !important;
 }
-#navi-step5 .navi-step5-error{
-  margin-top:6px;
-  font-size:11px;
-  font-weight:700;
-  color:#b91c1c;
+#navi-step6 .navi-step-back-actions > button svg,
+#navi-step6-1 .navi-step-back-actions > button svg,
+#naviStep6BackBtn svg,
+#naviStep61BackBtn svg{
+  width:16px !important;
+  height:16px !important;
+  display:block !important;
+  fill:currentColor !important;
+  flex:0 0 16px !important;
+}
+
+/* Step6-1 하단 실시간 결과 */
+.navi-embedded-result-wrap{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid #e5e7eb;
+}
+.navi-embedded-result-title{
+  font-size:16px;
+  font-weight:900;
+  color:#111827;
+  margin-bottom:8px;
+}
+.navi-embedded-result-summary{
+  margin-bottom:10px;
+}
+.navi-embedded-result-panel .navi-empty-card{
+  margin-bottom:0;
 }

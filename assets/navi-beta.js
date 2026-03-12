@@ -3183,6 +3183,62 @@ function renderLockedResultPanel() {
   uiState.hasRenderedResult = false;
 }
 
+function ensureEmbeddedResultUI() {
+  const step61Card = document.querySelector("#navi-step6-1 .navi-card");
+  if (!step61Card) return null;
+
+  let wrap = document.getElementById("naviEmbeddedResultWrap");
+  if (wrap) return wrap;
+
+  wrap = document.createElement("div");
+  wrap.id = "naviEmbeddedResultWrap";
+  wrap.className = "navi-embedded-result-wrap";
+  wrap.innerHTML = `
+    <div class="navi-embedded-result-title">네비게이션 결과</div>
+    <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary">
+      추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.
+    </div>
+    <div id="naviEmbeddedResultPanel" class="navi-embedded-result-panel">
+      <div class="navi-empty-card">
+        추가조건을 1개 이상 선택하면 추천 온투업체 결과가 여기서 바로 표시됩니다.
+      </div>
+    </div>
+  `;
+  step61Card.appendChild(wrap);
+  return wrap;
+}
+
+function renderEmbeddedResultPlaceholder(text) {
+  const wrap = ensureEmbeddedResultUI();
+  if (!wrap) return;
+
+  const summaryEl = document.getElementById("naviEmbeddedResultSummary");
+  const panelEl = document.getElementById("naviEmbeddedResultPanel");
+  if (summaryEl) {
+    summaryEl.textContent = text || "추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.";
+  }
+  if (panelEl) {
+    panelEl.innerHTML = `
+      <div class="navi-empty-card">
+        추가조건을 1개 이상 선택하면 추천 온투업체 결과가 여기서 바로 표시됩니다.
+      </div>
+    `;
+  }
+}
+
+function syncEmbeddedResultFromStep7() {
+  const wrap = ensureEmbeddedResultUI();
+  if (!wrap) return;
+
+  const sourceSummary = document.getElementById("naviResultSummary");
+  const sourcePanel = document.getElementById("naviResultPanel");
+  const targetSummary = document.getElementById("naviEmbeddedResultSummary");
+  const targetPanel = document.getElementById("naviEmbeddedResultPanel");
+
+  if (targetSummary && sourceSummary) targetSummary.textContent = sourceSummary.textContent || "";
+  if (targetPanel && sourcePanel) targetPanel.innerHTML = sourcePanel.innerHTML;
+}
+
 function autoRevealAfterExtraChanged() {
   const isRE = userState.mainCategory === "부동산담보대출";
   if (!isRE) return;
@@ -3190,22 +3246,29 @@ function autoRevealAfterExtraChanged() {
 
   syncInputsToState();
   updateStep5MoneyKoHints();
+  ensureEmbeddedResultUI();
 
   const step5Complete = isStep5Complete();
   const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
-  const coreMatched = step5Complete && globalMinOK ? filterLenders(false) : [];
-  const primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
-  if (!primaryEligible) return;
+  const { ltv, baseValue, totalDebtAfter } = calcLtv();
+  const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
+  const coreMatched = step5Complete && globalMinOK && ltvSane ? filterLenders(false) : [];
+  const primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
 
-  // ✅ 선택조건이 0개면 '대기' 상태로 유지
-  if (!hasAnyExtraSelected()) {
-    renderLockedResultPanel();
+  if (!primaryEligible) {
+    renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
     return;
   }
 
-  // ✅ 자동 공개/갱신: 스크롤 이동 없이 결과만 즉시 갱신
+  if (!hasAnyExtraSelected()) {
+    renderEmbeddedResultPlaceholder("추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.");
+    return;
+  }
+
   renderFinalResult({ silent: true, skipScroll: true, keepStepper: true });
+  syncEmbeddedResultFromStep7();
   uiState.autoRevealed = true;
+  uiState.hasRenderedResult = false;
 }
 
 
@@ -3832,8 +3895,7 @@ function updateStepVisibility(primaryEligible) {
   const canShowExtra = Boolean(uiState.confirmed && primaryEligible);
   setSectionVisible("navi-step6-1", canShowExtra);
 
-  const extraSelected = hasAnyExtraSelected();
-  setSectionVisible("navi-step7", Boolean(uiState.confirmed && primaryEligible && extraSelected));
+  setSectionVisible("navi-step7", false);
 }
 
 
@@ -3851,8 +3913,6 @@ function resolveActiveStep(primaryEligible) {
     if (!userState.propertyType) return 3;
     if (!userState.realEstateLoanType) return 4;
     if (!isStep5Complete()) return 5;
-    if (!primaryEligible) return 6;
-    if (uiState.hasRenderedResult) return 7;
     return 6;
   }
 
@@ -3908,6 +3968,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
 
   // ✅ Step6-1 동적 UI 구축(가능하면)
   ensureDynamicExtraUI();
+  ensureEmbeddedResultUI();
 
   if (isRE && userState.realEstateLoanType) {
     // ✅ 입력 중에는 리렌더하지 않고, 조합/거주형태 변경 시에만 적용
@@ -4041,6 +4102,18 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   updateStepVisibility(primaryEligible);
   const active = resolveActiveStep(primaryEligible);
   renderStepper(active);
+
+  if (isRE && uiState.confirmed) {
+    if (primaryEligible) {
+      if (hasAnyExtraSelected()) {
+        autoRevealAfterExtraChanged();
+      } else {
+        renderEmbeddedResultPlaceholder("추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.");
+      }
+    } else {
+      renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
+    }
+  }
 
   if (!primaryEligible) uiState.hasRenderedResult = false;
 
