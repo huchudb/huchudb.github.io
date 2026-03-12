@@ -3109,10 +3109,6 @@ function ensureDynamicExtraUI() {
   root.style.marginTop = "10px";
 
   root.innerHTML = `
-    <div style="margin-bottom:8px;font-size:11px;color:#6b7280;">
-      ※ 아래 선택항목은 <strong>관리자(추가조건 선택)</strong>에 저장된 <strong>토큰</strong>과 동일하게 매칭됩니다. (선택한 조건만 결과에 반영)
-    </div>
-    <div id="naviExtraSelectedCount" style="margin-bottom:10px;font-size:12px;color:#111827;font-weight:700;">선택한 조건: 0개</div>
     <div id="naviExtraDynamicGroups"></div>
   `;
 
@@ -3146,10 +3142,7 @@ function ensureDynamicExtraUI() {
 }
 
 function updateDynamicExtraSelectedCount() {
-  const el = document.getElementById("naviExtraSelectedCount");
-  if (!el) return;
-  const n = Array.isArray(userState.extra.tokens) ? userState.extra.tokens.length : 0;
-  el.textContent = `선택한 조건: ${n}개`;
+  return;
 }
 
 function syncDynamicExtraSelectionUI() {
@@ -3274,13 +3267,12 @@ function ensureEmbeddedResultUI() {
   wrap.id = "naviEmbeddedResultWrap";
   wrap.className = "navi-embedded-result-wrap";
   wrap.innerHTML = `
-    <div class="navi-embedded-result-title">네비게이션 결과</div>
-    <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary">
-      추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.
+        <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary">
+      가능한 온투업체가 실시간으로 표시됩니다.
     </div>
     <div id="naviEmbeddedResultPanel" class="navi-embedded-result-panel">
       <div class="navi-empty-card">
-        추가조건을 1개 이상 선택하면 추천 온투업체 결과가 여기서 바로 표시됩니다.
+        추가조건을 1개 이상 선택하면 가능한 온투업체가 실시간으로 표시됩니다.
       </div>
     </div>
   `;
@@ -3295,12 +3287,12 @@ function renderEmbeddedResultPlaceholder(text) {
   const summaryEl = document.getElementById("naviEmbeddedResultSummary");
   const panelEl = document.getElementById("naviEmbeddedResultPanel");
   if (summaryEl) {
-    summaryEl.textContent = text || "추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.";
+    summaryEl.textContent = text || "가능한 온투업체가 실시간으로 표시됩니다.";
   }
   if (panelEl) {
     panelEl.innerHTML = `
       <div class="navi-empty-card">
-        추가조건을 1개 이상 선택하면 추천 온투업체 결과가 여기서 바로 표시됩니다.
+        추가조건을 1개 이상 선택하면 가능한 온투업체가 실시간으로 표시됩니다.
       </div>
     `;
   }
@@ -3344,7 +3336,7 @@ function autoRevealAfterExtraChanged() {
   }
 
   if (!hasAnyExtraSelected()) {
-    renderEmbeddedResultPlaceholder("추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.");
+    renderEmbeddedResultPlaceholder("가능한 온투업체가 실시간으로 표시됩니다.");
     return;
   }
 
@@ -4191,7 +4183,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
       if (hasAnyExtraSelected()) {
         autoRevealAfterExtraChanged();
       } else {
-        renderEmbeddedResultPlaceholder("추가조건을 선택하면 아래에서 추천 결과가 실시간으로 바뀝니다.");
+        renderEmbeddedResultPlaceholder("가능한 온투업체가 실시간으로 표시됩니다.");
       }
     } else {
       renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
