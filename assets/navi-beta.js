@@ -3165,6 +3165,86 @@ function syncDynamicExtraSelectionUI() {
 }
 
 
+
+function getResultCarouselPageSize(carousel) {
+  const host = carousel || null;
+  const width = host ? (host.clientWidth || host.getBoundingClientRect().width || 0) : (window.innerWidth || 0);
+  if (width <= 640) return 1;
+  if (width <= 980) return 2;
+  return 3;
+}
+
+function applyResultCarouselState(carousel, forceIndex) {
+  if (!carousel) return;
+  const track = carousel.querySelector('.navi-result-track');
+  const cards = Array.from(carousel.querySelectorAll('.navi-result-card'));
+  const prevBtn = carousel.querySelector('.navi-carousel-arrow.is-prev');
+  const nextBtn = carousel.querySelector('.navi-carousel-arrow.is-next');
+  if (!track || !cards.length) return;
+
+  const pageSize = getResultCarouselPageSize(carousel);
+  const total = cards.length;
+  const maxIndex = Math.max(0, total - pageSize);
+  let index = Number(carousel.dataset.index || 0);
+  if (Number.isFinite(forceIndex)) index = Number(forceIndex);
+  if (!Number.isFinite(index) || index < 0) index = 0;
+  if (index > maxIndex) index = maxIndex;
+
+  const trackStyle = getComputedStyle(track);
+  const gap = parseFloat(trackStyle.columnGap || trackStyle.gap || '0') || 0;
+  const firstCard = cards[0];
+  const step = firstCard ? (firstCard.getBoundingClientRect().width + gap) : 0;
+  track.style.transform = `translate3d(${-1 * step * index}px, 0, 0)`;
+
+  carousel.dataset.index = String(index);
+  carousel.dataset.pageSize = String(pageSize);
+  if (prevBtn) {
+    prevBtn.disabled = index <= 0;
+    prevBtn.classList.toggle('is-disabled', index <= 0);
+  }
+  if (nextBtn) {
+    nextBtn.disabled = index >= maxIndex;
+    nextBtn.classList.toggle('is-disabled', index >= maxIndex);
+  }
+}
+
+function initResultCarousels(scope) {
+  const root = scope && scope.querySelectorAll ? scope : document;
+  root.querySelectorAll('.navi-result-carousel').forEach((carousel) => {
+    if (!carousel.__boundCarousel) {
+      carousel.__boundCarousel = true;
+      const prevBtn = carousel.querySelector('.navi-carousel-arrow.is-prev');
+      const nextBtn = carousel.querySelector('.navi-carousel-arrow.is-next');
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          const pageSize = getResultCarouselPageSize(carousel);
+          const current = Number(carousel.dataset.index || 0) || 0;
+          applyResultCarouselState(carousel, Math.max(0, current - pageSize));
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          const pageSize = getResultCarouselPageSize(carousel);
+          const current = Number(carousel.dataset.index || 0) || 0;
+          applyResultCarouselState(carousel, current + pageSize);
+        });
+      }
+    }
+    applyResultCarouselState(carousel);
+  });
+}
+
+let __naviResultCarouselResizeBound = false;
+function bindResultCarouselResize() {
+  if (__naviResultCarouselResizeBound) return;
+  __naviResultCarouselResizeBound = true;
+  let timer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => initResultCarousels(document), 100);
+  });
+}
+
 function renderLockedResultPanel() {
   const panel = document.getElementById("naviResultPanel");
   const summaryEl = document.getElementById("naviResultSummary");
@@ -3236,7 +3316,10 @@ function syncEmbeddedResultFromStep7() {
   const targetPanel = document.getElementById("naviEmbeddedResultPanel");
 
   if (targetSummary && sourceSummary) targetSummary.textContent = sourceSummary.textContent || "";
-  if (targetPanel && sourcePanel) targetPanel.innerHTML = sourcePanel.innerHTML;
+  if (targetPanel && sourcePanel) {
+    targetPanel.innerHTML = sourcePanel.innerHTML;
+    initResultCarousels(targetPanel);
+  }
 }
 
 function autoRevealAfterExtraChanged() {
@@ -4367,7 +4450,22 @@ const cardsHtml = matched
   })
   .join("");
 
-panel.innerHTML = `<div class="navi-result-grid">${cardsHtml}</div>`;
+const showCarouselNav = matched.length > 3;
+panel.innerHTML = `
+  <div class="navi-result-carousel" data-index="0">
+    <button type="button" class="navi-carousel-arrow is-prev ${showCarouselNav ? "" : "is-hidden"}" aria-label="이전 업체 보기">
+      <span aria-hidden="true">‹</span>
+    </button>
+    <div class="navi-result-viewport">
+      <div class="navi-result-track">${cardsHtml}</div>
+    </div>
+    <button type="button" class="navi-carousel-arrow is-next ${showCarouselNav ? "" : "is-hidden"}" aria-label="다음 업체 보기">
+      <span aria-hidden="true">›</span>
+    </button>
+  </div>
+`;
+initResultCarousels(panel);
+bindResultCarouselResize();
 
 
 

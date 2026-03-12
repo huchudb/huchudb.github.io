@@ -438,18 +438,75 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
    Step7 결과 카드(제휴/비제휴) — 2026-02-19
 ========================================================= */
 
-.navi-result-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:16px;
-  align-items:start;
+.navi-result-carousel{
+  display:flex;
+  align-items:stretch;
+  gap:12px;
 }
 
-@media (max-width: 1100px){
-  .navi-result-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+.navi-result-viewport{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+
+.navi-result-track{
+  display:flex;
+  gap:16px;
+  align-items:stretch;
+  transition:transform .28s ease;
+  will-change:transform;
+}
+
+.navi-result-track .navi-result-card{
+  flex:0 0 calc((100% - 32px) / 3);
+  max-width:calc((100% - 32px) / 3);
+}
+
+.navi-carousel-arrow{
+  flex:0 0 40px;
+  width:40px;
+  border:1px solid #d1d5db;
+  border-radius:999px;
+  background:#fff;
+  color:#111827;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  align-self:center;
+  box-shadow:0 2px 8px rgba(15,23,42,.08);
+  cursor:pointer;
+}
+
+.navi-carousel-arrow span{
+  font-size:24px;
+  line-height:1;
+  transform:translateY(-1px);
+}
+
+.navi-carousel-arrow.is-disabled{
+  opacity:.35;
+  cursor:default;
+}
+
+.navi-carousel-arrow.is-hidden{
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@media (max-width: 980px){
+  .navi-result-track .navi-result-card{
+    flex-basis:calc((100% - 16px) / 2);
+    max-width:calc((100% - 16px) / 2);
+  }
 }
 @media (max-width: 640px){
-  .navi-result-grid{ grid-template-columns:1fr; }
+  .navi-result-carousel{ gap:8px; }
+  .navi-carousel-arrow{ flex-basis:34px; width:34px; }
+  .navi-result-track .navi-result-card{
+    flex-basis:100%;
+    max-width:100%;
+  }
 }
 
 .navi-result-card{
