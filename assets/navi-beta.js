@@ -13,6 +13,51 @@ function getKstDateKey(d = new Date()) {
   }
 }
 
+function getOrCreateNaviVisitorId() {
+  try {
+    const key = "huchu_navi_vid_v1";
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const fresh = `nv_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+    localStorage.setItem(key, fresh);
+    return fresh;
+  } catch {
+    return "guest";
+  }
+}
+
+const __HUCHU_NAVI_RESULT_VIEW_GUARD__ = new Set();
+
+function getNaviLoanTypeStatKey() {
+  const isRE = userState.mainCategory === "부동산담보대출";
+  const raw = isRE
+    ? (userState.realEstateLoanTypeKey || userState.realEstateLoanType || userState.mainCategory || "")
+    : (userState.mainCategory || "");
+  return normKey(raw || "");
+}
+
+function trackNaviResultViewOncePerDay() {
+  const productGroupKey = toProductGroupStatKey(userState.mainCategory || "");
+  const loanTypeKey = getNaviLoanTypeStatKey();
+  if (!productGroupKey || !loanTypeKey) return;
+
+  const dateKst = getKstDateKey();
+  const visitorId = getOrCreateNaviVisitorId();
+  const dedupeKey = `${dateKst}::${visitorId}::${loanTypeKey}`;
+  if (__HUCHU_NAVI_RESULT_VIEW_GUARD__.has(dedupeKey)) return;
+  __HUCHU_NAVI_RESULT_VIEW_GUARD__.add(dedupeKey);
+
+  postNaviStatsOncePerClick({
+    event: "result_view",
+    ts: Date.now(),
+    dateKst,
+    productGroupKey,
+    productGroupRaw: String(userState.mainCategory || ""),
+    loanTypeKey,
+    dedupeKey,
+  });
+}
+
 async function postNaviStatsOncePerClick(payload) {
   // 통계 저장 실패는 UX를 막지 않음
   try {
@@ -80,20 +125,9 @@ const __HUCHU_NAVI_CLICK_GUARD__ = {
 };
 
 function trackProductGroupClick(rawMainCategory) {
-  const key = toProductGroupStatKey(rawMainCategory);
-  if (!key) return;
-
-  const now = Date.now();
-  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
-  if (now - last < 700) return; // 700ms debounce per key
-  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
-
-  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
-  postNaviStatsOncePerClick({
-    event: "product_click",
-    productGroupKey: key,
-    productGroupRaw: String(rawMainCategory || "")
-  });
+  // 카운팅 기준을 "실제 결과 노출"로 변경했습니다.
+  // Step1 클릭만으로는 통계를 증가시키지 않습니다.
+  return;
 }
 
 function setStep6Visible(isOn) {
@@ -383,7 +417,7 @@ function __nk(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[()·]/g, "")
+    .replace(/[()·•ㆍ\/\-_]/g, "")
     .replace(/_/g, "")
     .toLowerCase();
 }
@@ -566,7 +600,7 @@ function normKey(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[()·]/g, "")
+    .replace(/[()·•ㆍ\/\-_]/g, "")
     .replace(/_/g, "")
     .toLowerCase();
 }
@@ -628,9 +662,12 @@ const REGION_KEY_TO_LABEL = {
 const PROP_LABEL_TO_KEY = {
   "아파트": "apt",
   "다세대/연립": "villa",
+  "다세대·연립": "villa",
   "오피스텔": "officetel",
   "단독/다가구": "detached",
+  "단독·다가구": "detached",
   "토지/임야": "land",
+  "토지·임야": "land",
   "근린생활시설": "commercial",
 };
 
@@ -659,7 +696,11 @@ function regionKeyFromLabel(label) {
 
 function propKeyFromLabel(label) {
   if (!label) return "";
-  return PROP_LABEL_TO_KEY[String(label).trim()] || "";
+  const raw = String(label).trim();
+  if (PROP_LABEL_TO_KEY[raw]) return PROP_LABEL_TO_KEY[raw];
+  const normalized = raw.replace(/[·•ㆍ]/g, "/").replace(/\s+/g, "");
+  if (PROP_LABEL_TO_KEY[normalized]) return PROP_LABEL_TO_KEY[normalized];
+  return "";
 }
 
 // --------- 퍼센트/수수료 파싱 ----------
@@ -1747,10 +1788,15 @@ if (occContainer) {
 
     const depIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "DEP");
     const slIdxAfterReq = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-    if (userState.occupancy === "rental" && depIdx >= 0 && slIdxAfterReq >= 0 && depIdx > slIdxAfterReq) {
+    const depFieldDef = depIdx >= 0 ? uiFields[depIdx] : null;
+    const depLabelText = String(depFieldDef?.label || "").replace(/\s+/g, "");
+    const depNeedsBeforeSenior =
+      userState.occupancy === "rental" ||
+      depLabelText.includes("선순위임대보증금");
+    if (depNeedsBeforeSenior && depIdx >= 0 && slIdxAfterReq >= 0 && depIdx > slIdxAfterReq) {
       const [depField] = uiFields.splice(depIdx, 1);
       const insertAt = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-      uiFields.splice(insertAt, 0, depField);
+      uiFields.splice(Math.max(0, insertAt), 0, depField);
     }
 
     const ordered = [];
@@ -2465,9 +2511,9 @@ function renderSubregionChips() {
   wrap.classList.remove("hide");
 
   const chips = [];
-  // ✅ A안(추천): “선택안함” 포함 버튼을 반드시 1번 클릭해야 진행 가능
+  // ✅ A안(추천): “그 외” 포함 버튼을 반드시 1번 클릭해야 진행 가능
   chips.push(
-    `<button type="button" class="navi-chip" data-subregion-key="" data-subregion-label="선택안함">선택안함</button>`
+    `<button type="button" class="navi-chip" data-subregion-key="" data-subregion-label="그 외">그 외</button>`
   );
 
   list.forEach((it) => {
@@ -2485,7 +2531,7 @@ function renderSubregionChips() {
 
   container.innerHTML = chips.join("");
 
-  // ✅ 선택 복원: ""(선택안함)도 유효한 선택
+  // ✅ 선택 복원: ""(그 외)도 유효한 선택
   if (userState.subregionKey !== null) {
     const key = String(userState.subregionKey);
     const selector = `#naviSubregionChips .navi-chip[data-subregion-key="${CSS.escape(key)}"]`;
@@ -2794,18 +2840,18 @@ function setupSubregion() {
     const btn = target.closest(".navi-chip");
     if (!(btn instanceof HTMLElement)) return;
 
-    // data-subregion-key: ""(선택안함)도 허용해야 함
+    // data-subregion-key: ""(그 외)도 허용해야 함
     const kAttr = btn.getAttribute("data-subregion-key");
     if (kAttr === null) return;
 
     document.querySelectorAll("#naviSubregionChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
     btn.classList.add("is-selected");
 
-    // ✅ 핵심: null=미선택, ""=선택안함, "gangnam"=가산 지역
+    // ✅ 핵심: null=미선택, ""=그 외, "gangnam"=가산 지역
     userState.subregionKey = kAttr;
 
     const lbl = btn.getAttribute("data-subregion-label") || "";
-    // "선택안함"은 요약 표시에 굳이 넣지 않음 (필수 클릭만 보장)
+    // "그 외"는 요약 표시에 굳이 넣지 않음 (필수 클릭만 보장)
     userState.subregionLabel = (kAttr === "") ? null : lbl;
 
     invalidateConfirmed();
@@ -3236,9 +3282,11 @@ function syncDynamicExtraSelectionUI() {
 
 function getResultCarouselPageSize(carousel) {
   const host = carousel || null;
-  const width = host ? (host.clientWidth || host.getBoundingClientRect().width || 0) : (window.innerWidth || 0);
-  if (width <= 640) return 1;
-  if (width <= 980) return 2;
+  const hostWidth = host ? (host.clientWidth || host.getBoundingClientRect().width || 0) : 0;
+  const viewportWidth = typeof window !== "undefined" ? (window.innerWidth || 0) : 0;
+  const width = Math.min(hostWidth || viewportWidth || 0, viewportWidth || hostWidth || 0) || hostWidth || viewportWidth || 0;
+  if (width <= 860) return 1;
+  if (width <= 1200) return 2;
   return 3;
 }
 
@@ -4539,6 +4587,7 @@ bindResultCarouselResize();
 
 
 
+  trackNaviResultViewOncePerDay();
   uiState.hasRenderedResult = true;
   syncStep7BackVisibility();
   if (!keepStepper) renderStepper(7);
