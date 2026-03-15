@@ -1235,47 +1235,6 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   color:#6b7280;
   margin:0 0 10px;
 }
-#navi-step5 .navi-step5-status{
-  display:flex;
-  justify-content:center;
-  margin:10px 0 18px;
-}
-#navi-step5 .navi-step5-statusbar{
-  width:260px;
-  height:70px;
-  border-radius:8px;
-  background:#3c3f42;
-  position:relative;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-}
-#navi-step5 .navi-step5-statuschip{
-  position:absolute;
-  top:7px;
-  width:56px;
-  height:56px;
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  letter-spacing:-0.02em;
-  color:#ffffff;
-}
-#navi-step5 .navi-step5-statuschip--pending{
-  left:calc(50% - 28px);
-  background:#f7c948;
-  color:#111827;
-}
-#navi-step5 .navi-step5-statuschip--ok{
-  left:calc(100% - 63px);
-  background:#20c933;
-  color:#0b1b0e;
-}
-#navi-step5 .navi-step5-statuschip--deny{
-  left:7px;
-  background:#ef4444;
-  color:#ffffff;
-}
 #navi-step5 .navi-step5-split{
   display:flex;
   align-items:stretch;
