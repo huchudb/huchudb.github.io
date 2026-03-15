@@ -56,11 +56,11 @@ body.navi-wide .beta-header__inner{
 .navi-main > .beta-section.navi-intro-section{
   margin-top:0;
   padding-top:0;
-  margin-bottom:0;
+  margin-bottom:14px;
 }
 @media (max-width: 768px){
   .navi-main > .beta-section.navi-intro-section{
-    margin-bottom:0;}
+    margin-bottom:10px;}
 }
 
 
@@ -717,7 +717,7 @@ body.navi-single-card-mode .navi-wizard-stage{
   background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
   background-attachment:fixed;
   background-position:center;
-  padding:14px 20px; /* 상/하 여백 동일 */
+  padding:28px 20px 36px;
   box-sizing:border-box;
   min-height:700px;
   display:grid;
@@ -727,7 +727,13 @@ body.navi-single-card-mode .navi-wizard-stage{
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-  min-height:620px; /* 첫 화면 배경 세로폭 축소 + 중앙배치 기준 높이 */
+  min-height:560px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"],
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"],
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"]{
+  min-height:580px;
 }
 
 body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
@@ -907,21 +913,26 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
 
 @media (max-width: 768px){
   body.navi-single-card-mode .navi-wizard-stage{
-    padding:10px 14px;
+    padding:18px 16px 24px;
     min-height:520px;
     margin-bottom:0;
     background-attachment:scroll;
   }
   body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-    min-height:460px;
+    min-height:430px;
   }
-  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"],
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"],
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"]{
+    min-height:470px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]):not([data-active-step="navi-step2"]):not([data-active-step="navi-step3"]):not([data-active-step="navi-step4"]){
     min-height:520px;
   }
   body.navi-single-card-mode .navi-wizard-card-shell{
     width:min(100%, 520px);
     border-radius:16px;
-    padding:24px 18px 24px;
+    padding:26px 18px 24px;
   }
   body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
     font-size:20px;
@@ -991,13 +1002,13 @@ body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:16px;
+  gap:28px;
   box-sizing:border-box;
 }
 
 body.navi-single-card-mode .navi-wizard-progress{
   width:min(100%, 560px);
-  padding:0 10px;
+  padding:0 14px;
   box-sizing:border-box;
 }
 
@@ -1049,6 +1060,16 @@ body.navi-single-card-mode .navi-wizard-progress-dot.is-active{
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .navi-wizard-progress{
   display:none;
+}
+
+@media (max-width: 768px){
+  body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
+    gap:20px;
+  }
+  body.navi-single-card-mode .navi-wizard-progress{
+    width:min(100%, 360px);
+    padding:0 8px;
+  }
 }
 
 /* =========================================================
@@ -1434,6 +1455,7 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
 }
 #naviStep6Actions,
 #naviStep61Actions,
+#naviStep7Actions,
 .navi-step-back-actions{
   margin-top:18px;
   display:flex;
@@ -1441,11 +1463,13 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
 }
 
 
-/* Step6 / 6-1 Back 버튼을 다른 페이지와 동일 톤으로 통일 */
+/* Step6 / 6-1 / 7 Back 버튼을 다른 페이지와 동일 톤으로 통일 */
 #navi-step6 .navi-step-back-actions > button,
 #navi-step6-1 .navi-step-back-actions > button,
+#navi-step7 .navi-step-back-actions > button,
 #naviStep6BackBtn,
-#naviStep61BackBtn{
+#naviStep61BackBtn,
+#naviStep7BackBtn{
   display:inline-flex !important;
   flex-direction:row !important;
   align-items:center !important;
@@ -1467,8 +1491,10 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
 }
 #navi-step6 .navi-step-back-actions > button svg,
 #navi-step6-1 .navi-step-back-actions > button svg,
+#navi-step7 .navi-step-back-actions > button svg,
 #naviStep6BackBtn svg,
-#naviStep61BackBtn svg{
+#naviStep61BackBtn svg,
+#naviStep7BackBtn svg{
   width:16px !important;
   height:16px !important;
   display:block !important;
