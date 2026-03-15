@@ -203,7 +203,15 @@ function syncWizardSingleCardView() {
 
   // ✅ Back 버튼 등에서 "이전 스텝을 강제로 보여주기" 위한 override
   const forcedId = (uiState && uiState.forcedWizardStepId) ? String(uiState.forcedWizardStepId) : "";
-  let activeEl = forcedId ? document.getElementById(forcedId) : null;
+  let activeEl = null;
+  if (forcedId) {
+    const forcedEl = document.getElementById(forcedId);
+    const forcedHiddenByClass = forcedEl ? forcedEl.classList.contains("hide") : true;
+    const forcedHiddenByStyle = forcedEl ? (forcedEl.style && forcedEl.style.display === "none") : true;
+    if (forcedEl && !forcedHiddenByClass && !forcedHiddenByStyle) {
+      activeEl = forcedEl;
+    }
+  }
 
   if (!activeEl) {
     WIZARD_STEP_IDS.forEach((id) => {
@@ -238,6 +246,23 @@ function clearWizardForcedStep() {
   if (!uiState) return;
   if (!uiState.forcedWizardStepId) return;
   uiState.forcedWizardStepId = null;
+}
+
+function forceWizardToStep(stepId) {
+  const targetId = String(stepId || "navi-step1");
+  WIZARD_STEP_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === targetId) {
+      el.classList.remove("hide");
+      el.style.display = "";
+    } else if (id !== "navi-step1") {
+      el.classList.add("hide");
+      el.style.display = "none";
+    }
+  });
+  if (uiState) uiState.forcedWizardStepId = targetId;
+  syncWizardSingleCardView();
 }
 
 function updateWizardProgressByActiveStepId(activeStepId) {
@@ -1713,8 +1738,17 @@ if (occContainer) {
       ASB: "naviInputAssumedBurden",
     };
 
+    const uiFields = Array.isArray(schema.fields) ? [...schema.fields] : [];
+    const slIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
+    const reqIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "REQ");
+    if (slIdx >= 0 && reqIdx >= 0 && reqIdx < slIdx) {
+      const [reqField] = uiFields.splice(reqIdx, 1);
+      const nextSlIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
+      uiFields.splice(nextSlIdx + 1, 0, reqField);
+    }
+
     const ordered = [];
-    schema.fields.forEach((f) => {
+    uiFields.forEach((f) => {
       const c = String(f?.code || "").trim();
       if (!c || c === "OCC") return;
       const id = CODE_TO_ID[c];
@@ -1723,7 +1757,7 @@ if (occContainer) {
       if (lbl && !ordered.includes(lbl)) ordered.push(lbl);
     });
 
-    // 기존에 있던 요소도 유지하되, 스키마 순서가 앞에 오도록 재배치
+    // 기존에 있던 요소도 유지하되, UI 표시는 항상 선순위 대출(원금) → 필요 대출금액 순서를 우선합니다.
     ordered.forEach((lbl) => gridEl.appendChild(lbl));
   }
 
@@ -2158,16 +2192,8 @@ function validateStep5(opts = {}) {
 
 
 function updateStep5StatusUI(primaryEligible) {
-  const isRE = userState.mainCategory === "부동산담보대출";
-  const cta = document.getElementById("naviStep5CTA");
-  if (cta) {
-    const show = Boolean(isRE && primaryEligible);
-    cta.textContent = "다음 단계로 넘어가기";
-    cta.style.display = show ? "" : "none";
-    cta.classList.toggle("hide", !show);
-    cta.disabled = !show;
-    cta.setAttribute("aria-hidden", show ? "false" : "true");
-  }
+  // 신호등 UI는 제거. 실제 CTA/경고 표시는 updateStep5DecisionGate()에서만 제어합니다.
+  return primaryEligible;
 }
 
 function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, primaryEligible = false } = {}) {
@@ -2490,6 +2516,8 @@ function setupStep1() {
     const next = btn.getAttribute("data-main-cat");
     if (!next) return;
 
+    clearWizardForcedStep();
+
     const prev = userState.mainCategory;
     if (prev === next) return;
 
@@ -2575,6 +2603,7 @@ function setupStep2Back() {
 
     // 단계/요약 갱신
     recalcAndUpdateSummary();
+    forceWizardToStep("navi-step1");
 
     // 상단(스테이지)로 이동
     try {
