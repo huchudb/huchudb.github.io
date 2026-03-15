@@ -84,20 +84,12 @@ async function kvSetJson(key, obj) {
   return await upstash("set", [key, JSON.stringify(obj)]);
 }
 
-async function kvSetNx(key, value) {
-  return await upstash("setnx", [key, value]);
-}
-
-async function kvExpire(key, seconds) {
-  return await upstash("expire", [key, seconds]);
-}
-
 function initStats(monthKey) {
   return {
     version: 2,
     monthKey,
     updatedAt: Date.now(),
-    totals: { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, error: 0 },
+    totals: { requests: 0, productClicks: 0, confirms: 0, error: 0 },
     productGroups: {
       re_collateral: 0,
       personal_credit: 0,
@@ -188,7 +180,7 @@ export default async function handler(req, res) {
       stats.version = 2;
       stats.monthKey = mk;
       stats.updatedAt = Date.now();
-      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, error: 0 };
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
       if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
 
       return res.status(200).json(stats);
@@ -202,7 +194,7 @@ export default async function handler(req, res) {
       const stats = (await kvGetJson(key)) || initStats(mk);
 
       // 누락 필드 방어
-      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, error: 0 };
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
       if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
 
       stats.monthKey = mk;
@@ -218,32 +210,6 @@ export default async function handler(req, res) {
           stats.totals.error = (Number(stats.totals.error) || 0) + 1;
         }
         stats.totals.productClicks = (Number(stats.totals.productClicks) || 0) + 1;
-      } else if (event === "result_view") {
-        const pg = String(body.productGroupKey || body.productGroup || body.mainCategoryKey || body.mainCategory || "").trim();
-        const loanTypeKey = String(body.loanTypeKey || body.loanType || "unknown").trim() || "unknown";
-        const dedupeKeyRaw = String(body.dedupeKey || "").trim();
-
-        if (!stats.loanTypes) stats.loanTypes = {};
-
-        let shouldCount = true;
-        if (dedupeKeyRaw) {
-          const dedupeKey = `huchu:navi-stats:dedupe:v2:${dedupeKeyRaw}`;
-          const nx = await kvSetNx(dedupeKey, "1");
-          shouldCount = Number(nx) === 1;
-          if (shouldCount) {
-            await kvExpire(dedupeKey, 60 * 60 * 72);
-          }
-        }
-
-        if (shouldCount) {
-          if (isAllowedProductKey(pg)) {
-            inc(stats.productGroups, pg, 1);
-          } else {
-            stats.totals.error = (Number(stats.totals.error) || 0) + 1;
-          }
-          inc(stats.loanTypes, loanTypeKey, 1);
-          stats.totals.resultViews = (Number(stats.totals.resultViews) || 0) + 1;
-        }
       } else {
         // legacy: Step5 confirm
         const regionKey = body.regionKey || body.region || "unknown";
