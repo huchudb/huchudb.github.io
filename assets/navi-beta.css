@@ -371,12 +371,13 @@ body.navi-wide .navi-main{
   background: rgba(0,0,0,.02);
 }
 .navi-subregion-title{
-  font-weight: 700;
-  margin-bottom: 4px;
+  display:none;
 }
 .navi-subregion-sub{
-  font-size: 12px;
-  opacity: .85;
+  font-size: 13px;
+  font-weight: 700;
+  color:#111827;
+  opacity: 1;
   margin-bottom: 10px;
   line-height: 1.4;
 }
@@ -1378,10 +1379,11 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   min-height:14px;
 }
 #navi-step5 .navi-step5-cta{
-  align-self:flex-end;
-  margin-top:14px;
+  align-self:auto;
+  margin-top:0;
+  margin-left:auto;
   border:0;
-  padding:12px 16px;
+  padding:10px 16px;
   border-radius:10px;
   font-weight:900;
   font-size:13px;
@@ -1389,6 +1391,7 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   cursor:pointer;
   background:linear-gradient(90deg,#ff4fa7,#f7c948);
   box-shadow:0 6px 16px rgba(0,0,0,.15);
+  min-height:44px;
 }
 #navi-step5 .navi-step5-cta:active{
   transform:translateY(1px);
@@ -1412,7 +1415,10 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
 #naviStep5Actions{
   margin-top:18px;
   display:flex;
-  justify-content:flex-start;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:nowrap;
 }
 
 @media (max-width: 860px){
@@ -1430,9 +1436,17 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
     min-width:0;
   }
   #navi-step5 .navi-step5-cta{
-    align-self:center;
+    align-self:auto;
+    width:auto;
+    max-width:none;
+    flex:1 1 auto;
+    min-width:0;
+  }
+  #naviStep5Actions{
     width:100%;
-    max-width:320px;
+  }
+  #naviStep5BackBtn{
+    flex:0 0 auto;
   }
 }
 
@@ -1561,4 +1575,43 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   .navi-result-card{
     padding:12px 12px 10px;
   }
+}
+
+
+/* 2026-03-15 layout4 tweaks */
+@media (max-width: 640px){
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6-1"] .navi-wizard-card-shell,
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+    width:100%;
+    max-width:100%;
+    padding-left:12px;
+    padding-right:12px;
+    overflow:hidden;
+  }
+  .navi-embedded-result-panel,
+  #naviRecommendedPanel{
+    min-width:0;
+    overflow:hidden;
+  }
+  .navi-result-carousel{
+    position:relative;
+    gap:0;
+    padding:0 38px;
+    align-items:stretch;
+  }
+  .navi-result-viewport{
+    width:100%;
+  }
+  .navi-carousel-arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+    flex:0 0 32px;
+    width:32px;
+    min-height:32px;
+    background:#ffffff;
+  }
+  .navi-carousel-arrow.is-prev{ left:0; }
+  .navi-carousel-arrow.is-next{ right:0; }
 }
