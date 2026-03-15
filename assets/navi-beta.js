@@ -2713,6 +2713,45 @@ function setupStep61Back() {
   });
 }
 
+function syncStep7BackVisibility() {
+  const wrap = document.getElementById("naviStep7Actions");
+  if (!wrap) return;
+  const show = Boolean(userState.mainCategory && userState.mainCategory !== "부동산담보대출");
+  wrap.classList.toggle("hide", !show);
+}
+
+function setupStep7Back() {
+  const btn = ensureBackActionButton("navi-step7", "naviStep7Actions", "naviStep7BackBtn");
+  if (!btn) return;
+  syncStep7BackVisibility();
+  if (btn.__bound) return;
+  btn.__bound = true;
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#naviLoanCategoryChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
+    userState.mainCategory = null;
+    userState.region = null;
+    userState.subregionKey = null;
+    resetRealEstateDraftState();
+    if (userState && userState.extra) {
+      userState.extra.incomeType = null;
+      userState.extra.creditBand = null;
+      userState.extra.repayPlan = null;
+      userState.extra.needTiming = null;
+      userState.extra.others = [];
+      userState.extra.tokens = [];
+    }
+    uiState.confirmed = false;
+    uiState.hasRenderedResult = false;
+    uiState.autoRevealed = false;
+    recalcAndUpdateSummary();
+    forceWizardToStep("navi-step1");
+    try {
+      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step1");
+      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+  });
+}
+
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
   if (!container) return;
@@ -4276,6 +4315,7 @@ function renderFinalResult(opts = {}) {
   if (!panel || !summaryEl) return;
 
   const { mainCategory } = userState;
+  syncStep7BackVisibility();
   if (!mainCategory) {
     if (!silent) alert("먼저 1단계에서 대출 상품군을 선택해주세요.");
     return;
@@ -4491,6 +4531,7 @@ bindResultCarouselResize();
 
 
   uiState.hasRenderedResult = true;
+  syncStep7BackVisibility();
   if (!keepStepper) renderStepper(7);
 
   if (!skipScroll) {
@@ -4583,6 +4624,7 @@ setupMoneyInputs();
   setupStep6Extra();
   setupStep6Back();
   setupStep61Back();
+  setupStep7Back();
   setupResultButtons();
 
   recalcAndUpdateSummary();
