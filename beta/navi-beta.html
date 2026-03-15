@@ -8,13 +8,13 @@
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
 
-    <link rel="stylesheet" href="/assets/navi-beta.css?v=20260315-layout3" />
+    <link rel="stylesheet" href="/assets/navi-beta.css?v=20260315-layout4" />
 <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
   <script type="module" src="/assets/beta-shell.js?v=20260106-menu1"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script type="module" src="/assets/navi-beta.js?v=20260315-layout3"></script>
+  <script type="module" src="/assets/navi-beta.js?v=20260315-layout4"></script>
 
   <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
   <style>
@@ -116,8 +116,7 @@
 
         <!-- (추가) 세부지역 LTV Up (서울/경기/인천 등) -->
         <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
-          <div class="navi-subregion-title">세부지역(LTV Up)</div>
-          <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
+          <div class="navi-subregion-sub">해당하는 세부 지역을 선택해주세요</div>
           <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
         </div>
 
@@ -251,10 +250,6 @@
                 </label>
               </div>
 
-              <button type="button" id="naviStep5CTA" class="navi-step5-cta hide">
-                추가 정보 선택하여<br/>가능업체 선택하기
-              </button>
-
               <!-- (내부 로직용) 기존 확인 버튼은 숨김 처리 -->
               <div class="navi-confirm-row navi-step5-confirm" aria-hidden="true">
                 <button id="naviConfirmBtn" type="button" class="btn btn-primary" disabled>결과 확인하기</button>
@@ -271,6 +266,9 @@
                 <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
               </svg>
               Back
+            </button>
+            <button type="button" id="naviStep5CTA" class="navi-step5-cta hide">
+              다음 단계로 넘어가기
             </button>
           </div>
         </div>
