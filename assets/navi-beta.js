@@ -1571,8 +1571,7 @@ function hasStep5ConfiguredLender() {
       const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
       if (!types.length) return false;
       if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
-      const capRatio = getEffectiveLtvCapRatioForLender(l, cell, userState.subregionKey);
-      return Boolean(capRatio > 0);
+      return true;
     }
 
     const cfg = l.realEstateConfig || {};
@@ -1587,8 +1586,7 @@ function hasStep5ConfiguredLender() {
     const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
     if (!types.length) return false;
     if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
-    const capRatio = getEffectiveLtvCapRatioForLender(l, null, null);
-    return Boolean(capRatio > 0);
+    return true;
   });
 }
 
@@ -1745,6 +1743,14 @@ if (occContainer) {
       const [reqField] = uiFields.splice(reqIdx, 1);
       const nextSlIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
       uiFields.splice(nextSlIdx + 1, 0, reqField);
+    }
+
+    const depIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "DEP");
+    const slIdxAfterReq = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
+    if (userState.occupancy === "rental" && depIdx >= 0 && slIdxAfterReq >= 0 && depIdx > slIdxAfterReq) {
+      const [depField] = uiFields.splice(depIdx, 1);
+      const insertAt = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
+      uiFields.splice(insertAt, 0, depField);
     }
 
     const ordered = [];
@@ -2159,7 +2165,7 @@ function validateStep5(opts = {}) {
     const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
     if (list.length) {
       if (userState.subregionKey === null) {
-        return { ok: false, message: "세부지역(LTV Up)을 선택해 주세요." };
+        return { ok: false, message: "해당하는 세부 지역을 선택해주세요." };
       }
     }
   }
@@ -2718,6 +2724,7 @@ function syncStep7BackVisibility() {
   if (!wrap) return;
   const show = Boolean(userState.mainCategory && userState.mainCategory !== "부동산담보대출");
   wrap.classList.toggle("hide", !show);
+  wrap.style.display = show ? "flex" : "none";
 }
 
 function setupStep7Back() {
@@ -3259,13 +3266,16 @@ function applyResultCarouselState(carousel, forceIndex) {
 
   carousel.dataset.index = String(index);
   carousel.dataset.pageSize = String(pageSize);
+  const canSlide = total > pageSize;
   if (prevBtn) {
-    prevBtn.disabled = index <= 0;
-    prevBtn.classList.toggle('is-disabled', index <= 0);
+    prevBtn.disabled = !canSlide || index <= 0;
+    prevBtn.classList.toggle('is-disabled', !canSlide || index <= 0);
+    prevBtn.classList.toggle('is-hidden', !canSlide);
   }
   if (nextBtn) {
-    nextBtn.disabled = index >= maxIndex;
-    nextBtn.classList.toggle('is-disabled', index >= maxIndex);
+    nextBtn.disabled = !canSlide || index >= maxIndex;
+    nextBtn.classList.toggle('is-disabled', !canSlide || index >= maxIndex);
+    nextBtn.classList.toggle('is-hidden', !canSlide);
   }
 }
 
@@ -4511,16 +4521,15 @@ const cardsHtml = matched
   })
   .join("");
 
-const showCarouselNav = matched.length > 3;
 panel.innerHTML = `
   <div class="navi-result-carousel" data-index="0">
-    <button type="button" class="navi-carousel-arrow is-prev ${showCarouselNav ? "" : "is-hidden"}" aria-label="이전 업체 보기">
+    <button type="button" class="navi-carousel-arrow is-prev" aria-label="이전 업체 보기">
       <span aria-hidden="true">‹</span>
     </button>
     <div class="navi-result-viewport">
       <div class="navi-result-track">${cardsHtml}</div>
     </div>
-    <button type="button" class="navi-carousel-arrow is-next ${showCarouselNav ? "" : "is-hidden"}" aria-label="다음 업체 보기">
+    <button type="button" class="navi-carousel-arrow is-next" aria-label="다음 업체 보기">
       <span aria-hidden="true">›</span>
     </button>
   </div>
