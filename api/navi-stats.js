@@ -13,7 +13,7 @@ const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
@@ -134,6 +134,35 @@ function safeParseBody(req) {
   return {};
 }
 
+async function parseBody(req) {
+  // 1) Try already-parsed body (Next/Vercel default)
+  const parsed = safeParseBody(req);
+  if (parsed && typeof parsed === "object" && Object.keys(parsed).length) return parsed;
+
+  // 2) Fallback: read raw stream (sendBeacon(text/plain) or fetch without JSON parser)
+  try {
+    const raw = await new Promise((resolve, reject) => {
+      let data = "";
+      req.on("data", (chunk) => {
+        data += chunk;
+        // safety: 256KB max
+        if (data.length > 256 * 1024) {
+          reject(new Error("Body too large"));
+        }
+      });
+      req.on("end", () => resolve(data));
+      req.on("error", reject);
+    });
+
+    const s = String(raw || "").trim();
+    if (!s) return {};
+    try { return JSON.parse(s); } catch { return {}; }
+  } catch (e) {
+    return {};
+  }
+}
+
+
 export default async function handler(req, res) {
   setCors(res);
 
@@ -160,8 +189,7 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const mk = getKstMonthKey();
       const key = `huchu:navi-stats:v1:${mk}`;
-      const body = safeParseBody(req);
-
+      const body = await parseBody(req);
       const event = String(body.event || body.evt || "confirm").trim();
       const stats = (await kvGetJson(key)) || initStats(mk);
 
@@ -200,7 +228,10 @@ export default async function handler(req, res) {
       }
 
       await kvSetJson(key, stats);
-      return res.status(200).json({ ok: true, monthKey: mk });
+      // 응답에 현재값을 포함해 네트워크에서 즉시 확인 가능
+      const pgKey = String(body.productGroupKey || body.productGroup || "").trim();
+      const pgVal = pgKey ? (Number(stats?.productGroups?.[pgKey]) || 0) : undefined;
+      return res.status(200).json({ ok: true, monthKey: mk, event, productGroupKey: pgKey || undefined, productGroupValue: pgVal, totals: stats.totals });
     }
 
     return res.status(405).json({ error: "Method Not Allowed" });
