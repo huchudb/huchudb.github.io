@@ -13,6 +13,67 @@ function getKstDateKey(d = new Date()) {
   }
 }
 
+const NAVI_STATS_CLIENT_ID_KEY = "huchu_navi_stats_client_id_v1";
+
+function getOrCreateNaviStatsClientId() {
+  try {
+    const existing = localStorage.getItem(NAVI_STATS_CLIENT_ID_KEY);
+    if (existing && /^[A-Za-z0-9_-]{8,120}$/.test(existing)) return existing;
+  } catch (_) {}
+
+  let next = "";
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      next = crypto.randomUUID().replace(/-/g, "");
+    }
+  } catch (_) {}
+  if (!next) next = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  next = String(next).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
+
+  try { localStorage.setItem(NAVI_STATS_CLIENT_ID_KEY, next); } catch (_) {}
+  return next;
+}
+
+function resolveNaviStatsLoanTypeKey() {
+  const raw = String(
+    userState.realEstateLoanTypeKey ||
+    userState.realEstateLoanType ||
+    userState.mainCategory ||
+    ""
+  ).trim();
+  if (!raw) return "";
+  return raw.replace(/\s+/g, " ").slice(0, 120);
+}
+
+function trackResultViewOncePerDay(extra = {}) {
+  try {
+    const productGroupKey = toProductGroupStatKey(userState.mainCategory || "");
+    const loanTypeKey = resolveNaviStatsLoanTypeKey();
+    if (!productGroupKey || !loanTypeKey) return;
+
+    const payload = {
+      event: "result_view",
+      ts: Date.now(),
+      dateKst: getKstDateKey(),
+      clientId: getOrCreateNaviStatsClientId(),
+      productGroupKey,
+      productGroupRaw: String(userState.mainCategory || ""),
+      loanTypeKey,
+      regionKey: uiState.region || userState.region || "",
+      propertyTypeKey: userState.propertyType || "",
+      resultCount: Number(extra.resultCount) || 0,
+    };
+
+    const memoryKey = `${payload.dateKst}::${payload.loanTypeKey}::${payload.clientId}`;
+    if (uiState.lastTrackedResultViewKey === memoryKey) return;
+    uiState.lastTrackedResultViewKey = memoryKey;
+
+    postNaviStatsOncePerClick(payload);
+  } catch (e) {
+    console.warn("result_view track failed:", e);
+  }
+}
+
 async function postNaviStatsOncePerClick(payload) {
   // 통계 저장 실패는 UX를 막지 않음
   try {
@@ -79,21 +140,10 @@ const __HUCHU_NAVI_CLICK_GUARD__ = {
   lastAtByKey: Object.create(null)
 };
 
-function trackProductGroupClick(rawMainCategory) {
-  const key = toProductGroupStatKey(rawMainCategory);
-  if (!key) return;
-
-  const now = Date.now();
-  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
-  if (now - last < 700) return; // 700ms debounce per key
-  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
-
-  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
-  postNaviStatsOncePerClick({
-    event: "product_click",
-    productGroupKey: key,
-    productGroupRaw: String(rawMainCategory || "")
-  });
+function trackProductGroupClick(_rawMainCategory) {
+  // 2026-03 기준: 버튼 클릭 수는 의미 있는 메인 지표가 아니어서 집계하지 않습니다.
+  // 실제 결과 카드가 1개 이상 렌더링된 시점(result_view)만 별도 집계합니다.
+  return;
 }
 
 function setStep6Visible(isOn) {
@@ -383,8 +433,7 @@ function __nk(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[()·]/g, "")
-    .replace(/_/g, "")
+    .replace(/[()·/_-]/g, "")
     .toLowerCase();
 }
 
@@ -566,7 +615,6 @@ function normKey(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    // 표기 흔들림 보정: 가운데점/슬래시/언더스코어/하이픈/괄호는 동일 취급
     .replace(/[()·/_-]/g, "")
     .toLowerCase();
 }
@@ -947,6 +995,7 @@ const uiState = {
   forcedWizardStepId: null, // single-card-mode에서 Back 시 이전 스텝을 강제로 보여주기 위한 override
   hasRenderedResult: false,
   loanHelpText: "", // Step4에서 선택된 대출종류 안내문(스키마 fallback 메시지로 덮이는 것을 방지)
+  lastTrackedResultViewKey: "",
 };
 
 const userState = {
@@ -1229,7 +1278,7 @@ function updateLoanTypeChipVisibility() {
   }
   if (!container) return;
 
-  const prop = userState.propertyType;
+  const prop = mapPropertyTypeToSchemaKey(userState.propertyType || userState.propertyTypeKey || "");
   const isAptOrVilla = prop === "아파트" || prop === "다세대/연립";
   const isLand = prop === "토지/임야";
 
@@ -1304,6 +1353,26 @@ function mapLoanTypeToSchemaKey(loan) {
   return loan;
 }
 
+function getSelectedLoanTypeCandidates(rawKey = userState.realEstateLoanTypeKey, rawLabel = userState.realEstateLoanType) {
+  const raw = [rawKey, rawLabel, mapLoanTypeToSchemaKey(rawKey), mapLoanTypeToSchemaKey(rawLabel)]
+    .filter(Boolean)
+    .map((x) => String(x));
+
+  const out = [];
+  raw.forEach((c) => {
+    if (!out.some((x) => normKey(x) === normKey(c))) out.push(c);
+  });
+  return out;
+}
+
+function loanTypeMatchesConfigured(types, rawKey = userState.realEstateLoanTypeKey, rawLabel = userState.realEstateLoanType) {
+  const arr = Array.isArray(types) ? types : [];
+  if (!arr.length) return false;
+  const candidates = getSelectedLoanTypeCandidates(rawKey, rawLabel);
+  if (!candidates.length) return false;
+  return arr.some((t) => candidates.some((c) => normKey(t) === normKey(c)));
+}
+
 function getStep5Schema() {
   // ✅ Step5 스키마는 "표시용 라벨"이 아니라, 관리자 meta key/label 흔들림을 견딜 수 있도록 정규화해서 매칭합니다.
   const rawProp = userState.propertyType;
@@ -1328,16 +1397,7 @@ function getStep5Schema() {
   const byProp = STEP5_MATRIX[prop];
   if (!byProp) return fallback;
 
-  // 후보: (1) raw key/label (2) 정규화된 schema key (3) 서로 교차
-  const candidatesRaw = [rawLoanKey, rawLoanLabel, mapLoanTypeToSchemaKey(rawLoanKey), mapLoanTypeToSchemaKey(rawLoanLabel)]
-    .filter(Boolean)
-    .map((x) => String(x));
-
-  // 중복 제거
-  const candidates = [];
-  candidatesRaw.forEach((c) => {
-    if (!candidates.some((x) => normKey(x) === normKey(c))) candidates.push(c);
-  });
+  const candidates = getSelectedLoanTypeCandidates(rawLoanKey, rawLoanLabel);
 
   if (!candidates.length) return fallback;
 
@@ -1569,8 +1629,6 @@ function hasStep5ConfiguredLender() {
   if (mainCategory !== "부동산담보대출") return true;
   if (!region || !propertyType || !(realEstateLoanTypeKey || realEstateLoanType)) return true;
 
-  const selectedLoan = realEstateLoanTypeKey || realEstateLoanType;
-
   return lenders.some((l) => {
     if (!l || l.isActive === false || l.isNewLoanActive === false) return false;
 
@@ -1583,7 +1641,7 @@ function hasStep5ConfiguredLender() {
       if (!enabled) return false;
       const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
       if (!types.length) return false;
-      if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
+      if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
       return true;
     }
 
@@ -1598,7 +1656,7 @@ function hasStep5ConfiguredLender() {
     }
     const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
     if (!types.length) return false;
-    if (!types.some((t) => normKey(t) === normKey(selectedLoan))) return false;
+    if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
     return true;
   });
 }
@@ -2378,7 +2436,14 @@ function renderLoanTypeChipsFromMeta() {
     }
   }
 
-  const list = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
+  const propSchema = mapPropertyTypeToSchemaKey(propLabel);
+  const rawList = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
+  const list = rawList.filter((x) => {
+    const key = String(x?.key || x?.label || "");
+    if (propSchema === "토지/임야" && normKey(key) === normKey("임대보증금반환대출")) return false;
+    return true;
+  });
+
   container.innerHTML = list.map((x) => {
     const k = String(x.key || "");
     const label = String(x.label || x.key || "");
@@ -2944,18 +3009,6 @@ function setupStep5() {
       uiState.confirmed = true;
       setStep6Visible(true);
       recalcAndUpdateSummary(false);
-
-      const payload = {
-        event: "confirm",
-        ts: Date.now(),
-        dateKst: getKstDateKey(),
-        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
-        regionKey: uiState.region || "",
-        propertyTypeKey: uiState.propertyType || "",
-        loanTypeKey: uiState.realEstateLoanType || "",
-        amountMan: Number(uiState.requestedAmount) || 0,
-      };
-      postNaviStatsOncePerClick(payload);
 
       setConfirmUIState();
       const target = document.getElementById("navi-step6");
@@ -3808,10 +3861,9 @@ function filterLenders(applyExtras = false) {
         if (!enabled) return false;
 
         if (realEstateLoanTypeKey || realEstateLoanType) {
-          const sel = realEstateLoanTypeKey || realEstateLoanType;
           const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
           if (!types.length) return false;
-          if (!types.some((t) => normKey(t) === normKey(sel))) return false;
+          if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
         }
 
         if (principalAmount) {
@@ -3837,10 +3889,10 @@ function filterLenders(applyExtras = false) {
           if (props.length && !includesNorm(props, propertyType)) return false;
         }
 
-        if (realEstateLoanType) {
+        if (realEstateLoanTypeKey || realEstateLoanType) {
           const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
           if (!types.length) return false;
-          if (!types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
+          if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
         }
 
         if (principalAmount) {
@@ -4556,6 +4608,7 @@ bindResultCarouselResize();
 
 
   uiState.hasRenderedResult = true;
+  trackResultViewOncePerDay({ resultCount: matched.length });
   syncStep7BackVisibility();
   if (!keepStepper) renderStepper(7);
 
