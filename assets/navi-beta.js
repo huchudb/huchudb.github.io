@@ -570,7 +570,6 @@ function getStep5FieldPresentation(def, code) {
   else if (c === "SL") placeholder = "선순위 대출(원금)금액을 입력하세요";
   if (c === "ASB") placeholder = "인수되는 선순위 금액을 입력하세요";
   if (c === "DEP" && (ctx.isAuction || ctx.isBuyout)) placeholder = "예정 선순위 임대보증금을 입력하세요";
-  if (c === "SP") placeholder = "지분율을 입력하세요";
 
   return { label, placeholder };
 }
@@ -2285,10 +2284,10 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
   const warningEl = document.getElementById("naviAmountWarning");
   const cta = document.getElementById("naviStep5CTA");
   const configReady = !isRE || hasStep5ConfiguredLender();
-  const propertyFloorBlocked = Boolean(isRE && isPropertyValueBelowMinimum());
+  const propertyFloorOK = !isRE || !Number(userState.propertyValue) || Number(userState.propertyValue) >= 100000000;
 
   if (cta) {
-    const show = Boolean(isRE && configReady && step5Complete && globalMinOK && !propertyFloorBlocked && primaryEligible);
+    const show = Boolean(isRE && configReady && step5Complete && globalMinOK && propertyFloorOK && primaryEligible);
     cta.textContent = "다음 단계로 넘어가기";
     cta.style.display = show ? "" : "none";
     cta.classList.toggle("hide", !show);
@@ -2304,9 +2303,9 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
     return;
   }
 
-  if (propertyFloorBlocked) {
+  if (!propertyFloorOK) {
     warningEl.style.display = "block";
-    warningEl.textContent = "1억원 미만의 부동산은 대출이 불가능합니다.";
+    warningEl.textContent = "1억원 미만의 부동산은 대출이 불가능합니다";
     return;
   }
 
@@ -2322,7 +2321,7 @@ function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, p
   }
 
   warningEl.style.display = "block";
-  warningEl.textContent = "LTV 초과로 대출이 불가능합니다.";
+  warningEl.textContent = "LTV 초과로 대출이 불가능합니다";
 }
 
 
@@ -3255,6 +3254,7 @@ function hideLegacyExtraUI() {
 }
 
 function ensureDynamicExtraUI() {
+  normalizeStep61Copy();
   const step61Card = document.querySelector("#navi-step6-1 .navi-card");
   if (!step61Card) return false;
 
@@ -3302,6 +3302,20 @@ function ensureDynamicExtraUI() {
   updateDynamicExtraSelectedCount();
 
   return true;
+}
+
+function normalizeStep61Copy() {
+  const step61 = document.getElementById("navi-step6-1");
+  if (!step61) return;
+  const title = step61.querySelector('.navi-section-title');
+  if (title) title.style.display = 'none';
+  step61.querySelectorAll('.navi-help').forEach((el) => {
+    const txt = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!txt) return;
+    if (txt.includes('온투업 전업종 공통 취급 불가')) {
+      el.style.display = 'none';
+    }
+  });
 }
 
 function updateDynamicExtraSelectedCount() {
@@ -3433,12 +3447,8 @@ function ensureEmbeddedResultUI() {
   wrap.id = "naviEmbeddedResultWrap";
   wrap.className = "navi-embedded-result-wrap";
   wrap.innerHTML = `
-    <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary"></div>
-    <div id="naviEmbeddedResultPanel" class="navi-embedded-result-panel">
-      <div class="navi-empty-card">
-        아래 추가 정보를 선택해서 정확한 업체를 확인해보세요.
-      </div>
-    </div>
+        <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary"></div>
+    <div id="naviEmbeddedResultPanel" class="navi-embedded-result-panel"></div>
   `;
   step61Card.appendChild(wrap);
   return wrap;
@@ -3451,14 +3461,10 @@ function renderEmbeddedResultPlaceholder(text) {
   const summaryEl = document.getElementById("naviEmbeddedResultSummary");
   const panelEl = document.getElementById("naviEmbeddedResultPanel");
   if (summaryEl) {
-    summaryEl.textContent = "";
+    summaryEl.textContent = text || "";
   }
   if (panelEl) {
-    panelEl.innerHTML = `
-      <div class="navi-empty-card">
-        아래 추가 정보를 선택해서 정확한 업체를 확인해보세요.
-      </div>
-    `;
+    panelEl.innerHTML = ``;
   }
 }
 
@@ -3471,7 +3477,7 @@ function syncEmbeddedResultFromStep7() {
   const targetSummary = document.getElementById("naviEmbeddedResultSummary");
   const targetPanel = document.getElementById("naviEmbeddedResultPanel");
 
-  if (targetSummary) targetSummary.textContent = "";
+  if (targetSummary && sourceSummary) targetSummary.textContent = sourceSummary.textContent || "";
   if (targetPanel && sourcePanel) {
     targetPanel.innerHTML = sourcePanel.innerHTML;
     initResultCarousels(targetPanel);
@@ -3492,7 +3498,7 @@ function autoRevealAfterExtraChanged() {
   const { ltv, baseValue, totalDebtAfter } = calcLtv();
   const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
   const coreMatched = step5Complete && globalMinOK && ltvSane ? filterLenders(false) : [];
-  const primaryEligible = Boolean(step5Complete && globalMinOK && !isPropertyValueBelowMinimum() && ltvSane && coreMatched.length);
+  const primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
 
   if (!primaryEligible) {
     renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
@@ -3780,20 +3786,9 @@ function passesGlobalMinAmount() {
   return amt >= minByUserRule;
 }
 
-function isPropertyValueBelowMinimum() {
-  const pv = Number(userState.propertyValue || 0);
-  return Number.isFinite(pv) && pv > 0 && pv < 100000000;
-}
-
 function checkGlobalMinAmount() {
   const warningEl = document.getElementById("naviAmountWarning");
   if (!warningEl) return;
-
-  if (isPropertyValueBelowMinimum()) {
-    warningEl.style.display = "block";
-    warningEl.textContent = "1억원 미만의 부동산은 대출이 불가능합니다.";
-    return;
-  }
 
   const amt = getPrincipalAmount();
   if (!amt) {
@@ -4280,7 +4275,7 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
     extraMatched = step5Complete && ltvSane ? filterLenders(true) : [];
 
-    primaryEligible = Boolean(step5Complete && globalMinOK && !isPropertyValueBelowMinimum() && ltvSane && coreMatched.length);
+    primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
     updateStep5StatusUI(primaryEligible);
     updateStep5DecisionGate({ step5Complete, globalMinOK, primaryEligible });
 
@@ -4290,9 +4285,6 @@ function recalcAndUpdateSummary(onlyExtra = false) {
       } else if (!step5Complete) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "아직 입력이 부족합니다. 5단계 필수 항목을 모두 입력하면 1차 결과를 확인할 수 있습니다.";
-      } else if (isPropertyValueBelowMinimum()) {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = "1억원 미만의 부동산은 대출이 불가능합니다.";
       } else if (!globalMinOK) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "현재 입력한 대출금액이 최소 기준 미만입니다. (아파트/오피스텔 1,000만원·그 외 3,000만원 이상)";
@@ -4328,16 +4320,13 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   }
 
   if (extraCountEl) {
-    extraCountEl.classList.add("is-multiline");
     if (!primaryEligible) {
       extraCountEl.style.display = "none";
       extraCountEl.innerHTML = "";
-    } else if (!extraMatched.length) {
-      extraCountEl.style.display = "block";
-      extraCountEl.innerHTML = "취급 가능성이 있는 온투업체는 0곳 입니다.<br>아래 추가 정보를 선택해서 정확한 업체를 확인해보세요";
     } else {
       extraCountEl.style.display = "block";
-      extraCountEl.innerHTML = `취급 가능성이 있는 온투업체는 ${extraMatched.length}곳 입니다.<br>아래 추가 정보를 선택해서 정확한 업체를 확인해보세요`;
+      const count = Number(extraMatched.length || 0);
+      extraCountEl.innerHTML = `취급 가능성이 있는 온투업체는 <strong>${count}곳</strong> 입니다.<br/>아래 추가 정보를 선택해서 정확한 업체를 확인해보세요`;
     }
   }
 
@@ -4435,7 +4424,7 @@ function renderFinalResult(opts = {}) {
     const { ltv, baseValue, totalDebtAfter } = calcLtv();
     const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
     const coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
-    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && !isPropertyValueBelowMinimum() && ltvSane && coreMatched.length);
+    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && ltvSane && coreMatched.length);
 
     if (!primaryEligible) {
       if (!silent) alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
@@ -4582,7 +4571,6 @@ const cardsHtml = matched
         </div>
       `;
 
-    const titleClass = name.length >= 12 ? " is-long" : (name.length >= 9 ? " is-medium" : "");
     return `
       <div class="navi-result-card ${isPartner ? "is-partner" : ""}">
         <div class="navi-result-head">
@@ -4591,7 +4579,7 @@ const cardsHtml = matched
             ${logoData ? `<img src="${escapeHtml(logoData)}" alt="${nameHtml} 로고" onerror="this.style.display='none';" />` : ""}
           </div>
           <div class="navi-result-headtext">
-            <div class="navi-result-title${titleClass}" title="${nameHtml}">${nameHtml}</div>
+            <div class="navi-result-title">${nameHtml}</div>
             <div class="navi-result-sub">${licenseHtml}</div>
           </div>
         </div>

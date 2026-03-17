@@ -56,11 +56,12 @@ body.navi-wide .beta-header__inner{
 .navi-main > .beta-section.navi-intro-section{
   margin-top:0;
   padding-top:0;
-  margin-bottom:0;
+  margin-bottom:22px;
 }
 @media (max-width: 768px){
   .navi-main > .beta-section.navi-intro-section{
-    margin-bottom:0;}
+    margin-bottom:16px;
+  }
 }
 
 
@@ -370,12 +371,13 @@ body.navi-wide .navi-main{
   background: rgba(0,0,0,.02);
 }
 .navi-subregion-title{
-  font-weight: 700;
-  margin-bottom: 4px;
+  display:none;
 }
 .navi-subregion-sub{
-  font-size: 12px;
-  opacity: .85;
+  font-size: 13px;
+  font-weight: 700;
+  color:#111827;
+  opacity: 1;
   margin-bottom: 10px;
   line-height: 1.4;
 }
@@ -438,18 +440,75 @@ body.beta-body.beta-sticky-footer > footer.beta-footer{
    Step7 결과 카드(제휴/비제휴) — 2026-02-19
 ========================================================= */
 
-.navi-result-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:16px;
-  align-items:start;
+.navi-result-carousel{
+  display:flex;
+  align-items:stretch;
+  gap:12px;
 }
 
-@media (max-width: 1100px){
-  .navi-result-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+.navi-result-viewport{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+
+.navi-result-track{
+  display:flex;
+  gap:16px;
+  align-items:stretch;
+  transition:transform .28s ease;
+  will-change:transform;
+}
+
+.navi-result-track .navi-result-card{
+  flex:0 0 calc((100% - 32px) / 3);
+  max-width:calc((100% - 32px) / 3);
+}
+
+.navi-carousel-arrow{
+  flex:0 0 40px;
+  width:40px;
+  border:1px solid #d1d5db;
+  border-radius:999px;
+  background:#fff;
+  color:#111827;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  align-self:center;
+  box-shadow:0 2px 8px rgba(15,23,42,.08);
+  cursor:pointer;
+}
+
+.navi-carousel-arrow span{
+  font-size:24px;
+  line-height:1;
+  transform:translateY(-1px);
+}
+
+.navi-carousel-arrow.is-disabled{
+  opacity:.35;
+  cursor:default;
+}
+
+.navi-carousel-arrow.is-hidden{
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@media (max-width: 980px){
+  .navi-result-track .navi-result-card{
+    flex-basis:calc((100% - 16px) / 2);
+    max-width:calc((100% - 16px) / 2);
+  }
 }
 @media (max-width: 640px){
-  .navi-result-grid{ grid-template-columns:1fr; }
+  .navi-result-carousel{ gap:8px; }
+  .navi-carousel-arrow{ flex-basis:34px; width:34px; }
+  .navi-result-track .navi-result-card{
+    flex-basis:100%;
+    max-width:100%;
+  }
 }
 
 .navi-result-card{
@@ -660,9 +719,9 @@ body.navi-single-card-mode .navi-wizard-stage{
   background:linear-gradient(90deg, #7c4dff 0%, #5fd6df 100%);
   background-attachment:fixed;
   background-position:center;
-  padding:14px 20px; /* 상/하 여백 동일 */
+  padding:38px 20px 26px;
   box-sizing:border-box;
-  min-height:700px;
+  min-height:660px;
   display:grid;
   place-items:center;
   justify-content:initial;
@@ -670,11 +729,17 @@ body.navi-single-card-mode .navi-wizard-stage{
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-  min-height:620px; /* 첫 화면 배경 세로폭 축소 + 중앙배치 기준 높이 */
+  min-height:520px;
+}
+
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"],
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"],
+body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"]{
+  min-height:535px;
 }
 
 body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
-  min-height:700px;
+  min-height:660px;
 }
 
 body.navi-single-card-mode .navi-wizard-card-shell{
@@ -850,21 +915,26 @@ body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last
 
 @media (max-width: 768px){
   body.navi-single-card-mode .navi-wizard-stage{
-    padding:10px 14px;
-    min-height:520px;
+    padding:24px 14px 18px;
+    min-height:500px;
     margin-bottom:0;
     background-attachment:scroll;
   }
   body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"]{
-    min-height:460px;
+    min-height:400px;
   }
-  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]){
-    min-height:520px;
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"],
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step3"],
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"]{
+    min-height:430px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage:not([data-active-step="navi-step1"]):not([data-active-step="navi-step2"]):not([data-active-step="navi-step3"]):not([data-active-step="navi-step4"]){
+    min-height:500px;
   }
   body.navi-single-card-mode .navi-wizard-card-shell{
     width:min(100%, 520px);
     border-radius:16px;
-    padding:24px 18px 24px;
+    padding:22px 16px 20px;
   }
   body.navi-single-card-mode .navi-wizard-card-body .navi-section-title{
     font-size:20px;
@@ -934,13 +1004,13 @@ body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:16px;
+  gap:36px;
   box-sizing:border-box;
 }
 
 body.navi-single-card-mode .navi-wizard-progress{
   width:min(100%, 560px);
-  padding:0 10px;
+  padding:0 14px;
   box-sizing:border-box;
 }
 
@@ -994,6 +1064,16 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step1"] .na
   display:none;
 }
 
+@media (max-width: 768px){
+  body.navi-single-card-mode .navi-wizard-stage .navi-wizard-stage-inner{
+    gap:28px;
+  }
+  body.navi-single-card-mode .navi-wizard-progress{
+    width:min(100%, 360px);
+    padding:0 12px;
+  }
+}
+
 /* =========================================================
    ✅ Step2(지역선택) UI — 디자인 반영
 ========================================================= */
@@ -1002,9 +1082,11 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #na
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips{
+  display:grid;
+  grid-template-columns:repeat(4, 74px);
   gap:18px 22px;
-  justify-content:flex-start;
-  margin-top:4px;
+  justify-content:center;
+  margin-top:6px;
 }
 
 body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip{
@@ -1178,47 +1260,6 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   color:#6b7280;
   margin:0 0 10px;
 }
-#navi-step5 .navi-step5-status{
-  display:flex;
-  justify-content:center;
-  margin:10px 0 18px;
-}
-#navi-step5 .navi-step5-statusbar{
-  width:260px;
-  height:70px;
-  border-radius:8px;
-  background:#3c3f42;
-  position:relative;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-}
-#navi-step5 .navi-step5-statuschip{
-  position:absolute;
-  top:7px;
-  width:56px;
-  height:56px;
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  letter-spacing:-0.02em;
-  color:#ffffff;
-}
-#navi-step5 .navi-step5-statuschip--pending{
-  left:calc(50% - 28px);
-  background:#f7c948;
-  color:#111827;
-}
-#navi-step5 .navi-step5-statuschip--ok{
-  left:calc(100% - 63px);
-  background:#20c933;
-  color:#0b1b0e;
-}
-#navi-step5 .navi-step5-statuschip--deny{
-  left:7px;
-  background:#ef4444;
-  color:#ffffff;
-}
 #navi-step5 .navi-step5-split{
   display:flex;
   align-items:stretch;
@@ -1338,10 +1379,11 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   min-height:14px;
 }
 #navi-step5 .navi-step5-cta{
-  align-self:flex-end;
-  margin-top:14px;
+  align-self:auto;
+  margin-top:0;
+  margin-left:auto;
   border:0;
-  padding:12px 16px;
+  padding:10px 16px;
   border-radius:10px;
   font-weight:900;
   font-size:13px;
@@ -1349,6 +1391,7 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
   cursor:pointer;
   background:linear-gradient(90deg,#ff4fa7,#f7c948);
   box-shadow:0 6px 16px rgba(0,0,0,.15);
+  min-height:44px;
 }
 #navi-step5 .navi-step5-cta:active{
   transform:translateY(1px);
@@ -1372,7 +1415,10 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
 #naviStep5Actions{
   margin-top:18px;
   display:flex;
-  justify-content:flex-start;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:nowrap;
 }
 
 @media (max-width: 860px){
@@ -1390,146 +1436,243 @@ body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step4"] #na
     min-width:0;
   }
   #navi-step5 .navi-step5-cta{
-    align-self:center;
+    align-self:auto;
+    width:auto;
+    max-width:none;
+    flex:1 1 auto;
+    min-width:0;
+  }
+  #naviStep5Actions{
     width:100%;
-    max-width:320px;
+  }
+  #naviStep5BackBtn{
+    flex:0 0 auto;
+  }
+}
+
+#naviStep6BackBtn,
+#naviStep61BackBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:#000000;
+  color:#ffffff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+#naviStep6BackBtn svg,
+#naviStep61BackBtn svg{
+  width:16px;
+  height:16px;
+  fill:currentColor;
+}
+#naviStep6Actions,
+#naviStep61Actions,
+#naviStep7Actions,
+.navi-step-back-actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+
+/* Step6 / 6-1 / 7 Back 버튼을 다른 페이지와 동일 톤으로 통일 */
+#navi-step6 .navi-step-back-actions > button,
+#navi-step6-1 .navi-step-back-actions > button,
+#navi-step7 .navi-step-back-actions > button,
+#naviStep6BackBtn,
+#naviStep61BackBtn,
+#naviStep7BackBtn{
+  display:inline-flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  padding:10px 14px !important;
+  border-radius:8px !important;
+  border:0 !important;
+  background:#000000 !important;
+  color:#ffffff !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+  box-shadow:none !important;
+}
+#navi-step6 .navi-step-back-actions > button svg,
+#navi-step6-1 .navi-step-back-actions > button svg,
+#navi-step7 .navi-step-back-actions > button svg,
+#naviStep6BackBtn svg,
+#naviStep61BackBtn svg,
+#naviStep7BackBtn svg{
+  width:16px !important;
+  height:16px !important;
+  display:block !important;
+  fill:currentColor !important;
+  flex:0 0 16px !important;
+}
+
+/* Step6-1 하단 실시간 결과 */
+.navi-embedded-result-wrap{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid #e5e7eb;
+}
+.navi-embedded-result-title{
+  font-size:16px;
+  font-weight:900;
+  color:#111827;
+  margin-bottom:8px;
+}
+.navi-embedded-result-summary{
+  margin-bottom:10px;
+}
+.navi-embedded-result-panel .navi-empty-card{
+  margin-bottom:0;
+}
+
+
+/* 2026-03-15 layout3 tweaks */
+@media (max-width: 640px){
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips{
+    grid-template-columns:repeat(3, 74px);
+    gap:14px 14px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step2"] #naviRegionChips .navi-chip{
+    width:74px;
+  }
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+    width:100%;
+    padding:18px 12px 18px;
+    border-radius:14px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body .navi-result-header{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last-child{
+    width:100%;
+  }
+  body.navi-single-card-mode .navi-wizard-card-body .navi-result-header > div:last-child > button{
+    flex:1 1 auto;
+  }
+  .navi-result-carousel{
+    gap:6px;
+  }
+  .navi-carousel-arrow{
+    flex:0 0 30px;
+    width:30px;
+    min-height:30px;
+  }
+  .navi-result-card{
+    padding:12px 12px 10px;
   }
 }
 
 
-/* 2026-03-16 step4 warning + step6-1/result cleanup */
-.navi-warning{
-  font-size:22px;
-  font-weight:900;
-  line-height:1.45;
-  text-align:right;
-  margin-top:10px;
+/* 2026-03-15 layout4 tweaks */
+@media (max-width: 640px){
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step6-1"] .navi-wizard-card-shell,
+  body.navi-single-card-mode .navi-wizard-stage[data-active-step="navi-step7"] .navi-wizard-card-shell{
+    width:100%;
+    max-width:100%;
+    padding-left:12px;
+    padding-right:12px;
+    overflow:hidden;
+  }
+  .navi-embedded-result-panel,
+  #naviRecommendedPanel{
+    min-width:0;
+    overflow:hidden;
+  }
+  .navi-result-carousel{
+    position:relative;
+    gap:0;
+    padding:0 38px;
+    align-items:stretch;
+  }
+  .navi-result-viewport{
+    width:100%;
+  }
+  .navi-carousel-arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+    flex:0 0 32px;
+    width:32px;
+    min-height:32px;
+    background:#ffffff;
+  }
+  .navi-carousel-arrow.is-prev{ left:0; }
+  .navi-carousel-arrow.is-next{ right:0; }
 }
 
-#navi-step6-1 > .navi-section-title,
-#navi-step6-1 > .navi-section-sub,
-#navi-step7 > .navi-section-title,
+
+/* 2026-03-17 minimal UI fix */
+#naviAmountWarning{
+  font-size:22px;
+  line-height:1.25;
+  font-weight:900;
+  text-align:right;
+  margin-top:10px;
+  margin-left:auto;
+  display:block;
+}
+@media (max-width:640px){
+  #naviAmountWarning{
+    font-size:18px;
+  }
+}
+#naviExtraCountInfo{
+  display:block;
+  margin-top:10px;
+  padding:0;
+  background:transparent;
+  border-radius:0;
+  color:#111827;
+  font-size:15px;
+  font-weight:800;
+  line-height:1.45;
+}
+#naviExtraCountInfo strong{ font-weight:900; }
+#naviResultSummary:empty,
+#naviEmbeddedResultSummary:empty{
+  display:none;
+}
+#navi-step6-1 .navi-section-title,
 #navi-step6-1 .navi-card > .navi-help{
   display:none !important;
 }
-
-#naviExtraCountInfo{
-  display:block;
-  background:none;
-  border-radius:0;
-  padding:0;
-  color:#111827;
-  font-size:18px;
-  font-weight:800;
-  line-height:1.55;
-  white-space:pre-line;
-  margin:0 0 14px;
-}
-#naviExtraCountInfo.is-multiline{display:block;}
-#naviResultSummary,
-#naviEmbeddedResultSummary{
-  display:none !important;
-}
-
-.navi-embedded-result-wrap{
-  margin-top:12px;
-}
-.navi-embedded-result-panel,
-#naviResultPanel{
-  overflow:hidden;
-}
-
-.navi-result-carousel{
-  position:relative;
-  padding:0 46px;
-}
-.navi-result-viewport{
-  overflow:hidden;
-  width:100%;
-}
-.navi-result-track{
-  display:flex;
-  align-items:stretch;
-  gap:18px;
-  transition:transform .28s ease;
-  will-change:transform;
-}
-.navi-result-track > .navi-result-card{
-  flex:0 0 calc((100% - 36px) / 3);
-  max-width:calc((100% - 36px) / 3);
-  min-width:0;
-}
-.navi-carousel-arrow{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  width:34px;
-  height:34px;
-  border-radius:999px;
-  border:1px solid #d1d5db;
-  background:#fff;
-  color:#111827;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:26px;
-  line-height:1;
-  box-shadow:0 3px 10px rgba(17,24,39,.12);
-  z-index:3;
-}
-.navi-carousel-arrow.is-prev{left:0;}
-.navi-carousel-arrow.is-next{right:0;}
-.navi-carousel-arrow.is-hidden{display:none !important;}
-.navi-carousel-arrow.is-disabled{opacity:.35; pointer-events:none;}
-
 .navi-result-headtext{
   min-width:0;
   flex:1 1 auto;
 }
 .navi-result-title{
+  font-size:clamp(18px,1.45vw,24px);
+  line-height:1.1;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  font-size:22px;
-  line-height:1.08;
-  letter-spacing:-.02em;
 }
-.navi-result-title.is-medium{font-size:20px;}
-.navi-result-title.is-long{font-size:17px;}
-
-@media (max-width: 980px){
-  .navi-result-track > .navi-result-card{
-    flex-basis:calc((100% - 18px) / 2);
-    max-width:calc((100% - 18px) / 2);
+@media (max-width:980px){
+  .navi-result-title{
+    font-size:clamp(17px,2.6vw,22px);
   }
 }
-
-@media (max-width: 640px){
-  .navi-warning{
-    font-size:18px;
-    line-height:1.5;
-  }
-  #naviExtraCountInfo{
-    font-size:15px;
-    line-height:1.5;
-    margin-bottom:12px;
-  }
+@media (max-width:640px){
   .navi-result-carousel{
-    padding:0 36px;
+    gap:0;
   }
-  .navi-result-track{
-    gap:14px;
-  }
-  .navi-result-track > .navi-result-card{
-    flex-basis:100%;
-    max-width:100%;
-  }
-  .navi-result-title{font-size:20px;}
-  .navi-result-title.is-medium{font-size:18px;}
-  .navi-result-title.is-long{font-size:16px;}
-  .navi-carousel-arrow{
-    width:30px;
-    height:30px;
-    font-size:22px;
+  .navi-result-title{
+    font-size:18px;
   }
 }
