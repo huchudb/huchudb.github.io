@@ -53,6 +53,35 @@ function normalizeMonthKey(m) {
   return null;
 }
 
+function getKstDateKey(d = new Date()) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    const tzOffsetMs = 9 * 60 * 60 * 1000;
+    return new Date(Date.now() + tzOffsetMs).toISOString().slice(0, 10);
+  }
+}
+
+function normalizeDateKey(v) {
+  const s = String(v || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
+function normalizeClientId(v) {
+  const s = String(v || "").trim();
+  return /^[A-Za-z0-9_-]{8,120}$/.test(s) ? s : null;
+}
+
+function normalizeLooseKey(v, fallback = "unknown") {
+  const s = String(v || "").trim().replace(/\s+/g, " ");
+  return s ? s.slice(0, 120) : fallback;
+}
+
 function amountBucket(amountMan) {
   const a = Number(amountMan);
   if (!Number.isFinite(a) || a <= 0) return "unknown";
@@ -89,7 +118,7 @@ function initStats(monthKey) {
     version: 2,
     monthKey,
     updatedAt: Date.now(),
-    totals: { requests: 0, productClicks: 0, confirms: 0, error: 0 },
+    totals: { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, uniqueResultViews: 0, duplicateResultViews: 0, error: 0 },
     productGroups: {
       re_collateral: 0,
       personal_credit: 0,
@@ -162,6 +191,21 @@ async function parseBody(req) {
   }
 }
 
+async function claimUniqueResultView({ dateKst, loanTypeKey, clientId }) {
+  const day = normalizeDateKey(dateKst) || getKstDateKey();
+  const loan = normalizeLooseKey(loanTypeKey, "");
+  const client = normalizeClientId(clientId);
+  if (!day || !loan || !client) return { ok: false, claimed: false, reason: "invalid_dedupe_key" };
+
+  const dedupeKey = `huchu:navi-result-view:v1:${day}:${loan}:${client}`;
+  const claimedRaw = await upstash("setnx", [dedupeKey, "1"]);
+  const claimed = Number(claimedRaw) === 1;
+  if (claimed) {
+    try { await upstash("expire", [dedupeKey, String(60 * 60 * 24 * 8)]); } catch (_) {}
+  }
+  return { ok: true, claimed, dedupeKey };
+}
+
 
 export default async function handler(req, res) {
   setCors(res);
@@ -180,7 +224,10 @@ export default async function handler(req, res) {
       stats.version = 2;
       stats.monthKey = mk;
       stats.updatedAt = Date.now();
-      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, uniqueResultViews: 0, duplicateResultViews: 0, error: 0 };
+      stats.totals.resultViews = Number(stats.totals.resultViews) || 0;
+      stats.totals.uniqueResultViews = Number(stats.totals.uniqueResultViews) || 0;
+      stats.totals.duplicateResultViews = Number(stats.totals.duplicateResultViews) || 0;
       if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
 
       return res.status(200).json(stats);
@@ -194,21 +241,53 @@ export default async function handler(req, res) {
       const stats = (await kvGetJson(key)) || initStats(mk);
 
       // 누락 필드 방어
-      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, error: 0 };
+      if (!stats.totals) stats.totals = { requests: 0, productClicks: 0, confirms: 0, resultViews: 0, uniqueResultViews: 0, duplicateResultViews: 0, error: 0 };
+      stats.totals.resultViews = Number(stats.totals.resultViews) || 0;
+      stats.totals.uniqueResultViews = Number(stats.totals.uniqueResultViews) || 0;
+      stats.totals.duplicateResultViews = Number(stats.totals.duplicateResultViews) || 0;
       if (!stats.productGroups) stats.productGroups = initStats(mk).productGroups;
 
       stats.monthKey = mk;
       stats.updatedAt = Date.now();
       stats.totals.requests = (Number(stats.totals.requests) || 0) + 1;
 
-      if (event === "product_click") {
+      if (event === "result_view") {
         const pg = String(body.productGroupKey || body.productGroup || body.mainCategoryKey || body.mainCategory || "").trim();
-        if (isAllowedProductKey(pg)) {
-          inc(stats.productGroups, pg, 1);
-        } else {
-          // 잘못된 키는 버림(통계 오염 방지)
+        const loanTypeKey = normalizeLooseKey(body.loanTypeKey || body.loanType || "", "");
+        const regionKey = normalizeLooseKey(body.regionKey || body.region || "", "unknown");
+        const amountMan = body.amountMan ?? body.amount ?? 0;
+        const b = amountBucket(amountMan);
+        const dateKst = normalizeDateKey(body.dateKst) || getKstDateKey();
+        const clientId = normalizeClientId(body.clientId);
+
+        if (!stats.regions) stats.regions = {};
+        if (!stats.loanTypes) stats.loanTypes = {};
+        if (!stats.amountBuckets) stats.amountBuckets = {};
+
+        stats.totals.resultViews = (Number(stats.totals.resultViews) || 0) + 1;
+
+        if (!isAllowedProductKey(pg) || !loanTypeKey || !clientId) {
           stats.totals.error = (Number(stats.totals.error) || 0) + 1;
+          await kvSetJson(key, stats);
+          return res.status(400).json({ ok: false, error: "invalid_result_view_payload", monthKey: mk, totals: stats.totals });
         }
+
+        const claim = await claimUniqueResultView({ dateKst, loanTypeKey, clientId });
+        if (claim.claimed) {
+          inc(stats.productGroups, pg, 1);
+          inc(stats.regions, regionKey, 1);
+          inc(stats.loanTypes, loanTypeKey, 1);
+          inc(stats.amountBuckets, b, 1);
+          stats.totals.uniqueResultViews = (Number(stats.totals.uniqueResultViews) || 0) + 1;
+        } else {
+          stats.totals.duplicateResultViews = (Number(stats.totals.duplicateResultViews) || 0) + 1;
+        }
+
+        await kvSetJson(key, stats);
+        const pgVal = Number(stats?.productGroups?.[pg]) || 0;
+        return res.status(200).json({ ok: true, monthKey: mk, event, counted: Boolean(claim.claimed), productGroupKey: pg, productGroupValue: pgVal, totals: stats.totals });
+      } else if (event === "product_click") {
+        // 2026-03 기준: 클릭 수는 메인 지표에서 제외. 요청 총량만 남기고 상품군 카운트는 올리지 않음.
         stats.totals.productClicks = (Number(stats.totals.productClicks) || 0) + 1;
       } else {
         // legacy: Step5 confirm
