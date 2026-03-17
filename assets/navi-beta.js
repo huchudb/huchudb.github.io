@@ -1490,8 +1490,9 @@ function makeStep5Placeholder(labelText) {
     .replace(/\s+/g, " ")
     .trim();
   if (!cleaned) return "";
-  // 조사(을/를) 정확도보다 가독성 우선
-  return cleaned + "를 입력하세요";
+  // 기본은 "를"을 쓰되, 지분율처럼 받침이 있는 표현은 예외 처리
+  const particle = /(?:율|액|값|금|율\))$/.test(cleaned) ? "을" : "를";
+  return cleaned + particle + " 입력하세요";
 }
 
 function formatMoneyKorean(num) {
@@ -3143,16 +3144,23 @@ function setupStep5() {
   if (ctaBtn && !ctaBtn.__bound) {
     ctaBtn.__bound = true;
     ctaBtn.addEventListener("click", () => {
+      // Back으로 Step5를 강제 표시하던 상태를 해제해야 다음 단계가 정상 노출됩니다.
+      clearWizardForcedStep();
+
       // CTA는 "가능" 상태에서만 노출되므로, 기존 확인 로직을 그대로 재사용합니다.
       try { confirmBtn.click(); } catch (_) {}
 
-      // 가능하면 6-1(추가조건)로 이동
+      // 가능하면 6-1(추가조건) 또는 6단계로 이동
       setTimeout(() => {
-        const target = document.getElementById("navi-step6-1") || document.getElementById("navi-step6");
-        if (target && !target.classList.contains("hide")) {
+        const extraEl = document.getElementById("navi-step6-1");
+        const step6El = document.getElementById("navi-step6");
+        const target = (extraEl && !extraEl.classList.contains("hide") && extraEl.style.display !== "none")
+          ? extraEl
+          : ((step6El && !step6El.classList.contains("hide") && step6El.style.display !== "none") ? step6El : null);
+        syncWizardSingleCardView();
+        if (target) {
           try { target.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (_) {}
         }
-        syncWizardSingleCardView();
       }, 60);
     });
   }
@@ -3168,6 +3176,7 @@ function setupStep5() {
       }
 
       uiState.confirmed = true;
+      clearWizardForcedStep();
       setStep6Visible(true);
       recalcAndUpdateSummary(false);
 
@@ -4843,29 +4852,4 @@ setupMoneyInputs();
   // ✅ meta(선택지 정의) 기반으로 Step1~Step4 칩을 재렌더
   setMeta(naviLoanConfig?.meta || null);
   applyMetaChips();
-  ensureWizardSingleCardUI();
-
-  // ✅ 설정 로딩 후에도 현재 선택 상태 기준으로 다시 반영
-  updateStepVisibility(false);
-
-  // ✅ lenders 로드된 후에 동적 6-1 UI 구성
-  ensureDynamicExtraUI();
-
-  setupStep1();
-  setupStep2();
-  setupSubregion();
-  setupStep3();
-  setupStep4();
-
-  ensureAssumedBurdenField();
-  setupStep5();
-
-  setupStep6Extra();
-  setupStep6Back();
-  setupStep61Back();
-  setupStep7Back();
-  setupResultButtons();
-
-  recalcAndUpdateSummary();
-  syncWizardSingleCardView();
-});
+  ensureWizardSi
