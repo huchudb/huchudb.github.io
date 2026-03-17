@@ -13,67 +13,6 @@ function getKstDateKey(d = new Date()) {
   }
 }
 
-const NAVI_STATS_CLIENT_ID_KEY = "huchu_navi_stats_client_id_v1";
-
-function getOrCreateNaviStatsClientId() {
-  try {
-    const existing = localStorage.getItem(NAVI_STATS_CLIENT_ID_KEY);
-    if (existing && /^[A-Za-z0-9_-]{8,120}$/.test(existing)) return existing;
-  } catch (_) {}
-
-  let next = "";
-  try {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      next = crypto.randomUUID().replace(/-/g, "");
-    }
-  } catch (_) {}
-  if (!next) next = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-  next = String(next).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
-
-  try { localStorage.setItem(NAVI_STATS_CLIENT_ID_KEY, next); } catch (_) {}
-  return next;
-}
-
-function resolveNaviStatsLoanTypeKey() {
-  const raw = String(
-    userState.realEstateLoanTypeKey ||
-    userState.realEstateLoanType ||
-    userState.mainCategory ||
-    ""
-  ).trim();
-  if (!raw) return "";
-  return raw.replace(/\s+/g, " ").slice(0, 120);
-}
-
-function trackResultViewOncePerDay(extra = {}) {
-  try {
-    const productGroupKey = toProductGroupStatKey(userState.mainCategory || "");
-    const loanTypeKey = resolveNaviStatsLoanTypeKey();
-    if (!productGroupKey || !loanTypeKey) return;
-
-    const payload = {
-      event: "result_view",
-      ts: Date.now(),
-      dateKst: getKstDateKey(),
-      clientId: getOrCreateNaviStatsClientId(),
-      productGroupKey,
-      productGroupRaw: String(userState.mainCategory || ""),
-      loanTypeKey,
-      regionKey: uiState.region || userState.region || "",
-      propertyTypeKey: userState.propertyType || "",
-      resultCount: Number(extra.resultCount) || 0,
-    };
-
-    const memoryKey = `${payload.dateKst}::${payload.loanTypeKey}::${payload.clientId}`;
-    if (uiState.lastTrackedResultViewKey === memoryKey) return;
-    uiState.lastTrackedResultViewKey = memoryKey;
-
-    postNaviStatsOncePerClick(payload);
-  } catch (e) {
-    console.warn("result_view track failed:", e);
-  }
-}
-
 async function postNaviStatsOncePerClick(payload) {
   // 통계 저장 실패는 UX를 막지 않음
   try {
@@ -140,10 +79,21 @@ const __HUCHU_NAVI_CLICK_GUARD__ = {
   lastAtByKey: Object.create(null)
 };
 
-function trackProductGroupClick(_rawMainCategory) {
-  // 2026-03 기준: 버튼 클릭 수는 의미 있는 메인 지표가 아니어서 집계하지 않습니다.
-  // 실제 결과 카드가 1개 이상 렌더링된 시점(result_view)만 별도 집계합니다.
-  return;
+function trackProductGroupClick(rawMainCategory) {
+  const key = toProductGroupStatKey(rawMainCategory);
+  if (!key) return;
+
+  const now = Date.now();
+  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
+  if (now - last < 700) return; // 700ms debounce per key
+  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
+
+  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
+  postNaviStatsOncePerClick({
+    event: "product_click",
+    productGroupKey: key,
+    productGroupRaw: String(rawMainCategory || "")
+  });
 }
 
 function setStep6Visible(isOn) {
@@ -616,8 +566,8 @@ function normKey(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[()·]/g, "")
-    .replace(/_/g, "")
+    // 표기 흔들림 보정: 가운데점/슬래시/언더스코어/하이픈/괄호는 동일 취급
+    .replace(/[()·/_-]/g, "")
     .toLowerCase();
 }
 function includesNorm(list, value) {
@@ -678,9 +628,12 @@ const REGION_KEY_TO_LABEL = {
 const PROP_LABEL_TO_KEY = {
   "아파트": "apt",
   "다세대/연립": "villa",
+  "다세대·연립": "villa",
   "오피스텔": "officetel",
   "단독/다가구": "detached",
+  "단독·다가구": "detached",
   "토지/임야": "land",
+  "토지·임야": "land",
   "근린생활시설": "commercial",
 };
 
@@ -709,7 +662,17 @@ function regionKeyFromLabel(label) {
 
 function propKeyFromLabel(label) {
   if (!label) return "";
-  return PROP_LABEL_TO_KEY[String(label).trim()] || "";
+  const raw = String(label).trim();
+  if (PROP_LABEL_TO_KEY[raw]) return PROP_LABEL_TO_KEY[raw];
+
+  const nk = normKey(raw);
+  if (nk === normKey("아파트") || nk === "apt") return "apt";
+  if (nk === normKey("다세대/연립") || nk === normKey("다세대·연립") || nk === normKey("빌라/다세대") || nk === "villa") return "villa";
+  if (nk === normKey("오피스텔") || nk === "officetel") return "officetel";
+  if (nk === normKey("단독/다가구") || nk === normKey("단독·다가구") || nk === "detached") return "detached";
+  if (nk === normKey("토지/임야") || nk === normKey("토지·임야") || nk === "land") return "land";
+  if (nk === normKey("근린생활시설") || nk === "commercial") return "commercial";
+  return "";
 }
 
 // --------- 퍼센트/수수료 파싱 ----------
@@ -984,7 +947,6 @@ const uiState = {
   forcedWizardStepId: null, // single-card-mode에서 Back 시 이전 스텝을 강제로 보여주기 위한 override
   hasRenderedResult: false,
   loanHelpText: "", // Step4에서 선택된 대출종류 안내문(스키마 fallback 메시지로 덮이는 것을 방지)
-  lastTrackedResultViewKey: "",
 };
 
 const userState = {
@@ -2407,7 +2369,10 @@ function renderLoanTypeChipsFromMeta() {
   // propertyTypes에서 loanSet 결정 (aptv / base)
   let setKey = "base";
   if (Array.isArray(meta.propertyTypes) && propLabel) {
-    const hit = meta.propertyTypes.find((p) => p && (p.key === propLabel || p.label === propLabel));
+    const hit = meta.propertyTypes.find((p) => {
+      if (!p) return false;
+      return normKey(p.key) === normKey(propLabel) || normKey(p.label) === normKey(propLabel);
+    });
     if (hit && hit.loanSet) {
       setKey = (hit.loanSet === "aptv") ? "aptv" : "base";
     }
@@ -2979,6 +2944,18 @@ function setupStep5() {
       uiState.confirmed = true;
       setStep6Visible(true);
       recalcAndUpdateSummary(false);
+
+      const payload = {
+        event: "confirm",
+        ts: Date.now(),
+        dateKst: getKstDateKey(),
+        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
+        regionKey: uiState.region || "",
+        propertyTypeKey: uiState.propertyType || "",
+        loanTypeKey: uiState.realEstateLoanType || "",
+        amountMan: Number(uiState.requestedAmount) || 0,
+      };
+      postNaviStatsOncePerClick(payload);
 
       setConfirmUIState();
       const target = document.getElementById("navi-step6");
@@ -4579,7 +4556,6 @@ bindResultCarouselResize();
 
 
   uiState.hasRenderedResult = true;
-  trackResultViewOncePerDay({ resultCount: matched.length });
   syncStep7BackVisibility();
   if (!keepStepper) renderStepper(7);
 
