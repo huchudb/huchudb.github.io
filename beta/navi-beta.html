@@ -8,13 +8,13 @@
 
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
 
-    <link rel="stylesheet" href="/assets/navi-beta.css?v=20260315-layout4" />
+    <link rel="stylesheet" href="/assets/navi-beta.css?v=20251230-fixdup1" />
 <!-- 캡처용 라이브러리 (이미지 저장 기능) -->
   <script type="module" src="/assets/beta-shell.js?v=20260106-menu1"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script type="module" src="/assets/navi-beta.js?v=20260315-layout4"></script>
+  <script type="module" src="/assets/navi-beta.js?v=20251230-fixdup1"></script>
 
   <!-- ✅ navi 초기 플래시 방지 + 레이아웃 폭 확장 -->
   <style>
@@ -103,7 +103,8 @@
       <!-- 2. 지역 선택 -->
       <section class="beta-section navi-section hide" id="navi-step2">
         <div class="navi-section-title">지역을 선택하세요</div>
-                <div class="navi-chip-group" id="naviRegionChips">
+        <div class="navi-section-sub">담보 또는 사업장이 위치한 지역을 선택해주세요.</div>
+        <div class="navi-chip-group" id="naviRegionChips">
           <button type="button" class="navi-chip" data-region="서울">서울</button>
           <button type="button" class="navi-chip" data-region="경기">경기</button>
           <button type="button" class="navi-chip" data-region="인천">인천</button>
@@ -116,7 +117,8 @@
 
         <!-- (추가) 세부지역 LTV Up (서울/경기/인천 등) -->
         <div class="navi-subregion-wrap hide" id="naviSubregionWrap" aria-label="세부지역 LTV Up">
-          <div class="navi-subregion-sub">해당하는 세부 지역을 선택해주세요</div>
+          <div class="navi-subregion-title">세부지역(LTV Up)</div>
+          <div class="navi-subregion-sub">해당 세부지역을 선택하면, 업체별 설정된 LTV Up%가 LTV 최대치에 가산됩니다.</div>
           <div class="navi-chip-group navi-chip-group--sub" id="naviSubregionChips"></div>
         </div>
 
@@ -135,7 +137,8 @@
       <!-- 3. 부동산 유형 선택 (부동산담보대출 일 때만) -->
       <section class="beta-section navi-section hide" id="navi-step3">
         <div class="navi-section-title">부동산 유형 선택</div>
-                <div class="navi-chip-group" id="naviPropertyTypeChips">
+        <div class="navi-section-sub">담보로 제공할 부동산의 유형을 선택해주세요.</div>
+        <div class="navi-chip-group" id="naviPropertyTypeChips">
           <button type="button" class="navi-chip" data-prop="아파트">아파트</button>
           <button type="button" class="navi-chip" data-prop="오피스텔">오피스텔</button>
           <button type="button" class="navi-chip" data-prop="다세대/연립">빌라/다세대</button>
@@ -143,6 +146,9 @@
           <button type="button" class="navi-chip" data-prop="토지/임야">토지/임야</button>
           <button type="button" class="navi-chip" data-prop="근린생활시설">근린생활시설</button>
         </div>
+        <p class="navi-help">
+          ※ 부동산이 아닌 상품군(개인신용대출, 스탁론 등)은 이 단계가 필수가 아닙니다.
+        </p>
               <div id="naviStep3Actions">
           <button type="button" id="naviStep3BackBtn" aria-label="Back">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -156,7 +162,8 @@
       <!-- 4. 대출종류 선택 (부동산 담보대출 내부) -->
       <section class="beta-section navi-section hide" id="navi-step4">
         <div class="navi-section-title">대출 종류 선택</div>
-                <div class="navi-chip-group" id="naviRealEstateLoanTypeChips">
+        <div class="navi-section-sub">필요하신 부동산 담보대출의 세부 종류를 선택해주세요.</div>
+        <div class="navi-chip-group" id="naviRealEstateLoanTypeChips">
           <button type="button" class="navi-chip" data-loan-type="일반담보대출" data-loan-label="일반담보대출"><span class="navi-chip-label">일반<br>담보대출</span></button>
           <button type="button" class="navi-chip" data-loan-type="임대보증금반환대출" data-loan-label="임대보증금반환대출"><span class="navi-chip-label">임대보증금<br>반환 대출</span></button>
           <button type="button" class="navi-chip" data-loan-type="지분대출" data-loan-label="지분대출"><span class="navi-chip-label">지분대출</span></button>
@@ -183,6 +190,13 @@
           <p id="naviLoanTypeHelp" class="navi-help navi-step5-help" style="margin-top:0;">
             ※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.
           </p>
+
+          <div class="navi-step5-status" id="naviStep5Status" aria-hidden="true">
+            <div class="navi-step5-statusbar">
+              <div class="navi-step5-statuschip navi-step5-statuschip--pending" id="naviStep5StatusChip"></div>
+            </div>
+          </div>
+
           <div class="navi-step5-split">
             <div class="navi-step5-left">
               <div class="navi-occ-tree">
@@ -250,6 +264,10 @@
                 </label>
               </div>
 
+              <button type="button" id="naviStep5CTA" class="navi-step5-cta hide">
+                추가 정보 선택하여<br/>가능업체 선택하기
+              </button>
+
               <!-- (내부 로직용) 기존 확인 버튼은 숨김 처리 -->
               <div class="navi-confirm-row navi-step5-confirm" aria-hidden="true">
                 <button id="naviConfirmBtn" type="button" class="btn btn-primary" disabled>결과 확인하기</button>
@@ -266,9 +284,6 @@
                 <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
               </svg>
               Back
-            </button>
-            <button type="button" id="naviStep5CTA" class="navi-step5-cta hide">
-              다음 단계로 넘어가기
             </button>
           </div>
         </div>
@@ -292,9 +307,11 @@
 
       <!-- 6-1. 차주 추가정보 (선택) -->
       <section class="beta-section navi-section hide" id="navi-step6-1">
-        <div class="navi-section-title">6-1. 차주 추가정보 (선택)</div>
+        <div class="navi-section-title"></div>
+
         <div class="navi-card">
-          
+
+          <div class="navi-section-sub" style="margin-top:4px;">1) 소득유형</div>
           <div class="navi-chip-group" id="naviExtraIncomeType">
             <button type="button" class="navi-chip" data-income="근로소득">근로소득</button>
             <button type="button" class="navi-chip" data-income="근로외증빙소득">근로외 증빙소득</button>
@@ -304,27 +321,27 @@
             </button>
           </div>
 
-          
+          <div class="navi-section-sub" style="margin-top:10px;">2) 신용점수 구간</div>
           <div class="navi-chip-group" id="naviExtraCreditBand">
             <button type="button" class="navi-chip" data-credit="600미만">600점 미만</button>
             <button type="button" class="navi-chip" data-credit="600이상">600점 이상</button>
           </div>
 
-          
+          <div class="navi-section-sub" style="margin-top:10px;">3) 상환계획</div>
           <div class="navi-chip-group" id="naviExtraRepayPlan">
             <button type="button" class="navi-chip" data-repay="3개월내">3개월 내</button>
             <button type="button" class="navi-chip" data-repay="3개월초과~1년미만">3개월 초과~1년 미만</button>
             <button type="button" class="navi-chip" data-repay="1년이상">1년 이상</button>
           </div>
 
-          
+          <div class="navi-section-sub" style="margin-top:10px;">4) 대출금 필요시기</div>
           <div class="navi-chip-group" id="naviExtraNeedTiming">
             <button type="button" class="navi-chip" data-need="당일">당일</button>
             <button type="button" class="navi-chip" data-need="1주일내">1주일 내</button>
             <button type="button" class="navi-chip" data-need="한달이내">한달 이내</button>
           </div>
 
-          
+          <div class="navi-section-sub" style="margin-top:10px;">5) 기타사항</div>
           <div class="navi-chip-group" id="naviExtraOthers">
             <button type="button" class="navi-chip" data-etc="세금체납">세금체납</button>
             <button type="button" class="navi-chip" data-etc="연체기록">연체기록</button>
@@ -332,10 +349,6 @@
             <button type="button" class="navi-chip" data-etc="개인회생">개인회생</button>
           </div>
 
-          <p class="navi-help" style="margin-top:10px;">
-            온투업 전업종 공통 취급 불가 : 임차인·무상거주자 동의 불가, 맹지, 법인소유자,
-            시세 1억 미만
-          </p>
 
           <div id="naviExtraCountInfo" class="navi-info-chip" style="display:none;"></div>
         </div>
@@ -343,7 +356,7 @@
 
       <!-- 7. 네비게이션 결과 -->
       <section class="beta-section navi-section hide" id="navi-step7">
-        <div class="navi-section-title">7. 추천 업체</div>
+        <div class="navi-section-title"></div>
 
         <div class="navi-card" id="naviResultWrapper">
           <div class="navi-result-header">
@@ -384,8 +397,6 @@
           <p class="navi-help" style="margin-top:6px;">
             · 결과 이미지는 개인정보 없이 <strong>조건 요약 + 추천 온투업 리스트</strong>만 포함되며, 상담 채널 공유용으로 활용하실 수 있습니다.
           </p>
-
-          <div id="naviStep7Actions" class="navi-step-back-actions hide"></div>
         </div>
       </section>
 
