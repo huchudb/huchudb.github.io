@@ -2357,6 +2357,188 @@ function setupBetaMenu() {
 
 
 
+
+function getActiveCategoryLenders(mainCategory = userState.mainCategory) {
+  const lenders = (naviLoanConfig && Array.isArray(naviLoanConfig.lenders)) ? naviLoanConfig.lenders : [];
+  return lenders.filter((l) => {
+    if (!l || l.isActive === false || l.isNewLoanActive === false) return false;
+    const cats = Array.isArray(l.loanCategories) ? l.loanCategories : [];
+    if (!mainCategory) return true;
+    return !cats.length || includesNorm(cats, mainCategory);
+  });
+}
+
+function lenderSupportsRegionOnly(l, regionLabel) {
+  if (!l) return false;
+  const rk = regionKeyFromLabel(regionLabel);
+  if (!rk) return false;
+
+  const regionCfg = l?.regions?.[rk];
+  if (regionCfg && typeof regionCfg === 'object') {
+    return Object.values(regionCfg).some((cell) => {
+      if (!cell || typeof cell !== 'object') return false;
+      const enabled = cell.enabled === true || cell.enabled === 'true';
+      const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
+      return enabled && types.length > 0;
+    });
+  }
+
+  const cfg = l.realEstateConfig || {};
+  const regions = Array.isArray(cfg.regions) ? cfg.regions : [];
+  const props = Array.isArray(cfg.propertyTypes) ? cfg.propertyTypes : [];
+  const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
+  if (regions.length && !includesRegion(regions, regionLabel)) return false;
+  return props.length > 0 && types.length > 0;
+}
+
+function lenderSupportsRegionPropertyOnly(l, regionLabel, propertyTypeLabel) {
+  if (!l) return false;
+  const cell = getAdminRegionCell(l, regionLabel, propertyTypeLabel);
+  if (cell) {
+    const enabled = cell.enabled === true || cell.enabled === 'true';
+    const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
+    return enabled && types.length > 0;
+  }
+
+  const cfg = l.realEstateConfig || {};
+  const regions = Array.isArray(cfg.regions) ? cfg.regions : [];
+  const props = Array.isArray(cfg.propertyTypes) ? cfg.propertyTypes : [];
+  const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
+  if (regions.length && !includesRegion(regions, regionLabel)) return false;
+  if (props.length && !includesNorm(props, propertyTypeLabel)) return false;
+  return types.length > 0;
+}
+
+function lenderSupportsRegionPropertyLoanOnly(l, regionLabel, propertyTypeLabel, loanType) {
+  if (!l) return false;
+  const cell = getAdminRegionCell(l, regionLabel, propertyTypeLabel);
+  if (cell) {
+    const enabled = cell.enabled === true || cell.enabled === 'true';
+    if (!enabled) return false;
+    const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
+    if (!types.length) return false;
+    return types.some((t) => normKey(t) === normKey(loanType));
+  }
+
+  const cfg = l.realEstateConfig || {};
+  const regions = Array.isArray(cfg.regions) ? cfg.regions : [];
+  const props = Array.isArray(cfg.propertyTypes) ? cfg.propertyTypes : [];
+  const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
+  if (regions.length && !includesRegion(regions, regionLabel)) return false;
+  if (props.length && !includesNorm(props, propertyTypeLabel)) return false;
+  if (!types.length) return false;
+  return types.some((t) => normKey(t) === normKey(loanType));
+}
+
+function getSupportedRegionsForCurrentCategory() {
+  const meta = getMeta();
+  const regions = Array.isArray(meta?.regions) ? meta.regions : [];
+  const lenders = getActiveCategoryLenders('부동산담보대출');
+  if (!regions.length) return [];
+  if (!lenders.length) return regions.map((r) => String(r.label || r.key || '')).filter(Boolean);
+  return regions
+    .map((r) => String(r.label || r.key || '').trim())
+    .filter(Boolean)
+    .filter((label) => lenders.some((l) => lenderSupportsRegionOnly(l, label)));
+}
+
+function getSupportedPropertyTypesForRegion(regionLabel) {
+  const meta = getMeta();
+  const props = Array.isArray(meta?.propertyTypes) ? meta.propertyTypes : [];
+  const lenders = getActiveCategoryLenders('부동산담보대출');
+  if (!regionLabel || !props.length) return [];
+  return props.filter((p) => {
+    const label = String(p?.label || p?.key || '').trim();
+    return label && lenders.some((l) => lenderSupportsRegionPropertyOnly(l, regionLabel, label));
+  });
+}
+
+function getLoanTypeMetaListForProperty(propLabel) {
+  const meta = getMeta();
+  const lt = meta?.loanTypes;
+  if (!lt || typeof lt !== 'object') return [];
+  let setKey = 'base';
+  if (Array.isArray(meta.propertyTypes) && propLabel) {
+    const hit = meta.propertyTypes.find((p) => {
+      if (!p) return false;
+      return normKey(p.key) === normKey(propLabel) || normKey(p.label) === normKey(propLabel);
+    });
+    if (hit && hit.loanSet) setKey = (hit.loanSet === 'aptv') ? 'aptv' : 'base';
+  }
+  const rawList = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
+  const propSchema = mapPropertyTypeToSchemaKey(propLabel);
+  return rawList.filter((x) => {
+    const key = String(x?.key || x?.label || '');
+    if (propSchema === '토지/임야' && normKey(key) === normKey('임대보증금반환대출')) return false;
+    return true;
+  });
+}
+
+function getSupportedLoanTypesForRegionProperty(regionLabel, propertyTypeLabel) {
+  const lenders = getActiveCategoryLenders('부동산담보대출');
+  const list = getLoanTypeMetaListForProperty(propertyTypeLabel);
+  if (!regionLabel || !propertyTypeLabel) return [];
+  return list.filter((x) => {
+    const key = String(x?.key || x?.label || '').trim();
+    return key && lenders.some((l) => lenderSupportsRegionPropertyLoanOnly(l, regionLabel, propertyTypeLabel, key));
+  });
+}
+
+function renderRegionChipsFromMeta() {
+  const container = document.getElementById('naviRegionChips');
+  if (!container) return;
+  const meta = getMeta();
+  const regions = Array.isArray(meta?.regions) ? meta.regions : [];
+  if (!regions.length) return;
+  const supported = new Set(getSupportedRegionsForCurrentCategory().map((x) => normKey(x)));
+  const list = regions.filter((r) => supported.has(normKey(String(r?.label || r?.key || ''))));
+  container.innerHTML = list.map((r) => {
+    const label = String(r.label || r.key || '');
+    return `<button type="button" class="navi-chip" data-region="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
+  }).join('');
+
+  const selected = String(userState.region || '');
+  const selectedBtn = selected ? Array.from(container.querySelectorAll('.navi-chip')).find((b) => normKey(b.getAttribute('data-region')) === normKey(selected)) : null;
+  if (selectedBtn) {
+    selectedBtn.classList.add('is-selected');
+  } else if (userState.region) {
+    userState.region = null;
+    userState.subregionKey = null;
+    userState.subregionLabel = null;
+    userState.propertyType = null;
+    userState.realEstateLoanType = null;
+    userState.realEstateLoanTypeKey = null;
+    userState.occupancy = null;
+    resetStep4CoreInputs();
+  }
+}
+
+function renderPropertyTypeChipsFromMeta() {
+  const container = document.getElementById('naviPropertyTypeChips');
+  if (!container) return;
+  const meta = getMeta();
+  const props = Array.isArray(meta?.propertyTypes) ? meta.propertyTypes : [];
+  if (!props.length) return;
+  const list = userState.region ? getSupportedPropertyTypesForRegion(userState.region) : [];
+  container.innerHTML = list.map((p) => {
+    const key = String(p.key || p.label || '');
+    const label = String(p.label || p.key || '');
+    const display = (key === '다세대/연립') ? '빌라/다세대' : label;
+    return `<button type="button" class="navi-chip" data-prop="${escapeHtmlAttr(key)}" data-prop-label="${escapeHtmlAttr(label)}">${escapeHtml(display)}</button>`;
+  }).join('');
+
+  const selected = String(userState.propertyType || '');
+  const selectedBtn = selected ? Array.from(container.querySelectorAll('.navi-chip')).find((b) => normKey(b.getAttribute('data-prop-label') || b.getAttribute('data-prop')) === normKey(selected)) : null;
+  if (selectedBtn) {
+    selectedBtn.classList.add('is-selected');
+  } else if (userState.propertyType) {
+    userState.propertyType = null;
+    userState.realEstateLoanType = null;
+    userState.realEstateLoanTypeKey = null;
+    userState.occupancy = null;
+    resetStep4CoreInputs();
+  }
+}
 // ------------------------------------------------------
 // ✅ meta 기반 칩 렌더 (admin SoT)
 // ------------------------------------------------------
@@ -2376,28 +2558,13 @@ function applyMetaChips() {
     updateStep1GridOddState();
   }
 
-  // Step2: 지역
-  const step2 = document.getElementById("naviRegionChips");
-  if (step2 && Array.isArray(meta.regions) && meta.regions.length) {
-    step2.innerHTML = meta.regions.map((r) => {
-      const label = String(r.label || r.key || "");
-      return `<button type="button" class="navi-chip" data-region="${escapeHtmlAttr(label)}">${escapeHtml(label)}</button>`;
-    }).join("");
-  }
+  // Step2: 지역 (실제 취급 지역만 노출)
+  renderRegionChipsFromMeta();
 
-  // Step3: 부동산 유형
-  const step3 = document.getElementById("naviPropertyTypeChips");
-  if (step3 && Array.isArray(meta.propertyTypes) && meta.propertyTypes.length) {
-    step3.innerHTML = meta.propertyTypes.map((p) => {
-      const key = String(p.key || p.label || "");
-      const label = String(p.label || p.key || "");
-      // ✅ 디자인 표기만 일부 보정(내부 key는 유지)
-      const display = (key === "다세대/연립") ? "빌라/다세대" : label;
-      return `<button type="button" class="navi-chip" data-prop="${escapeHtmlAttr(key)}" data-prop-label="${escapeHtmlAttr(label)}">${escapeHtml(display)}</button>`;
-    }).join("");
-  }
+  // Step3: 부동산 유형 (선택한 지역에서 실제 취급하는 유형만 노출)
+  renderPropertyTypeChipsFromMeta();
 
-  // Step4: 대출종류 (propertyType 선택 전에는 기본(base)만 먼저 표시)
+  // Step4: 대출종류 (선택한 지역+유형에서 실제 취급하는 종류만 노출)
   renderLoanTypeChipsFromMeta();
 
   // Step2-추가: 세부지역 (region 선택되면 표시)
@@ -2419,30 +2586,9 @@ function renderLoanTypeChipsFromMeta() {
   const container = document.getElementById("naviRealEstateLoanTypeChips");
   if (!container) return;
 
-  const meta = getMeta();
-  const lt = meta?.loanTypes;
-  if (!lt || typeof lt !== "object") return;
-
-  const propLabel = userState.propertyType;
-  // propertyTypes에서 loanSet 결정 (aptv / base)
-  let setKey = "base";
-  if (Array.isArray(meta.propertyTypes) && propLabel) {
-    const hit = meta.propertyTypes.find((p) => {
-      if (!p) return false;
-      return normKey(p.key) === normKey(propLabel) || normKey(p.label) === normKey(propLabel);
-    });
-    if (hit && hit.loanSet) {
-      setKey = (hit.loanSet === "aptv") ? "aptv" : "base";
-    }
-  }
-
-  const propSchema = mapPropertyTypeToSchemaKey(propLabel);
-  const rawList = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
-  const list = rawList.filter((x) => {
-    const key = String(x?.key || x?.label || "");
-    if (propSchema === "토지/임야" && normKey(key) === normKey("임대보증금반환대출")) return false;
-    return true;
-  });
+  const list = (userState.region && userState.propertyType)
+    ? getSupportedLoanTypesForRegionProperty(userState.region, userState.propertyType)
+    : [];
 
   container.innerHTML = list.map((x) => {
     const k = String(x.key || "");
@@ -2451,20 +2597,25 @@ function renderLoanTypeChipsFromMeta() {
     return `<button type="button" class="navi-chip" data-loan-type="${escapeHtmlAttr(k)}" data-loan-label="${escapeHtmlAttr(label)}"><span class="navi-chip-label">${labelHtml}</span></button>`;
   }).join("");
 
-  // ✅ (UX) 재렌더링 이후에도 선택된 대출종류 칩의 강조(검정 배경)를 유지
-  // - recalcAndUpdateSummary()에서 Step4 칩을 재구성하는 흐름이 있어, 선택 표시가 초기화될 수 있음
   const chosenKey = userState.realEstateLoanTypeKey || "";
   const chosenLabel = userState.realEstateLoanType || "";
   if (chosenKey || chosenLabel) {
     const btns = Array.from(container.querySelectorAll(".navi-chip"));
-    const hitByKey = chosenKey ? btns.find((b) => b.getAttribute("data-loan-type") === chosenKey) : null;
+    const hitByKey = chosenKey ? btns.find((b) => normKey(b.getAttribute("data-loan-type")) === normKey(chosenKey)) : null;
     const hitByLabel = (!hitByKey && chosenLabel)
-      ? btns.find((b) => (b.getAttribute("data-loan-label") || b.textContent || "") === chosenLabel)
+      ? btns.find((b) => normKey(b.getAttribute("data-loan-label") || b.textContent || "") === normKey(chosenLabel))
       : null;
     const hit = hitByKey || hitByLabel;
-    if (hit) singleSelectChip(container, hit);
+    if (hit) {
+      singleSelectChip(container, hit);
+    } else if (userState.realEstateLoanType || userState.realEstateLoanTypeKey) {
+      userState.realEstateLoanType = null;
+      userState.realEstateLoanTypeKey = null;
+      userState.occupancy = null;
+      resetStep4CoreInputs();
+      document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
+    }
   }
-
 }
 
 // Step2 세부지역(LTV Up)
@@ -2618,6 +2769,9 @@ function setupStep1() {
     trackProductGroupClick(next);
 
     resetRealEstateDraftState();
+    renderRegionChipsFromMeta();
+    renderPropertyTypeChipsFromMeta();
+    renderLoanTypeChipsFromMeta();
 
     // ✅ 추가조건(선택) 리셋
     userState.extra.incomeType = null;
@@ -2857,7 +3011,14 @@ function setupStep2() {
     // 세부지역(LTV Up) 초기화
     userState.subregionKey = null;
     userState.subregionLabel = null;
+    userState.propertyType = null;
+    userState.realEstateLoanType = null;
+    userState.realEstateLoanTypeKey = null;
+    userState.occupancy = null;
+    resetStep4CoreInputs();
     renderSubregionChips();
+    renderPropertyTypeChipsFromMeta();
+    renderLoanTypeChipsFromMeta();
 
     uiState.hasRenderedResult = false;
     recalcAndUpdateSummary();
@@ -2915,7 +3076,6 @@ function setupStep3() {
     userState.propertyType = nextPropType;
 
     if (propChanged) resetStep4CoreInputs();
-    updateLoanTypeChipVisibility();
 
     userState.realEstateLoanType = null;
     userState.occupancy = null;
@@ -2924,6 +3084,7 @@ function setupStep3() {
       .querySelectorAll("#naviRealEstateLoanTypeChips .navi-chip, #naviOccupancyChips .navi-chip")
       .forEach((c) => c.classList.remove("is-selected"));
 
+    renderLoanTypeChipsFromMeta();
     recalcAndUpdateSummary();
   });
 }
