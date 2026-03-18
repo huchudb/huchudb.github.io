@@ -146,9 +146,6 @@
           <button type="button" class="navi-chip" data-prop="토지/임야">토지/임야</button>
           <button type="button" class="navi-chip" data-prop="근린생활시설">근린생활시설</button>
         </div>
-        <p class="navi-help">
-          ※ 부동산이 아닌 상품군(개인신용대출, 스탁론 등)은 이 단계가 필수가 아닙니다.
-        </p>
               <div id="naviStep3Actions">
           <button type="button" id="naviStep3BackBtn" aria-label="Back">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -307,11 +304,16 @@
 
       <!-- 6-1. 차주 추가정보 (선택) -->
       <section class="beta-section navi-section hide" id="navi-step6-1">
-        <div class="navi-section-title"></div>
+        <div class="navi-section-title">6-1. 차주 추가정보 (선택)</div>
+        <div class="navi-section-sub">
+          아래 정보는 모두 선택하지 않아도 됩니다. 다만 많이 입력하실수록 보다 정확하게 온투업체를 매칭할 수 있습니다.
+        </div>
 
         <div class="navi-card">
+          <div style="margin-bottom:6px;font-size:12px;color:#374151;">
+            · 선택하신 추가조건은 <strong>추천 온투업체 필터링 및 정렬</strong>에 반영됩니다.
+          </div>
 
-          <div class="navi-section-sub" style="margin-top:4px;">1) 소득유형</div>
           <div class="navi-chip-group" id="naviExtraIncomeType">
             <button type="button" class="navi-chip" data-income="근로소득">근로소득</button>
             <button type="button" class="navi-chip" data-income="근로외증빙소득">근로외 증빙소득</button>
@@ -321,27 +323,23 @@
             </button>
           </div>
 
-          <div class="navi-section-sub" style="margin-top:10px;">2) 신용점수 구간</div>
           <div class="navi-chip-group" id="naviExtraCreditBand">
             <button type="button" class="navi-chip" data-credit="600미만">600점 미만</button>
             <button type="button" class="navi-chip" data-credit="600이상">600점 이상</button>
           </div>
 
-          <div class="navi-section-sub" style="margin-top:10px;">3) 상환계획</div>
           <div class="navi-chip-group" id="naviExtraRepayPlan">
             <button type="button" class="navi-chip" data-repay="3개월내">3개월 내</button>
             <button type="button" class="navi-chip" data-repay="3개월초과~1년미만">3개월 초과~1년 미만</button>
             <button type="button" class="navi-chip" data-repay="1년이상">1년 이상</button>
           </div>
 
-          <div class="navi-section-sub" style="margin-top:10px;">4) 대출금 필요시기</div>
           <div class="navi-chip-group" id="naviExtraNeedTiming">
             <button type="button" class="navi-chip" data-need="당일">당일</button>
             <button type="button" class="navi-chip" data-need="1주일내">1주일 내</button>
             <button type="button" class="navi-chip" data-need="한달이내">한달 이내</button>
           </div>
 
-          <div class="navi-section-sub" style="margin-top:10px;">5) 기타사항</div>
           <div class="navi-chip-group" id="naviExtraOthers">
             <button type="button" class="navi-chip" data-etc="세금체납">세금체납</button>
             <button type="button" class="navi-chip" data-etc="연체기록">연체기록</button>
@@ -349,6 +347,10 @@
             <button type="button" class="navi-chip" data-etc="개인회생">개인회생</button>
           </div>
 
+          <p class="navi-help" style="margin-top:10px;">
+            ※ 온투업 전업종 공통 취급 불가 안내(선택이 아닌 안내용): 임차인·무상거주자 동의 불가, 맹지, 법인소유자,
+            시세 1억 미만 등은 별도 제한이 있을 수 있습니다.
+          </p>
 
           <div id="naviExtraCountInfo" class="navi-info-chip" style="display:none;"></div>
         </div>
@@ -356,7 +358,7 @@
 
       <!-- 7. 네비게이션 결과 -->
       <section class="beta-section navi-section hide" id="navi-step7">
-        <div class="navi-section-title"></div>
+        <div class="navi-section-title">7. 네비게이션 결과</div>
 
         <div class="navi-card" id="naviResultWrapper">
           <div class="navi-result-header">
