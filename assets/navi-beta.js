@@ -13,67 +13,6 @@ function getKstDateKey(d = new Date()) {
   }
 }
 
-const NAVI_STATS_CLIENT_ID_KEY = "huchu_navi_stats_client_id_v1";
-
-function getOrCreateNaviStatsClientId() {
-  try {
-    const existing = localStorage.getItem(NAVI_STATS_CLIENT_ID_KEY);
-    if (existing && /^[A-Za-z0-9_-]{8,120}$/.test(existing)) return existing;
-  } catch (_) {}
-
-  let next = "";
-  try {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      next = crypto.randomUUID().replace(/-/g, "");
-    }
-  } catch (_) {}
-  if (!next) next = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-  next = String(next).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
-
-  try { localStorage.setItem(NAVI_STATS_CLIENT_ID_KEY, next); } catch (_) {}
-  return next;
-}
-
-function resolveNaviStatsLoanTypeKey() {
-  const raw = String(
-    userState.realEstateLoanTypeKey ||
-    userState.realEstateLoanType ||
-    userState.mainCategory ||
-    ""
-  ).trim();
-  if (!raw) return "";
-  return raw.replace(/\s+/g, " ").slice(0, 120);
-}
-
-function trackResultViewOncePerDay(extra = {}) {
-  try {
-    const productGroupKey = toProductGroupStatKey(userState.mainCategory || "");
-    const loanTypeKey = resolveNaviStatsLoanTypeKey();
-    if (!productGroupKey || !loanTypeKey) return;
-
-    const payload = {
-      event: "result_view",
-      ts: Date.now(),
-      dateKst: getKstDateKey(),
-      clientId: getOrCreateNaviStatsClientId(),
-      productGroupKey,
-      productGroupRaw: String(userState.mainCategory || ""),
-      loanTypeKey,
-      regionKey: uiState.region || userState.region || "",
-      propertyTypeKey: userState.propertyType || "",
-      resultCount: Number(extra.resultCount) || 0,
-    };
-
-    const memoryKey = `${payload.dateKst}::${payload.loanTypeKey}::${payload.clientId}`;
-    if (uiState.lastTrackedResultViewKey === memoryKey) return;
-    uiState.lastTrackedResultViewKey = memoryKey;
-
-    postNaviStatsOncePerClick(payload);
-  } catch (e) {
-    console.warn("result_view track failed:", e);
-  }
-}
-
 async function postNaviStatsOncePerClick(payload) {
   // 통계 저장 실패는 UX를 막지 않음
   try {
@@ -140,10 +79,21 @@ const __HUCHU_NAVI_CLICK_GUARD__ = {
   lastAtByKey: Object.create(null)
 };
 
-function trackProductGroupClick(_rawMainCategory) {
-  // 2026-03 기준: 버튼 클릭 수는 의미 있는 메인 지표가 아니어서 집계하지 않습니다.
-  // 실제 결과 카드가 1개 이상 렌더링된 시점(result_view)만 별도 집계합니다.
-  return;
+function trackProductGroupClick(rawMainCategory) {
+  const key = toProductGroupStatKey(rawMainCategory);
+  if (!key) return;
+
+  const now = Date.now();
+  const last = __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] || 0;
+  if (now - last < 700) return; // 700ms debounce per key
+  __HUCHU_NAVI_CLICK_GUARD__.lastAtByKey[key] = now;
+
+  // 통계 실패는 UX를 막지 않음 (post 함수 내부에서 catch)
+  postNaviStatsOncePerClick({
+    event: "product_click",
+    productGroupKey: key,
+    productGroupRaw: String(rawMainCategory || "")
+  });
 }
 
 function setStep6Visible(isOn) {
@@ -253,15 +203,7 @@ function syncWizardSingleCardView() {
 
   // ✅ Back 버튼 등에서 "이전 스텝을 강제로 보여주기" 위한 override
   const forcedId = (uiState && uiState.forcedWizardStepId) ? String(uiState.forcedWizardStepId) : "";
-  let activeEl = null;
-  if (forcedId) {
-    const forcedEl = document.getElementById(forcedId);
-    const forcedHiddenByClass = forcedEl ? forcedEl.classList.contains("hide") : true;
-    const forcedHiddenByStyle = forcedEl ? (forcedEl.style && forcedEl.style.display === "none") : true;
-    if (forcedEl && !forcedHiddenByClass && !forcedHiddenByStyle) {
-      activeEl = forcedEl;
-    }
-  }
+  let activeEl = forcedId ? document.getElementById(forcedId) : null;
 
   if (!activeEl) {
     WIZARD_STEP_IDS.forEach((id) => {
@@ -296,23 +238,6 @@ function clearWizardForcedStep() {
   if (!uiState) return;
   if (!uiState.forcedWizardStepId) return;
   uiState.forcedWizardStepId = null;
-}
-
-function forceWizardToStep(stepId) {
-  const targetId = String(stepId || "navi-step1");
-  WIZARD_STEP_IDS.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (id === targetId) {
-      el.classList.remove("hide");
-      el.style.display = "";
-    } else if (id !== "navi-step1") {
-      el.classList.add("hide");
-      el.style.display = "none";
-    }
-  });
-  if (uiState) uiState.forcedWizardStepId = targetId;
-  syncWizardSingleCardView();
 }
 
 function updateWizardProgressByActiveStepId(activeStepId) {
@@ -421,159 +346,6 @@ const STEP5_MATRIX = {"아파트":{"일반담보대출":{"supported":true,"field
     "매입잔금(분양)":{"supported":false,"fields":[]}}};
 
 // 숫자 유틸
-// ------------------------------------------------------
-// ✅ Step5 Matrix/Field UI 보정 (A~C)
-// - 계산식/스키마 불일치 보정(예: 토지/임야×경락잔금 REQ 누락)
-// - 라벨 오타/중복 단위 보정
-// - Step5 라벨/placeholder는 스키마를 기반으로 하되, 조합별 의미가 명확해지도록 최소한으로 표준화
-// ------------------------------------------------------
-let __STEP5_MATRIX_PATCHED__ = false;
-
-function __nk(s) {
-  return String(s || "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[()·/_-]/g, "")
-    .toLowerCase();
-}
-
-function patchStep5MatrixOnce() {
-  if (__STEP5_MATRIX_PATCHED__) return;
-  __STEP5_MATRIX_PATCHED__ = true;
-
-  const isPlainObj = (x) => x && typeof x === "object" && !Array.isArray(x);
-
-  const ensureField = (schema, fieldDef, afterCode) => {
-    if (!schema || !Array.isArray(schema.fields)) return;
-    const code = String(fieldDef?.code || "").trim();
-    if (!code) return;
-    if (schema.fields.some((f) => String(f?.code || "").trim() === code)) return;
-
-    let idx = -1;
-    if (afterCode) idx = schema.fields.findIndex((f) => String(f?.code || "").trim() === afterCode);
-    if (idx >= 0) schema.fields.splice(idx + 1, 0, fieldDef);
-    else schema.fields.push(fieldDef);
-  };
-
-  // 1) 경락잔금: calcLtv는 REQ를 사용합니다. 스키마에 REQ가 없으면 UI/계산 불일치가 발생합니다.
-  Object.entries(STEP5_MATRIX || {}).forEach(([pt, byLoan]) => {
-    if (!isPlainObj(byLoan)) return;
-    Object.entries(byLoan).forEach(([lt, schema]) => {
-      if (!isPlainObj(schema) || !Array.isArray(schema.fields)) return;
-      if (!schema.supported) return;
-
-      const ltN = __nk(lt);
-      if (ltN.includes("경락") && ltN.includes("잔금")) {
-        // 토지/임야 등 일부 조합에서 REQ 누락 케이스 보정
-        ensureField(schema, { code: "REQ", required: true, label: "필요 대출금액(원)" }, "SL");
-      }
-    });
-  });
-
-  // 2) 라벨 오타/중복 단위 보정
-  Object.entries(STEP5_MATRIX || {}).forEach(([pt, byLoan]) => {
-    if (!isPlainObj(byLoan)) return;
-    Object.entries(byLoan).forEach(([lt, schema]) => {
-      if (!isPlainObj(schema) || !Array.isArray(schema.fields)) return;
-
-      schema.fields.forEach((f) => {
-        if (!f || typeof f !== "object") return;
-        if (typeof f.label === "string") {
-          f.label = f.label
-            .replaceAll("(원)(원)", "(원)")
-            .replaceAll("낙찰가or감정가", "낙찰가/감정가")
-            .replaceAll("KB시세or", "KB시세/")
-            .replaceAll("\"하우스머치시세”\"", "하우스머치시세")
-            .replaceAll("“하우스머치시세”", "하우스머치시세")
-            .trim();
-        }
-      });
-    });
-  });
-}
-
-// 앱 로드시 1회 패치
-patchStep5MatrixOnce();
-
-function getStep5Ctx() {
-  const prop = String(userState.propertyType || "");
-  const loan = String(userState.realEstateLoanTypeKey || userState.realEstateLoanType || "");
-  const propN = __nk(prop);
-  const loanN = __nk(loan);
-
-  const isAuction = loanN.includes("경락") && loanN.includes("잔금");
-  const isBuyout = loanN.includes("매입") && loanN.includes("잔금");
-  const isRefi = loanN.includes("대환");
-  const isDepReturn = loanN.includes("임대") && loanN.includes("보증금") && loanN.includes("반환");
-
-  return { prop, loan, propN, loanN, isAuction, isBuyout, isRefi, isDepReturn };
-}
-
-// 조합별 입력 의미가 분명해지도록 라벨/placeholder를 최소 표준화합니다.
-function getStep5FieldPresentation(def, code) {
-  const ctx = getStep5Ctx();
-  const c = String(code || "").trim();
-  let label = String(def?.label || "").trim();
-  let placeholder = "";
-
-  // ---- PV(담보가치) 라벨 보정 ----
-  if (c === "PV") {
-    if (ctx.isAuction) label = "낙찰가(원)";
-    else if (ctx.isBuyout && ctx.loanN.includes("분양")) label = "분양가(원)";
-    else if (ctx.isBuyout) label = "매입가(원)";
-    else if (ctx.propN.includes("토지") || ctx.propN.includes("임야")) label = "감정가/공시지가(원)";
-    else if (ctx.propN.includes("근린")) label = "시세/감정가(원)";
-    else if (ctx.propN.includes("다세대") || ctx.propN.includes("연립") || ctx.propN.includes("빌라")) {
-      label = label && label.includes("하우스") ? label : "하우스머치시세(원)";
-    } else {
-      if (!label) label = "시세(원)";
-      if (label === "KB시세") label = "KB시세(원)";
-    }
-  }
-
-  // ---- ASB/REF/DEP 등 표준화 ----
-  if (c === "ASB") {
-    if (!label) label = "인수되는 선순위 금액(원)";
-    label = label.replaceAll("권리", "").replaceAll("  ", " ").trim();
-    if (!label.includes("(원)")) label += "(원)";
-  }
-  if (c === "REF") {
-    if (!label) label = "상환할 선순위 금액(원)";
-    if (!label.includes("(원)")) label += "(원)";
-  }
-  if (c === "DEP") {
-    if ((ctx.isAuction || ctx.isBuyout) && label && label.includes("임대보증금")) {
-      label = "예정 선순위 임대보증금(원)";
-    }
-    if (!label) label = "임대보증금(원)";
-    if (!label.includes("(원)")) label += "(원)";
-  }
-  if (c === "SP") {
-    if (!label) label = "지분율(%)";
-    if (!label.includes("(%)")) label = label.replaceAll("%", "").trim() + "(%)";
-  }
-  if (c === "REQ") {
-    if (!label) label = "필요 대출금액(원)";
-    if (!label.includes("(원)")) label += "(원)";
-  }
-  if (c === "SL") {
-    if (!label) label = "선순위 대출금액(원)";
-    if (label.includes("선순위 총 대출금액")) label = "선순위 총 대출(원금)금액(원)";
-    else if (label.includes("선순위 대출금액")) label = "선순위 대출(원금)금액(원)";
-    if (!label.includes("(원)")) label += "(원)";
-  }
-
-  placeholder = makeStep5Placeholder(label);
-  if (c === "PV" && ctx.isAuction) placeholder = "낙찰가를 입력하세요";
-  if (c === "PV" && ctx.isBuyout && !ctx.loanN.includes("분양")) placeholder = "매입가를 입력하세요";
-  if (c === "SL" && label.includes("총 대출")) placeholder = "선순위 총 대출(원금)금액을 입력하세요";
-  else if (c === "SL") placeholder = "선순위 대출(원금)금액을 입력하세요";
-  if (c === "ASB") placeholder = "인수되는 선순위 금액을 입력하세요";
-  if (c === "DEP" && (ctx.isAuction || ctx.isBuyout)) placeholder = "예정 선순위 임대보증금을 입력하세요";
-
-  return { label, placeholder };
-}
-
 function stripNonDigits(str) {
   return (str || "").replace(/[^\d]/g, "");
 }
@@ -615,7 +387,8 @@ function normKey(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[()·/_-]/g, "")
+    .replace(/[()·]/g, "")
+    .replace(/_/g, "")
     .toLowerCase();
 }
 function includesNorm(list, value) {
@@ -676,12 +449,9 @@ const REGION_KEY_TO_LABEL = {
 const PROP_LABEL_TO_KEY = {
   "아파트": "apt",
   "다세대/연립": "villa",
-  "다세대·연립": "villa",
   "오피스텔": "officetel",
   "단독/다가구": "detached",
-  "단독·다가구": "detached",
   "토지/임야": "land",
-  "토지·임야": "land",
   "근린생활시설": "commercial",
 };
 
@@ -710,17 +480,7 @@ function regionKeyFromLabel(label) {
 
 function propKeyFromLabel(label) {
   if (!label) return "";
-  const raw = String(label).trim();
-  if (PROP_LABEL_TO_KEY[raw]) return PROP_LABEL_TO_KEY[raw];
-
-  const nk = normKey(raw);
-  if (nk === normKey("아파트") || nk === "apt") return "apt";
-  if (nk === normKey("다세대/연립") || nk === normKey("다세대·연립") || nk === normKey("빌라/다세대") || nk === "villa") return "villa";
-  if (nk === normKey("오피스텔") || nk === "officetel") return "officetel";
-  if (nk === normKey("단독/다가구") || nk === normKey("단독·다가구") || nk === "detached") return "detached";
-  if (nk === normKey("토지/임야") || nk === normKey("토지·임야") || nk === "land") return "land";
-  if (nk === normKey("근린생활시설") || nk === "commercial") return "commercial";
-  return "";
+  return PROP_LABEL_TO_KEY[String(label).trim()] || "";
 }
 
 // --------- 퍼센트/수수료 파싱 ----------
@@ -995,7 +755,6 @@ const uiState = {
   forcedWizardStepId: null, // single-card-mode에서 Back 시 이전 스텝을 강제로 보여주기 위한 override
   hasRenderedResult: false,
   loanHelpText: "", // Step4에서 선택된 대출종류 안내문(스키마 fallback 메시지로 덮이는 것을 방지)
-  lastTrackedResultViewKey: "",
 };
 
 const userState = {
@@ -1127,51 +886,6 @@ function clearInputValueById(id) {
   } catch (_) {}
 }
 
-function setInputValueSilently(id, value = "") {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.value = value;
-}
-
-function resetStep4CoreInputs() {
-  userState.occupancy = null;
-  userState.propertyValue = 0;
-  userState.sharePercent = 0;
-  userState.seniorLoan = 0;
-  userState.deposit = 0;
-  userState.refinanceAmount = 0;
-  userState.requestedAmount = 0;
-  userState.assumedBurden = 0;
-
-  setInputValueSilently("naviInputPropertyValue", "");
-  setInputValueSilently("naviInputSharePercent", "");
-  setInputValueSilently("naviInputSeniorLoan", "");
-  setInputValueSilently("naviInputDeposit", "");
-  setInputValueSilently("naviInputRefinanceAmount", "");
-  setInputValueSilently("naviInputRequestedAmount", "");
-  setInputValueSilently("naviInputAssumedBurden", "");
-
-  document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
-  clearStep5FieldErrors();
-  updateStep5MoneyKoHints();
-
-  const warningEl = document.getElementById("naviAmountWarning");
-  if (warningEl) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
-  }
-
-  const cta = document.getElementById("naviStep5CTA");
-  if (cta) {
-    cta.style.display = "none";
-    cta.classList.add("hide");
-    cta.disabled = true;
-    cta.setAttribute("aria-hidden", "true");
-  }
-
-  invalidateConfirmed();
-}
-
 function resetRealEstateDraftState() {
   // ✅ Step2~5 선택/입력 리셋 (부동산담보대출 작성 중 상태 제거)
   userState.region = null;
@@ -1278,7 +992,7 @@ function updateLoanTypeChipVisibility() {
   }
   if (!container) return;
 
-  const prop = mapPropertyTypeToSchemaKey(userState.propertyType || userState.propertyTypeKey || "");
+  const prop = userState.propertyType;
   const isAptOrVilla = prop === "아파트" || prop === "다세대/연립";
   const isLand = prop === "토지/임야";
 
@@ -1315,74 +1029,12 @@ function updateLoanTypeChipVisibility() {
 // Step5: 폼 스키마 적용 (라벨/필수/노출)
 // ------------------------------------------------------
 
-function mapPropertyTypeToSchemaKey(prop) {
-  const k = normKey(prop);
-  if (!k) return prop;
-
-  // ✅ meta propertyTypes의 key(apt/villa/...)도 지원
-  const keyMap = {
-    apt: "아파트",
-    villa: "다세대/연립",
-    officetel: "오피스텔",
-    detached: "단독/다가구",
-    land: "토지/임야",
-    commercial: "근린생활시설",
-  };
-  if (k in keyMap) return keyMap[k];
-
-  // ✅ 라벨/표기 흔들림도 방어
-  if (k.includes("아파트")) return "아파트";
-  if (k.includes("오피스텔")) return "오피스텔";
-  if (k.includes("다세대") || k.includes("연립") || k.includes("빌라")) return "다세대/연립";
-  if (k.includes("단독") || k.includes("다가구")) return "단독/다가구";
-  if (k.includes("토지") || k.includes("임야")) return "토지/임야";
-  if (k.includes("근린")) return "근린생활시설";
-  return prop;
-}
-
-function mapLoanTypeToSchemaKey(loan) {
-  const k = normKey(loan);
-  if (!k) return loan;
-  if (k.includes("일반") && k.includes("담보")) return "일반담보대출";
-  if (k.includes("임대") && k.includes("보증금") && k.includes("반환")) return "임대보증금반환대출";
-  if (k.includes("지분")) return "지분대출";
-  if (k.includes("경락") && k.includes("잔금")) return "경락잔금대출";
-  if (k.includes("대환")) return "대환대출";
-  if (k.includes("매입") && k.includes("잔금") && (k.includes("분양") || k.includes("분양권"))) return "매입잔금(분양)";
-  if (k.includes("매입") && k.includes("잔금")) return "매입잔금(일반)";
-  return loan;
-}
-
-function getSelectedLoanTypeCandidates(rawKey = userState.realEstateLoanTypeKey, rawLabel = userState.realEstateLoanType) {
-  const raw = [rawKey, rawLabel, mapLoanTypeToSchemaKey(rawKey), mapLoanTypeToSchemaKey(rawLabel)]
-    .filter(Boolean)
-    .map((x) => String(x));
-
-  const out = [];
-  raw.forEach((c) => {
-    if (!out.some((x) => normKey(x) === normKey(c))) out.push(c);
-  });
-  return out;
-}
-
-function loanTypeMatchesConfigured(types, rawKey = userState.realEstateLoanTypeKey, rawLabel = userState.realEstateLoanType) {
-  const arr = Array.isArray(types) ? types : [];
-  if (!arr.length) return false;
-  const candidates = getSelectedLoanTypeCandidates(rawKey, rawLabel);
-  if (!candidates.length) return false;
-  return arr.some((t) => candidates.some((c) => normKey(t) === normKey(c)));
-}
-
 function getStep5Schema() {
-  // ✅ Step5 스키마는 "표시용 라벨"이 아니라, 관리자 meta key/label 흔들림을 견딜 수 있도록 정규화해서 매칭합니다.
-  const rawProp = userState.propertyType;
-  const rawLoanKey = userState.realEstateLoanTypeKey;
-  const rawLoanLabel = userState.realEstateLoanType;
+  const prop = userState.propertyType;
+  const loan = userState.realEstateLoanType;
+  if (!prop || !loan) return null;
 
-  const prop = mapPropertyTypeToSchemaKey(rawProp);
-  if (!prop) return null;
-
-  // ✅ fallback: 스키마 미등록 시에도 Step5 UI가 비지 않도록 최소 필드로 표시
+  // ✅ fallback: 관리자 스키마가 없더라도 Step5 UI가 비지 않도록 최소 필드로 표시
   const fallback = {
     supported: true,
     __fallback: true,
@@ -1397,35 +1049,12 @@ function getStep5Schema() {
   const byProp = STEP5_MATRIX[prop];
   if (!byProp) return fallback;
 
-  const candidates = getSelectedLoanTypeCandidates(rawLoanKey, rawLoanLabel);
-
-  if (!candidates.length) return fallback;
-
-  // 1) direct hit
-  for (const c of candidates) {
-    if (byProp[c]) {
-      const schema = byProp[c];
-      if (schema && schema.supported) return schema;
-    }
-  }
-
-  // 2) normalized scan
   const keys = Object.keys(byProp || {});
-  for (const c of candidates) {
-    const hit = keys.find((k) => normKey(k) === normKey(c));
-    if (hit) {
-      const schema = byProp[hit];
-      if (schema && schema.supported) return schema;
-    }
-  }
+  const foundKey = keys.find((k) => normKey(k) === normKey(loan));
+  const schema = foundKey ? byProp[foundKey] : null;
 
-  // 3) last resort: loan string contains match (예: '일반담보형' -> '일반담보대출')
-  for (const c of candidates) {
-    const schemaKey = mapLoanTypeToSchemaKey(c);
-    if (byProp[schemaKey] && byProp[schemaKey].supported) return byProp[schemaKey];
-  }
-
-  return fallback;
+  if (!schema || !schema.supported) return fallback;
+  return schema;
 }
 
 function ensureAssumedBurdenField() {
@@ -1490,14 +1119,8 @@ function makeStep5Placeholder(labelText) {
     .replace(/\s+/g, " ")
     .trim();
   if (!cleaned) return "";
-
-  const last = cleaned[cleaned.length - 1] || "";
-  const code = last.charCodeAt(0);
-  const isHangul = code >= 0xac00 && code <= 0xd7a3;
-  if (!isHangul) return cleaned + "을 입력하세요";
-
-  const hasBatchim = ((code - 0xac00) % 28) !== 0;
-  return cleaned + (hasBatchim ? "을" : "를") + " 입력하세요";
+  // 조사(을/를) 정확도보다 가독성 우선
+  return cleaned + "를 입력하세요";
 }
 
 function formatMoneyKorean(num) {
@@ -1598,79 +1221,9 @@ function ensureOccBlockPlacementAndTitle() {
   }
 }
 
-// ------------------------------------------------------
-// ✅ Step5 스키마 적용은 "조합/거주형태 변경" 때만 (입력 중 리렌더 방지)
-// - 매 타이핑마다 Step5 DOM을 재정렬/재표시하면 포커스가 끊길 수 있습니다.
-// ------------------------------------------------------
-let __STEP5_SCHEMA_SIG__ = "";
-function getStep5SchemaSig() {
-  // 입력값(PV/SL/REQ/...) 변화는 포함하지 않음
-  return [
-    String(userState.propertyType || ""),
-    String(userState.realEstateLoanTypeKey || ""),
-    String(userState.realEstateLoanType || ""),
-    String(userState.occupancy || ""),
-  ].join("|");
-}
-function maybeApplyStep5Schema(force = false) {
-  const sig = getStep5SchemaSig();
-  if (!force && sig && sig === __STEP5_SCHEMA_SIG__) return;
-  __STEP5_SCHEMA_SIG__ = sig;
-  applyStep5Schema();
-}
-
-function setStep5TopMessage(message = "") {
-  const helpEl = document.getElementById("naviLoanTypeHelp");
-  if (!helpEl) return;
-  const msg = String(message || "").trim();
-  helpEl.textContent = msg;
-  helpEl.style.display = msg ? "block" : "none";
-}
-
-function hasStep5ConfiguredLender() {
-  const lenders = naviLoanConfig.lenders || [];
-  if (!lenders.length) return false;
-
-  const { mainCategory, region, propertyType, realEstateLoanType, realEstateLoanTypeKey } = userState;
-  if (mainCategory !== "부동산담보대출") return true;
-  if (!region || !propertyType || !(realEstateLoanTypeKey || realEstateLoanType)) return true;
-
-  return lenders.some((l) => {
-    if (!l || l.isActive === false || l.isNewLoanActive === false) return false;
-
-    const cats = Array.isArray(l.loanCategories) ? l.loanCategories : [];
-    if (cats.length && !includesNorm(cats, mainCategory)) return false;
-
-    const cell = getAdminRegionCell(l, region, propertyType);
-    if (cell) {
-      const enabled = cell.enabled === true || cell.enabled === "true";
-      if (!enabled) return false;
-      const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
-      if (!types.length) return false;
-      if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
-      return true;
-    }
-
-    const cfg = l.realEstateConfig || {};
-    if (region) {
-      const rgs = cfg.regions || [];
-      if (rgs.length && !includesRegion(rgs, region)) return false;
-    }
-    if (propertyType) {
-      const props = cfg.propertyTypes || [];
-      if (props.length && !includesNorm(props, propertyType)) return false;
-    }
-    const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
-    if (!types.length) return false;
-    if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
-    return true;
-  });
-}
-
 function applyStep5Schema() {
   ensureAssumedBurdenField();
   ensureOccBlockPlacementAndTitle();
-  setStep5TopMessage("");
 
   const schema = getStep5Schema();
   const occBlock = document.getElementById("naviOccupancyChips")?.parentElement;
@@ -1679,90 +1232,19 @@ function applyStep5Schema() {
   const fieldDefs = schema?.fields || [];
   const visibleCodes = new Set(fieldDefs.map((f) => f.code));
 
-  const splitEl = document.querySelector("#navi-step5 .navi-step5-split");
-  const ctaEl = document.getElementById("naviStep5CTA");
-  const confirmRowEl = document.querySelector("#navi-step5 .navi-step5-confirm");
-  const warningEl = document.getElementById("naviAmountWarning");
-  const configReady = hasStep5ConfiguredLender();
-
-  if (!configReady) {
-    setStep5TopMessage("※ 선택하신 지역·부동산유형·대출종류를 현재 취급하는 업체가 없습니다. 다른 조건을 선택해 주세요.");
-    if (splitEl) splitEl.style.display = "none";
-    if (ctaEl) { ctaEl.style.display = "none"; ctaEl.classList.add("hide"); }
-    if (confirmRowEl) confirmRowEl.style.display = "none";
-    if (warningEl) { warningEl.style.display = "none"; warningEl.textContent = ""; }
-    clearStep5FieldErrors();
-    return;
-  }
-
-  if (splitEl) splitEl.style.display = "";
-  if (confirmRowEl) confirmRowEl.style.display = "";
-
   const isBuyoutOrAuction =
-  normKey(userState.realEstateLoanType).includes("경락잔금") ||
-  normKey(userState.realEstateLoanType).includes("매입잔금");
-const occSelfText = isBuyoutOrAuction ? "본인거주(예정)" : "본인거주";
-const occRentText = isBuyoutOrAuction ? "임대(예정)" : "임대";
+    normKey(userState.realEstateLoanType).includes("경락잔금") ||
+    normKey(userState.realEstateLoanType).includes("매입잔금");
+  const occSelfText = isBuyoutOrAuction ? "본인거주(예정)" : "본인거주";
+  const occRentText = isBuyoutOrAuction ? "임대(예정)" : "임대";
 
-const occContainer = document.getElementById("naviOccupancyChips");
-if (occContainer) {
-  const occDef = fieldDefs.find((f) => f && f.code === "OCC");
-  const wantsTakeover =
-    (occDef && String(occDef.label || "").includes("선순위임차인인수")) ||
-    fieldDefs.some((f) => String(f?.note || "").includes("선순위임차인인수"));
-
-  // ✅ (B) '선순위임차인인수' 옵션이 스키마에 있을 때만 3번째 버튼 표시
-  let takeoverBtn = occContainer.querySelector('[data-occ="takeover"]');
-  if (wantsTakeover) {
-    if (!takeoverBtn) {
-      takeoverBtn = document.createElement("button");
-      takeoverBtn.type = "button";
-      takeoverBtn.className = "navi-chip navi-step5-occ-btn";
-      takeoverBtn.setAttribute("data-occ", "takeover");
-      occContainer.appendChild(takeoverBtn);
-    }
-    takeoverBtn.style.display = "";
-    takeoverBtn.textContent = "선순위임차인 인수";
-  } else {
-    if (takeoverBtn) {
-      takeoverBtn.style.display = "none";
-      takeoverBtn.classList.remove("is-selected");
-    }
-    if (userState.occupancy === "takeover") userState.occupancy = null;
+  const occContainer = document.getElementById("naviOccupancyChips");
+  if (occContainer) {
+    const selfBtn = occContainer.querySelector('[data-occ="self"]');
+    const rentBtn = occContainer.querySelector('[data-occ="rental"]');
+    if (selfBtn) selfBtn.textContent = occSelfText;
+    if (rentBtn) rentBtn.textContent = occRentText;
   }
-
-  const selfBtn = occContainer.querySelector('[data-occ="self"]');
-  const rentBtn = occContainer.querySelector('[data-occ="rental"]');
-  if (selfBtn) selfBtn.textContent = occSelfText;
-  if (rentBtn) rentBtn.textContent = occRentText;
-
-  // ✅ 상태값 기반 선택 표시 동기화
-  occContainer.querySelectorAll(".navi-chip").forEach((b) => {
-    const k = b.getAttribute("data-occ");
-    if (!k) return;
-    b.classList.toggle("is-selected", String(userState.occupancy || "") === k);
-  });
-
-  // ✅ (B) 임대(예정) 선택 시에만 보이는 짧은 도움말
-  const branches = occContainer.closest(".navi-occ-branches");
-  let occHelp = document.getElementById("naviOccHelp");
-  if (!occHelp && branches) {
-    occHelp = document.createElement("div");
-    occHelp.id = "naviOccHelp";
-    occHelp.className = "navi-help navi-step5-occ-help";
-    branches.appendChild(occHelp);
-  }
-  if (occHelp) {
-    const show = isBuyoutOrAuction && userState.occupancy === "rental";
-    occHelp.style.display = show ? "" : "none";
-    if (show) {
-      occHelp.textContent =
-        "※ 잔금일에 임차인이 입주하며 보증금이 온투업 대출의 선순위로 들어오는 경우";
-    } else {
-      occHelp.textContent = "";
-    }
-  }
-}
 
   const idToCode = {
     naviInputPropertyValue: "PV",
@@ -1786,18 +1268,15 @@ if (occContainer) {
     label.toggleAttribute("data-required", Boolean(def?.required));
 
     if (def?.label) {
-  const pres = getStep5FieldPresentation(def, code);
-  const baseLabel = String(pres?.label || def.label || "").trim();
+      const suffix = id === "naviInputSharePercent" ? " (%)" : " (원)";
+      const txt =
+        def.label.includes("(원)") || def.label.includes("(%)") ? def.label : def.label + suffix;
+      setLabelText(label, txt);
 
-  const suffix = id === "naviInputSharePercent" ? " (%)" : " (원)";
-  const txt =
-    baseLabel.includes("(원)") || baseLabel.includes("(%)") ? baseLabel : baseLabel + suffix;
-  setLabelText(label, txt);
-
-  // Step5 UI에서는 라벨을 숨기고 placeholder로 안내합니다.
-  const ph = pres?.placeholder || makeStep5Placeholder(baseLabel);
-  if (ph) input.placeholder = ph;
-}
+      // Step5 UI에서는 라벨을 숨기고 placeholder로 안내합니다.
+      const ph = makeStep5Placeholder(def.label);
+      if (ph) input.placeholder = ph;
+    }
   });
 
   // ✅ Step5 필드 순서를 스키마(fields) 순서대로 정렬 (OCC 제외)
@@ -1813,25 +1292,8 @@ if (occContainer) {
       ASB: "naviInputAssumedBurden",
     };
 
-    const uiFields = Array.isArray(schema.fields) ? [...schema.fields] : [];
-    const slIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-    const reqIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "REQ");
-    if (slIdx >= 0 && reqIdx >= 0 && reqIdx < slIdx) {
-      const [reqField] = uiFields.splice(reqIdx, 1);
-      const nextSlIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-      uiFields.splice(nextSlIdx + 1, 0, reqField);
-    }
-
-    const depIdx = uiFields.findIndex((f) => String(f?.code || "").trim() === "DEP");
-    const slIdxAfterReq = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-    if (userState.occupancy === "rental" && depIdx >= 0 && slIdxAfterReq >= 0 && depIdx > slIdxAfterReq) {
-      const [depField] = uiFields.splice(depIdx, 1);
-      const insertAt = uiFields.findIndex((f) => String(f?.code || "").trim() === "SL");
-      uiFields.splice(insertAt, 0, depField);
-    }
-
     const ordered = [];
-    uiFields.forEach((f) => {
+    schema.fields.forEach((f) => {
       const c = String(f?.code || "").trim();
       if (!c || c === "OCC") return;
       const id = CODE_TO_ID[c];
@@ -1840,7 +1302,7 @@ if (occContainer) {
       if (lbl && !ordered.includes(lbl)) ordered.push(lbl);
     });
 
-    // 기존에 있던 요소도 유지하되, UI 표시는 항상 선순위 대출(원금) → 필요 대출금액 순서를 우선합니다.
+    // 기존에 있던 요소도 유지하되, 스키마 순서가 앞에 오도록 재배치
     ordered.forEach((lbl) => gridEl.appendChild(lbl));
   }
 
@@ -1881,37 +1343,36 @@ if (occContainer) {
     }
   }
 
-  // ✅ ASB: 경락잔금에서 + (선순위임차인인수 선택 시) 조건부 필수
-const asbInput = document.getElementById("naviInputAssumedBurden");
-const asbLabel = asbInput ? asbInput.closest("label") : null;
-if (asbLabel) {
-  const isAuction = normKey(userState.realEstateLoanType).includes("경락잔금");
-  const hasAsbInSchema = Boolean(asbDef);
+  // ✅ ASB는 '경락잔금'에서만
+  const asbInput = document.getElementById("naviInputAssumedBurden");
+  const asbLabel = asbInput ? asbInput.closest("label") : null;
+  if (asbLabel) {
+    const isAuction = normKey(userState.realEstateLoanType).includes("경락잔금");
+    const hasAsbInSchema = Boolean(asbDef);
+    const shouldShow = isAuction && hasAsbInSchema;
 
-  const note = String(asbDef?.note || "");
-  const needsTakeover = note.includes("OCC") && note.includes("선순위임차인인수");
-  const isTakeover = userState.occupancy === "takeover";
+    asbLabel.style.display = shouldShow ? "" : "none";
+    asbLabel.toggleAttribute("data-required", false);
 
-  const shouldShow = isAuction && hasAsbInSchema && (!needsTakeover || isTakeover);
-
-  asbLabel.style.display = shouldShow ? "" : "none";
-  asbLabel.toggleAttribute("data-required", Boolean(needsTakeover && isTakeover));
-
-  if (!shouldShow) {
-    setMoneyValueById("naviInputAssumedBurden", 0);
-    userState.assumedBurden = 0;
+    if (!shouldShow) {
+      setMoneyValueById("naviInputAssumedBurden", 0);
+      userState.assumedBurden = 0;
+    }
   }
-}
 
   if (helpEl) {
-    setStep5TopMessage("");
-
-// ✅ (D) 숨김/조건부 숨김 필드의 에러 표시 제거
-["PV", "SP", "SL", "DEP", "REF", "REQ", "ASB"].forEach((c) => {
-  if (!visibleCodes.has(c)) clearStep5FieldErrorByCode(c);
-});
-if (userState.occupancy !== "rental") clearStep5FieldErrorByCode("DEP");
-if (userState.occupancy !== "takeover") clearStep5FieldErrorByCode("ASB");
+    if (schema && schema.__fallback) {
+      helpEl.textContent =
+        "※ 해당 조합의 입력 스키마가 등록되지 않아 기본 항목으로 안내합니다. (관리자 설정 확인 필요)";
+    } else {
+      // fallback 상태였다가 정상 스키마로 돌아온 경우, 안내문이 그대로 남지 않게 복원
+      const cur = String(helpEl.textContent || "");
+      if (cur.includes("입력 스키마가 등록되지")) {
+        helpEl.textContent =
+          uiState.loanHelpText ||
+          "※ 선택하신 대출종류에 따라 입력 항목과 자동 계산 방식이 달라집니다.";
+      }
+    }
   }
 }
 
@@ -1920,12 +1381,8 @@ function isRentalOcc() {
 }
 
 function isStep5Complete() {
-  if (!hasStep5ConfiguredLender()) return false;
   const schema = getStep5Schema();
   if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) return false;
-
-  const visibleCheck = validateVisibleStep5Inputs({ showErrors: false });
-  if (!visibleCheck.ok) return false;
 
   // STEP5_MATRIX는 fieldDefs에 {code, required, label, note?} 형태를 사용합니다.
   // (이전 버전의 {key, ...} 스키마와 혼재되지 않도록 code -> userState key로 매핑합니다.)
@@ -1954,21 +1411,13 @@ function isStep5Complete() {
     let required = Boolean(f.required);
 
     if (!required && code === "DEP") {
-  const note = String(f.note || "");
-  const needsRental =
-    note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
-  if (needsRental && isRental) required = true;
-}
+      const note = String(f.note || "");
+      const needsRental =
+        note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
+      if (needsRental && isRental) required = true;
+    }
 
-// ✅ (B) ASB는 '선순위임차인인수' 선택 시 조건부 필수
-if (!required && code === "ASB") {
-  const note = String(f.note || "");
-  const needsTakeover = note.includes("OCC") && note.includes("선순위임차인인수");
-  const isTakeover = userState.occupancy === "takeover";
-  if (needsTakeover && isTakeover) required = true;
-}
-
-if (!required) continue;
+    if (!required) continue;
 
     const v = userState[key];
 
@@ -1980,7 +1429,7 @@ if (!required) continue;
       if (!Number.isFinite(v)) return false;
 
       // 금액/시세 입력은 0이면 "미입력"으로 간주
-            const mustBePositive = code === "PV" || code === "REQ" || (code === "ASB" && required);
+      const mustBePositive = code === "PV" || code === "REQ";
       if (mustBePositive && v <= 0) return false;
 
       if (key === "sharePercent" && v <= 0) return false;
@@ -2001,327 +1450,53 @@ if (!required) continue;
   return true;
 }
 
-// ------------------------------------------------------
-// ✅ (D) Step5 입력 검증 UX
-// - 어떤 필드가 비었는지 즉시 표시(필드별 에러)
-// - (선택) 최소 신청금액 미달 시 관련 필드 강조
-// ------------------------------------------------------
-const STEP5_CODE_TO_INPUT_ID = {
-  PV: "naviInputPropertyValue",
-  SP: "naviInputSharePercent",
-  SL: "naviInputSeniorLoan",
-  DEP: "naviInputDeposit",
-  REF: "naviInputRefinanceAmount",
-  REQ: "naviInputRequestedAmount",
-  ASB: "naviInputAssumedBurden",
-};
+function setStep5StatusVisual(mode) {
+  const chip = document.getElementById("naviStep5StatusChip");
+  if (!chip) return;
 
-function ensureStep5ErrorEl(labelEl) {
-  if (!labelEl) return null;
-  let el = labelEl.querySelector(".navi-step5-error");
-  if (el) return el;
-  el = document.createElement("div");
-  el.className = "navi-step5-error";
-  labelEl.appendChild(el);
-  return el;
-}
+  chip.classList.remove("navi-step5-statuschip--pending", "navi-step5-statuschip--ok", "navi-step5-statuschip--deny");
+  chip.textContent = "";
 
-function clearStep5FieldErrors() {
-  const root = document.getElementById("navi-step5");
-  if (!root) return;
-  root.querySelectorAll(".navi-step5-field.is-error").forEach((lbl) => {
-    lbl.classList.remove("is-error");
-    const e = lbl.querySelector(".navi-step5-error");
-    if (e) e.textContent = "";
-  });
-}
-
-function clearStep5FieldErrorByCode(code) {
-  const id = STEP5_CODE_TO_INPUT_ID[String(code || "").trim()];
-  const input = id ? document.getElementById(id) : null;
-  const label = input ? input.closest("label") : null;
-  if (!label) return;
-  label.classList.remove("is-error");
-  const e = label.querySelector(".navi-step5-error");
-  if (e) e.textContent = "";
-}
-
-function clearStep5FieldErrorByInputId(inputId) {
-  const map = {
-    naviInputPropertyValue: "PV",
-    naviInputSharePercent: "SP",
-    naviInputSeniorLoan: "SL",
-    naviInputDeposit: "DEP",
-    naviInputRefinanceAmount: "REF",
-    naviInputRequestedAmount: "REQ",
-    naviInputAssumedBurden: "ASB",
-  };
-  const code = map[String(inputId || "")];
-  if (!code) return;
-  clearStep5FieldErrorByCode(code);
-}
-
-function isVisibleStep5FieldByCode(code) {
-  const id = STEP5_CODE_TO_INPUT_ID[String(code || "").trim()];
-  const input = id ? document.getElementById(id) : null;
-  const label = input ? input.closest("label") : null;
-  if (!input || !label) return false;
-  return !(label.style.display === "none" || label.classList.contains("hide") || input.disabled);
-}
-
-function isInputFilledById(id) {
-  const input = document.getElementById(id);
-  if (!input) return false;
-  return String(input.value || "").trim() !== "";
-}
-
-function validateVisibleStep5Inputs(opts = {}) {
-  const showErrors = Boolean(opts.showErrors);
-  const schema = getStep5Schema();
-  if (!schema || !Array.isArray(schema.fields)) {
-    return { ok: false, message: "입력 스키마를 불러올 수 없습니다." };
+  if (mode === "ok") {
+    chip.classList.add("navi-step5-statuschip--ok");
+    return;
+  }
+  if (mode === "deny") {
+    chip.classList.add("navi-step5-statuschip--deny");
+    chip.textContent = "불가";
+    return;
   }
 
-  for (const f of schema.fields) {
-    const code = String(f?.code || "").trim();
-    if (!code || code === "OCC") continue;
-    if (!isVisibleStep5FieldByCode(code)) continue;
-
-    const inputId = STEP5_CODE_TO_INPUT_ID[code];
-    const input = inputId ? document.getElementById(inputId) : null;
-    if (!input) continue;
-
-    const pres = getStep5FieldPresentation(f, code);
-    const label = pres?.label || f.label || "";
-    const name = niceFieldNameFromLabel(label);
-    const raw = String(input.value || "").trim();
-
-    if (!raw) {
-      const msg = code === "SP"
-        ? `${name}을(를) 입력해 주세요.`
-        : `${name}을(를) 입력해 주세요. 없으면 0을 입력해 주세요.`;
-      if (showErrors) markStep5FieldError(code, msg);
-      return { ok: false, message: msg };
-    }
-  }
-
-  return { ok: true, message: "" };
+  chip.classList.add("navi-step5-statuschip--pending");
 }
-
-function markStep5FieldError(code, message) {
-  const id = STEP5_CODE_TO_INPUT_ID[String(code || "").trim()];
-  const input = id ? document.getElementById(id) : null;
-  const label = input ? input.closest("label") : null;
-  if (!label) return;
-
-  // 숨김 필드는 표시하지 않음
-  const hidden = (label.style.display === "none") || label.classList.contains("hide");
-  if (hidden) return;
-
-  label.classList.add("is-error");
-  const e = ensureStep5ErrorEl(label);
-  if (e) e.textContent = String(message || "필수 입력 항목입니다.");
-}
-
-function niceFieldNameFromLabel(defLabel) {
-  const raw = String(defLabel || "").trim();
-  if (!raw) return "항목";
-  return raw
-    .replace(/\(원\)/g, "")
-    .replace(/\(%\)/g, "")
-    .replace(/원/g, "")
-    .replace(/%/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function validateStep5(opts = {}) {
-  const showErrors = Boolean(opts.showErrors);
-  const includeMin = Boolean(opts.includeMin);
-
-  if (showErrors) clearStep5FieldErrors();
-
-  const schema = getStep5Schema();
-  if (!schema || !Array.isArray(schema.fields) || !schema.fields.length) {
-    return { ok: false, message: "입력 스키마를 불러올 수 없습니다. 관리자 설정을 확인해 주세요." };
-  }
-
-  const isRental = userState.occupancy === "rental";
-  const isTakeover = userState.occupancy === "takeover";
-
-  // OCC required
-  const occDef = schema.fields.find((f) => String(f?.code || "") === "OCC");
-  if (occDef?.required) {
-    if (!userState.occupancy) {
-      if (showErrors) {
-        // OCC는 별도 인풋이 아니라 칩 영역이므로 토스트만
-      }
-      return { ok: false, message: "거주형태를 선택해 주세요." };
-    }
-  }
-
-  const CODE_TO_STATE_KEY = {
-    PV: "propertyValue",
-    SP: "sharePercent",
-    SL: "seniorLoan",
-    DEP: "deposit",
-    REF: "refinanceAmount",
-    REQ: "requestedAmount",
-    ASB: "assumedBurden",
-  };
-
-  const visibleCheck = validateVisibleStep5Inputs({ showErrors });
-  if (!visibleCheck.ok) return visibleCheck;
-
-  // required fields
-  for (const f of schema.fields) {
-    if (!f) continue;
-    const code = String(f.code || "").trim();
-    if (!code || code === "OCC") continue;
-
-    let required = Boolean(f.required);
-
-    // DEP: 임대 선택 시 note 기반 required 승격
-    if (!required && code === "DEP") {
-      const note = String(f.note || "");
-      const needsRental =
-        note.includes("OCC") && (note.includes("임대") || note.includes("임대예정") || note.includes("임대중"));
-      if (needsRental && isRental) required = true;
-    }
-
-    // ASB: 선순위임차인인수 선택 시 note 기반 required 승격
-    if (!required && code === "ASB") {
-      const note = String(f.note || "");
-      const needsTakeover = note.includes("OCC") && note.includes("선순위임차인인수");
-      if (needsTakeover && isTakeover) required = true;
-    }
-
-    const key = CODE_TO_STATE_KEY[code];
-    if (!key) continue;
-
-    const v = userState[key];
-
-    // ---- 값 유효성 ----
-    const pres = getStep5FieldPresentation(f, code);
-    const label = pres?.label || f.label || "";
-    const name = niceFieldNameFromLabel(label);
-
-    if (required) {
-      if (v === null || v === undefined || (typeof v === "number" && !Number.isFinite(v))) {
-        if (showErrors) markStep5FieldError(code, `${name}을(를) 입력해 주세요.`);
-        return { ok: false, message: `${name}을(를) 입력해 주세요.` };
-      }
-
-      if (typeof v === "number") {
-        if (v <= 0) {
-          if (showErrors) markStep5FieldError(code, `${name}을(를) 입력해 주세요.`);
-          return { ok: false, message: `${name}을(를) 입력해 주세요.` };
-        }
-      } else if (typeof v === "string") {
-        if (!v.trim()) {
-          if (showErrors) markStep5FieldError(code, `${name}을(를) 입력해 주세요.`);
-          return { ok: false, message: `${name}을(를) 입력해 주세요.` };
-        }
-      }
-    }
-
-    // SP 범위
-    if (code === "SP") {
-      const sp = Number(userState.sharePercent);
-      if (!Number.isFinite(sp) || sp <= 0 || sp > 100) {
-        if (showErrors) markStep5FieldError("SP", "지분율은 1~100% 범위로 입력해 주세요.");
-        return { ok: false, message: "지분율은 1~100% 범위로 입력해 주세요." };
-      }
-    }
-  }
-
-  // ✅ 세부지역(LTV Up) 선택 가드(기존 로직 유지)
-  const isRE = userState.mainCategory === "부동산담보대출";
-  if (isRE) {
-    const regionKey = regionKeyFromLabel(userState.region);
-    const list = regionKey ? getAvailableSubregionsForRegion(regionKey) : [];
-    if (list.length) {
-      if (userState.subregionKey === null) {
-        return { ok: false, message: "해당하는 세부 지역을 선택해주세요." };
-      }
-    }
-  }
-
-  // (선택) 최소 신청금액 체크
-  if (includeMin && isRE) {
-    if (!passesGlobalMinAmount()) {
-      const prop = userState.propertyType;
-      const isAptOrOfficetel = prop === "아파트" || prop === "오피스텔";
-      const msg = isAptOrOfficetel
-        ? "아파트/오피스텔은 최소 대출금액 1,000만원 이상부터 가능합니다."
-        : "해당 부동산 유형은 최소 대출금액 3,000만원 이상부터 가능합니다.";
-
-      if (showErrors) {
-        // 신청금액(심사)은 대출종류별로 REQ 또는 DEP+REQ 기준입니다.
-        const lt = normKey(userState.realEstateLoanType);
-        if (lt.includes("임대보증금반환")) {
-          markStep5FieldError("DEP", "최소 신청금액 기준을 충족하도록 입력해 주세요.");
-          markStep5FieldError("REQ", "최소 신청금액 기준을 충족하도록 입력해 주세요.");
-        } else {
-          markStep5FieldError("REQ", "최소 신청금액 기준을 충족하도록 입력해 주세요.");
-        }
-      }
-      return { ok: false, message: msg };
-    }
-  }
-
-  return { ok: true, message: "" };
-}
-
 
 function updateStep5StatusUI(primaryEligible) {
-  // 신호등 UI는 제거. 실제 CTA/경고 표시는 updateStep5DecisionGate()에서만 제어합니다.
-  return primaryEligible;
-}
-
-function updateStep5DecisionGate({ step5Complete = false, globalMinOK = false, primaryEligible = false } = {}) {
   const isRE = userState.mainCategory === "부동산담보대출";
-  const warningEl = document.getElementById("naviAmountWarning");
+  if (!isRE) return;
+
+  const hasLoan = Boolean(userState.propertyType && userState.realEstateLoanType);
+  if (!hasLoan) return;
+
   const cta = document.getElementById("naviStep5CTA");
-  const configReady = !isRE || hasStep5ConfiguredLender();
-  const propertyFloorOK = !isRE || !Number(userState.propertyValue) || Number(userState.propertyValue) >= 100000000;
-
+  const actions = document.getElementById("naviStep5Actions");
   if (cta) {
-    const show = Boolean(isRE && configReady && step5Complete && globalMinOK && propertyFloorOK && primaryEligible);
-    cta.textContent = "다음 단계로 넘어가기";
-    cta.style.display = show ? "" : "none";
-    cta.classList.toggle("hide", !show);
-    cta.disabled = !show;
-    cta.setAttribute("aria-hidden", show ? "false" : "true");
+    moveStep5CtaIntoActions();
+    cta.classList.toggle("hide", !primaryEligible);
+    cta.style.display = primaryEligible ? "" : "none";
+    cta.setAttribute("aria-hidden", primaryEligible ? "false" : "true");
+    cta.disabled = !primaryEligible;
+  }
+  if (actions) {
+    actions.classList.toggle("has-cta", Boolean(primaryEligible));
   }
 
-  if (!warningEl) return;
-
-  if (!isRE || !configReady || !userState.realEstateLoanType || !step5Complete) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
+  const complete = isStep5Complete();
+  if (!complete) {
+    setStep5StatusVisual("pending");
     return;
   }
 
-  if (!propertyFloorOK) {
-    warningEl.style.display = "block";
-    warningEl.textContent = "1억원 미만의 부동산은 대출이 불가능합니다";
-    return;
-  }
-
-  if (!globalMinOK) {
-    checkGlobalMinAmount();
-    return;
-  }
-
-  if (primaryEligible) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
-    return;
-  }
-
-  warningEl.style.display = "block";
-  warningEl.textContent = "LTV 초과로 대출이 불가능합니다";
+  setStep5StatusVisual(primaryEligible ? "ok" : "deny");
 }
 
 
@@ -2440,23 +1615,13 @@ function renderLoanTypeChipsFromMeta() {
   // propertyTypes에서 loanSet 결정 (aptv / base)
   let setKey = "base";
   if (Array.isArray(meta.propertyTypes) && propLabel) {
-    const hit = meta.propertyTypes.find((p) => {
-      if (!p) return false;
-      return normKey(p.key) === normKey(propLabel) || normKey(p.label) === normKey(propLabel);
-    });
+    const hit = meta.propertyTypes.find((p) => p && (p.key === propLabel || p.label === propLabel));
     if (hit && hit.loanSet) {
       setKey = (hit.loanSet === "aptv") ? "aptv" : "base";
     }
   }
 
-  const propSchema = mapPropertyTypeToSchemaKey(propLabel);
-  const rawList = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
-  const list = rawList.filter((x) => {
-    const key = String(x?.key || x?.label || "");
-    if (propSchema === "토지/임야" && normKey(key) === normKey("임대보증금반환대출")) return false;
-    return true;
-  });
-
+  const list = Array.isArray(lt[setKey]) ? lt[setKey] : (Array.isArray(lt.base) ? lt.base : []);
   container.innerHTML = list.map((x) => {
     const k = String(x.key || "");
     const label = String(x.label || x.key || "");
@@ -2616,8 +1781,6 @@ function setupStep1() {
     const next = btn.getAttribute("data-main-cat");
     if (!next) return;
 
-    clearWizardForcedStep();
-
     const prev = userState.mainCategory;
     if (prev === next) return;
 
@@ -2703,7 +1866,6 @@ function setupStep2Back() {
 
     // 단계/요약 갱신
     recalcAndUpdateSummary();
-    forceWizardToStep("navi-step1");
 
     // 상단(스테이지)로 이동
     try {
@@ -2760,98 +1922,6 @@ function setupStep5Back() {
   });
 }
 
-
-function ensureBackActionButton(sectionId, wrapId, btnId) {
-  const section = document.getElementById(sectionId);
-  if (!section) return null;
-  const card = section.querySelector(".navi-card");
-  if (!card) return null;
-
-  let wrap = document.getElementById(wrapId);
-  if (!wrap) {
-    wrap = document.createElement("div");
-    wrap.id = wrapId;
-    wrap.className = "navi-step-back-actions";
-    wrap.innerHTML = `
-      <button type="button" id="${btnId}" aria-label="Back">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15.5 5.5a1 1 0 0 1 0 1.4L10.4 12l5.1 5.1a1 1 0 1 1-1.4 1.4l-5.8-5.8a1 1 0 0 1 0-1.4l5.8-5.8a1 1 0 0 1 1.4 0z"/>
-        </svg>
-        Back
-      </button>
-    `;
-    card.appendChild(wrap);
-  }
-  return wrap.querySelector("button");
-}
-
-function setupStep6Back() {
-  const btn = ensureBackActionButton("navi-step6", "naviStep6Actions", "naviStep6BackBtn");
-  if (!btn || btn.__bound) return;
-  btn.__bound = true;
-  btn.addEventListener("click", () => {
-    if (uiState) uiState.forcedWizardStepId = "navi-step5";
-    try {
-      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step5");
-      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (_) {}
-    syncWizardSingleCardView();
-  });
-}
-
-function setupStep61Back() {
-  const btn = ensureBackActionButton("navi-step6-1", "naviStep61Actions", "naviStep61BackBtn");
-  if (!btn || btn.__bound) return;
-  btn.__bound = true;
-  btn.addEventListener("click", () => {
-    if (uiState) uiState.forcedWizardStepId = "navi-step5";
-    try {
-      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step5");
-      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (_) {}
-    syncWizardSingleCardView();
-  });
-}
-
-function syncStep7BackVisibility() {
-  const wrap = document.getElementById("naviStep7Actions");
-  if (!wrap) return;
-  const show = Boolean(userState.mainCategory && userState.mainCategory !== "부동산담보대출");
-  wrap.classList.toggle("hide", !show);
-  wrap.style.display = show ? "flex" : "none";
-}
-
-function setupStep7Back() {
-  const btn = ensureBackActionButton("navi-step7", "naviStep7Actions", "naviStep7BackBtn");
-  if (!btn) return;
-  syncStep7BackVisibility();
-  if (btn.__bound) return;
-  btn.__bound = true;
-  btn.addEventListener("click", () => {
-    document.querySelectorAll("#naviLoanCategoryChips .navi-chip").forEach((b) => b.classList.remove("is-selected"));
-    userState.mainCategory = null;
-    userState.region = null;
-    userState.subregionKey = null;
-    resetRealEstateDraftState();
-    if (userState && userState.extra) {
-      userState.extra.incomeType = null;
-      userState.extra.creditBand = null;
-      userState.extra.repayPlan = null;
-      userState.extra.needTiming = null;
-      userState.extra.others = [];
-      userState.extra.tokens = [];
-    }
-    uiState.confirmed = false;
-    uiState.hasRenderedResult = false;
-    uiState.autoRevealed = false;
-    recalcAndUpdateSummary();
-    forceWizardToStep("navi-step1");
-    try {
-      const st = document.getElementById("naviWizardStage") || document.getElementById("navi-step1");
-      if (st) st.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (_) {}
-  });
-}
 
 function setupStep2() {
   const container = document.getElementById("naviRegionChips");
@@ -2923,11 +1993,8 @@ function setupStep3() {
 
     clearWizardForcedStep();
     singleSelectChip(container, btn);
-    const nextPropType = btn.getAttribute("data-prop-label") || btn.getAttribute("data-prop");
-    const propChanged = normKey(userState.propertyType) !== normKey(nextPropType);
-    userState.propertyType = nextPropType;
+    userState.propertyType = btn.getAttribute("data-prop");
 
-    if (propChanged) resetStep4CoreInputs();
     updateLoanTypeChipVisibility();
 
     userState.realEstateLoanType = null;
@@ -2946,7 +2013,25 @@ function setupStep4() {
   const helpEl = document.getElementById("naviLoanTypeHelp");
   if (!container) return;
   setupStep4Back();
-  setStep5TopMessage("");
+
+  const helpTexts = {
+    일반담보대출: "시세·선순위대출·임대보증금·필요대출금액을 합산해 LTV를 계산합니다.",
+    임대보증금반환대출:
+      "임대보증금 반환을 위한 대출입니다. (입력 스키마에 따라) 선순위 + 반환 보증금 + 추가 필요금액을 기준으로 LTV를 계산합니다.",
+    지분대출: "지분율만큼 시세를 반영하여 LTV를 계산합니다. (예: 시세 5억, 지분 50% → 2.5억 기준)",
+    경락잔금대출:
+      "낙찰가(또는 감정가)와 선순위·필요 대출금액을 기준으로 잔금대출 LTV를 계산합니다. (인수 권리 금액 입력 가능)",
+    대환대출:
+      "선순위/보증금 중 상환 예정금액 + 신규 필요 대출금액을 합산하여 대환 후 LTV를 계산합니다.",
+    "매입잔금_일반":
+      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
+    "매입잔금(일반)":
+      "일반 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
+    "매입잔금_분양":
+      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
+    "매입잔금(분양)":
+      "분양 매입의 잔금 마련을 위한 대출입니다. (임대예정일 경우, 잔금일 보증금 선순위 구조를 함께 고려합니다.)",
+  };
 
   container.addEventListener("click", (e) => {
     const target = e.target;
@@ -2960,12 +2045,6 @@ function setupStep4() {
     singleSelectChip(container, btn);
     const loanTypeKey = btn.getAttribute("data-loan-type");
     const loanTypeLabel = btn.getAttribute("data-loan-label") || btn.textContent || loanTypeKey;
-    const prevLoanToken = userState.realEstateLoanTypeKey || userState.realEstateLoanType || "";
-    const nextLoanToken = loanTypeKey || loanTypeLabel || "";
-    const loanChanged = normKey(prevLoanToken) !== normKey(nextLoanToken);
-
-    if (loanChanged) resetStep4CoreInputs();
-
     userState.realEstateLoanTypeKey = loanTypeKey;
     userState.realEstateLoanType = loanTypeLabel;
 
@@ -2973,32 +2052,46 @@ function setupStep4() {
     document.querySelectorAll("#naviOccupancyChips .navi-chip").forEach((c) => c.classList.remove("is-selected"));
     uiState.hasRenderedResult = false;
 
-    if (helpEl) {
-      uiState.loanHelpText = "";
-      setStep5TopMessage("");
+    if (helpEl && (loanTypeKey || loanTypeLabel) && helpTexts[loanTypeKey || loanTypeLabel]) {
+      helpEl.textContent = "※ " + helpTexts[loanTypeKey || loanTypeLabel];
+      uiState.loanHelpText = helpEl.textContent;
     }
 
-    maybeApplyStep5Schema(true);
+    applyStep5Schema();
     recalcAndUpdateSummary();
   });
+}
+
+
+function moveStep5CtaIntoActions() {
+  const ctaBtn = document.getElementById("naviStep5CTA");
+  const actions = document.getElementById("naviStep5Actions");
+  const backBtn = document.getElementById("naviStep5BackBtn");
+  if (!ctaBtn || !actions) return;
+
+  if (!ctaBtn.classList.contains("navi-step5-cta--inline")) {
+    ctaBtn.classList.add("navi-step5-cta--inline");
+  }
+
+  if (backBtn && ctaBtn.parentElement !== actions) {
+    actions.appendChild(ctaBtn);
+  } else if (ctaBtn.parentElement !== actions) {
+    actions.appendChild(ctaBtn);
+  }
 }
 
 function setupStep5() {
   const amountWarningEl = document.getElementById("naviAmountWarning");
   setupStep5Back();
+  moveStep5CtaIntoActions();
 
   const confirmBtn = document.getElementById("naviConfirmBtn");
   if (!confirmBtn) return;
 
   const ctaBtn = document.getElementById("naviStep5CTA");
-  if (ctaBtn) ctaBtn.textContent = "다음 단계로 넘어가기";
   if (ctaBtn && !ctaBtn.__bound) {
     ctaBtn.__bound = true;
     ctaBtn.addEventListener("click", () => {
-      // STEP5에서 Back 후 STEP4를 수정하고 다시 진입한 경우,
-      // 이전 forced step 고정이 남아 있으면 다음 단계 이동이 막힐 수 있으므로 해제
-      try { clearWizardForcedStep(); } catch (_) {}
-
       // CTA는 "가능" 상태에서만 노출되므로, 기존 확인 로직을 그대로 재사용합니다.
       try { confirmBtn.click(); } catch (_) {}
 
@@ -3016,10 +2109,8 @@ function setupStep5() {
   if (confirmBtn && !confirmBtn.__bound) {
     confirmBtn.__bound = true;
     confirmBtn.addEventListener("click", async () => {
-      try { clearWizardForcedStep(); } catch (_) {}
-      const v = validateStep5({ showErrors: true, includeMin: true });
-      if (!v.ok) {
-        toast(v.message || "필수 항목을 먼저 입력해 주세요.");
+      if (!isStep5Complete()) {
+        toast("필수 항목을 먼저 입력해 주세요.");
         setConfirmUIState();
         return;
       }
@@ -3027,6 +2118,18 @@ function setupStep5() {
       uiState.confirmed = true;
       setStep6Visible(true);
       recalcAndUpdateSummary(false);
+
+      const payload = {
+        event: "confirm",
+        ts: Date.now(),
+        dateKst: getKstDateKey(),
+        productGroupKey: toProductGroupStatKey(userState.mainCategory || ""),
+        regionKey: uiState.region || "",
+        propertyTypeKey: uiState.propertyType || "",
+        loanTypeKey: uiState.realEstateLoanType || "",
+        amountMan: Number(uiState.requestedAmount) || 0,
+      };
+      postNaviStatsOncePerClick(payload);
 
       setConfirmUIState();
       const target = document.getElementById("navi-step6");
@@ -3048,7 +2151,6 @@ function setupStep5() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("input", () => {
-      clearStep5FieldErrorByInputId(id);
       uiState.hasRenderedResult = false;
       invalidateConfirmed();
       recalcAndUpdateSummary();
@@ -3065,10 +2167,7 @@ function setupStep5() {
       singleSelectChip(occContainer, btn);
       userState.occupancy = btn.getAttribute("data-occ");
 
-      maybeApplyStep5Schema(true);
-
-      clearStep5FieldErrorByCode("DEP");
-      clearStep5FieldErrorByCode("ASB");
+      applyStep5Schema();
 
       uiState.hasRenderedResult = false;
       invalidateConfirmed();
@@ -3254,7 +2353,6 @@ function hideLegacyExtraUI() {
 }
 
 function ensureDynamicExtraUI() {
-  normalizeStep61Copy();
   const step61Card = document.querySelector("#navi-step6-1 .navi-card");
   if (!step61Card) return false;
 
@@ -3272,6 +2370,10 @@ function ensureDynamicExtraUI() {
   root.style.marginTop = "10px";
 
   root.innerHTML = `
+    <div style="margin-bottom:8px;font-size:11px;color:#6b7280;">
+      ※ 아래 선택항목은 <strong>관리자(추가조건 선택)</strong>에 저장된 <strong>토큰</strong>과 동일하게 매칭됩니다. (선택한 조건만 결과에 반영)
+    </div>
+    <div id="naviExtraSelectedCount" style="margin-bottom:10px;font-size:12px;color:#111827;font-weight:700;">선택한 조건: 0개</div>
     <div id="naviExtraDynamicGroups"></div>
   `;
 
@@ -3304,22 +2406,11 @@ function ensureDynamicExtraUI() {
   return true;
 }
 
-function normalizeStep61Copy() {
-  const step61 = document.getElementById("navi-step6-1");
-  if (!step61) return;
-  const title = step61.querySelector('.navi-section-title');
-  if (title) title.style.display = 'none';
-  step61.querySelectorAll('.navi-help').forEach((el) => {
-    const txt = String(el.textContent || '').replace(/\s+/g, ' ').trim();
-    if (!txt) return;
-    if (txt.includes('온투업 전업종 공통 취급 불가')) {
-      el.style.display = 'none';
-    }
-  });
-}
-
 function updateDynamicExtraSelectedCount() {
-  return;
+  const el = document.getElementById("naviExtraSelectedCount");
+  if (!el) return;
+  const n = Array.isArray(userState.extra.tokens) ? userState.extra.tokens.length : 0;
+  el.textContent = `선택한 조건: ${n}개`;
 }
 
 function syncDynamicExtraSelectionUI() {
@@ -3334,89 +2425,6 @@ function syncDynamicExtraSelectionUI() {
   });
 }
 
-
-
-function getResultCarouselPageSize(carousel) {
-  const host = carousel || null;
-  const width = host ? (host.clientWidth || host.getBoundingClientRect().width || 0) : (window.innerWidth || 0);
-  if (width <= 640) return 1;
-  if (width <= 980) return 2;
-  return 3;
-}
-
-function applyResultCarouselState(carousel, forceIndex) {
-  if (!carousel) return;
-  const track = carousel.querySelector('.navi-result-track');
-  const cards = Array.from(carousel.querySelectorAll('.navi-result-card'));
-  const prevBtn = carousel.querySelector('.navi-carousel-arrow.is-prev');
-  const nextBtn = carousel.querySelector('.navi-carousel-arrow.is-next');
-  if (!track || !cards.length) return;
-
-  const pageSize = getResultCarouselPageSize(carousel);
-  const total = cards.length;
-  const maxIndex = Math.max(0, total - pageSize);
-  let index = Number(carousel.dataset.index || 0);
-  if (Number.isFinite(forceIndex)) index = Number(forceIndex);
-  if (!Number.isFinite(index) || index < 0) index = 0;
-  if (index > maxIndex) index = maxIndex;
-
-  const trackStyle = getComputedStyle(track);
-  const gap = parseFloat(trackStyle.columnGap || trackStyle.gap || '0') || 0;
-  const firstCard = cards[0];
-  const step = firstCard ? (firstCard.getBoundingClientRect().width + gap) : 0;
-  track.style.transform = `translate3d(${-1 * step * index}px, 0, 0)`;
-
-  carousel.dataset.index = String(index);
-  carousel.dataset.pageSize = String(pageSize);
-  const canSlide = total > pageSize;
-  if (prevBtn) {
-    prevBtn.disabled = !canSlide || index <= 0;
-    prevBtn.classList.toggle('is-disabled', !canSlide || index <= 0);
-    prevBtn.classList.toggle('is-hidden', !canSlide);
-  }
-  if (nextBtn) {
-    nextBtn.disabled = !canSlide || index >= maxIndex;
-    nextBtn.classList.toggle('is-disabled', !canSlide || index >= maxIndex);
-    nextBtn.classList.toggle('is-hidden', !canSlide);
-  }
-}
-
-function initResultCarousels(scope) {
-  const root = scope && scope.querySelectorAll ? scope : document;
-  root.querySelectorAll('.navi-result-carousel').forEach((carousel) => {
-    if (!carousel.__boundCarousel) {
-      carousel.__boundCarousel = true;
-      const prevBtn = carousel.querySelector('.navi-carousel-arrow.is-prev');
-      const nextBtn = carousel.querySelector('.navi-carousel-arrow.is-next');
-      if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-          const pageSize = getResultCarouselPageSize(carousel);
-          const current = Number(carousel.dataset.index || 0) || 0;
-          applyResultCarouselState(carousel, Math.max(0, current - pageSize));
-        });
-      }
-      if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-          const pageSize = getResultCarouselPageSize(carousel);
-          const current = Number(carousel.dataset.index || 0) || 0;
-          applyResultCarouselState(carousel, current + pageSize);
-        });
-      }
-    }
-    applyResultCarouselState(carousel);
-  });
-}
-
-let __naviResultCarouselResizeBound = false;
-function bindResultCarouselResize() {
-  if (__naviResultCarouselResizeBound) return;
-  __naviResultCarouselResizeBound = true;
-  let timer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => initResultCarousels(document), 100);
-  });
-}
 
 function renderLockedResultPanel() {
   const panel = document.getElementById("naviResultPanel");
@@ -3436,54 +2444,6 @@ function renderLockedResultPanel() {
   uiState.hasRenderedResult = false;
 }
 
-function ensureEmbeddedResultUI() {
-  const step61Card = document.querySelector("#navi-step6-1 .navi-card");
-  if (!step61Card) return null;
-
-  let wrap = document.getElementById("naviEmbeddedResultWrap");
-  if (wrap) return wrap;
-
-  wrap = document.createElement("div");
-  wrap.id = "naviEmbeddedResultWrap";
-  wrap.className = "navi-embedded-result-wrap";
-  wrap.innerHTML = `
-        <div id="naviEmbeddedResultSummary" class="navi-result-count navi-embedded-result-summary"></div>
-    <div id="naviEmbeddedResultPanel" class="navi-embedded-result-panel"></div>
-  `;
-  step61Card.appendChild(wrap);
-  return wrap;
-}
-
-function renderEmbeddedResultPlaceholder(text) {
-  const wrap = ensureEmbeddedResultUI();
-  if (!wrap) return;
-
-  const summaryEl = document.getElementById("naviEmbeddedResultSummary");
-  const panelEl = document.getElementById("naviEmbeddedResultPanel");
-  if (summaryEl) {
-    summaryEl.textContent = text || "";
-  }
-  if (panelEl) {
-    panelEl.innerHTML = ``;
-  }
-}
-
-function syncEmbeddedResultFromStep7() {
-  const wrap = ensureEmbeddedResultUI();
-  if (!wrap) return;
-
-  const sourceSummary = document.getElementById("naviResultSummary");
-  const sourcePanel = document.getElementById("naviResultPanel");
-  const targetSummary = document.getElementById("naviEmbeddedResultSummary");
-  const targetPanel = document.getElementById("naviEmbeddedResultPanel");
-
-  if (targetSummary && sourceSummary) targetSummary.textContent = sourceSummary.textContent || "";
-  if (targetPanel && sourcePanel) {
-    targetPanel.innerHTML = sourcePanel.innerHTML;
-    initResultCarousels(targetPanel);
-  }
-}
-
 function autoRevealAfterExtraChanged() {
   const isRE = userState.mainCategory === "부동산담보대출";
   if (!isRE) return;
@@ -3491,29 +2451,22 @@ function autoRevealAfterExtraChanged() {
 
   syncInputsToState();
   updateStep5MoneyKoHints();
-  ensureEmbeddedResultUI();
 
   const step5Complete = isStep5Complete();
   const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
-  const { ltv, baseValue, totalDebtAfter } = calcLtv();
-  const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
-  const coreMatched = step5Complete && globalMinOK && ltvSane ? filterLenders(false) : [];
-  const primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
+  const coreMatched = step5Complete && globalMinOK ? filterLenders(false) : [];
+  const primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
+  if (!primaryEligible) return;
 
-  if (!primaryEligible) {
-    renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
-    return;
-  }
-
+  // ✅ 선택조건이 0개면 '대기' 상태로 유지
   if (!hasAnyExtraSelected()) {
-    renderEmbeddedResultPlaceholder("가능한 온투업체가 실시간으로 표시됩니다.");
+    renderLockedResultPanel();
     return;
   }
 
+  // ✅ 자동 공개/갱신: 스크롤 이동 없이 결과만 즉시 갱신
   renderFinalResult({ silent: true, skipScroll: true, keepStepper: true });
-  syncEmbeddedResultFromStep7();
   uiState.autoRevealed = true;
-  uiState.hasRenderedResult = false;
 }
 
 
@@ -3707,7 +2660,7 @@ function setupResultButtons() {
 function syncInputsToState() {
   userState.propertyValue = getMoneyValueById("naviInputPropertyValue");
   const shareEl = document.getElementById("naviInputSharePercent");
-  userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 0;
+  userState.sharePercent = shareEl && shareEl.value !== "" ? Number(shareEl.value) : 100;
 
   userState.seniorLoan = getMoneyValueById("naviInputSeniorLoan");
   userState.deposit = getMoneyValueById("naviInputDeposit");
@@ -3786,35 +2739,48 @@ function passesGlobalMinAmount() {
   return amt >= minByUserRule;
 }
 
-function checkGlobalMinAmount() {
+
+function setStep5Warning(message, tone = "minor") {
   const warningEl = document.getElementById("naviAmountWarning");
   if (!warningEl) return;
+  warningEl.textContent = message || "";
+  warningEl.style.display = message ? "block" : "none";
+  warningEl.classList.remove("navi-warning--minor", "navi-warning--major");
+  if (message) warningEl.classList.add(tone === "major" ? "navi-warning--major" : "navi-warning--minor");
+}
 
+function clearStep5Warning() {
+  const warningEl = document.getElementById("naviAmountWarning");
+  if (!warningEl) return;
+  warningEl.textContent = "";
+  warningEl.style.display = "none";
+  warningEl.classList.remove("navi-warning--minor", "navi-warning--major");
+}
+
+function checkGlobalMinAmount() {
   const amt = getPrincipalAmount();
-  if (!amt) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
+  const prop = userState.propertyType;
+  const propertyValue = Number(userState.propertyValue || 0);
+
+  if (propertyValue > 0 && propertyValue < 100000000) {
+    setStep5Warning("시세 1억원 미만은 취급이 어렵습니다.", "minor");
     return;
   }
 
-  const prop = userState.propertyType;
-  if (!prop) {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
+  if (!amt || !prop) {
+    clearStep5Warning();
     return;
   }
 
   const isAptOrOfficetel = prop === "아파트" || prop === "오피스텔";
   const minByUserRule = isAptOrOfficetel ? 10000000 : 30000000;
   if (amt < minByUserRule) {
-    warningEl.style.display = "block";
     const txt = isAptOrOfficetel
       ? "주의: 아파트/오피스텔은 최소 대출금액 1,000만원 이상부터 가능합니다."
       : "주의: 해당 부동산 유형은 최소 대출금액 3,000만원 이상부터 가능합니다.";
-    warningEl.textContent = txt;
+    setStep5Warning(txt, "minor");
   } else {
-    warningEl.style.display = "none";
-    warningEl.textContent = "";
+    clearStep5Warning();
   }
 }
 
@@ -3828,33 +2794,6 @@ function hasAnyExtraSelected() {
       e.needTiming ||
       (Array.isArray(e.others) && e.others.length)
   );
-}
-
-function toLtvRatio(raw) {
-  const n = parseNumberLoose(raw);
-  if (n == null || n <= 0) return null;
-  return n > 1 ? (n / 100) : n;
-}
-
-function getEffectiveLtvCapRatioForLender(l, cell, subregionKey) {
-  let ratio = null;
-
-  if (cell) {
-    let maxPct = parseNumberLoose(cell.ltvMax);
-    if (subregionKey && cell.ltvUp && typeof cell.ltvUp === "object") {
-      const add = parseNumberLoose(cell.ltvUp[subregionKey]);
-      if (add != null && add > 0) maxPct = (maxPct || 0) + add;
-    }
-    ratio = toLtvRatio(maxPct);
-  }
-
-  if (ratio != null && ratio > 0) return ratio;
-
-  const cfg = l && l.realEstateConfig ? l.realEstateConfig : {};
-  ratio = toLtvRatio(cfg.maxTotalLtv);
-  if (ratio != null && ratio > 0) return ratio;
-
-  return null;
 }
 
 // 온투업 리스트 필터링 (추가조건 미적용 / 적용 두 케이스 모두 사용)
@@ -3884,9 +2823,9 @@ function filterLenders(applyExtras = false) {
         if (!enabled) return false;
 
         if (realEstateLoanTypeKey || realEstateLoanType) {
-          const types = Array.isArray(cell.loanTypes) ? cell.loanTypes : [];
-          if (!types.length) return false;
-          if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
+          const sel = realEstateLoanTypeKey || realEstateLoanType;
+          const types = cell.loanTypes || [];
+          if (types.length && !types.some((t) => normKey(t) === normKey(sel))) return false;
         }
 
         if (principalAmount) {
@@ -3894,10 +2833,14 @@ function filterLenders(applyExtras = false) {
           if (lenderMinWon && principalAmount < lenderMinWon) return false;
         }
 
-        const capRatio = getEffectiveLtvCapRatioForLender(l, cell, subregionKey);
-        if (ltv != null) {
-          if (!(capRatio > 0)) return false;
-          if (ltv > capRatio + 1e-6) return false;
+        let maxPct = parseNumberLoose(cell.ltvMax);
+        // ✅ 세부지역 LTV Up 가산 (업체별 설정)
+        if (subregionKey && cell.ltvUp && typeof cell.ltvUp === "object") {
+          const add = parseNumberLoose(cell.ltvUp[subregionKey]);
+          if (add != null && add > 0) maxPct = (maxPct || 0) + add;
+        }
+        if (maxPct != null && maxPct > 0 && ltv != null) {
+          if (ltv * 100 > maxPct + 1e-6) return false;
         }
       } else {
         const cfg = l.realEstateConfig || {};
@@ -3912,10 +2855,9 @@ function filterLenders(applyExtras = false) {
           if (props.length && !includesNorm(props, propertyType)) return false;
         }
 
-        if (realEstateLoanTypeKey || realEstateLoanType) {
-          const types = Array.isArray(cfg.loanTypes) ? cfg.loanTypes : [];
-          if (!types.length) return false;
-          if (!loanTypeMatchesConfigured(types, realEstateLoanTypeKey, realEstateLoanType)) return false;
+        if (realEstateLoanType) {
+          const types = cfg.loanTypes || [];
+          if (types.length && !types.some((t) => normKey(t) === normKey(realEstateLoanType))) return false;
         }
 
         if (principalAmount) {
@@ -3927,10 +2869,8 @@ function filterLenders(applyExtras = false) {
           if (lenderMin && principalAmount < lenderMin) return false;
         }
 
-        if (ltv != null) {
-          const capRatio = getEffectiveLtvCapRatioForLender(l, null, null);
-          if (!(capRatio > 0)) return false;
-          if (ltv > capRatio + 1e-6) return false;
+        if (typeof cfg.maxTotalLtv === "number" && cfg.maxTotalLtv > 0) {
+          if (ltv != null && ltv > cfg.maxTotalLtv + 1e-6) return false;
         }
       }
     }
@@ -4139,7 +3079,8 @@ function updateStepVisibility(primaryEligible) {
   const canShowExtra = Boolean(uiState.confirmed && primaryEligible);
   setSectionVisible("navi-step6-1", canShowExtra);
 
-  setSectionVisible("navi-step7", false);
+  const extraSelected = hasAnyExtraSelected();
+  setSectionVisible("navi-step7", Boolean(uiState.confirmed && primaryEligible && extraSelected));
 }
 
 
@@ -4157,6 +3098,8 @@ function resolveActiveStep(primaryEligible) {
     if (!userState.propertyType) return 3;
     if (!userState.realEstateLoanType) return 4;
     if (!isStep5Complete()) return 5;
+    if (!primaryEligible) return 6;
+    if (uiState.hasRenderedResult) return 7;
     return 6;
   }
 
@@ -4212,15 +3155,10 @@ function recalcAndUpdateSummary(onlyExtra = false) {
 
   // ✅ Step6-1 동적 UI 구축(가능하면)
   ensureDynamicExtraUI();
-  ensureEmbeddedResultUI();
 
   if (isRE && userState.realEstateLoanType) {
-    // ✅ 입력 중에는 리렌더하지 않고, 조합/거주형태 변경 시에만 적용
-    maybeApplyStep5Schema(false);
+    applyStep5Schema();
   }
-
-  // ✅ 금액 입력(콤마) 중에도 한글 금액 힌트만 갱신 (포커스 유지)
-  updateStep5MoneyKoHints();
 
   const { mainCategory, propertyType, realEstateLoanType } = userState;
 
@@ -4232,7 +3170,6 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     if (countInfoEl) countInfoEl.style.display = "none";
     if (extraCountEl) extraCountEl.style.display = "none";
     resultSummaryEl.textContent = "상품군, 지역, 대출종류를 입력하시면 추천 온투업 결과를 볼 수 있습니다.";
-    updateStep5DecisionGate({ step5Complete: false, globalMinOK: false, primaryEligible: false });
 
     updateStepVisibility(false);
     renderStepper(1);
@@ -4269,15 +3206,22 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   if (isRE) {
     const step5Complete = isStep5Complete();
     const globalMinOK = step5Complete ? passesGlobalMinAmount() : false;
-    const { ltv, baseValue, totalDebtAfter } = calcLtv();
-    const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
 
-    coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
-    extraMatched = step5Complete && ltvSane ? filterLenders(true) : [];
+    coreMatched = step5Complete ? filterLenders(false) : [];
+    extraMatched = step5Complete ? filterLenders(true) : [];
 
-    primaryEligible = Boolean(step5Complete && globalMinOK && ltvSane && coreMatched.length);
+    primaryEligible = Boolean(step5Complete && globalMinOK && coreMatched.length);
     updateStep5StatusUI(primaryEligible);
-    updateStep5DecisionGate({ step5Complete, globalMinOK, primaryEligible });
+
+    const { ltv: currentLtv, baseValue: currentBaseValue } = calcLtv();
+    const propertyValue = Number(userState.propertyValue || 0);
+    if (propertyValue > 0 && propertyValue < 100000000) {
+      setStep5Warning("시세 1억원 미만은 취급이 어렵습니다.", "minor");
+    } else if (step5Complete && globalMinOK && !coreMatched.length && currentLtv != null && currentBaseValue && currentLtv > 1) {
+      setStep5Warning("LTV 초과로 대출이 불가능합니다", "major");
+    } else if (step5Complete && globalMinOK) {
+      clearStep5Warning();
+    }
 
     if (countInfoEl) {
       if (!userState.realEstateLoanType) {
@@ -4288,9 +3232,6 @@ function recalcAndUpdateSummary(onlyExtra = false) {
       } else if (!globalMinOK) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "현재 입력한 대출금액이 최소 기준 미만입니다. (아파트/오피스텔 1,000만원·그 외 3,000만원 이상)";
-      } else if (!ltvSane) {
-        countInfoEl.style.display = "inline-block";
-        countInfoEl.textContent = "현재 입력값 기준 LTV가 100%를 초과하여 대출이 불가능합니다.";
       } else if (!coreMatched.length) {
         countInfoEl.style.display = "inline-block";
         countInfoEl.textContent = "현재 조건으로는 매칭되는 온투업체가 없습니다. LTV/대출금액/유형/지역을 조정해보세요.";
@@ -4306,7 +3247,6 @@ function recalcAndUpdateSummary(onlyExtra = false) {
     extraMatched = filterLenders(true);
     primaryEligible = Boolean(coreMatched.length);
     updateStep5StatusUI(primaryEligible);
-    updateStep5DecisionGate({ step5Complete: true, globalMinOK: true, primaryEligible });
 
     if (countInfoEl) {
       countInfoEl.style.display = "inline-block";
@@ -4322,35 +3262,30 @@ function recalcAndUpdateSummary(onlyExtra = false) {
   if (extraCountEl) {
     if (!primaryEligible) {
       extraCountEl.style.display = "none";
-      extraCountEl.innerHTML = "";
+    } else if (!extraMatched.length) {
+      extraCountEl.style.display = "inline-block";
+      extraCountEl.textContent = "추가조건까지 고려하면 추천 가능한 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
     } else {
-      extraCountEl.style.display = "block";
-      const count = Number(extraMatched.length || 0);
-      extraCountEl.innerHTML = `취급 가능성이 있는 온투업체는 <strong>${count}곳</strong> 입니다.<br/>아래 추가 정보를 선택해서 정확한 업체를 확인해보세요`;
+      extraCountEl.style.display = "inline-block";
+      extraCountEl.textContent = `추가조건까지 반영한 추천 온투업체: ${extraMatched.length}곳`;
     }
   }
 
   if (!primaryEligible) {
-    resultSummaryEl.textContent = "";
+    resultSummaryEl.textContent = "아직 1차 결과(대출 가능 여부)가 확정되지 않았습니다. 위 단계 입력을 완료해주세요.";
   } else {
-    resultSummaryEl.textContent = "";
+    if (isRE) {
+      const { ltv: l } = calcLtv();
+      const ltvText = l != null ? ` / 예상 LTV 약 ${(l * 100).toFixed(1)}%` : "";
+      resultSummaryEl.textContent = `1차 결과 통과: 업체명 공개는 6-1 선택조건 입력 후 가능합니다.${ltvText}`;
+    } else {
+      resultSummaryEl.textContent = "1차 결과 통과: 업체명 공개는 6-1 선택조건 입력 후 가능합니다.";
+    }
   }
 
   updateStepVisibility(primaryEligible);
   const active = resolveActiveStep(primaryEligible);
   renderStepper(active);
-
-  if (isRE && uiState.confirmed) {
-    if (primaryEligible) {
-      if (hasAnyExtraSelected()) {
-        autoRevealAfterExtraChanged();
-      } else {
-        renderEmbeddedResultPlaceholder("가능한 온투업체가 실시간으로 표시됩니다.");
-      }
-    } else {
-      renderEmbeddedResultPlaceholder("현재 조건으로는 추천 가능한 온투업체가 없습니다. 입력 조건을 다시 확인해 주세요.");
-    }
-  }
 
   if (!primaryEligible) uiState.hasRenderedResult = false;
 
@@ -4409,7 +3344,6 @@ function renderFinalResult(opts = {}) {
   if (!panel || !summaryEl) return;
 
   const { mainCategory } = userState;
-  syncStep7BackVisibility();
   if (!mainCategory) {
     if (!silent) alert("먼저 1단계에서 대출 상품군을 선택해주세요.");
     return;
@@ -4421,10 +3355,8 @@ function renderFinalResult(opts = {}) {
 
   if (isRE) {
     const step5Complete = isStep5Complete();
-    const { ltv, baseValue, totalDebtAfter } = calcLtv();
-    const ltvSane = Boolean(baseValue && totalDebtAfter != null && Number.isFinite(ltv) && ltv >= 0 && ltv <= 1 + 1e-6);
-    const coreMatched = step5Complete && ltvSane ? filterLenders(false) : [];
-    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && ltvSane && coreMatched.length);
+    const coreMatched = step5Complete ? filterLenders(false) : [];
+    const primaryEligible = Boolean(step5Complete && passesGlobalMinAmount() && coreMatched.length);
 
     if (!primaryEligible) {
       if (!silent) alert("아직 1차 결과(대출 가능 여부)가 충족되지 않았습니다. 5단계 필수 입력과 조건을 확인해주세요.");
@@ -4442,7 +3374,7 @@ function renderFinalResult(opts = {}) {
   const matched = filterLenders(true);
 
   if (!matched.length) {
-    summaryEl.textContent = "";
+    summaryEl.textContent = "현재 추가조건까지 고려하면 추천 온투업체가 없습니다. 일부 추가조건을 완화해보세요.";
     panel.innerHTML = `
       <div class="navi-empty-card">
         <div style="font-weight:600;margin-bottom:4px;">추가조건 적용 결과: 추천 온투업체가 없습니다.</div>
@@ -4457,7 +3389,9 @@ function renderFinalResult(opts = {}) {
     return;
   }
 
-  summaryEl.textContent = "";
+  const { ltv } = calcLtv();
+  const ltvText = isRE && ltv != null ? ` / 예상 LTV 약 ${(ltv * 100).toFixed(1)}%` : "";
+  summaryEl.textContent = `추천 온투업체 ${matched.length}곳${ltvText}`;
 
   const condParts = [];
   if (userState.mainCategory) condParts.push(userState.mainCategory);
@@ -4603,27 +3537,11 @@ const cardsHtml = matched
   })
   .join("");
 
-panel.innerHTML = `
-  <div class="navi-result-carousel" data-index="0">
-    <button type="button" class="navi-carousel-arrow is-prev" aria-label="이전 업체 보기">
-      <span aria-hidden="true">‹</span>
-    </button>
-    <div class="navi-result-viewport">
-      <div class="navi-result-track">${cardsHtml}</div>
-    </div>
-    <button type="button" class="navi-carousel-arrow is-next" aria-label="다음 업체 보기">
-      <span aria-hidden="true">›</span>
-    </button>
-  </div>
-`;
-initResultCarousels(panel);
-bindResultCarouselResize();
+panel.innerHTML = `<div class="navi-result-grid">${cardsHtml}</div>`;
 
 
 
   uiState.hasRenderedResult = true;
-  trackResultViewOncePerDay({ resultCount: matched.length });
-  syncStep7BackVisibility();
   if (!keepStepper) renderStepper(7);
 
   if (!skipScroll) {
@@ -4635,43 +3553,6 @@ bindResultCarouselResize();
 // ------------------------------------------------------
 // 초기화
 // ------------------------------------------------------
-
-
-// ---------------------------------------------------------
-// Debug bridge (module scope -> console)
-// - 크롬 콘솔에서 userState가 안 보이는 문제(type="module") 해결용
-// - 안전: 화면 로직에는 영향 없음
-// ---------------------------------------------------------
-(function publishNaviDebugBridge(){
-  try {
-    const proxy = new Proxy(userState, {
-      get(target, prop) {
-        // 자주 치는 lower-case 키도 허용
-        const p = String(prop);
-        if (p === "propertytype") return target.propertyType;
-        if (p === "realestateloantype") return target.realEstateLoanType;
-        if (p === "realestateloantypekey") return target.realEstateLoanTypeKey;
-        if (p === "occupancy") return target.occupancy;
-        return target[prop];
-      }
-    });
-
-    const dbg = {
-      userState,
-      uiState,
-      STEP5_MATRIX,
-      getStep5Schema,
-      mapPropertyTypeToSchemaKey,
-      mapLoanTypeToSchemaKey,
-      // aliases (사용자 콘솔 편의)
-      userstate: proxy,
-      getstep5schema: getStep5Schema,
-    };
-
-    window.__NAVI_DEBUG__ = dbg;
-    window._navi_debug_ = dbg; // 사용자 요청 alias
-  } catch (_) {}
-})();
 
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ navi-beta.js loaded (20251230-fix-step1-bind)");
@@ -4714,9 +3595,6 @@ setupMoneyInputs();
   setupStep5();
 
   setupStep6Extra();
-  setupStep6Back();
-  setupStep61Back();
-  setupStep7Back();
   setupResultButtons();
 
   recalcAndUpdateSummary();
