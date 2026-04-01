@@ -1,3 +1,5 @@
+import { requireAdmin } from "./_admin-auth.js";
+
 // /api/loan-config.js
 //
 // ✅ loan-config (20251229-incheon) (영구 저장: Upstash Redis / pipeline)
@@ -32,7 +34,7 @@ function corsHeaders(origin) {
     Vary: "Origin",
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Cache-Control, Pragma, Accept, X-Requested-With",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Cache-Control, Pragma, Accept, X-Requested-With",
     "Access-Control-Max-Age": "600",
     "Cache-Control": "no-store"
   };
@@ -131,6 +133,16 @@ export default async function handler(req, res) {
 
     // POST
     if (req.method === "POST") {
+      const admin = await requireAdmin(req);
+      if (!admin.ok) {
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+        if (admin.status === 401) res.setHeader("WWW-Authenticate", "Bearer");
+        return res.status(admin.status).json({
+          error: admin.message,
+          code: admin.code,
+          detail: admin.detail || null
+        });
+      }
       // body parse
       let body = req.body;
       if (typeof body === "string") body = safeJsonParse(body) || {};

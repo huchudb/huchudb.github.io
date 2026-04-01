@@ -9,12 +9,13 @@
   <!-- 기존 베타 공통 스타일 -->
   <link rel="stylesheet" href="/assets/styles.css?v=20251117-beta" />
   <!-- 관리자 전용 스타일 -->
-  <link rel="stylesheet" href="/assets/admin-beta.css?v=20251224-ltvup1" />
+  <link rel="stylesheet" href="/assets/admin-beta.css?v=20260401-auth1" />
 
   <!-- 관리자 전용 스크립트 -->
   <script type="module" src="/assets/beta-shell.js?v=20260107-shell7"></script>
 
-  <script type="module" src="/assets/admin-beta.js?v=20251218-fix1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="/assets/admin-beta.js?v=20260401-auth1"></script>
 </head>
 <body class="beta-body">
 
@@ -56,6 +57,39 @@
   <!-- ===== 메인 ===== -->
   <main class="beta-main">
     <div class="beta-inner">
+      <section class="admin-auth-shell">
+        <div class="admin-auth-card">
+          <div class="admin-auth-head">
+            <div>
+              <h2 class="admin-auth-title">관리자 로그인</h2>
+              <p class="admin-auth-note">통계 저장과 업체 설정 저장은 관리자 로그인 후에만 가능합니다.</p>
+            </div>
+            <div id="adminAuthUserBox" class="admin-auth-userbox" hidden>
+              <span id="adminAuthUserText" class="admin-auth-usertext"></span>
+              <button type="button" id="adminLogoutBtn" class="admin-auth-logout-btn">로그아웃</button>
+            </div>
+          </div>
+
+          <form id="adminLoginForm" class="admin-auth-form" autocomplete="on">
+            <div class="admin-auth-field">
+              <label for="adminLoginEmail">이메일</label>
+              <input id="adminLoginEmail" name="email" type="email" class="admin-input" autocomplete="username" placeholder="admin@example.com" required />
+            </div>
+            <div class="admin-auth-field">
+              <label for="adminLoginPassword">비밀번호</label>
+              <input id="adminLoginPassword" name="password" type="password" class="admin-input" autocomplete="current-password" placeholder="비밀번호" required />
+            </div>
+            <div class="admin-auth-actions">
+              <button type="submit" id="adminLoginBtn" class="admin-save-btn">로그인</button>
+            </div>
+          </form>
+
+          <p id="adminAuthStatus" class="admin-auth-status" aria-live="polite">관리자 인증 상태를 확인중입니다.</p>
+        </div>
+      </section>
+
+      <div id="adminProtectedRoot" hidden>
+
       <div class="admin-page">
 
         <!-- 메인 타이틀 -->
@@ -278,6 +312,8 @@
 
           </div>
         </section>
+
+      </div>
 
       </div>
     </div>

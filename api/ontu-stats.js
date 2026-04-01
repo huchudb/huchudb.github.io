@@ -1,3 +1,5 @@
+import { requireAdmin } from "./_admin-auth.js";
+
 // /api/ontu-stats.js  (Vercel Serverless Function)
 // 역할:
 //  - GET  /api/ontu-stats?month=YYYY-MM  → 해당 월 통계 반환
@@ -242,6 +244,16 @@ export default async function handler(req, res) {
 
     // ---------------- POST: 관리자 저장 ----------------
     if (req.method === "POST") {
+      const admin = await requireAdmin(req);
+      if (!admin.ok) {
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+        if (admin.status === 401) res.setHeader("WWW-Authenticate", "Bearer");
+        return res.status(admin.status).json({
+          error: admin.message,
+          code: admin.code,
+          detail: admin.detail || null
+        });
+      }
       let body = req.body;
       if (typeof body === "string") body = JSON.parse(body);
 

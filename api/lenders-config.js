@@ -1,3 +1,5 @@
+import { requireAdmin } from "./_admin-auth.js";
+
 // /api/lenders-config.js
 //
 // ✅ lenders-config (legacy view endpoint)
@@ -27,7 +29,7 @@ function corsHeaders(origin) {
     Vary: "Origin",
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Cache-Control, Pragma, Accept, X-Requested-With",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Cache-Control, Pragma, Accept, X-Requested-With",
     "Access-Control-Max-Age": "600",
     "Cache-Control": "no-store"
   };
@@ -97,6 +99,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+      const admin = await requireAdmin(req);
+      if (!admin.ok) {
+        for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+        if (admin.status === 401) res.setHeader("WWW-Authenticate", "Bearer");
+        return res.status(admin.status).json({
+          error: admin.message,
+          code: admin.code,
+          detail: admin.detail || null
+        });
+      }
       let body = req.body;
       if (typeof body === "string") body = safeJsonParse(body) || {};
       const incomingLenders = body?.lenders;

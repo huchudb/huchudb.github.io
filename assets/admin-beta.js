@@ -54,6 +54,248 @@ async function fetchJsonNoCache(url, options = {}) {
   return await res.json().catch(() => null);
 }
 
+
+const adminAuthState = {
+  supabase: null,
+  session: null,
+  config: null,
+  ready: false,
+  pageInitialized: false
+};
+
+function setAdminAuthStatus(message, variant = "muted") {
+  const el = document.getElementById("adminAuthStatus");
+  if (!el) return;
+  el.textContent = message || "";
+  el.classList.remove("is-error", "is-success", "is-muted");
+  if (variant === "error") el.classList.add("is-error");
+  else if (variant === "success") el.classList.add("is-success");
+  else el.classList.add("is-muted");
+}
+
+function setAdminProtectedVisible(visible) {
+  const root = document.getElementById("adminProtectedRoot");
+  if (root) root.hidden = !visible;
+  document.body.classList.toggle("admin-auth-locked", !visible);
+}
+
+function updateAdminUserUi(session) {
+  const form = document.getElementById("adminLoginForm");
+  const userBox = document.getElementById("adminAuthUserBox");
+  const userText = document.getElementById("adminAuthUserText");
+  const email = session?.user?.email || "";
+
+  if (form) form.hidden = !!session;
+  if (userBox) userBox.hidden = !session;
+  if (userText) userText.textContent = email ? `${email} 로그인됨` : "관리자 로그인됨";
+}
+
+async function loadAdminAuthConfig() {
+  const json = await fetchJsonNoCache(`${API_BASE}/api/admin-auth-config`);
+  if (!json || json.ok === false) throw new Error("관리자 인증 설정을 불러오지 못했습니다.");
+  return json;
+}
+
+async function ensureSupabaseClient() {
+  if (adminAuthState.supabase) return adminAuthState.supabase;
+
+  const config = adminAuthState.config || await loadAdminAuthConfig();
+  adminAuthState.config = config;
+
+  if (!config.enabled || !config.supabaseUrl || !config.supabaseAnonKey) {
+    throw new Error("Supabase 관리자 인증 환경변수가 설정되지 않았습니다.");
+  }
+
+  const factory = window?.supabase?.createClient;
+  if (typeof factory !== "function") {
+    throw new Error("Supabase 브라우저 클라이언트를 불러오지 못했습니다.");
+  }
+
+  adminAuthState.supabase = factory(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  return adminAuthState.supabase;
+}
+
+async function getAdminAccessToken() {
+  const sb = await ensureSupabaseClient();
+  const { data, error } = await sb.auth.getSession();
+  if (error) throw error;
+  const session = data?.session || null;
+  adminAuthState.session = session;
+  return session?.access_token || "";
+}
+
+async function adminFetch(url, options = {}) {
+  const token = await getAdminAccessToken();
+  if (!token) throw new Error("관리자 로그인이 필요합니다.");
+
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`
+  };
+
+  return fetch(url, {
+    ...options,
+    headers,
+    cache: options.cache || "no-store"
+  });
+}
+
+
+async function verifyAdminSession(session) {
+  if (!session?.access_token) return false;
+
+  const res = await fetch(`${API_BASE}/api/admin-auth-check?_ts=${Date.now()}`, {
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    }
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+
+  return true;
+}
+
+async function initializeAdminPageOnce() {
+  if (adminAuthState.pageInitialized) return;
+  adminAuthState.pageInitialized = true;
+
+  setupAdminTabs();
+  setupMoneyInputs();
+
+  loadStatsFromStorage();
+  ensureByLenderSection();
+  setupStatsInteractions();
+
+  setupLoanConfigToolsUI();
+
+  mergeLendersWithMaster();
+  setupLendersControls();
+  renderLendersList();
+  updateLendersConfigPreview();
+  setupLendersSaveButton();
+
+  await loadLendersConfigFromServer();
+
+  const m = getCurrentMonthKey();
+  if (m) {
+    ensureMonthNode(m);
+    renderByLenderSection(m);
+    applyByLenderModeUI(isByLenderMode(m));
+    ensureProductTotalsRow();
+    updateProductTotalsRow();
+  }
+}
+
+async function applyAuthenticatedState(session) {
+  adminAuthState.session = session || null;
+  updateAdminUserUi(adminAuthState.session);
+
+  if (adminAuthState.session) {
+    try {
+      await verifyAdminSession(adminAuthState.session);
+      setAdminProtectedVisible(true);
+      setAdminAuthStatus("관리자 인증이 확인되었습니다.", "success");
+      await initializeAdminPageOnce();
+      return;
+    } catch (error) {
+      console.error("admin role check error:", error);
+      setAdminProtectedVisible(false);
+      setAdminAuthStatus("이 계정은 관리자 권한이 없거나 아직 허용되지 않았습니다.", "error");
+      return;
+    }
+  }
+
+  setAdminProtectedVisible(false);
+  setAdminAuthStatus("로그인 후 통계/업체 설정 저장 기능을 사용할 수 있습니다.", "muted");
+}
+
+async function setupAdminAuth() {
+  setAdminProtectedVisible(false);
+  setAdminAuthStatus("관리자 인증 상태를 확인중입니다.", "muted");
+
+  const loginForm = document.getElementById("adminLoginForm");
+  const loginBtn = document.getElementById("adminLoginBtn");
+  const logoutBtn = document.getElementById("adminLogoutBtn");
+
+  try {
+    adminAuthState.config = await loadAdminAuthConfig();
+
+    if (!adminAuthState.config.enabled) {
+      setAdminAuthStatus("Supabase 관리자 인증 설정이 아직 배포되지 않았습니다. Vercel 환경변수를 먼저 설정해주세요.", "error");
+      return;
+    }
+
+    const sb = await ensureSupabaseClient();
+
+    sb.auth.onAuthStateChange(async (_event, session) => {
+      await applyAuthenticatedState(session || null);
+    });
+
+    const { data, error } = await sb.auth.getSession();
+    if (error) throw error;
+    await applyAuthenticatedState(data?.session || null);
+
+    if (loginForm) {
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = String(document.getElementById("adminLoginEmail")?.value || "").trim();
+        const password = String(document.getElementById("adminLoginPassword")?.value || "");
+        if (!email || !password) {
+          setAdminAuthStatus("이메일과 비밀번호를 입력해주세요.", "error");
+          return;
+        }
+
+        try {
+          if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.textContent = "로그인중...";
+          }
+
+          setAdminAuthStatus("로그인 중입니다.", "muted");
+          const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
+          if (signInError) throw signInError;
+        } catch (error) {
+          console.error("admin login error:", error);
+          setAdminAuthStatus("로그인에 실패했습니다. 관리자 계정 또는 권한 설정을 확인해주세요.", "error");
+        } finally {
+          if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = "로그인";
+          }
+        }
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        try {
+          await sb.auth.signOut();
+          window.location.reload();
+        } catch (error) {
+          console.error("admin logout error:", error);
+          setAdminAuthStatus("로그아웃 중 오류가 발생했습니다.", "error");
+        }
+      });
+    }
+  } catch (error) {
+    console.error("setupAdminAuth error:", error);
+    setAdminAuthStatus("관리자 인증 초기화 중 오류가 발생했습니다. 환경변수를 확인해주세요.", "error");
+  }
+}
+
 /* =========================================================
    공통/유틸
 ========================================================= */
@@ -1261,7 +1503,7 @@ function setupStatsInteractions() {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/ontu-stats`, {
+        const res = await adminFetch(`${API_BASE}/api/ontu-stats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2020,7 +2262,7 @@ function setPartnerOrderUnique(targetId, orderNum) {
 async function postLendersConfigToServer(successText) {
   const payload = { ...lendersConfig, meta: buildNaviMeta() };
 
-  const res = await fetch(`${API_BASE}/api/loan-config`, {
+  const res = await adminFetch(`${API_BASE}/api/loan-config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -3217,34 +3459,8 @@ function setupLendersSaveButton() {
 }
 
 /* ---------------- 초기화 ---------------- */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   ensureFinanceInputsStylesInjected();
-
   setupBetaMenu();
-  setupAdminTabs();
-  setupMoneyInputs();
-
-  loadStatsFromStorage();
-  ensureByLenderSection();
-  setupStatsInteractions();
-
-  setupLoanConfigToolsUI();
-
-  mergeLendersWithMaster();
-  setupLendersControls();
-  renderLendersList();
-  updateLendersConfigPreview();
-  setupLendersSaveButton();
-
-  loadLendersConfigFromServer();
-
-  // 초기 month가 이미 선택되어 있으면 byLender 섹션 렌더
-  const m = getCurrentMonthKey();
-  if (m) {
-    ensureMonthNode(m);
-    renderByLenderSection(m);
-    applyByLenderModeUI(isByLenderMode(m));
-    ensureProductTotalsRow();
-    updateProductTotalsRow();
-  }
+  await setupAdminAuth();
 });

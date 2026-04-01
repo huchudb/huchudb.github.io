@@ -896,3 +896,104 @@
   background:#fff;
   color:#111827;
 }
+
+
+/* ===== 관리자 인증 ===== */
+.admin-auth-shell{
+  max-width:1200px;
+  margin:24px auto 0;
+  padding:0 20px;
+}
+.admin-auth-card{
+  background:#ffffff;
+  border:1px solid var(--admin-line);
+  border-radius:var(--admin-radius);
+  box-shadow:0 6px 16px rgba(15,23,42,0.06);
+  padding:18px 20px;
+}
+.admin-auth-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.admin-auth-title{
+  margin:0;
+  font-size:22px;
+  font-weight:900;
+  color:var(--admin-strong);
+  letter-spacing:-0.02em;
+}
+.admin-auth-note{
+  margin:6px 0 0;
+  font-size:13px;
+  color:var(--admin-muted);
+  line-height:1.55;
+}
+.admin-auth-form{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(220px, 1fr)) auto;
+  gap:12px;
+  align-items:end;
+}
+.admin-auth-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.admin-auth-field label{
+  font-size:13px;
+  font-weight:800;
+  color:#1f2937;
+}
+.admin-auth-actions{
+  display:flex;
+  align-items:end;
+}
+.admin-auth-status{
+  margin:12px 0 0;
+  font-size:13px;
+  font-weight:800;
+  color:#374151;
+  line-height:1.5;
+}
+.admin-auth-status.is-error{ color:#b91c1c; }
+.admin-auth-status.is-success{ color:#166534; }
+.admin-auth-status.is-muted{ color:#6b7280; }
+.admin-auth-userbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.admin-auth-usertext{
+  font-size:13px;
+  font-weight:800;
+  color:#111827;
+}
+.admin-auth-logout-btn{
+  border:1px solid var(--admin-line);
+  background:#fff;
+  color:#111827;
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.admin-auth-logout-btn:hover{ background:#f9fafb; }
+#adminProtectedRoot[hidden]{ display:none !important; }
+body.admin-auth-locked .admin-page{ opacity:.55; pointer-events:none; user-select:none; }
+
+@media (max-width: 900px){
+  .admin-auth-form{ grid-template-columns:1fr; }
+  .admin-auth-actions .admin-save-btn{ width:100%; }
+}
+@media (max-width: 600px){
+  .admin-auth-shell{ padding:0 14px; }
+  .admin-auth-card{ padding:16px; }
+  .admin-auth-title{ font-size:20px; }
+}
