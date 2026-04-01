@@ -60,7 +60,8 @@ const adminAuthState = {
   session: null,
   config: null,
   ready: false,
-  pageInitialized: false
+  pageInitialized: false,
+  authBootstrapped: false
 };
 
 function setAdminAuthStatus(message, variant = "muted") {
@@ -84,9 +85,17 @@ function updateAdminUserUi(session) {
   const userBox = document.getElementById("adminAuthUserBox");
   const userText = document.getElementById("adminAuthUserText");
   const email = session?.user?.email || "";
+  const hasSession = !!session;
 
-  if (form) form.hidden = !!session;
-  if (userBox) userBox.hidden = !session;
+  if (form) {
+    form.hidden = hasSession;
+    form.setAttribute("aria-hidden", hasSession ? "true" : "false");
+    form.classList.toggle("is-hidden", hasSession);
+  }
+  if (userBox) {
+    userBox.hidden = !hasSession;
+    userBox.setAttribute("aria-hidden", hasSession ? "false" : "true");
+  }
   if (userText) userText.textContent = email ? `${email} 로그인됨` : "관리자 로그인됨";
 }
 
@@ -204,9 +213,10 @@ async function applyAuthenticatedState(session) {
 
   if (adminAuthState.session) {
     try {
+      setAdminAuthStatus("관리자 권한을 확인중입니다.", "muted");
       await verifyAdminSession(adminAuthState.session);
       setAdminProtectedVisible(true);
-      setAdminAuthStatus("관리자 인증이 확인되었습니다.", "success");
+      setAdminAuthStatus("관리자 로그인 및 권한 확인이 완료되었습니다.", "success");
       await initializeAdminPageOnce();
       return;
     } catch (error) {
@@ -239,13 +249,16 @@ async function setupAdminAuth() {
 
     const sb = await ensureSupabaseClient();
 
-    sb.auth.onAuthStateChange(async (_event, session) => {
-      await applyAuthenticatedState(session || null);
-    });
-
     const { data, error } = await sb.auth.getSession();
     if (error) throw error;
     await applyAuthenticatedState(data?.session || null);
+    adminAuthState.authBootstrapped = true;
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (!adminAuthState.authBootstrapped) return;
+      if (event === "INITIAL_SESSION") return;
+      await applyAuthenticatedState(session || null);
+    });
 
     if (loginForm) {
       loginForm.addEventListener("submit", async (e) => {
@@ -265,8 +278,9 @@ async function setupAdminAuth() {
           }
 
           setAdminAuthStatus("로그인 중입니다.", "muted");
-          const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
+          const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
           if (signInError) throw signInError;
+          await applyAuthenticatedState(signInData?.session || null);
         } catch (error) {
           console.error("admin login error:", error);
           setAdminAuthStatus("로그인에 실패했습니다. 관리자 계정 또는 권한 설정을 확인해주세요.", "error");

@@ -901,7 +901,7 @@
 /* ===== 관리자 인증 ===== */
 .admin-auth-shell{
   max-width:1200px;
-  margin:24px auto 0;
+  margin:240px auto 240px;
   padding:0 20px;
 }
 .admin-auth-card{
@@ -985,15 +985,19 @@
   cursor:pointer;
 }
 .admin-auth-logout-btn:hover{ background:#f9fafb; }
-#adminProtectedRoot[hidden]{ display:none !important; }
+#adminLoginForm[hidden],
+#adminAuthUserBox[hidden],
+#adminProtectedRoot[hidden],
+#adminLoginForm.is-hidden{ display:none !important; }
 body.admin-auth-locked .admin-page{ opacity:.55; pointer-events:none; user-select:none; }
 
 @media (max-width: 900px){
+  .admin-auth-shell{ margin:160px auto 160px; }
   .admin-auth-form{ grid-template-columns:1fr; }
   .admin-auth-actions .admin-save-btn{ width:100%; }
 }
 @media (max-width: 600px){
-  .admin-auth-shell{ padding:0 14px; }
+  .admin-auth-shell{ margin:120px auto 120px; padding:0 14px; }
   .admin-auth-card{ padding:16px; }
   .admin-auth-title{ font-size:20px; }
 }
